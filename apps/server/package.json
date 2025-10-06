@@ -1,0 +1,27 @@
+{
+  "name": "backend-app",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "wrangler pages dev",
+    "deploy": "pnpm run build && wrangler pages deploy",
+    "cf-typegen": "wrangler types --env-interface CloudflareBindings",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "hono": "^4.9.10"
+  },
+  "devDependencies": {
+    "@homewise/typescript-config": "workspace:*",
+    "@homewise/eslint-config": "workspace:*",
+    "@homewise/prettier-config": "workspace:*",
+    "@hono/vite-build": "^1.7.0",
+    "@hono/vite-dev-server": "^0.22.0",
+    "eslint": "catalog:",
+    "prettier-plugin-tailwindcss": "catalog:",
+    "vite": "catalog:",
+    "wrangler": "^4.42.0"
+  },
+  "prettier": "@homewise/prettier-config/default"
+}
