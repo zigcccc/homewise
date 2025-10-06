@@ -1,4 +1,5 @@
 {
+  "prettier.configPath": "./packages/prettier-config/prettier.config.js",
   "eslint.workingDirectories": [
     {
       "mode": "auto"

@@ -1,16 +1,8 @@
-import { type JSX } from "react";
+import { type PropsWithChildren } from 'react';
 
-export function Card({
-  className,
-  title,
-  children,
-  href,
-}: {
-  className?: string;
-  title: string;
-  children: React.ReactNode;
-  href: string;
-}): JSX.Element {
+type Props = PropsWithChildren<{ title: string; className?: string; href: string }>;
+
+export function Card({ className, title, children, href }: Props) {
   return (
     <a
       className={className}

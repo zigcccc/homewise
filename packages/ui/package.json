@@ -1,6 +1,6 @@
 {
-  "name": "@repo/ui",
-  "version": "0.0.0",
+  "name": "@homewise/ui",
+  "version": "0.1.0",
   "private": true,
   "exports": {
     "./*": "./src/*.tsx"
@@ -11,16 +11,19 @@
     "check-types": "tsc --noEmit"
   },
   "devDependencies": {
-    "@repo/eslint-config": "workspace:*",
-    "@repo/typescript-config": "workspace:*",
-    "@types/node": "^22.15.3",
-    "@types/react": "19.1.0",
-    "@types/react-dom": "19.1.1",
-    "eslint": "^9.34.0",
-    "typescript": "5.9.2"
+    "@homewise/eslint-config": "workspace:*",
+    "@homewise/typescript-config": "workspace:*",
+    "@homewise/prettier-config": "workspace:*",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "eslint": "catalog:",
+    "typescript": "catalog:",
+    "prettier-plugin-tailwindcss": "catalog:"
   },
   "dependencies": {
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0"
-  }
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "prettier": "@homewise/prettier-config/default"
 }

@@ -1,0 +1,13 @@
+{
+  "name": "@homewise/prettier-config",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "exports": {
+    "./default": "./prettier.config.js"
+  },
+  "devDependencies": {
+    "prettier": "catalog:",
+    "prettier-plugin-tailwindcss": "catalog:"
+  }
+}
