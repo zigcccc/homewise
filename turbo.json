@@ -2,6 +2,21 @@
   "$schema": "https://turborepo.com/schema.json",
   "ui": "tui",
   "tasks": {
+    "db:up": {
+      "dependsOn": [
+        "^db:up"
+      ],
+      "cache": false
+    },
+    "db:migrations:apply": {
+      "cache": false
+    },
+    "db:studio": {
+      "dependsOn": [
+        "db:up"
+      ],
+      "cache": false
+    },
     "build": {
       "dependsOn": [
         "^build"
@@ -26,6 +41,9 @@
       ]
     },
     "dev": {
+      "dependsOn": [
+        "db:up"
+      ],
       "cache": false,
       "persistent": true
     }

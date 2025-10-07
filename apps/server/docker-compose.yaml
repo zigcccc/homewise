@@ -1,0 +1,11 @@
+services:
+  postgres:
+    image: postgres:17.6
+    restart: unless-stopped
+    container_name: homewise-db
+    ports:
+      - "8765:5432"
+    environment:
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_USER=user
+      - POSTGRES_DB=homewise_db
