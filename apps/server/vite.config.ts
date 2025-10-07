@@ -7,8 +7,12 @@ import tsconfigpaths from 'vite-tsconfig-paths';
 
 dotenv.config({ debug: true });
 
-export default defineConfig(async () => {
+export default defineConfig(async ({ mode }) => {
   return {
-    plugins: [tsconfigpaths(), devServer({ adapter, entry: 'src/index.ts' }), build()],
+    plugins: [
+      tsconfigpaths(),
+      devServer({ adapter: () => adapter({ proxy: { environment: mode } }), entry: 'src/index.ts' }),
+      build(),
+    ],
   };
 });
