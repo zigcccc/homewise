@@ -8,21 +8,13 @@
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types",
     "db:migrations:apply": "turbo run db:migrations:apply",
-    "db:studio": "turbo run db:studio",
-    "prepare": "husky"
+    "db:studio": "turbo run db:studio"
   },
   "devDependencies": {
-    "husky": "catalog:",
     "lint-staged": "catalog:",
     "prettier": "catalog:",
     "turbo": "^2.5.8",
     "typescript": "catalog:"
-  },
-  "lint-staged": {
-    "**/src/**/*.{js,ts,tsx}": [
-      "prettier --write --ignore-unknown",
-      "eslint --max-warnings=0 --no-ignore"
-    ]
   },
   "packageManager": "pnpm@10.18.1",
   "engines": {
