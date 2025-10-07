@@ -10,8 +10,13 @@ const app = new Hono();
 app.use(logger());
 
 app.get('/', async (c) => {
-  const expenses = await db.select().from(schema.expenses);
-  return c.json({ expenses });
+  try {
+    const expenses = await db.select().from(schema.expenses);
+    return c.json({ expenses });
+  } catch (err) {
+    console.log(err);
+    return c.json({ error: err });
+  }
 });
 
 app.post(
