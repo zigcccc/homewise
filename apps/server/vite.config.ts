@@ -1,13 +1,13 @@
 import build from '@hono/vite-build/vercel';
 import devServer from '@hono/vite-dev-server';
-import dotenv from 'dotenv';
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import tsconfigpaths from 'vite-tsconfig-paths';
 
-dotenv.config({ debug: true });
+export default defineConfig(async ({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), ['HOMEWISE_']);
 
-export default defineConfig(async () => {
   return {
-    plugins: [tsconfigpaths(), devServer({ entry: 'src/index.ts' }), build()],
+    envPrefix: 'HOMEWISE_',
+    plugins: [tsconfigpaths(), devServer({ env, entry: 'src/index.ts' }), build()],
   };
 });

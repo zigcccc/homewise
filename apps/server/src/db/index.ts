@@ -4,10 +4,10 @@ import { Pool as PgPool } from 'pg';
 
 import * as schema from '@/db/schema';
 
-const Pool = process.env.NODE_ENV === 'production' ? NeonPool : PgPool;
+const Pool = import.meta.env.PROD ? NeonPool : PgPool;
 
 export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: import.meta.env.HOMEWISE_DATABASE_URL,
   max: 10,
   idleTimeoutMillis: 30000,
 });
