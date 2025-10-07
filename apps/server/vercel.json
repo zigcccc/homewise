@@ -1,0 +1,14 @@
+{
+  "functions": {
+    "src/index.ts": {
+      "runtime": "edge",
+      "memory": 128
+    }
+  },
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/src/index.ts"
+    }
+  ]
+}
