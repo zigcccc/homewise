@@ -1,18 +1,13 @@
-import build from '@hono/vite-build/cloudflare-pages';
+import build from '@hono/vite-build/vercel';
 import devServer from '@hono/vite-dev-server';
-import adapter from '@hono/vite-dev-server/cloudflare';
 import dotenv from 'dotenv';
 import { defineConfig } from 'vite';
 import tsconfigpaths from 'vite-tsconfig-paths';
 
 dotenv.config({ debug: true });
 
-export default defineConfig(async ({ mode }) => {
+export default defineConfig(async () => {
   return {
-    plugins: [
-      tsconfigpaths(),
-      devServer({ adapter: () => adapter({ proxy: { environment: mode } }), entry: 'src/index.ts' }),
-      build(),
-    ],
+    plugins: [tsconfigpaths(), devServer({ entry: 'src/index.ts' }), build()],
   };
 });
