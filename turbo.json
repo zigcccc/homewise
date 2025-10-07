@@ -29,8 +29,7 @@
         ".env*"
       ],
       "outputs": [
-        "./dist",
-        "./build"
+        "dist/**"
       ]
     },
     "lint": {
