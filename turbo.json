@@ -21,6 +21,9 @@
       "dependsOn": [
         "^build"
       ],
+      "env": [
+        "DATABASE_URL"
+      ],
       "inputs": [
         "$TURBO_DEFAULT$",
         ".env*"

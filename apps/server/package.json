@@ -8,7 +8,6 @@
     "db:migrations:apply": "drizzle-kit migrate",
     "dev": "vite",
     "build": "vite build",
-    "cf-typegen": "wrangler types --env-interface CloudflareBindings",
     "lint": "eslint ."
   },
   "dependencies": {
