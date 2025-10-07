@@ -26,7 +26,6 @@
     "@homewise/typescript-config": "workspace:*",
     "@hono/vite-build": "^1.7.0",
     "@hono/vite-dev-server": "^0.22.0",
-    "@types/better-sqlite3": "^7.6.13",
     "@types/pg": "^8.15.5",
     "drizzle-kit": "^0.31.5",
     "eslint": "catalog:",

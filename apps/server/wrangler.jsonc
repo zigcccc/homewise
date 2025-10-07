@@ -1,9 +1,0 @@
-{
-	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "backend-app",
-	"compatibility_date": "2025-10-06",
-	"pages_build_output_dir": "./dist",
-	"compatibility_flags": [
-		"nodejs_compat"
-	]
-}
