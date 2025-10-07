@@ -4,12 +4,9 @@
     "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "lib": [
-      "ESNext"
-    ],
-    "types": ["vite/client"],
+    "lib": ["DOM", "DOM.Iterable", "ES2022"],
+    "noEmit": true,
     "jsx": "react-jsx",
-    "jsxImportSource": "hono/jsx",
     "rootDir": ".",
     "paths": {
       "@/*": ["./src/*"]

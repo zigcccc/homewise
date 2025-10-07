@@ -1,0 +1,13 @@
+@url = http://localhost:5173
+
+GET {{url}}
+
+###
+
+POST {{url}}/expenses
+content-type: application/json
+
+{
+  "name": "New name",
+  "amount": 10.2
+}

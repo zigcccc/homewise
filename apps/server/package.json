@@ -1,27 +1,41 @@
 {
-  "name": "backend-app",
+  "name": "@homewise/backend-app",
   "type": "module",
   "scripts": {
+    "db:up": "docker compose up -d",
+    "db:studio": "drizzle-kit studio",
+    "db:migrations:create": "drizzle-kit generate",
+    "db:migrations:apply": "drizzle-kit migrate",
     "dev": "vite",
     "build": "vite build",
-    "preview": "wrangler pages dev",
+    "preview": "pnpm run build && wrangler pages dev",
     "deploy": "pnpm run build && wrangler pages deploy",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings",
     "lint": "eslint ."
   },
   "dependencies": {
+    "@hono/zod-validator": "^0.7.3",
+    "@neondatabase/serverless": "^1.0.2",
+    "dotenv": "^17.2.3",
+    "drizzle-orm": "^0.44.6",
     "hono": "^4.9.10"
   },
   "devDependencies": {
-    "@homewise/typescript-config": "workspace:*",
     "@homewise/eslint-config": "workspace:*",
     "@homewise/prettier-config": "workspace:*",
+    "@homewise/typescript-config": "workspace:*",
     "@hono/vite-build": "^1.7.0",
     "@hono/vite-dev-server": "^0.22.0",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/pg": "^8.15.5",
+    "drizzle-kit": "^0.31.5",
     "eslint": "catalog:",
+    "pg": "^8.16.3",
     "prettier-plugin-tailwindcss": "catalog:",
     "vite": "catalog:",
-    "wrangler": "^4.42.0"
+    "vite-tsconfig-paths": "catalog:",
+    "wrangler": "^4.42.0",
+    "zod": "catalog:"
   },
   "prettier": "@homewise/prettier-config/default"
 }

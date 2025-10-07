@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "exports": {
-    "./*": "./src/*.tsx"
+    "./*": "./src/*.tsx",
+    "./css": "./src/main.css"
   },
   "scripts": {
     "lint": "eslint . --max-warnings 0",
@@ -19,11 +20,14 @@
     "@types/react-dom": "catalog:",
     "eslint": "catalog:",
     "typescript": "catalog:",
-    "prettier-plugin-tailwindcss": "catalog:"
+    "prettier-plugin-tailwindcss": "catalog:",
+    "tailwindcss": "catalog:"
   },
   "dependencies": {
     "react": "catalog:",
-    "react-dom": "catalog:"
+    "react-dom": "catalog:",
+    "tailwind-merge": "catalog:",
+    "tw-animate-css": "catalog:"
   },
   "prettier": "@homewise/prettier-config/default"
 }
