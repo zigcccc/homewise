@@ -11,27 +11,25 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@hono/node-server": "^1.19.5",
-    "@hono/zod-validator": "^0.7.3",
-    "@neondatabase/serverless": "^1.0.2",
-    "dotenv": "^17.2.3",
-    "drizzle-orm": "^0.44.6",
-    "hono": "^4.9.10"
+    "@hono/node-server": "catalog:",
+    "@hono/zod-validator": "catalog:",
+    "@neondatabase/serverless": "catalog:",
+    "drizzle-orm": "catalog:",
+    "hono": "catalog:"
   },
   "devDependencies": {
     "@homewise/eslint-config": "workspace:*",
     "@homewise/prettier-config": "workspace:*",
     "@homewise/typescript-config": "workspace:*",
-    "@hono/vite-build": "^1.7.0",
-    "@hono/vite-dev-server": "^0.22.0",
-    "@types/pg": "^8.15.5",
-    "drizzle-kit": "^0.31.5",
+    "@hono/vite-build": "catalog:",
+    "@hono/vite-dev-server": "catalog:",
+    "@types/pg": "catalog:",
+    "drizzle-kit": "catalog:",
     "eslint": "catalog:",
-    "pg": "^8.16.3",
+    "pg": "catalog:",
     "prettier-plugin-tailwindcss": "catalog:",
     "vite": "catalog:",
     "vite-tsconfig-paths": "catalog:",
-    "wrangler": "^4.42.0",
     "zod": "catalog:"
   },
   "prettier": "@homewise/prettier-config/default"

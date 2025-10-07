@@ -2,6 +2,8 @@ import { type QueryClient } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { createRootRouteWithContext, HeadContent, Link, Outlet } from '@tanstack/react-router';
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools';
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { Suspense } from 'react';
 import { Toaster } from 'sonner';
 
@@ -16,6 +18,8 @@ function RootLayout() {
       <Suspense fallback={null}>
         <ReactQueryDevtools client={queryClient} />
         <TanStackRouterDevtools />
+        <SpeedInsights />
+        <Analytics />
       </Suspense>
     </>
   );
