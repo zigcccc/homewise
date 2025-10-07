@@ -3,3 +3,6 @@ compatibility_date = "2025-10-06"
 pages_build_output_dir = "./dist"
 
 compatibility_flags = ["nodejs_compat"]
+
+[env.production.vars]
+NODE_ENV = "production"
