@@ -10,7 +10,7 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default defineConfig(
-  { ignores: ['dist', 'coverage'] },
+  { ignores: ['dist', 'coverage', '.vercel', '.turbo', 'node_modules', '*.http'] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ['**/*.{ts,tsx,js,jsx}'],

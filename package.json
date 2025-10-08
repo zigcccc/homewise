@@ -12,7 +12,11 @@
     "db:migrations:apply": "turbo run db:migrations:apply",
     "db:studio": "turbo run db:studio"
   },
+  "dependencies": {
+    "hono": "catalog:"
+  },
   "devDependencies": {
+    "@homewise/typescript-config": "workspace:*",
     "lint-staged": "catalog:",
     "prettier": "catalog:",
     "turbo": "^2.5.8",

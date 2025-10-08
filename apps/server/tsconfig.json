@@ -3,6 +3,8 @@
   "compilerOptions": {
     "target": "ESNext",
     "module": "ESNext",
+    "incremental": true,
+    "composite": true,
     "moduleResolution": "Bundler",
     "lib": [
       "ESNext"
@@ -17,4 +19,5 @@
       "@/*": ["./src/*"]
     }
   },
+  "include": ["./src", "drizzle.config.ts"]
 }

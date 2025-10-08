@@ -1,6 +1,10 @@
 @url = http://localhost:5173
 
-GET {{url}}
+GET {{url}}/expenses
+
+###
+
+GET {{url}}/expenses/6
 
 ###
 
@@ -11,3 +15,7 @@ content-type: application/json
   "name": "New name",
   "amount": 10.2
 }
+
+###
+
+DELETE {{url}}/expenses/6

@@ -20,6 +20,7 @@
   "license": "ISC",
   "dependencies": {
     "@homewise/ui": "workspace:*",
+    "@homewise/server": "workspace:*",
     "@tanstack/react-query": "catalog:",
     "@tanstack/react-router": "catalog:",
     "@tanstack/router-plugin": "catalog:",

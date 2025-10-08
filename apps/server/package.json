@@ -1,6 +1,7 @@
 {
-  "name": "@homewise/backend-app",
+  "name": "@homewise/server",
   "type": "module",
+  "types": "./src/index.ts",
   "scripts": {
     "db:up": "docker compose up -d",
     "db:studio": "drizzle-kit studio",
@@ -8,14 +9,14 @@
     "db:migrations:apply": "drizzle-kit migrate",
     "dev": "vite",
     "build": "vite build",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "check-types": "tsc"
   },
   "dependencies": {
     "@hono/node-server": "catalog:",
     "@hono/zod-validator": "catalog:",
     "@neondatabase/serverless": "catalog:",
-    "drizzle-orm": "catalog:",
-    "hono": "catalog:"
+    "drizzle-orm": "catalog:"
   },
   "devDependencies": {
     "@homewise/eslint-config": "workspace:*",

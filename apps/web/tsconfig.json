@@ -7,9 +7,13 @@
     "lib": ["DOM", "DOM.Iterable", "ES2022"],
     "noEmit": true,
     "jsx": "react-jsx",
+    "types": ["vite/client"],
     "rootDir": ".",
     "paths": {
       "@/*": ["./src/*"]
     }
   },
+  "references": [
+    { "path": "../server/" }
+  ]
 }
