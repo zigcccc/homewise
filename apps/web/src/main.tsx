@@ -9,7 +9,7 @@ import { routeTree } from './routeTree.gen';
 
 dayjs.extend(customParseFormat);
 
-import '@homewise/ui/css';
+import './main.css';
 
 const queryClient = new QueryClient();
 

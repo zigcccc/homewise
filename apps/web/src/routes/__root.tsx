@@ -1,3 +1,4 @@
+import { SidebarInset, SidebarProvider } from '@homewise/ui/core/sidebar';
 import { type QueryClient } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { createRootRouteWithContext, HeadContent, Link, Outlet } from '@tanstack/react-router';
@@ -7,6 +8,8 @@ import { SpeedInsights } from '@vercel/speed-insights/react';
 import { Suspense } from 'react';
 import { Toaster } from 'sonner';
 
+import { AppSidebar } from './-components/AppSidebar';
+
 function RootLayout() {
   const { queryClient } = Route.useRouteContext();
 
@@ -14,7 +17,12 @@ function RootLayout() {
     <>
       <HeadContent />
       <Toaster position="top-center" richColors />
-      <Outlet />
+      <SidebarProvider>
+        <AppSidebar />
+        <SidebarInset>
+          <Outlet />
+        </SidebarInset>
+      </SidebarProvider>
       <Suspense fallback={null}>
         <ReactQueryDevtools client={queryClient} />
         <TanStackRouterDevtools />

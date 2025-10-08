@@ -3,27 +3,37 @@
   "version": "0.1.0",
   "private": true,
   "exports": {
-    "./*": "./src/*.tsx",
-    "./css": "./src/main.css"
+    "./*": {
+      "import": "./dist/*.js",
+      "types": "./dist/*.d.ts"
+    }
   },
   "scripts": {
+    "dev": "tsc --watch",
+    "build": "tsc",
     "lint": "eslint . --max-warnings 0",
-    "generate:component": "turbo gen react-component",
     "check-types": "tsc --noEmit"
   },
   "devDependencies": {
     "@homewise/eslint-config": "workspace:*",
-    "@homewise/typescript-config": "workspace:*",
     "@homewise/prettier-config": "workspace:*",
+    "@homewise/typescript-config": "workspace:*",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "eslint": "catalog:",
-    "typescript": "catalog:",
     "prettier-plugin-tailwindcss": "catalog:",
-    "tailwindcss": "catalog:"
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:"
   },
   "dependencies": {
+    "@radix-ui/react-dialog": "catalog:",
+    "@radix-ui/react-separator": "catalog:",
+    "@radix-ui/react-slot": "catalog:",
+    "@radix-ui/react-tooltip": "catalog:",
+    "class-variance-authority": "catalog:",
+    "clsx": "catalog:",
+    "lucide-react": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
     "tailwind-merge": "catalog:",

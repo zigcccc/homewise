@@ -12,10 +12,11 @@
   },
   "iconLibrary": "lucide",
   "aliases": {
-    "components": "@homwise/ui/components",
-    "lib": "@homwise/ui/lib",
-    "hooks": "@homwise/ui/hooks",
-    "utils": "@homwise/ui/utils"
+    "components": "@homewise/ui/components",
+    "lib": "@homewise/ui/lib",
+    "hooks": "@homewise/ui/hooks",
+    "utils": "@homewise/ui/utils",
+    "ui": "@homewise/ui/core"
   },
   "registries": {}
 }

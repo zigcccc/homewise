@@ -2,7 +2,15 @@
   "extends": "@homewise/typescript-config/react-library.json",
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "."
+    "rootDir": "./src",
+    "moduleResolution": "bundler",
+    "module": "esnext",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "declaration": true,
+    "paths": {
+      "@/*": ["./src/*"],
+    }
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist"]
