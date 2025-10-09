@@ -25,7 +25,9 @@
         "^build"
       ],
       "env": [
-        "HOMEWISE_DATABASE_URL"
+        "HOMEWISE_DATABASE_URL",
+        "HOMEWISE_RESEND_API_KEY",
+        "VITE_API_URL"
       ],
       "inputs": [
         "$TURBO_DEFAULT$",
