@@ -22,7 +22,7 @@ const expnensesApp = new Hono<AppContext>()
   })
   .delete('/:id', zValidator('param', readExpensePathParamsModel), async (c) => {
     const { id } = c.req.valid('param');
-    await ExpensesService.delete(id);
+    await ExpensesService.destroy(id);
     return c.json({ success: true });
   });
 

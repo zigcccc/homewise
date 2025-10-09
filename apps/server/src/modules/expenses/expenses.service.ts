@@ -25,7 +25,7 @@ export class ExpensesService {
     return createdExpense;
   }
 
-  public static async delete(id: number) {
-    return db.delete(schema.expenses).where(eq(schema.expenses.id, id));
+  public static async destroy(id: number) {
+    return db.delete(schema.expenses).where(eq(schema.expenses.id, id)).returning();
   }
 }

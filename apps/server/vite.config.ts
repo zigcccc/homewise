@@ -11,6 +11,10 @@ export default defineConfig(async ({ mode }) => {
       cors: false,
     },
     envPrefix: ['HOMEWISE_', 'BETTER_AUTH_'],
-    plugins: [tsconfigpaths(), devServer({ env, entry: 'src/index.ts' }), build()],
+    plugins: [
+      tsconfigpaths(),
+      devServer({ env, entry: 'src/index.ts' }),
+      build({ vercel: { function: { runtime: 'nodejs22.x' } } }),
+    ],
   };
 });

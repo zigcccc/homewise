@@ -1,7 +1,0 @@
-{
-  "functions": {
-    "__hono/**/*.js": {
-      "runtime": "nodejs@22.x"
-    }
-  }
-}
