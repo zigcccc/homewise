@@ -8,17 +8,20 @@ import { SpeedInsights } from '@vercel/speed-insights/react';
 import { Suspense } from 'react';
 import { Toaster } from 'sonner';
 
+import { authClient } from '@/auth/client';
+
 import { AppSidebar } from './-components/AppSidebar';
 
 function RootLayout() {
   const { queryClient } = Route.useRouteContext();
+  const { data } = authClient.useSession();
 
   return (
     <>
       <HeadContent />
       <Toaster position="top-center" richColors />
       <SidebarProvider>
-        <AppSidebar />
+        {data?.session && <AppSidebar />}
         <SidebarInset>
           <Outlet />
         </SidebarInset>
@@ -26,8 +29,8 @@ function RootLayout() {
       <Suspense fallback={null}>
         <ReactQueryDevtools client={queryClient} />
         <TanStackRouterDevtools />
-        <SpeedInsights />
-        <Analytics />
+        {import.meta.env.PROD && <SpeedInsights />}
+        {import.meta.env.PROD && <Analytics />}
       </Suspense>
     </>
   );

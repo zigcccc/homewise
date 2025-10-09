@@ -9,6 +9,7 @@
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types",
+    "db:migrations:create": "turbo run db:migrations:create",
     "db:migrations:apply": "turbo run db:migrations:apply",
     "db:studio": "turbo run db:studio"
   },

@@ -3,7 +3,7 @@ import { HTTPException } from 'hono/http-exception';
 
 import { db, schema } from '@/db';
 
-import { type CreateExpense } from './expenses.models';
+import { type CreateExpense } from './models';
 
 export class ExpensesService {
   public static async readAll() {

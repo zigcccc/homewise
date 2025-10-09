@@ -3,7 +3,7 @@ import { createFileRoute } from '@tanstack/react-router';
 
 import { getListExpensesQueryOptions } from '@/modules/expenses';
 
-export const Route = createFileRoute('/')({
+export const Route = createFileRoute('/_authenticated/')({
   component: HomeRoute,
   pendingComponent: () => <p>Loading...</p>,
   async loader({ context }) {

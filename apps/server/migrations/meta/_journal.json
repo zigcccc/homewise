@@ -15,6 +15,13 @@
       "when": 1759826294212,
       "tag": "0001_wakeful_nightcrawler",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1759986388456,
+      "tag": "0002_crazy_freak",
+      "breakpoints": true
     }
   ]
 }

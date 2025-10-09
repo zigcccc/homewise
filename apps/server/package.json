@@ -2,6 +2,16 @@
   "name": "@homewise/server",
   "type": "module",
   "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "type": "./src/index.ts"
+    },
+    "./expenses": {
+      "import": "./src/modules/expenses/models/index.ts",
+      "type": "./src/modules/expenses/models/index.ts"
+    }
+  },
   "scripts": {
     "db:up": "docker compose up -d",
     "db:studio": "drizzle-kit studio",
@@ -13,10 +23,14 @@
     "check-types": "tsc"
   },
   "dependencies": {
+    "@homewise/emails": "workspace:*",
     "@hono/node-server": "catalog:",
     "@hono/zod-validator": "catalog:",
     "@neondatabase/serverless": "catalog:",
-    "drizzle-orm": "catalog:"
+    "@react-email/components": "catalog:",
+    "better-auth": "catalog:",
+    "drizzle-orm": "catalog:",
+    "resend": "catalog:"
   },
   "devDependencies": {
     "@homewise/eslint-config": "workspace:*",

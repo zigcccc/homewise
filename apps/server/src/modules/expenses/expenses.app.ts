@@ -1,11 +1,12 @@
 import { Hono } from 'hono';
 
 import { zValidator } from '@/lib/validation';
+import { type AppContext } from '@/types/app.type';
 
-import { createExpenseModel, readExpensePathParamsModel } from './expenses.models';
 import { ExpensesService } from './expenses.service';
+import { createExpenseModel, readExpensePathParamsModel } from './models';
 
-const expnensesApp = new Hono()
+const expnensesApp = new Hono<AppContext>()
   .get('/', async (c) => {
     const data = await ExpensesService.readAll();
     return c.json({ data });

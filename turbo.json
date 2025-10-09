@@ -8,6 +8,9 @@
       ],
       "cache": false
     },
+    "db:migrations:create": {
+      "cache": false
+    },
     "db:migrations:apply": {
       "cache": false
     },

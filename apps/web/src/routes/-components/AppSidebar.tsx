@@ -1,3 +1,10 @@
+import { Avatar, AvatarFallback, AvatarImage } from '@homewise/ui/core/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@homewise/ui/core/dropdown-menu';
 import {
   Sidebar,
   SidebarHeader,
@@ -9,12 +16,13 @@ import {
   SidebarFooter,
   SidebarMenuButton,
 } from '@homewise/ui/core/sidebar';
-import { Link } from '@tanstack/react-router';
+import { Link, useNavigate, useRouteContext } from '@tanstack/react-router';
 import {
   CogIcon,
   CookingPotIcon,
   LayoutDashboardIcon,
   ListTodoIcon,
+  LogOutIcon,
   MapPinIcon,
   PackageOpenIcon,
   PiggyBankIcon,
@@ -22,7 +30,19 @@ import {
   UsersIcon,
 } from 'lucide-react';
 
+import { authClient } from '@/auth/client';
+
 export function AppSidebar() {
+  const { queryClient } = useRouteContext({ strict: false });
+  const navigate = useNavigate();
+  const { data: auth } = authClient.useSession();
+
+  const handleSignOut = async () => {
+    await authClient.signOut();
+    queryClient?.clear();
+    navigate({ to: '/login', search: { redirect: window.location.href } });
+  };
+
   return (
     <Sidebar collapsible="icon" variant="inset">
       <SidebarHeader>
@@ -136,7 +156,37 @@ export function AppSidebar() {
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter />
+      {auth?.user && (
+        <SidebarFooter>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <SidebarMenuButton
+                    className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground w-full justify-start hover:cursor-pointer"
+                    size="lg"
+                  >
+                    <Avatar className="mr-2">
+                      <AvatarImage alt={auth.user.name} src={auth.user.image ?? undefined} />
+                      <AvatarFallback>{auth.user.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col items-start gap-0.5 leading-none">
+                      <span className="font-medium">{auth.user.name}</span>
+                      <span className="text-muted-foreground text-xs">{auth.user.email}</span>
+                    </div>
+                  </SidebarMenuButton>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-(--radix-dropdown-menu-trigger-width)" side="top">
+                  <DropdownMenuItem onClick={handleSignOut}>
+                    <LogOutIcon className="mr-2 h-4 w-4" />
+                    <span>Sign out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarFooter>
+      )}
     </Sidebar>
   );
 }

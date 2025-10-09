@@ -1,5 +1,18 @@
 @url = http://localhost:5173
 
+# @name login
+POST {{url}}/auth/sign-in/email
+content-type: application/json
+
+{ "email": "test@email.com", "password": "test1234" }
+
+###
+
+# @name logout
+POST {{url}}/auth/sign-out
+
+###
+
 GET {{url}}/expenses
 
 ###

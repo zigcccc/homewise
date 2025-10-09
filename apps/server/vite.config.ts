@@ -7,6 +7,9 @@ export default defineConfig(async ({ mode }) => {
   const env = loadEnv(mode, process.cwd(), ['HOMEWISE_']);
 
   return {
+    server: {
+      cors: false,
+    },
     envPrefix: 'HOMEWISE_',
     plugins: [tsconfigpaths(), devServer({ env, entry: 'src/index.ts' }), build()],
   };
