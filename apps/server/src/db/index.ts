@@ -39,6 +39,6 @@ import { drizzle } from 'drizzle-orm/neon-http';
 
 import * as schema from './schema';
 
-const client = neon(import.meta.env.HOMEWISE_DATABASE_URL);
+const client = neon(import.meta.env.DATABASE_URL);
 export const db = drizzle({ client, schema, casing: 'snake_case' });
 export { schema };

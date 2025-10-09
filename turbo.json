@@ -25,6 +25,8 @@
         "^build"
       ],
       "env": [
+        "DATABASE_URL",
+        "DATABASE_URL_UNPOOLED",
         "HOMEWISE_DATABASE_URL",
         "HOMEWISE_RESEND_API_KEY",
         "VITE_API_URL",
