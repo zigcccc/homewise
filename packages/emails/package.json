@@ -17,7 +17,6 @@
     "@homewise/typescript-config": "workspace:*",
     "@react-email/preview-server": "catalog:",
     "@types/node": "catalog:",
-    "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "eslint": "catalog:",
     "prettier-plugin-tailwindcss": "catalog:",

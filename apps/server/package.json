@@ -39,7 +39,6 @@
     "@hono/vite-build": "catalog:",
     "@hono/vite-dev-server": "catalog:",
     "@types/pg": "catalog:",
-    "@types/react": "catalog:",
     "drizzle-kit": "catalog:",
     "eslint": "catalog:",
     "pg": "catalog:",
