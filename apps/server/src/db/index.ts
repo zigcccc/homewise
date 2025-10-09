@@ -34,9 +34,11 @@
 // }
 // export { schema };
 
+import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
 
 import * as schema from './schema';
 
-export const db = drizzle(import.meta.env.HOMEWISE_DATABASE_URL, { schema, casing: 'snake_case' });
+const client = neon(import.meta.env.HOMEWISE_DATABASE_URL);
+export const db = drizzle({ client, schema, casing: 'snake_case' });
 export { schema };
