@@ -11,22 +11,22 @@ const app = new Hono<AppContext>()
   // CORS rules
   .use('/*', corsConfig)
   // Auth handlers
-  .on(['POST', 'GET'], '/auth/**', (c) => {
-    c.header('Access-Control-Allow-Credentials', 'true');
+  .on(['POST', 'GET'], '/auth/*', (c) => {
+    // c.header('Access-Control-Allow-Credentials', 'true');
     return auth.handler(c.req.raw);
   })
   // Auth guard
-  .use('*', async (c, next) => {
-    const session = await auth.api.getSession({ headers: c.req.raw.headers });
-    if (!session) {
-      return c.body(null, 401);
-    }
+  // .use('*', async (c, next) => {
+  //   const session = await auth.api.getSession({ headers: c.req.raw.headers });
+  //   if (!session) {
+  //     return c.body(null, 401);
+  //   }
 
-    c.set('user', session.user);
-    c.set('session', session.session);
+  //   c.set('user', session.user);
+  //   c.set('session', session.session);
 
-    return next();
-  })
+  //   return next();
+  // })
   // App routes
   .route('/expenses', expnensesApp);
 
