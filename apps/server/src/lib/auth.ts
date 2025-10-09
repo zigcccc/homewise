@@ -15,6 +15,7 @@ export const auth = betterAuth({
   database: drizzleAdapter(db, { provider: 'pg', schema }),
   plugins: import.meta.env.DEV ? [openAPI()] : [],
   trustedOrigins: allowedOrigins,
+  secret: import.meta.env.BETTER_AUTH_SECRET,
   user: {
     additionalFields: {
       role: {
