@@ -1,4 +1,4 @@
-import z from 'zod';
+import * as z from 'zod';
 
 export const createExpenseModel = z.object({
   name: z.string().trim().min(3, { error: 'Too short' }).max(128, { error: 'Too long' }),

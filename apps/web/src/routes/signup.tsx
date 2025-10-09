@@ -9,7 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { createFileRoute, Link, redirect } from '@tanstack/react-router';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { toast } from 'sonner';
-import z from 'zod';
+import * as z from 'zod';
 
 import { authClient } from '@/auth/client';
 

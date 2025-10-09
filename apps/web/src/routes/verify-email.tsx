@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@home
 import { Separator } from '@homewise/ui/core/separator';
 import { createFileRoute, redirect } from '@tanstack/react-router';
 import { toast } from 'sonner';
-import z from 'zod';
+import * as z from 'zod';
 
 import { authClient } from '@/auth/client';
 
