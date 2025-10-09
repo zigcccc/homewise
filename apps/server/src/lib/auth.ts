@@ -7,7 +7,7 @@ import { openAPI } from 'better-auth/plugins';
 import { allowedOrigins } from '@/config/cors';
 import { db, schema } from '@/db';
 
-import { resend } from './resend.js';
+import { resend } from './resend';
 
 export const auth = betterAuth({
   appName: 'Homewise Auth',
@@ -35,7 +35,9 @@ export const auth = betterAuth({
     sendOnSignUp: true,
     autoSignInAfterVerification: true,
     async sendVerificationEmail({ user, url }) {
+      console.log('[DEBUG] Entering send verification mail flow...');
       const html = await render(VerifyEmail({ url, userName: user.name }));
+      console.log('[DEBUG] Created HTML string for email', html);
       await resend.emails.send({
         from: 'Homewise 🏡 <no-reply@home-wise.app>',
         to: user.email,
