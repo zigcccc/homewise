@@ -30,7 +30,8 @@
     "@react-email/components": "catalog:",
     "better-auth": "catalog:",
     "drizzle-orm": "catalog:",
-    "resend": "catalog:"
+    "resend": "catalog:",
+    "ws": "^8.18.3"
   },
   "devDependencies": {
     "@homewise/eslint-config": "workspace:*",
@@ -39,6 +40,7 @@
     "@hono/vite-build": "catalog:",
     "@hono/vite-dev-server": "catalog:",
     "@types/pg": "catalog:",
+    "@types/ws": "^8.18.1",
     "drizzle-kit": "catalog:",
     "eslint": "catalog:",
     "pg": "catalog:",

@@ -34,10 +34,13 @@
 // }
 // export { schema };
 
-import { neon } from '@neondatabase/serverless';
+import { neon, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
+import ws from 'ws';
 
 import * as schema from './schema';
+
+neonConfig.webSocketConstructor = ws;
 
 const client = neon(import.meta.env.DATABASE_URL);
 export const db = drizzle({ client, schema, casing: 'snake_case' });
