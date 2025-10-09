@@ -27,7 +27,8 @@
       "env": [
         "HOMEWISE_DATABASE_URL",
         "HOMEWISE_RESEND_API_KEY",
-        "VITE_API_URL"
+        "VITE_API_URL",
+        "BETTER_AUTH_SECRET"
       ],
       "inputs": [
         "$TURBO_DEFAULT$",
