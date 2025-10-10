@@ -1,3 +1,4 @@
+import build from '@hono/vite-build/vercel';
 import devServer from '@hono/vite-dev-server';
 import { defineConfig, loadEnv } from 'vite';
 import tsconfigpaths from 'vite-tsconfig-paths';
@@ -13,7 +14,7 @@ export default defineConfig(async ({ mode }) => {
     plugins: [
       tsconfigpaths(),
       devServer({ env, entry: 'src/index.ts' }),
-      // build({ vercel: { function: { runtime: 'nodejs22.x' } } }),
+      build({ vercel: { function: { runtime: 'nodejs22.x' } } }),
     ],
   };
 });

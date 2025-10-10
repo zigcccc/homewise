@@ -18,7 +18,7 @@
     "db:migrations:create": "drizzle-kit generate",
     "db:migrations:apply": "drizzle-kit migrate",
     "dev": "vite",
-    "build": "tsc",
+    "build": "tsc && vite build",
     "lint": "eslint .",
     "check-types": "tsc"
   },
