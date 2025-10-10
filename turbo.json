@@ -31,7 +31,8 @@
         "HOMEWISE_RESEND_API_KEY",
         "VITE_API_URL",
         "BETTER_AUTH_SECRET",
-        "BETTER_AUTH_URL"
+        "BETTER_AUTH_URL",
+        "NODEJS_HELPERS"
       ],
       "inputs": [
         "$TURBO_DEFAULT$",
