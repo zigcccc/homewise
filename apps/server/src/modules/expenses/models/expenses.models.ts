@@ -2,7 +2,10 @@ import * as z from 'zod';
 
 export const createExpenseModel = z.object({
   name: z.string().trim().min(3, { error: 'Too short' }).max(128, { error: 'Too long' }),
-  amount: z.preprocess((val) => (typeof val === 'number' ? val.toFixed(2) : val), z.string()),
+  amount: z
+    .number()
+    .refine((num) => num !== 0, { error: "Amount can' be 0" })
+    .transform((num) => num.toFixed(2)),
 });
 export type CreateExpense = z.infer<typeof createExpenseModel>;
 

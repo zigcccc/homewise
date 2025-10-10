@@ -16,18 +16,18 @@ const app = new Hono<AppContext>()
     return auth.handler(c.req.raw);
   })
   // Auth guard
-  .use('*', async (c, next) => {
-    const session = await auth.api.getSession({ headers: c.req.raw.headers });
+  // .use('*', async (c, next) => {
+  //   const session = await auth.api.getSession({ headers: c.req.raw.headers });
 
-    if (!session) {
-      return c.body(null, 401);
-    }
+  //   if (!session) {
+  //     return c.body(null, 401);
+  //   }
 
-    c.set('user', session.user);
-    c.set('session', session.session);
+  //   c.set('user', session.user);
+  //   c.set('session', session.session);
 
-    return next();
-  })
+  //   return next();
+  // })
   // App routes
   .route('/expenses', expnensesApp);
 
