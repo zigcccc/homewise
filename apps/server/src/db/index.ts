@@ -12,6 +12,6 @@ import * as schema from '@/db/schema';
 //   ssl: import.meta.env.PROD ? { rejectUnauthorized: false } : undefined,
 // });
 
-const client = neon(import.meta.env.DATABASE_URL);
+const client = neon(import.meta.env.DATABASE_URL_UNPOOLED);
 export const db = drizzle({ client, schema, casing: 'snake_case' });
 export { schema };
