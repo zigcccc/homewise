@@ -1,9 +1,7 @@
-import { Button } from '@homewise/ui/core/button';
-import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
+import { useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 
-import { client } from '@/api/client';
-import { generateKeys, getListExpensesQueryOptions } from '@/modules/expenses';
+import { getListExpensesQueryOptions } from '@/modules/expenses';
 
 export const Route = createFileRoute('/_authenticated/')({
   component: HomeRoute,
@@ -14,17 +12,7 @@ export const Route = createFileRoute('/_authenticated/')({
 });
 
 function HomeRoute() {
-  const { queryClient } = Route.useRouteContext();
   const { data: expenses } = useSuspenseQuery(getListExpensesQueryOptions());
-  const { mutateAsync, isPending } = useMutation({
-    mutationFn: async ({ name, amount }: { name: string; amount: number }) =>
-      client.expenses.$post({ json: { name, amount } }),
-  });
-
-  const handleAddExpense = async () => {
-    await mutateAsync({ name: 'Test expense', amount: 10.24 });
-    queryClient.invalidateQueries({ queryKey: generateKeys.list() });
-  };
 
   return (
     <div>
@@ -39,9 +27,6 @@ function HomeRoute() {
             </div>
           ))}
         </div>
-        <Button loading={isPending} onClick={handleAddExpense}>
-          Create test expense
-        </Button>
       </div>
     </div>
   );

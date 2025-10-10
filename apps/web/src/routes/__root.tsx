@@ -8,12 +8,13 @@ import { SpeedInsights } from '@vercel/speed-insights/react';
 import { Suspense } from 'react';
 import { Toaster } from 'sonner';
 
+import { authClient } from '@/auth/client';
+
 import { AppSidebar } from './-components/AppSidebar';
 
 function RootLayout() {
   const { queryClient } = Route.useRouteContext();
-  // const { data } = authClient.useSession();
-  const data = { session: null };
+  const { data } = authClient.useSession();
 
   return (
     <>

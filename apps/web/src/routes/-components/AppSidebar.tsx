@@ -30,16 +30,15 @@ import {
   UsersIcon,
 } from 'lucide-react';
 
+import { authClient } from '@/auth/client';
+
 export function AppSidebar() {
   const { queryClient } = useRouteContext({ strict: false });
   const navigate = useNavigate();
-  // const { data: auth } = authClient.useSession();
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const auth = { user: null } as any;
+  const { data: auth } = authClient.useSession();
 
   const handleSignOut = async () => {
-    // await authClient.signOut();
+    await authClient.signOut();
     queryClient?.clear();
     navigate({ to: '/login', search: { redirect: window.location.href } });
   };
