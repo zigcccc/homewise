@@ -12,6 +12,6 @@ import * as schema from '@/db/schema';
 //   ssl: import.meta.env.PROD ? { rejectUnauthorized: false } : undefined,
 // });
 
-const pool = new Pool({ connectionString: import.meta.env.DATABASE_URL, log: console.log, max: 20 });
+const pool = new Pool({ connectionString: import.meta.env.DATABASE_URL, log: console.log, max: 20, keepAlive: false });
 export const db = drizzle(pool, { schema, casing: 'snake_case' });
 export { schema };
