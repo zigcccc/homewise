@@ -1,5 +1,5 @@
-import { neon } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-http';
+import { Pool } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/neon-serverless';
 
 import * as schema from '@/db/schema';
 
@@ -12,6 +12,6 @@ import * as schema from '@/db/schema';
 //   ssl: import.meta.env.PROD ? { rejectUnauthorized: false } : undefined,
 // });
 
-const client = neon(import.meta.env.DATABASE_URL_UNPOOLED);
-export const db = drizzle({ client, schema, casing: 'snake_case' });
+const pool = new Pool({ connectionString: import.meta.env.DATABASE_URL });
+export const db = drizzle(pool, { schema, casing: 'snake_case' });
 export { schema };
