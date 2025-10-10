@@ -1,7 +1,8 @@
+import { neon } from '@neondatabase/serverless';
 import { eq } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 
-import { client, db, schema } from '@/db';
+import { db, schema } from '@/db';
 
 import { type CreateExpense } from './models';
 
@@ -23,10 +24,12 @@ export class ExpensesService {
   }
 
   public static async create(_data: CreateExpense) {
-    // const db = getDb();
-    // const [createdExpense] = await db.insert(schema.expenses).values(data).returning();
     console.log('[DEBUG] Creating an expense...');
     console.log('[DEBUG] Using DB URL: ', import.meta.env.DATABASE_URL_UNPOOLED);
+    const client = neon(import.meta.env.DATABASE_URL_UNPOOLED);
+    // const db = drizzle({ client, schema, casing: 'snake_case' });
+    // const db = getDb();
+    // const [createdExpense] = await db.insert(schema.expenses).values(data).returning();
     console.log('[DEBUG] Using driver: ', client);
     console.log('[DEBUG] Trying to execute simple version query...');
     const versionResult = await client.query('SELECT version();');
