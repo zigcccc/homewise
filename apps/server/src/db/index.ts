@@ -1,19 +1,13 @@
-import { neon } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-http';
+import { Pool as NeonPool } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/neon-serverless';
+import { Pool as PgPool } from 'pg';
 
+import { env } from '@/config/env';
 import * as schema from '@/db/schema';
 
-// const Pool = import.meta.env.PROD ? NeonPool : PgPool;
+const Pool = env.NODE_ENV === 'production' ? NeonPool : (PgPool as unknown as typeof NeonPool);
 
-// export const pool = new Pool({
-//   connectionString: import.meta.env.DATABASE_URL,
-//   max: 10,
-//   idleTimeoutMillis: 30000,
-//   ssl: import.meta.env.PROD ? { rejectUnauthorized: false } : undefined,
-// });
+const pool = new Pool({ connectionString: env.DATABASE_URL });
+const db = drizzle(pool, { schema, casing: 'snake_case' });
 
-// const pool = new Pool({ connectionString: import.meta.env.DATABASE_URL, log: console.log, max: 20, keepAlive: false });
-const client = neon(import.meta.env.DATABASE_URL_UNPOOLED);
-const db = drizzle({ client, schema, casing: 'snake_case' });
-
-export { schema, db, client };
+export { schema, db };

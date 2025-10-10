@@ -5,6 +5,7 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { openAPI } from 'better-auth/plugins';
 
 import { allowedOrigins } from '@/config/cors';
+import { env } from '@/config/env';
 import { db, schema } from '@/db';
 
 import { resend } from './resend';
@@ -13,9 +14,9 @@ export const auth = betterAuth({
   appName: 'Homewise Auth',
   basePath: '/auth',
   database: drizzleAdapter(db, { provider: 'pg', schema, debugLogs: true }),
-  plugins: import.meta.env.DEV ? [openAPI()] : [],
+  plugins: env.NODE_ENV !== 'production' ? [openAPI()] : [],
   trustedOrigins: allowedOrigins,
-  secret: import.meta.env.BETTER_AUTH_SECRET,
+  secret: env.BETTER_AUTH_SECRET,
   user: {
     additionalFields: {
       role: {

@@ -1,4 +1,3 @@
-import { neon } from '@neondatabase/serverless';
 import { eq } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 
@@ -23,22 +22,10 @@ export class ExpensesService {
     return expense;
   }
 
-  public static async create(_data: CreateExpense) {
-    console.log('[DEBUG] Creating an expense...');
-    console.log('[DEBUG] Using DB URL: ', import.meta.env.DATABASE_URL_UNPOOLED);
-    const client = neon(import.meta.env.DATABASE_URL_UNPOOLED);
-    // const db = drizzle({ client, schema, casing: 'snake_case' });
-    // const db = getDb();
-    // const [createdExpense] = await db.insert(schema.expenses).values(data).returning();
-    console.log('[DEBUG] Using driver: ', client);
-    console.log('[DEBUG] Trying to execute simple version query...');
-    const versionResult = await client.query('SELECT version();');
-    console.log('[DEBUG] Done! Result: ', versionResult);
-    console.log('[DEBUG] Trying to execute INSERT query...');
-    const result = await client.query("INSERT INTO expenses (name,amount) VALUES ('test', '10.00') RETURNING *");
-    console.log('[DEBUG] Done! Result: ', result);
+  public static async create(data: CreateExpense) {
+    const [createdExpense] = await db.insert(schema.expenses).values(data).returning();
 
-    return result as { id: number; name: string; amount: number }[];
+    return createdExpense;
   }
 
   public static async destroy(id: number) {
