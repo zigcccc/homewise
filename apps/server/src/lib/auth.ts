@@ -1,4 +1,3 @@
-import VerifyEmail from '@homewise/emails/VerifyEmail';
 import { render } from '@react-email/components';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
@@ -7,6 +6,7 @@ import { openAPI } from 'better-auth/plugins';
 import { allowedOrigins } from '@/config/cors';
 import { env } from '@/config/env';
 import { db, schema } from '@/db';
+import { VerifyEmail } from '@/emails/VerifyEmail';
 
 import { resend } from './resend';
 
@@ -36,9 +36,7 @@ export const auth = betterAuth({
     sendOnSignUp: true,
     autoSignInAfterVerification: true,
     async sendVerificationEmail({ user, url }) {
-      console.log('[DEBUG] Entering send verification mail flow...');
       const html = await render(VerifyEmail({ url, userName: user.name }));
-      console.log('[DEBUG] Created HTML string for email', html);
       await resend.emails.send({
         from: 'Homewise 🏡 <no-reply@home-wise.app>',
         to: user.email,

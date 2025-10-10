@@ -20,33 +20,45 @@
     "dev": "tsx watch ./src/index.ts",
     "build": "tsc && tsc-alias -f",
     "lint": "eslint .",
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "emails:preview": "email dev --port 4000"
   },
   "dependencies": {
-    "@homewise/emails": "workspace:*",
     "@hono/node-server": "catalog:",
     "@hono/zod-validator": "catalog:",
     "@neondatabase/serverless": "catalog:",
     "@react-email/components": "catalog:",
+    "@react-email/tailwind": "catalog:",
     "better-auth": "catalog:",
+    "class-variance-authority": "catalog:",
+    "clsx": "catalog:",
     "dotenv": "catalog:",
     "drizzle-orm": "catalog:",
+    "lucide-react": "catalog:",
+    "react-dom": "catalog:",
+    "react": "catalog:",
     "resend": "catalog:"
   },
   "devDependencies": {
     "@homewise/eslint-config": "workspace:*",
     "@homewise/prettier-config": "workspace:*",
     "@homewise/typescript-config": "workspace:*",
+    "@react-email/preview-server": "catalog:",
+    "@types/node": "catalog:",
     "@types/pg": "catalog:",
+    "@types/react-dom": "catalog:",
     "drizzle-kit": "catalog:",
     "eslint": "catalog:",
     "pg": "catalog:",
+    "prettier-eslint": "catalog:",
     "prettier-plugin-tailwindcss": "catalog:",
+    "react-email": "catalog:",
     "tsc-alias": "catalog:",
     "tsx": "catalog:",
-    "vite": "catalog:",
     "vite-tsconfig-paths": "catalog:",
-    "zod": "catalog:"
+    "vite": "catalog:",
+    "zod": "catalog:",
+    "typescript": "catalog:"
   },
   "prettier": "@homewise/prettier-config/default"
 }

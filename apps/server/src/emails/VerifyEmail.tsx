@@ -1,13 +1,13 @@
 import { Button, Container, Heading, Hr, Text } from '@react-email/components';
 
-import { Layout } from '../shared/Layout';
+import { Layout } from './shared/Layout';
 
 type Props = {
   userName: string;
   url: string;
 };
 
-export default function VerifyEmail({ userName, url }: Props) {
+export function VerifyEmail({ userName, url }: Props) {
   return (
     <Layout title="Verify your email">
       <Container>

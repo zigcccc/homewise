@@ -9,7 +9,6 @@
     "lib": [
       "ESNext"
     ],
-    "types": ["vite/client"],
     "jsx": "react-jsx",
     "outDir": "./dist",
     "noEmit": false,
