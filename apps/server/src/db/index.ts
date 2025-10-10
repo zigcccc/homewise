@@ -16,4 +16,4 @@ import * as schema from '@/db/schema';
 const client = neon(import.meta.env.DATABASE_URL_UNPOOLED);
 const db = drizzle({ client, schema, casing: 'snake_case' });
 
-export { schema, db };
+export { schema, db, client };

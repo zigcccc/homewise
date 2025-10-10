@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 
-import { db, schema } from '@/db';
+import { client, db, schema } from '@/db';
 
 import { type CreateExpense } from './models';
 
@@ -22,10 +22,20 @@ export class ExpensesService {
     return expense;
   }
 
-  public static async create(data: CreateExpense) {
+  public static async create(_data: CreateExpense) {
     // const db = getDb();
-    const [createdExpense] = await db.insert(schema.expenses).values(data).returning();
-    return createdExpense;
+    // const [createdExpense] = await db.insert(schema.expenses).values(data).returning();
+    console.log('[DEBUG] Creating an expense...');
+    console.log('[DEBUG] Using DB URL: ', import.meta.env.DATABASE_URL_UNPOOLED);
+    console.log('[DEBUG] Using driver: ', client);
+    console.log('[DEBUG] Trying to execute simple version query...');
+    const versionResult = await client.query('SELECT version();');
+    console.log('[DEBUG] Done! Result: ', versionResult);
+    console.log('[DEBUG] Trying to execute INSERT query...');
+    const result = await client.query("INSERT INTO expenses (name,amount) VALUES ('test', '10.00') RETURNING *");
+    console.log('[DEBUG] Done! Result: ', result);
+
+    return result as { id: number; name: string; amount: number }[];
   }
 
   public static async destroy(id: number) {
