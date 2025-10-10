@@ -13,7 +13,7 @@ import { resend } from './resend';
 export const auth = betterAuth({
   appName: 'Homewise Auth',
   basePath: '/auth',
-  database: drizzleAdapter(db, { provider: 'pg', schema, debugLogs: true }),
+  database: drizzleAdapter(db, { provider: 'pg', schema }),
   plugins: env.NODE_ENV !== 'production' ? [openAPI()] : [],
   trustedOrigins: allowedOrigins,
   secret: env.BETTER_AUTH_SECRET,
