@@ -40,7 +40,7 @@ export const Route = createRootRouteWithContext<{
   queryClient: QueryClient;
 }>()({
   component: RootLayout,
-  notFoundComponent: () => {
+  notFoundComponent() {
     return (
       <div>
         <p>This is the notFoundComponent configured on root route</p>
