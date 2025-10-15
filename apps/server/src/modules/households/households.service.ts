@@ -1,5 +1,5 @@
 import { render } from '@react-email/components';
-import { and, eq } from 'drizzle-orm';
+import { and, count, eq, inArray, or } from 'drizzle-orm';
 import { type Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 
@@ -9,35 +9,46 @@ import { auth } from '@/lib/auth';
 import { resend } from '@/lib/resend';
 import { type AppContext } from '@/types/app.type';
 
-import { type InviteHouseholdMembers, type InsertHousehold } from './models';
+import { type InviteHouseholdMembers, type InsertHousehold, type PatchHousehold } from './models';
 
 export class HouseholdsService {
-  public static async readForUser(userId: string, { includeMembers = false }: { includeMembers?: boolean } = {}) {
+  private static getUserHouseholdSql(userId: string) {
+    return inArray(
+      schema.household.id,
+      db
+        .select({ id: schema.householdMember.householdId })
+        .from(schema.householdMember)
+        .where(eq(schema.householdMember.userId, userId))
+    );
+  }
+
+  public static async countForUser(userId: string) {
+    const [result] = await db
+      .select({ count: count() })
+      .from(schema.household)
+      .where(or(eq(schema.household.ownerId, userId), HouseholdsService.getUserHouseholdSql(userId)));
+
+    return result?.count ?? 0;
+  }
+
+  public static async readForUser(userId: string) {
     const household = await db.query.household.findFirst({
-      where: (households, { eq, or, inArray }) =>
-        or(
-          eq(households.ownerId, userId),
-          inArray(
-            households.id,
-            db
-              .select({ id: schema.householdMember.householdId })
-              .from(schema.householdMember)
-              .where(eq(schema.householdMember.userId, userId))
-          )
-        ),
+      where: (households, { eq, or }) =>
+        or(eq(households.ownerId, userId), HouseholdsService.getUserHouseholdSql(userId)),
       with: {
-        members: includeMembers ? { with: { user: { columns: { id: true, email: true, name: true } } } } : undefined,
+        members: { with: { user: { columns: { id: true, email: true, name: true } } } },
       },
     });
 
     return household;
   }
 
-  public static async read(id: number) {
+  public static async readForOwner(userId: string) {
     const household = await db.query.household.findFirst({
-      where: (households, { eq }) => eq(households.id, id),
+      where: (households, { eq }) => eq(households.ownerId, userId),
       with: { members: { with: { user: { columns: { id: true, email: true, name: true } } } } },
     });
+
     return household;
   }
 
@@ -62,6 +73,26 @@ export class HouseholdsService {
     });
   }
 
+  public static async patch(partialData: PatchHousehold, ownerId: string) {
+    const household = await HouseholdsService.readForOwner(ownerId);
+
+    if (!household) {
+      throw new HTTPException(404, { message: 'Household not found' });
+    }
+
+    const [updatedHousehold] = await db
+      .update(schema.household)
+      .set(partialData)
+      .where(eq(schema.household.id, household.id))
+      .returning();
+
+    if (!updatedHousehold) {
+      throw new HTTPException(400, { message: 'Something went wrong' });
+    }
+
+    return updatedHousehold;
+  }
+
   public static async delete(id: number, ownerId: string) {
     const [deleted] = await db
       .delete(schema.household)
@@ -76,20 +107,15 @@ export class HouseholdsService {
   }
 
   public static async invite(
-    id: number,
     userId: string,
     payload: InviteHouseholdMembers,
     callbackUrl: string,
     ctx: Context<AppContext>
   ) {
-    const household = await HouseholdsService.read(id);
+    const household = await HouseholdsService.readForOwner(userId);
 
     if (!household) {
       throw new HTTPException(404, { message: 'Houshold not found.' });
-    }
-
-    if (household.ownerId !== userId) {
-      throw new HTTPException(403, { message: 'Only household owner can invite members.' });
     }
 
     await db.transaction(async (tx) => {

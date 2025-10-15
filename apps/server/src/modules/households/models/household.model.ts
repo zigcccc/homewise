@@ -1,4 +1,4 @@
-import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
+import { createInsertSchema, createSelectSchema, createUpdateSchema } from 'drizzle-zod';
 import z from 'zod';
 
 import * as schema from '@/db/schema';
@@ -22,8 +22,14 @@ export type InsertHousehold = z.infer<typeof insertHouseholdModel>;
 export const createHouseholdModel = insertHouseholdModel.omit({ ownerId: true });
 export type CreateHousehold = z.infer<typeof createHouseholdModel>;
 
-export const readHouseholdPathParamsModel = z.object({ id: z.coerce.number<number>() });
-export type ReadHouseholdPathParams = z.infer<typeof readHouseholdPathParamsModel>;
+export const patchHouseholdModel = createUpdateSchema(schema.household, {
+  name: (model) =>
+    model
+      .trim()
+      .min(3, { error: 'Household name must contain at least 3 characters' })
+      .max(64, { error: 'Household name must contain at most 64 characters' }),
+}).omit({ createdAt: true, updatedAt: true, id: true });
+export type PatchHousehold = z.infer<typeof patchHouseholdModel>;
 
 export const inviteHouseholdMembersModel = z.object({
   members: z.array(z.object({ email: z.email(), role: householdMemberRole })),

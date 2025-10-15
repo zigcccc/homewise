@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { HTTPException } from 'hono/http-exception';
 
 import { zValidator } from '@/lib/validation';
 import { type AppContext } from '@/types/app.type';
@@ -12,18 +13,61 @@ import {
   createHouseholdModel,
   inviteHouseholdMembersModel,
   inviteHouseholdMembersQueryParamsModel,
+  patchHouseholdModel,
   readHouseholdInviteQueryParamsModel,
-  readHouseholdPathParamsModel,
 } from './models';
 
 const householdsApp = new Hono<AppContext>()
+  .post('/', zValidator('json', createHouseholdModel), async (c) => {
+    const userId = c.var.user.id;
+    const existingHouseholdsCount = await HouseholdsService.countForUser(userId);
+
+    if (existingHouseholdsCount > 0) {
+      return c.json(ErrorsService.createRootError('User already has a household'), 400);
+    }
+
+    const newHousehold = await HouseholdsService.create({ ...c.req.valid('json'), ownerId: userId });
+    return c.json(newHousehold, 201);
+  })
   .get('/my', async (c) => {
-    const household = await HouseholdsService.readForUser(c.var.user.id, { includeMembers: true });
+    const household = await HouseholdsService.readForUser(c.var.user.id);
     if (!household) {
       return c.body(null, 404);
     }
     return c.json(household, 200);
   })
+  .patch('/my', zValidator('json', patchHouseholdModel), async (c) => {
+    const data = c.req.valid('json');
+    const updatedHousehold = await HouseholdsService.patch(data, c.var.user.id);
+
+    return c.json(updatedHousehold, 200);
+  })
+  .delete('/my', async (c) => {
+    const userId = c.var.user.id;
+    const household = await HouseholdsService.readForOwner(userId);
+
+    if (!household) {
+      throw new HTTPException(404, { message: 'Household not found' });
+    }
+
+    await HouseholdsService.delete(household.id, userId);
+
+    return c.json({ success: true }, 202);
+  })
+  .post(
+    '/my/invite',
+    zValidator('json', inviteHouseholdMembersModel),
+    zValidator('query', inviteHouseholdMembersQueryParamsModel),
+    async (c) => {
+      const data = c.req.valid('json');
+      const { callbackUrl } = c.req.valid('query');
+      const { id: userId } = c.var.user;
+
+      await HouseholdsService.invite(userId, data, callbackUrl, c);
+
+      return c.json({ success: true }, 200);
+    }
+  )
   .get('/invite', zValidator('query', readHouseholdInviteQueryParamsModel), async (c) => {
     const { token } = c.req.valid('query');
 
@@ -47,50 +91,5 @@ const householdsApp = new Hono<AppContext>()
 
       return c.json({ success: true }, 202);
     }
-  )
-  .get('/:id', zValidator('param', readHouseholdPathParamsModel), async (c) => {
-    const household = await HouseholdsService.read(c.req.valid('param').id);
-
-    if (!household) {
-      return c.body(null, 404);
-    }
-
-    return c.json(household);
-  })
-  .post('/', zValidator('json', createHouseholdModel), async (c) => {
-    const userId = c.var.user.id;
-    const existingHousehold = await HouseholdsService.readForUser(userId);
-
-    if (existingHousehold) {
-      return c.json(ErrorsService.createRootError('User already has a household'), 400);
-    }
-
-    const newHousehold = await HouseholdsService.create({ ...c.req.valid('json'), ownerId: userId });
-    return c.json(newHousehold, 201);
-  })
-  .post(
-    '/:id/invite',
-    zValidator('param', readHouseholdPathParamsModel),
-    zValidator('json', inviteHouseholdMembersModel),
-    zValidator('query', inviteHouseholdMembersQueryParamsModel),
-    async (c) => {
-      const { id: householdId } = c.req.valid('param');
-      const data = c.req.valid('json');
-      const { callbackUrl } = c.req.valid('query');
-      const { id: userId } = c.var.user;
-
-      await HouseholdsService.invite(householdId, userId, data, callbackUrl, c);
-
-      return c.json({ success: true }, 200);
-    }
-  )
-  .delete('/:id', zValidator('param', readHouseholdPathParamsModel), async (c) => {
-    const { id } = c.req.valid('param');
-    const userId = c.var.user.id;
-
-    await HouseholdsService.delete(id, userId);
-
-    return c.json({ success: true }, 202);
-  });
-
+  );
 export default householdsApp;

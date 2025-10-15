@@ -149,11 +149,13 @@ export function AppSidebar() {
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <Link to="/">
-                <SidebarMenuButton tooltip="Settings">
-                  <CogIcon className="size-4" />
-                  <span>Settings</span>
-                </SidebarMenuButton>
+              <Link to="/manage/settings">
+                {({ isActive }) => (
+                  <SidebarMenuButton isActive={isActive} tooltip="Settings">
+                    <CogIcon className="size-4" />
+                    <span>Settings</span>
+                  </SidebarMenuButton>
+                )}
               </Link>
             </SidebarMenuItem>
           </SidebarMenu>

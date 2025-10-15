@@ -17,18 +17,17 @@ GET {{url}}/households/my
 
 ###
 
-GET {{url}}/expenses/6
+GET {{url}}/households/2
 
 ###
 
-POST {{url}}/expenses
+POST {{url}}/households
 content-type: application/json
 
 {
-  "name": "New name",
-  "amount": 10.2
+  "name": "Our family"
 }
 
 ###
 
-DELETE {{url}}/expenses/6
+DELETE {{url}}/households/9

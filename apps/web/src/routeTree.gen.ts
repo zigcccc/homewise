@@ -20,6 +20,7 @@ import { Route as AuthenticatedOnboardingIndexRouteImport } from './routes/_auth
 import { Route as AuthenticatedOnboardedIndexRouteImport } from './routes/_authenticated/_onboarded/index'
 import { Route as AuthenticatedOnboardingInviteMembersRouteImport } from './routes/_authenticated/onboarding/invite-members'
 import { Route as AuthenticatedOnboardingCreateHouseholdRouteImport } from './routes/_authenticated/onboarding/create-household'
+import { Route as AuthenticatedOnboardedManageSettingsRouteImport } from './routes/_authenticated/_onboarded/manage/settings'
 
 const VerifyEmailRoute = VerifyEmailRouteImport.update({
   id: '/verify-email',
@@ -80,6 +81,12 @@ const AuthenticatedOnboardingCreateHouseholdRoute =
     path: '/create-household',
     getParentRoute: () => AuthenticatedOnboardingRouteRoute,
   } as any)
+const AuthenticatedOnboardedManageSettingsRoute =
+  AuthenticatedOnboardedManageSettingsRouteImport.update({
+    id: '/manage/settings',
+    path: '/manage/settings',
+    getParentRoute: () => AuthenticatedOnboardedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
@@ -91,6 +98,7 @@ export interface FileRoutesByFullPath {
   '/onboarding/invite-members': typeof AuthenticatedOnboardingInviteMembersRoute
   '/': typeof AuthenticatedOnboardedIndexRoute
   '/onboarding/': typeof AuthenticatedOnboardingIndexRoute
+  '/manage/settings': typeof AuthenticatedOnboardedManageSettingsRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -101,6 +109,7 @@ export interface FileRoutesByTo {
   '/onboarding/invite-members': typeof AuthenticatedOnboardingInviteMembersRoute
   '/': typeof AuthenticatedOnboardedIndexRoute
   '/onboarding': typeof AuthenticatedOnboardingIndexRoute
+  '/manage/settings': typeof AuthenticatedOnboardedManageSettingsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -115,6 +124,7 @@ export interface FileRoutesById {
   '/_authenticated/onboarding/invite-members': typeof AuthenticatedOnboardingInviteMembersRoute
   '/_authenticated/_onboarded/': typeof AuthenticatedOnboardedIndexRoute
   '/_authenticated/onboarding/': typeof AuthenticatedOnboardingIndexRoute
+  '/_authenticated/_onboarded/manage/settings': typeof AuthenticatedOnboardedManageSettingsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -128,6 +138,7 @@ export interface FileRouteTypes {
     | '/onboarding/invite-members'
     | '/'
     | '/onboarding/'
+    | '/manage/settings'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -138,6 +149,7 @@ export interface FileRouteTypes {
     | '/onboarding/invite-members'
     | '/'
     | '/onboarding'
+    | '/manage/settings'
   id:
     | '__root__'
     | '/_authenticated'
@@ -151,6 +163,7 @@ export interface FileRouteTypes {
     | '/_authenticated/onboarding/invite-members'
     | '/_authenticated/_onboarded/'
     | '/_authenticated/onboarding/'
+    | '/_authenticated/_onboarded/manage/settings'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -239,6 +252,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOnboardingCreateHouseholdRouteImport
       parentRoute: typeof AuthenticatedOnboardingRouteRoute
     }
+    '/_authenticated/_onboarded/manage/settings': {
+      id: '/_authenticated/_onboarded/manage/settings'
+      path: '/manage/settings'
+      fullPath: '/manage/settings'
+      preLoaderRoute: typeof AuthenticatedOnboardedManageSettingsRouteImport
+      parentRoute: typeof AuthenticatedOnboardedRoute
+    }
   }
 }
 
@@ -264,11 +284,14 @@ const AuthenticatedOnboardingRouteRouteWithChildren =
 
 interface AuthenticatedOnboardedRouteChildren {
   AuthenticatedOnboardedIndexRoute: typeof AuthenticatedOnboardedIndexRoute
+  AuthenticatedOnboardedManageSettingsRoute: typeof AuthenticatedOnboardedManageSettingsRoute
 }
 
 const AuthenticatedOnboardedRouteChildren: AuthenticatedOnboardedRouteChildren =
   {
     AuthenticatedOnboardedIndexRoute: AuthenticatedOnboardedIndexRoute,
+    AuthenticatedOnboardedManageSettingsRoute:
+      AuthenticatedOnboardedManageSettingsRoute,
   }
 
 const AuthenticatedOnboardedRouteWithChildren =

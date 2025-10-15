@@ -14,7 +14,7 @@ import { getMyHouseholdQueryOptions } from '@/modules/households';
 
 export const Route = createFileRoute('/_authenticated/onboarding/create-household')({
   async beforeLoad({ context }) {
-    const household = await context.queryClient.ensureQueryData(getMyHouseholdQueryOptions());
+    const household = await context.queryClient.ensureQueryData(getMyHouseholdQueryOptions()).catch(() => null);
     if (household) {
       throw redirect({ to: '/onboarding/invite-members' });
     }

@@ -14,7 +14,7 @@ export const Route = createFileRoute('/_authenticated')({
   },
   pendingComponent() {
     return (
-      <div className="flex min-h-[100dvh] items-center justify-center">
+      <div className="flex min-h-[100dvh] min-w-[100dvw] items-center justify-center">
         <div className="flex flex-col items-center gap-2">
           <LoaderCircleIcon className="animate-spin" />
           <span className="text-muted-foreground text-sm">Loading...</span>

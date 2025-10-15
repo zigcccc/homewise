@@ -8,21 +8,6 @@ export function getMyHouseholdQueryOptions() {
     queryFn: async () => {
       const res = await client.households.my.$get();
 
-      if (res.ok) {
-        return res.json();
-      }
-
-      return null;
-    },
-  });
-}
-
-export function getReadHouseholdQueryOptions(id: number) {
-  return queryOptions({
-    queryKey: ['households', 'read', id],
-    queryFn: async () => {
-      const res = await client.households[':id'].$get({ param: { id: String(id) } });
-
       if (!res.ok) {
         throw new Error(res.statusText, { cause: res.status });
       }

@@ -22,7 +22,7 @@ import { toast } from 'sonner';
 import { client } from '@/api/client';
 import { getMyHouseholdQueryOptions } from '@/modules/households';
 
-const $postInvite = client.households[':id'].invite.$post;
+const $postInvite = client.households.my.invite.$post;
 type InviteMembersPayload = InferRequestType<typeof $postInvite>['json'];
 
 export const Route = createFileRoute('/_authenticated/onboarding/invite-members')({
@@ -31,14 +31,13 @@ export const Route = createFileRoute('/_authenticated/onboarding/invite-members'
     if (!household) {
       throw redirect({ to: '/onboarding/create-household' });
     }
-    return { ...context, household };
   },
   component: InviteMembersRoute,
 });
 
 function InviteMembersRoute() {
   const navigate = Route.useNavigate();
-  const { household, queryClient } = Route.useRouteContext();
+  const { queryClient } = Route.useRouteContext();
   const form = useForm({
     resolver: zodResolver(inviteHouseholdMembersModel),
     defaultValues: {
@@ -49,7 +48,6 @@ function InviteMembersRoute() {
   const { mutateAsync: inviteMembersAsync } = useMutation({
     mutationFn: async (data: InviteMembersPayload) =>
       $postInvite({
-        param: { id: household.id.toString() },
         json: data,
         query: { callbackUrl: window.location.origin },
       }),
@@ -65,8 +63,8 @@ function InviteMembersRoute() {
     try {
       await inviteMembersAsync(data);
       await queryClient.refetchQueries({ queryKey: ['households'] });
-    } catch (err) {
-      console.log(err);
+      navigate({ to: '/' });
+    } catch {
       toast.error('Something went wrong...');
     }
   };

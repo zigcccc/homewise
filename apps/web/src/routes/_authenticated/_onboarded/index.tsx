@@ -1,26 +1,40 @@
+import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from '@homewise/ui/core/breadcrumb';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 
-import { getReadHouseholdQueryOptions } from '@/modules/households';
+import { getMyHouseholdQueryOptions } from '@/modules/households';
+
+import { Actionbar } from '../-components/Actionbar';
 
 export const Route = createFileRoute('/_authenticated/_onboarded/')({
   component: HomeRoute,
   pendingComponent: () => <p>Loading...</p>,
   async loader({ context }) {
-    await context.queryClient.ensureQueryData(getReadHouseholdQueryOptions(context.householdId));
+    await context.queryClient.ensureQueryData(getMyHouseholdQueryOptions());
   },
 });
 
 function HomeRoute() {
-  const { householdId, user } = Route.useRouteContext();
-  const { data: household } = useSuspenseQuery(getReadHouseholdQueryOptions(householdId));
+  const { user } = Route.useRouteContext();
+  const { data: household } = useSuspenseQuery(getMyHouseholdQueryOptions());
 
   return (
-    <div>
-      <h1>Hello {user.name}!</h1>
-      <div className="mt-4">
-        <h2>Your household: {household.name}</h2>
+    <>
+      <Actionbar.Content>
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbPage>Dashboard</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+      </Actionbar.Content>
+      <div>
+        <h1>Hello {user.name}!</h1>
+        <div className="mt-4">
+          <h2>Your household: {household.name}</h2>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
