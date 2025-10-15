@@ -4,7 +4,7 @@
 POST {{url}}/auth/sign-in/email
 content-type: application/json
 
-{ "email": "test@email.com", "password": "test1234" }
+{ "email": "ziga.krasovec@optifarm.net", "password": "Test1234!" }
 
 ###
 
@@ -13,7 +13,7 @@ POST {{url}}/auth/sign-out
 
 ###
 
-GET {{url}}/expenses
+GET {{url}}/households/my
 
 ###
 

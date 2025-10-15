@@ -8,12 +8,12 @@ import * as z from 'zod';
 import { authClient } from '@/auth/client';
 
 export const Route = createFileRoute('/verify-email')({
-  validateSearch: z.object({ email: z.email() }),
-  async beforeLoad() {
+  validateSearch: z.object({ email: z.email(), redirect: z.string().optional() }),
+  async beforeLoad({ search }) {
     const session = await authClient.getSession();
 
     if (session.data?.user.emailVerified) {
-      throw redirect({ to: '/' });
+      throw redirect({ to: search.redirect ?? '/' });
     }
   },
   component: VerifyEmailRoute,
@@ -23,11 +23,11 @@ export const Route = createFileRoute('/verify-email')({
 });
 
 function VerifyEmailRoute() {
-  const { email } = Route.useSearch();
+  const { email, redirect } = Route.useSearch();
 
   const handleRequestNewVerificationEmail = async () => {
-    const a = await authClient.sendVerificationEmail(
-      { email, callbackURL: window.location.origin },
+    await authClient.sendVerificationEmail(
+      { email, callbackURL: redirect ?? window.location.origin },
       {
         onError: () => {
           toast.error('Something went wrong');
@@ -37,7 +37,6 @@ function VerifyEmailRoute() {
         },
       }
     );
-    console.log(a.data?.status, a.error);
   };
 
   return (

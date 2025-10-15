@@ -1,4 +1,4 @@
-import { SidebarInset, SidebarProvider } from '@homewise/ui/core/sidebar';
+import { SidebarProvider } from '@homewise/ui/core/sidebar';
 import { type QueryClient } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { createRootRouteWithContext, HeadContent, Link, Outlet } from '@tanstack/react-router';
@@ -8,23 +8,15 @@ import { SpeedInsights } from '@vercel/speed-insights/react';
 import { Suspense } from 'react';
 import { Toaster } from 'sonner';
 
-import { authClient } from '@/auth/client';
-
-import { AppSidebar } from './-components/AppSidebar';
-
 function RootLayout() {
   const { queryClient } = Route.useRouteContext();
-  const { data } = authClient.useSession();
 
   return (
     <>
       <HeadContent />
       <Toaster position="top-center" richColors />
       <SidebarProvider>
-        {data?.session && <AppSidebar />}
-        <SidebarInset>
-          <Outlet />
-        </SidebarInset>
+        <Outlet />
       </SidebarProvider>
       <Suspense fallback={null}>
         <ReactQueryDevtools client={queryClient} />

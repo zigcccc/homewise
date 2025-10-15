@@ -155,7 +155,7 @@ function LoginRoute() {
               <span className="text-muted-foreground text-sm">
                 Don't have an account?{' '}
                 <Button asChild className="px-1" variant="link">
-                  <Link preload={false} to="/signup">
+                  <Link preload={false} search={{ redirect }} to="/signup">
                     Sign up
                   </Link>
                 </Button>

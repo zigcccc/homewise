@@ -1,8 +1,4 @@
-import { pgTable, text, decimal, serial, boolean, timestamp } from 'drizzle-orm/pg-core';
-
-/**********************************************/
-/**************** AUTH TABLES *****************/
-/**********************************************/
+import { boolean, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
 export const user = pgTable('user', {
   id: text('id').primaryKey(),
@@ -63,14 +59,4 @@ export const verification = pgTable('verification', {
     .defaultNow()
     .$onUpdate(() => /* @__PURE__ */ new Date())
     .notNull(),
-});
-
-/**********************************************/
-/************** EXPENSES TABLES ***************/
-/**********************************************/
-
-export const expenses = pgTable('expenses', {
-  id: serial('id').primaryKey(),
-  name: text('name').notNull(),
-  amount: decimal('amount').notNull(),
 });

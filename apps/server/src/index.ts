@@ -5,7 +5,7 @@ import { logger } from 'hono/logger';
 import { corsConfig } from './config/cors';
 import { env } from './config/env';
 import { auth } from './lib/auth';
-import expnensesApp from './modules/expenses';
+import householdsApp from './modules/households';
 import { type AppContext } from './types/app.type';
 
 const app = new Hono<AppContext>()
@@ -31,7 +31,7 @@ const app = new Hono<AppContext>()
     return next();
   })
   // App routes
-  .route('/expenses', expnensesApp);
+  .route('/households', householdsApp);
 
 if (env.NODE_ENV === 'development') {
   console.log('Serving app on port 5173...');

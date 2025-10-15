@@ -1,7 +1,7 @@
 import { render } from '@react-email/components';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { openAPI } from 'better-auth/plugins';
+import { oneTimeToken, openAPI } from 'better-auth/plugins';
 
 import { allowedOrigins } from '@/config/cors';
 import { env } from '@/config/env';
@@ -14,7 +14,10 @@ export const auth = betterAuth({
   appName: 'Homewise Auth',
   basePath: '/auth',
   database: drizzleAdapter(db, { provider: 'pg', schema }),
-  plugins: env.NODE_ENV !== 'production' ? [openAPI()] : [],
+  plugins:
+    env.NODE_ENV !== 'production'
+      ? [openAPI(), oneTimeToken({ expiresIn: 60 * 24 })]
+      : [oneTimeToken({ expiresIn: 60 * 24 })],
   trustedOrigins: allowedOrigins,
   secret: env.BETTER_AUTH_SECRET,
   user: {
@@ -40,7 +43,7 @@ export const auth = betterAuth({
       await resend.emails.send({
         from: 'Homewise 🏡 <no-reply@home-wise.app>',
         to: user.email,
-        subject: 'Verify your email address 👀',
+        subject: 'Verify your email address',
         html,
       });
     },

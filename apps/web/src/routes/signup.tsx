@@ -67,6 +67,7 @@ const signupFormModel = z
   });
 
 export const Route = createFileRoute('/signup')({
+  validateSearch: z.object({ redirect: z.string().optional() }),
   async beforeLoad() {
     const session = await authClient.getSession();
     if (session?.data) {
@@ -78,6 +79,7 @@ export const Route = createFileRoute('/signup')({
 
 function SignupRoute() {
   const navigate = Route.useNavigate();
+  const search = Route.useSearch();
 
   const form = useForm({
     resolver: zodResolver(signupFormModel),
@@ -97,7 +99,7 @@ function SignupRoute() {
   const onSubmit: SubmitHandler<z.infer<typeof signupFormModel>> = async ({ passwordRepeat: _, ...data }) => {
     try {
       await authClient.signUp.email(
-        { ...data, callbackURL: window.location.origin },
+        { ...data, callbackURL: search?.redirect ?? window.location.origin },
         {
           onError: ({ error }) => {
             if (error.code === 'USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL') {
@@ -108,7 +110,11 @@ function SignupRoute() {
           },
           onSuccess: async () => {
             toast.success('Success', { richColors: true });
-            navigate({ to: '/verify-email', search: { email: data.email }, from: '/signup' });
+            navigate({
+              to: '/verify-email',
+              search: { email: data.email, redirect: search.redirect },
+              from: '/signup',
+            });
           },
         }
       );
@@ -230,7 +236,7 @@ function SignupRoute() {
               <span className="text-muted-foreground text-sm">
                 Already have an account?{' '}
                 <Button asChild className="px-1" variant="link">
-                  <Link preload={false} to="/login">
+                  <Link preload={false} search={{ redirect: search.redirect }} to="/login">
                     Sign in
                   </Link>
                 </Button>

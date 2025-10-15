@@ -16,6 +16,7 @@ import {
   SidebarFooter,
   SidebarMenuButton,
 } from '@homewise/ui/core/sidebar';
+import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate, useRouteContext } from '@tanstack/react-router';
 import {
   CogIcon,
@@ -31,11 +32,13 @@ import {
 } from 'lucide-react';
 
 import { authClient } from '@/auth/client';
+import { getMyHouseholdQueryOptions } from '@/modules/households';
 
 export function AppSidebar() {
   const { queryClient } = useRouteContext({ strict: false });
   const navigate = useNavigate();
   const { data: auth } = authClient.useSession();
+  const { data: household } = useQuery(getMyHouseholdQueryOptions());
 
   const handleSignOut = async () => {
     await authClient.signOut();
@@ -135,7 +138,7 @@ export function AppSidebar() {
           </SidebarMenu>
         </SidebarGroup>
         <SidebarGroup>
-          <SidebarGroupLabel>Manage</SidebarGroupLabel>
+          <SidebarGroupLabel>{household ? `Manage "${household.name}"` : 'Manage'}</SidebarGroupLabel>
           <SidebarMenu>
             <SidebarMenuItem>
               <Link to="/">

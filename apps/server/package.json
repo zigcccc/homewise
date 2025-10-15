@@ -7,9 +7,9 @@
       "import": "./src/index.ts",
       "type": "./src/index.ts"
     },
-    "./expenses": {
-      "import": "./src/modules/expenses/models/index.ts",
-      "type": "./src/modules/expenses/models/index.ts"
+    "./households": {
+      "import": "./src/modules/households/models/index.ts",
+      "type": "./src/modules/households/models/index.ts"
     }
   },
   "scripts": {
@@ -34,9 +34,10 @@
     "clsx": "catalog:",
     "dotenv": "catalog:",
     "drizzle-orm": "catalog:",
+    "drizzle-zod": "catalog:",
     "lucide-react": "catalog:",
-    "react-dom": "catalog:",
     "react": "catalog:",
+    "react-dom": "catalog:",
     "resend": "catalog:"
   },
   "devDependencies": {
@@ -55,10 +56,10 @@
     "react-email": "catalog:",
     "tsc-alias": "catalog:",
     "tsx": "catalog:",
-    "vite-tsconfig-paths": "catalog:",
+    "typescript": "catalog:",
     "vite": "catalog:",
-    "zod": "catalog:",
-    "typescript": "catalog:"
+    "vite-tsconfig-paths": "catalog:",
+    "zod": "catalog:"
   },
   "prettier": "@homewise/prettier-config/default"
 }

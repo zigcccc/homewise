@@ -1,1 +1,0 @@
-ALTER TABLE "expenses" ALTER COLUMN "amount" SET DATA TYPE numeric;
