@@ -75,7 +75,7 @@ function InviteMembersRoute() {
 
   return (
     <Form {...form}>
-      <form className="space-y-4" onSubmit={handleSubmit(onSubmitValid, console.log)}>
+      <form className="space-y-4" onSubmit={handleSubmit(onSubmitValid)}>
         {fields.map((field, idx) => (
           <div key={field.id} className="flex items-end gap-2">
             <FormField

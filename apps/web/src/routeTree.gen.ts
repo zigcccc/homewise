@@ -21,6 +21,7 @@ import { Route as AuthenticatedOnboardedIndexRouteImport } from './routes/_authe
 import { Route as AuthenticatedOnboardingInviteMembersRouteImport } from './routes/_authenticated/onboarding/invite-members'
 import { Route as AuthenticatedOnboardingCreateHouseholdRouteImport } from './routes/_authenticated/onboarding/create-household'
 import { Route as AuthenticatedOnboardedManageSettingsRouteImport } from './routes/_authenticated/_onboarded/manage/settings'
+import { Route as AuthenticatedOnboardedManageHouseholdMembersRouteImport } from './routes/_authenticated/_onboarded/manage/household-members'
 
 const VerifyEmailRoute = VerifyEmailRouteImport.update({
   id: '/verify-email',
@@ -87,6 +88,12 @@ const AuthenticatedOnboardedManageSettingsRoute =
     path: '/manage/settings',
     getParentRoute: () => AuthenticatedOnboardedRoute,
   } as any)
+const AuthenticatedOnboardedManageHouseholdMembersRoute =
+  AuthenticatedOnboardedManageHouseholdMembersRouteImport.update({
+    id: '/manage/household-members',
+    path: '/manage/household-members',
+    getParentRoute: () => AuthenticatedOnboardedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
@@ -98,6 +105,7 @@ export interface FileRoutesByFullPath {
   '/onboarding/invite-members': typeof AuthenticatedOnboardingInviteMembersRoute
   '/': typeof AuthenticatedOnboardedIndexRoute
   '/onboarding/': typeof AuthenticatedOnboardingIndexRoute
+  '/manage/household-members': typeof AuthenticatedOnboardedManageHouseholdMembersRoute
   '/manage/settings': typeof AuthenticatedOnboardedManageSettingsRoute
 }
 export interface FileRoutesByTo {
@@ -109,6 +117,7 @@ export interface FileRoutesByTo {
   '/onboarding/invite-members': typeof AuthenticatedOnboardingInviteMembersRoute
   '/': typeof AuthenticatedOnboardedIndexRoute
   '/onboarding': typeof AuthenticatedOnboardingIndexRoute
+  '/manage/household-members': typeof AuthenticatedOnboardedManageHouseholdMembersRoute
   '/manage/settings': typeof AuthenticatedOnboardedManageSettingsRoute
 }
 export interface FileRoutesById {
@@ -124,6 +133,7 @@ export interface FileRoutesById {
   '/_authenticated/onboarding/invite-members': typeof AuthenticatedOnboardingInviteMembersRoute
   '/_authenticated/_onboarded/': typeof AuthenticatedOnboardedIndexRoute
   '/_authenticated/onboarding/': typeof AuthenticatedOnboardingIndexRoute
+  '/_authenticated/_onboarded/manage/household-members': typeof AuthenticatedOnboardedManageHouseholdMembersRoute
   '/_authenticated/_onboarded/manage/settings': typeof AuthenticatedOnboardedManageSettingsRoute
 }
 export interface FileRouteTypes {
@@ -138,6 +148,7 @@ export interface FileRouteTypes {
     | '/onboarding/invite-members'
     | '/'
     | '/onboarding/'
+    | '/manage/household-members'
     | '/manage/settings'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -149,6 +160,7 @@ export interface FileRouteTypes {
     | '/onboarding/invite-members'
     | '/'
     | '/onboarding'
+    | '/manage/household-members'
     | '/manage/settings'
   id:
     | '__root__'
@@ -163,6 +175,7 @@ export interface FileRouteTypes {
     | '/_authenticated/onboarding/invite-members'
     | '/_authenticated/_onboarded/'
     | '/_authenticated/onboarding/'
+    | '/_authenticated/_onboarded/manage/household-members'
     | '/_authenticated/_onboarded/manage/settings'
   fileRoutesById: FileRoutesById
 }
@@ -259,6 +272,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOnboardedManageSettingsRouteImport
       parentRoute: typeof AuthenticatedOnboardedRoute
     }
+    '/_authenticated/_onboarded/manage/household-members': {
+      id: '/_authenticated/_onboarded/manage/household-members'
+      path: '/manage/household-members'
+      fullPath: '/manage/household-members'
+      preLoaderRoute: typeof AuthenticatedOnboardedManageHouseholdMembersRouteImport
+      parentRoute: typeof AuthenticatedOnboardedRoute
+    }
   }
 }
 
@@ -284,12 +304,15 @@ const AuthenticatedOnboardingRouteRouteWithChildren =
 
 interface AuthenticatedOnboardedRouteChildren {
   AuthenticatedOnboardedIndexRoute: typeof AuthenticatedOnboardedIndexRoute
+  AuthenticatedOnboardedManageHouseholdMembersRoute: typeof AuthenticatedOnboardedManageHouseholdMembersRoute
   AuthenticatedOnboardedManageSettingsRoute: typeof AuthenticatedOnboardedManageSettingsRoute
 }
 
 const AuthenticatedOnboardedRouteChildren: AuthenticatedOnboardedRouteChildren =
   {
     AuthenticatedOnboardedIndexRoute: AuthenticatedOnboardedIndexRoute,
+    AuthenticatedOnboardedManageHouseholdMembersRoute:
+      AuthenticatedOnboardedManageHouseholdMembersRoute,
     AuthenticatedOnboardedManageSettingsRoute:
       AuthenticatedOnboardedManageSettingsRoute,
   }

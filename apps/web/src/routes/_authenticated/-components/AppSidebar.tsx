@@ -141,11 +141,13 @@ export function AppSidebar() {
           <SidebarGroupLabel>{household ? `Manage "${household.name}"` : 'Manage'}</SidebarGroupLabel>
           <SidebarMenu>
             <SidebarMenuItem>
-              <Link to="/">
-                <SidebarMenuButton tooltip="Household members">
-                  <UsersIcon className="size-4" />
-                  <span>Household members</span>
-                </SidebarMenuButton>
+              <Link to="/manage/household-members">
+                {({ isActive }) => (
+                  <SidebarMenuButton isActive={isActive} tooltip="Household members">
+                    <UsersIcon className="size-4" />
+                    <span>Household members</span>
+                  </SidebarMenuButton>
+                )}
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>

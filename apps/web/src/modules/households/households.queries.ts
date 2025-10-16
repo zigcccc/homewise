@@ -1,6 +1,6 @@
 import { queryOptions } from '@tanstack/react-query';
 
-import { client } from '@/api/client';
+import { client, parseResponse } from '@/api/client';
 
 export function getMyHouseholdQueryOptions() {
   return queryOptions({
@@ -29,5 +29,12 @@ export function getReadHouseholdInviteQueryOptions(token: string) {
 
       return res.json();
     },
+  });
+}
+
+export function listMyHouseholdActiveInvitesQueryOptions() {
+  return queryOptions({
+    queryKey: ['households', 'activeInvites', 'list'],
+    queryFn: async () => parseResponse(client.households.my.invites.active.$get()),
   });
 }

@@ -31,6 +31,7 @@ export default defineConfig(
       'prettier/prettier': 'error',
       'react/jsx-sort-props': ['error', { reservedFirst: true }],
       'react-refresh/only-export-components': 'off',
+      'react-hooks/incompatible-library': 'off', // turning it off for now as TanStack Table is not compatible with react compiler
       '@typescript-eslint/no-unused-vars': 'off',
       '@typescript-eslint/consistent-type-imports': [
         'error',

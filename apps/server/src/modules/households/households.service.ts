@@ -9,7 +9,12 @@ import { auth } from '@/lib/auth';
 import { resend } from '@/lib/resend';
 import { type AppContext } from '@/types/app.type';
 
-import { type InviteHouseholdMembers, type InsertHousehold, type PatchHousehold } from './models';
+import {
+  type InviteHouseholdMembers,
+  type InsertHousehold,
+  type PatchHousehold,
+  type PatchHouseholdMember,
+} from './models';
 
 export class HouseholdsService {
   private static getUserHouseholdSql(userId: string) {
@@ -36,7 +41,10 @@ export class HouseholdsService {
       where: (households, { eq, or }) =>
         or(eq(households.ownerId, userId), HouseholdsService.getUserHouseholdSql(userId)),
       with: {
-        members: { with: { user: { columns: { id: true, email: true, name: true } } } },
+        members: {
+          orderBy: (fields, operators) => [operators.asc(fields.createdAt)],
+          with: { user: { columns: { id: true, email: true, name: true } } },
+        },
       },
     });
 
@@ -106,6 +114,46 @@ export class HouseholdsService {
     return deleted;
   }
 
+  public static async readHouseholdMember(householdId: number, memberId: number) {
+    const member = await db.query.householdMember.findFirst({
+      where: (fields, operators) =>
+        operators.and(operators.eq(fields.householdId, householdId), operators.eq(fields.id, memberId)),
+    });
+
+    if (!member) {
+      throw new HTTPException(404, { message: 'Household member not found' });
+    }
+
+    return member;
+  }
+
+  public static async patchHouseholdMember(householdId: number, memberId: number, data: PatchHouseholdMember) {
+    const [updated] = await db
+      .update(schema.householdMember)
+      .set(data)
+      .where(and(eq(schema.householdMember.householdId, householdId), eq(schema.householdMember.id, memberId)))
+      .returning();
+
+    if (!updated) {
+      throw new HTTPException(400, { message: 'Something went wrong.' });
+    }
+
+    return updated;
+  }
+
+  public static async deleteHouseholdMember(householdId: number, memberId: number) {
+    const [deleted] = await db
+      .delete(schema.householdMember)
+      .where(and(eq(schema.householdMember.householdId, householdId), eq(schema.householdMember.id, memberId)))
+      .returning();
+
+    if (!deleted) {
+      throw new HTTPException(400, { message: 'Something went wrong.' });
+    }
+
+    return deleted;
+  }
+
   public static async invite(
     userId: string,
     payload: InviteHouseholdMembers,
@@ -160,6 +208,19 @@ export class HouseholdsService {
     return invite;
   }
 
+  public static async deleteInvite(householdId: number, inviteId: number) {
+    const [deletedInvite] = await db
+      .delete(schema.householdInvite)
+      .where(and(eq(schema.householdInvite.id, inviteId), eq(schema.householdInvite.householdId, householdId)))
+      .returning();
+
+    if (!deletedInvite) {
+      throw new HTTPException(400, { message: 'Something went wrong.' });
+    }
+
+    return deletedInvite;
+  }
+
   public static async acceptInvite(id: number, token: string, userId: string) {
     const invite = await db.query.householdInvite.findFirst({
       where: (householdInvite, { and, eq }) => and(eq(householdInvite.token, token), eq(householdInvite.id, id)),
@@ -179,8 +240,20 @@ export class HouseholdsService {
       throw new HTTPException(400, { message: 'Something went wrong' });
     }
 
-    await db.delete(schema.householdInvite).where(eq(schema.householdInvite.id, invite.id));
+    await HouseholdsService.deleteInvite(invite.householdId, invite.id);
 
     return householdMember;
+  }
+
+  public static async listActiveInvitesForHousehold(householdId: number) {
+    const invites = await db.query.householdInvite.findMany({
+      where: (fields, operators) =>
+        operators.and(operators.eq(fields.householdId, householdId), operators.eq(fields.claimed, false)),
+      with: {
+        household: { columns: { ownerId: true } },
+      },
+    });
+
+    return invites;
   }
 }

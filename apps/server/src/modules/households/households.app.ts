@@ -11,8 +11,12 @@ import {
   acceptHouseholdInvitePathParamsModel,
   acceptHouseholdInviteQueryParamsModel,
   createHouseholdModel,
+  deleteHouseholdInvitePathParamsModel,
+  deleteHouseholdMemberPathParamsModel,
   inviteHouseholdMembersModel,
   inviteHouseholdMembersQueryParamsModel,
+  patchHouseholdMemberModel,
+  patchHouseholdMemberPathParamsModel,
   patchHouseholdModel,
   readHouseholdInviteQueryParamsModel,
 } from './models';
@@ -34,7 +38,17 @@ const householdsApp = new Hono<AppContext>()
     if (!household) {
       return c.body(null, 404);
     }
-    return c.json(household, 200);
+
+    const mappedHousehold = {
+      ...household,
+      members: household.members.map((member) => ({
+        ...member,
+        isOwner: member.userId === household.ownerId,
+        householdOwnerId: household.ownerId,
+      })),
+    };
+
+    return c.json(mappedHousehold, 200);
   })
   .patch('/my', zValidator('json', patchHouseholdModel), async (c) => {
     const data = c.req.valid('json');
@@ -54,6 +68,47 @@ const householdsApp = new Hono<AppContext>()
 
     return c.json({ success: true }, 202);
   })
+  .patch(
+    '/my/members/:id',
+    zValidator('param', patchHouseholdMemberPathParamsModel),
+    zValidator('json', patchHouseholdMemberModel),
+    async (c) => {
+      const { id: householdMemberId } = c.req.valid('param');
+      const household = await HouseholdsService.readForUser(c.var.user.id);
+
+      if (!household) {
+        throw new HTTPException(404, { message: 'Household not found' });
+      }
+
+      const member = await HouseholdsService.readHouseholdMember(household.id, householdMemberId);
+
+      if (member.userId !== c.var.user.id && household.ownerId !== c.var.user.id) {
+        throw new HTTPException(403, { message: 'Only household owners can edit members other than themselves.' });
+      }
+
+      const updatedMember = await HouseholdsService.patchHouseholdMember(household.id, member.id, c.req.valid('json'));
+
+      return c.json(updatedMember, 200);
+    }
+  )
+  .delete('/my/members/:id', zValidator('param', deleteHouseholdMemberPathParamsModel), async (c) => {
+    const { id: householdMemberId } = c.req.valid('param');
+    const household = await HouseholdsService.readForUser(c.var.user.id);
+
+    if (!household) {
+      throw new HTTPException(404, { message: 'Household not found' });
+    }
+
+    const member = await HouseholdsService.readHouseholdMember(household.id, householdMemberId);
+
+    if (member.userId !== c.var.user.id && household.ownerId !== c.var.user.id) {
+      throw new HTTPException(403, { message: 'Only household owners can delete members other than themselves.' });
+    }
+
+    await HouseholdsService.deleteHouseholdMember(household.id, member.id);
+
+    return c.json({ success: true }, 202);
+  })
   .post(
     '/my/invite',
     zValidator('json', inviteHouseholdMembersModel),
@@ -68,6 +123,30 @@ const householdsApp = new Hono<AppContext>()
       return c.json({ success: true }, 200);
     }
   )
+  .get('/my/invites/active', async (c) => {
+    const household = await HouseholdsService.readForUser(c.var.user.id);
+    if (!household) {
+      throw new HTTPException(404, { message: 'Household not found.' });
+    }
+    const invites = await HouseholdsService.listActiveInvitesForHousehold(household.id);
+
+    return c.json(invites, 200);
+  })
+  .delete('/my/invites/:id', zValidator('param', deleteHouseholdInvitePathParamsModel), async (c) => {
+    const household = await HouseholdsService.readForUser(c.var.user.id);
+
+    if (!household) {
+      throw new HTTPException(404, { message: 'Household not found.' });
+    }
+
+    if (household.ownerId !== c.var.user.id) {
+      throw new HTTPException(403, { message: 'Only owners can revoke invites.' });
+    }
+
+    await HouseholdsService.deleteInvite(household.id, c.req.valid('param').id);
+
+    return c.json({ success: true }, 202);
+  })
   .get('/invite', zValidator('query', readHouseholdInviteQueryParamsModel), async (c) => {
     const { token } = c.req.valid('query');
 

@@ -130,145 +130,149 @@ function SettingsRoute() {
           </BreadcrumbList>
         </Breadcrumb>
       </Actionbar.Content>
-      <div className="flex h-full flex-col overflow-y-scroll">
-        <main className="flex-1 space-y-4 p-4">
-          <h1 className="text-lg font-medium">Manage "{household.name}" household</h1>
-          <Card className="lg:max-w-[50%]">
-            <Form {...form}>
-              <CardHeader>
-                <CardTitle>General settings</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <FormField
-                  control={control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Household name</FormLabel>
-                      <FormControl className="max-w-72">
+      <main className="flex-1 space-y-4 p-4">
+        <h1 className="text-lg font-medium">Manage "{household.name}" household</h1>
+        <Card className="lg:max-w-1/2">
+          <Form {...form}>
+            <CardHeader>
+              <CardTitle>General settings</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <FormField
+                control={control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Household name</FormLabel>
+                    <FormControl>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Input
+                            {...field}
+                            className="max-w-72"
+                            disabled={household.ownerId !== user.id}
+                            onBlur={handleSubmit(onSubmitValid)}
+                            placeholder="The Doe Family"
+                          />
+                        </TooltipTrigger>
+                        {household.ownerId !== user.id && (
+                          <TooltipContent>Only the household owner can change its name</TooltipContent>
+                        )}
+                      </Tooltip>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={control}
+                name="ownerId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Household owner</FormLabel>
+                    <FormControl className="max-w-72">
+                      <Select
+                        disabled={household.ownerId !== user.id}
+                        name={field.name}
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      >
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Input {...field} disabled={household.ownerId !== user.id} placeholder="The Doe Family" />
+                            <SelectTrigger className="w-72">
+                              <SelectValue placeholder="Select an owner" />
+                            </SelectTrigger>
                           </TooltipTrigger>
                           {household.ownerId !== user.id && (
-                            <TooltipContent>Only the household owner can change its name</TooltipContent>
+                            <TooltipContent>Only the household owner can transfer the ownership</TooltipContent>
                           )}
                         </Tooltip>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={control}
-                  name="ownerId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Household owner</FormLabel>
-                      <FormControl className="max-w-72">
-                        <Select
-                          disabled={household.ownerId !== user.id}
-                          name={field.name}
-                          onValueChange={field.onChange}
-                          value={field.value}
-                        >
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <SelectTrigger className="w-72">
-                                <SelectValue placeholder="Select an owner" />
-                              </SelectTrigger>
-                            </TooltipTrigger>
-                            {household.ownerId !== user.id && (
-                              <TooltipContent>Only the household owner can transfer the ownership</TooltipContent>
-                            )}
-                          </Tooltip>
-                          <SelectContent>
-                            <SelectGroup>
-                              <SelectLabel>Household members</SelectLabel>
-                              {household.members.map((member) => (
-                                <SelectItem key={member.id} value={member.userId}>
-                                  {member.user.name}
-                                </SelectItem>
-                              ))}
-                            </SelectGroup>
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </CardContent>
-              <CardFooter className="flex flex-row justify-end">
-                <Button disabled={!isDirty} loading={isSubmitting} onClick={handleSubmit(onSubmitValid)}>
-                  <SaveIcon /> Save changes
-                </Button>
-              </CardFooter>
-            </Form>
-          </Card>
-          <Card className="border-red-300 lg:max-w-[50%]">
-            <Form {...form}>
-              <CardHeader>
-                <CardTitle className="text-red-600">Danger zone</CardTitle>
-                <CardDescription>Delete "{household.name}" household</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-muted-foreground text-sm">
-                  Caution! Once the household is deleted, all data assocciated with it, including household members, are
-                  deleted as well. This action is permanent and ireversabile
-                </p>
-              </CardContent>
-              <CardFooter className="flex flex-row justify-end">
-                <Dialog>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <DialogTrigger asChild>
-                        <Button disabled={household.ownerId !== user.id} variant="destructive">
-                          <TrashIcon />
-                          Delete household
-                        </Button>
-                      </DialogTrigger>
-                    </TooltipTrigger>
-                    {household.ownerId !== user.id && (
-                      <TooltipContent>Only the household owner can delete the household</TooltipContent>
-                    )}
-                  </Tooltip>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Are you sure?</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <p className="text-muted-foreground text-sm">
-                        Before you can proceed, please input the household name.
-                      </p>
-                      <Form {...confirmDeletionForm}>
-                        <FormField
-                          control={confirmDeletionForm.control}
-                          name="name"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Household name</FormLabel>
-                              <FormControl>
-                                <Input {...field} placeholder="The name of your household" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </Form>
-                    </div>
-                    <DialogFooter>
-                      <Button disabled={!canDelete} loading={isDeleting} onClick={handleDelete} variant="destructive">
-                        <TrashIcon /> Delete
+                        <SelectContent>
+                          <SelectGroup>
+                            <SelectLabel>Household members</SelectLabel>
+                            {household.members.map((member) => (
+                              <SelectItem key={member.id} value={member.userId}>
+                                {member.user.name}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </CardContent>
+            <CardFooter className="flex flex-row justify-end">
+              <Button disabled={!isDirty} loading={isSubmitting} onClick={handleSubmit(onSubmitValid)}>
+                <SaveIcon /> Save changes
+              </Button>
+            </CardFooter>
+          </Form>
+        </Card>
+        <Card className="border-red-300 lg:max-w-1/2">
+          <Form {...form}>
+            <CardHeader>
+              <CardTitle className="text-red-600">Danger zone</CardTitle>
+              <CardDescription>Delete "{household.name}" household</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-muted-foreground text-sm">
+                Caution! Once the household is deleted, all data assocciated with it, including household members, are
+                deleted as well. This action is permanent and ireversabile
+              </p>
+            </CardContent>
+            <CardFooter className="flex flex-row justify-end">
+              <Dialog>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <DialogTrigger asChild>
+                      <Button disabled={household.ownerId !== user.id} variant="destructive">
+                        <TrashIcon />
+                        Delete household
                       </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-              </CardFooter>
-            </Form>
-          </Card>
-        </main>
-      </div>
+                    </DialogTrigger>
+                  </TooltipTrigger>
+                  {household.ownerId !== user.id && (
+                    <TooltipContent>Only the household owner can delete the household</TooltipContent>
+                  )}
+                </Tooltip>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Are you sure?</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <p className="text-muted-foreground text-sm">
+                      Before you can proceed, please input the household name.
+                    </p>
+                    <Form {...confirmDeletionForm}>
+                      <FormField
+                        control={confirmDeletionForm.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Household name</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="The name of your household" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </Form>
+                  </div>
+                  <DialogFooter>
+                    <Button disabled={!canDelete} loading={isDeleting} onClick={handleDelete} variant="destructive">
+                      <TrashIcon /> Delete
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </CardFooter>
+          </Form>
+        </Card>
+      </main>
     </>
   );
 }

@@ -31,6 +31,19 @@ export const patchHouseholdModel = createUpdateSchema(schema.household, {
 }).omit({ createdAt: true, updatedAt: true, id: true });
 export type PatchHousehold = z.infer<typeof patchHouseholdModel>;
 
+export const patchHouseholdMemberModel = createUpdateSchema(schema.householdMember).omit({
+  createdAt: true,
+  householdId: true,
+  id: true,
+  updatedAt: true,
+  userId: true,
+});
+export type PatchHouseholdMember = z.infer<typeof patchHouseholdMemberModel>;
+
+export const patchHouseholdMemberPathParamsModel = z.object({ id: z.coerce.number<number>() });
+
+export const deleteHouseholdMemberPathParamsModel = z.object({ id: z.coerce.number<number>() });
+
 export const inviteHouseholdMembersModel = z.object({
   members: z.array(z.object({ email: z.email(), role: householdMemberRole })),
 });
@@ -49,3 +62,5 @@ export const readHouseholdInviteQueryParamsModel = z.object({ token: z.string() 
 export const acceptHouseholdInvitePathParamsModel = z.object({ id: z.coerce.number<number>() });
 
 export const acceptHouseholdInviteQueryParamsModel = z.object({ token: z.string() });
+
+export const deleteHouseholdInvitePathParamsModel = z.object({ id: z.coerce.number<number>() });
