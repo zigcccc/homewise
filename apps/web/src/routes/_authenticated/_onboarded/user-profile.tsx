@@ -16,6 +16,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import dayjs from 'dayjs';
+import { type InferRequestType } from 'hono';
 import { SaveIcon, TrashIcon } from 'lucide-react';
 import { type SubmitHandler, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -32,9 +33,10 @@ const userProfileFormModel = z.object({
   email: z.email(),
   createdAt: z.date(),
   image: z.url().nullish(),
-  imageFile: z.file().nullish(),
+  imageFile: z.instanceof(File).nullish(),
 });
 type UserProfileForm = z.infer<typeof userProfileFormModel>;
+type UpdateUserProfilePayload = InferRequestType<typeof client.users.me.$patch>['form'];
 
 export const Route = createFileRoute('/_authenticated/_onboarded/user-profile')({
   async loader({ context }) {
@@ -47,8 +49,8 @@ function UserProfileRoute() {
   const { queryClient } = Route.useRouteContext();
   const { data: authData } = useSuspenseQuery(getSessionQueryOptions());
   const { mutateAsync: updateProfileAsync } = useMutation({
-    mutationFn: async ({ name, imageFile }: UserProfileForm) => {
-      return parseResponse(client.users.me.$patch({ form: { image: imageFile ?? undefined, name } }));
+    mutationFn: async (payload: UpdateUserProfilePayload) => {
+      return parseResponse(client.users.me.$patch({ form: payload }));
     },
   });
   const { mutateAsync: deleteProfilePicture } = useMutation({
@@ -84,7 +86,7 @@ function UserProfileRoute() {
 
   const onSubmitValid: SubmitHandler<UserProfileForm> = async (data) => {
     try {
-      await updateProfileAsync(data);
+      await updateProfileAsync({ name: data.name, image: data.imageFile ?? undefined });
       await queryClient.invalidateQueries({ queryKey: ['auth', 'session'] });
       reset(data);
       toast.success('Profile updated successfully.');

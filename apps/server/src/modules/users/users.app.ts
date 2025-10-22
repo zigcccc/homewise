@@ -13,7 +13,7 @@ const usersApp = new Hono<AppContext>()
     zValidator(
       'form',
       z.object({
-        image: z.union([z.instanceof(File), z.string().transform((val) => (val === '' ? undefined : val))]).optional(),
+        image: z.union([z.file(), z.string().transform((val) => (val === '' ? undefined : val))]).optional(),
         name: z
           .string()
           .transform((val) => (val === '' ? undefined : val))
