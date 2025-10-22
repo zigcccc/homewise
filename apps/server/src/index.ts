@@ -6,6 +6,7 @@ import { corsConfig } from './config/cors';
 import { env } from './config/env';
 import { auth } from './lib/auth';
 import householdsApp from './modules/households';
+import usersApp from './modules/users';
 import { type AppContext } from './types/app.type';
 
 const app = new Hono<AppContext>()
@@ -31,6 +32,7 @@ const app = new Hono<AppContext>()
     return next();
   })
   // App routes
+  .route('/users', usersApp)
   .route('/households', householdsApp);
 
 if (env.NODE_ENV === 'development') {

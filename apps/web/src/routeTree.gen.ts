@@ -20,6 +20,7 @@ import { Route as AuthenticatedOnboardingIndexRouteImport } from './routes/_auth
 import { Route as AuthenticatedOnboardedIndexRouteImport } from './routes/_authenticated/_onboarded/index'
 import { Route as AuthenticatedOnboardingInviteMembersRouteImport } from './routes/_authenticated/onboarding/invite-members'
 import { Route as AuthenticatedOnboardingCreateHouseholdRouteImport } from './routes/_authenticated/onboarding/create-household'
+import { Route as AuthenticatedOnboardedUserProfileRouteImport } from './routes/_authenticated/_onboarded/user-profile'
 import { Route as AuthenticatedOnboardedManageSettingsRouteImport } from './routes/_authenticated/_onboarded/manage/settings'
 import { Route as AuthenticatedOnboardedManageHouseholdMembersRouteImport } from './routes/_authenticated/_onboarded/manage/household-members'
 
@@ -82,6 +83,12 @@ const AuthenticatedOnboardingCreateHouseholdRoute =
     path: '/create-household',
     getParentRoute: () => AuthenticatedOnboardingRouteRoute,
   } as any)
+const AuthenticatedOnboardedUserProfileRoute =
+  AuthenticatedOnboardedUserProfileRouteImport.update({
+    id: '/user-profile',
+    path: '/user-profile',
+    getParentRoute: () => AuthenticatedOnboardedRoute,
+  } as any)
 const AuthenticatedOnboardedManageSettingsRoute =
   AuthenticatedOnboardedManageSettingsRouteImport.update({
     id: '/manage/settings',
@@ -101,6 +108,7 @@ export interface FileRoutesByFullPath {
   '/verify-email': typeof VerifyEmailRoute
   '/onboarding': typeof AuthenticatedOnboardingRouteRouteWithChildren
   '/join-household': typeof AuthenticatedJoinHouseholdRoute
+  '/user-profile': typeof AuthenticatedOnboardedUserProfileRoute
   '/onboarding/create-household': typeof AuthenticatedOnboardingCreateHouseholdRoute
   '/onboarding/invite-members': typeof AuthenticatedOnboardingInviteMembersRoute
   '/': typeof AuthenticatedOnboardedIndexRoute
@@ -113,6 +121,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/verify-email': typeof VerifyEmailRoute
   '/join-household': typeof AuthenticatedJoinHouseholdRoute
+  '/user-profile': typeof AuthenticatedOnboardedUserProfileRoute
   '/onboarding/create-household': typeof AuthenticatedOnboardingCreateHouseholdRoute
   '/onboarding/invite-members': typeof AuthenticatedOnboardingInviteMembersRoute
   '/': typeof AuthenticatedOnboardedIndexRoute
@@ -129,6 +138,7 @@ export interface FileRoutesById {
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRouteRouteWithChildren
   '/_authenticated/_onboarded': typeof AuthenticatedOnboardedRouteWithChildren
   '/_authenticated/join-household': typeof AuthenticatedJoinHouseholdRoute
+  '/_authenticated/_onboarded/user-profile': typeof AuthenticatedOnboardedUserProfileRoute
   '/_authenticated/onboarding/create-household': typeof AuthenticatedOnboardingCreateHouseholdRoute
   '/_authenticated/onboarding/invite-members': typeof AuthenticatedOnboardingInviteMembersRoute
   '/_authenticated/_onboarded/': typeof AuthenticatedOnboardedIndexRoute
@@ -144,6 +154,7 @@ export interface FileRouteTypes {
     | '/verify-email'
     | '/onboarding'
     | '/join-household'
+    | '/user-profile'
     | '/onboarding/create-household'
     | '/onboarding/invite-members'
     | '/'
@@ -156,6 +167,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/verify-email'
     | '/join-household'
+    | '/user-profile'
     | '/onboarding/create-household'
     | '/onboarding/invite-members'
     | '/'
@@ -171,6 +183,7 @@ export interface FileRouteTypes {
     | '/_authenticated/onboarding'
     | '/_authenticated/_onboarded'
     | '/_authenticated/join-household'
+    | '/_authenticated/_onboarded/user-profile'
     | '/_authenticated/onboarding/create-household'
     | '/_authenticated/onboarding/invite-members'
     | '/_authenticated/_onboarded/'
@@ -265,6 +278,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOnboardingCreateHouseholdRouteImport
       parentRoute: typeof AuthenticatedOnboardingRouteRoute
     }
+    '/_authenticated/_onboarded/user-profile': {
+      id: '/_authenticated/_onboarded/user-profile'
+      path: '/user-profile'
+      fullPath: '/user-profile'
+      preLoaderRoute: typeof AuthenticatedOnboardedUserProfileRouteImport
+      parentRoute: typeof AuthenticatedOnboardedRoute
+    }
     '/_authenticated/_onboarded/manage/settings': {
       id: '/_authenticated/_onboarded/manage/settings'
       path: '/manage/settings'
@@ -303,6 +323,7 @@ const AuthenticatedOnboardingRouteRouteWithChildren =
   )
 
 interface AuthenticatedOnboardedRouteChildren {
+  AuthenticatedOnboardedUserProfileRoute: typeof AuthenticatedOnboardedUserProfileRoute
   AuthenticatedOnboardedIndexRoute: typeof AuthenticatedOnboardedIndexRoute
   AuthenticatedOnboardedManageHouseholdMembersRoute: typeof AuthenticatedOnboardedManageHouseholdMembersRoute
   AuthenticatedOnboardedManageSettingsRoute: typeof AuthenticatedOnboardedManageSettingsRoute
@@ -310,6 +331,8 @@ interface AuthenticatedOnboardedRouteChildren {
 
 const AuthenticatedOnboardedRouteChildren: AuthenticatedOnboardedRouteChildren =
   {
+    AuthenticatedOnboardedUserProfileRoute:
+      AuthenticatedOnboardedUserProfileRoute,
     AuthenticatedOnboardedIndexRoute: AuthenticatedOnboardedIndexRoute,
     AuthenticatedOnboardedManageHouseholdMembersRoute:
       AuthenticatedOnboardedManageHouseholdMembersRoute,

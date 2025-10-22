@@ -32,7 +32,8 @@
         "VITE_API_URL",
         "BETTER_AUTH_SECRET",
         "BETTER_AUTH_URL",
-        "NODEJS_HELPERS"
+        "NODEJS_HELPERS",
+        "HOMEWISE_FILES_READ_WRITE_TOKEN"
       ],
       "inputs": [
         "$TURBO_DEFAULT$",

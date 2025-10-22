@@ -212,65 +212,63 @@ function SettingsRoute() {
           </Form>
         </Card>
         <Card className="border-red-300 lg:max-w-1/2">
-          <Form {...form}>
-            <CardHeader>
-              <CardTitle className="text-red-600">Danger zone</CardTitle>
-              <CardDescription>Delete "{household.name}" household</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-muted-foreground text-sm">
-                Caution! Once the household is deleted, all data assocciated with it, including household members, are
-                deleted as well. This action is permanent and ireversabile
-              </p>
-            </CardContent>
-            <CardFooter className="flex flex-row justify-end">
-              <Dialog>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <DialogTrigger asChild>
-                      <Button disabled={household.ownerId !== user.id} variant="destructive">
-                        <TrashIcon />
-                        Delete household
-                      </Button>
-                    </DialogTrigger>
-                  </TooltipTrigger>
-                  {household.ownerId !== user.id && (
-                    <TooltipContent>Only the household owner can delete the household</TooltipContent>
-                  )}
-                </Tooltip>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Are you sure?</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <p className="text-muted-foreground text-sm">
-                      Before you can proceed, please input the household name.
-                    </p>
-                    <Form {...confirmDeletionForm}>
-                      <FormField
-                        control={confirmDeletionForm.control}
-                        name="name"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Household name</FormLabel>
-                            <FormControl>
-                              <Input {...field} placeholder="The name of your household" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </Form>
-                  </div>
-                  <DialogFooter>
-                    <Button disabled={!canDelete} loading={isDeleting} onClick={handleDelete} variant="destructive">
-                      <TrashIcon /> Delete
+          <CardHeader>
+            <CardTitle className="text-red-600">Danger zone</CardTitle>
+            <CardDescription>Delete "{household.name}" household</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-muted-foreground text-sm">
+              Caution! Once the household is deleted, all data assocciated with it, including household members, are
+              deleted as well. This action is permanent and ireversabile
+            </p>
+          </CardContent>
+          <CardFooter className="flex flex-row justify-end">
+            <Dialog>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DialogTrigger asChild>
+                    <Button disabled={household.ownerId !== user.id} variant="destructive">
+                      <TrashIcon />
+                      Delete household
                     </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </CardFooter>
-          </Form>
+                  </DialogTrigger>
+                </TooltipTrigger>
+                {household.ownerId !== user.id && (
+                  <TooltipContent>Only the household owner can delete the household</TooltipContent>
+                )}
+              </Tooltip>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Are you sure?</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <p className="text-muted-foreground text-sm">
+                    Before you can proceed, please input the household name.
+                  </p>
+                  <Form {...confirmDeletionForm}>
+                    <FormField
+                      control={confirmDeletionForm.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Household name</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="The name of your household" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </Form>
+                </div>
+                <DialogFooter>
+                  <Button disabled={!canDelete} loading={isDeleting} onClick={handleDelete} variant="destructive">
+                    <TrashIcon /> Delete
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </CardFooter>
         </Card>
       </main>
     </>

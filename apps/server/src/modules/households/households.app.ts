@@ -171,4 +171,5 @@ const householdsApp = new Hono<AppContext>()
       return c.json({ success: true }, 202);
     }
   );
+
 export default householdsApp;

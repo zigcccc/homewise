@@ -204,7 +204,7 @@ function HouseholdMembersRoute() {
                       control={control}
                       name={`members.${idx}.email`}
                       render={({ field }) => (
-                        <FormItem className="grow-1">
+                        <FormItem className="grow">
                           {idx === 0 && <FormLabel>Email</FormLabel>}
                           <FormControl>
                             <Input {...field} placeholder="invitee@email.com" />

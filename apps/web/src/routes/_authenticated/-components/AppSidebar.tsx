@@ -28,17 +28,21 @@ import {
   PackageOpenIcon,
   PiggyBankIcon,
   ScrollTextIcon,
+  UserIcon,
   UsersIcon,
 } from 'lucide-react';
 
 import { authClient } from '@/auth/client';
+import { getSessionQueryOptions } from '@/auth/queries';
 import { getMyHouseholdQueryOptions } from '@/modules/households';
 
 export function AppSidebar() {
   const { queryClient } = useRouteContext({ strict: false });
   const navigate = useNavigate();
-  const { data: auth } = authClient.useSession();
+  const { data: auth } = useQuery(getSessionQueryOptions());
   const { data: household } = useQuery(getMyHouseholdQueryOptions());
+
+  const { user } = auth?.data ?? {};
 
   const handleSignOut = async () => {
     await authClient.signOut();
@@ -163,7 +167,7 @@ export function AppSidebar() {
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
-      {auth?.user && (
+      {user && (
         <SidebarFooter>
           <SidebarMenu>
             <SidebarMenuItem>
@@ -174,16 +178,22 @@ export function AppSidebar() {
                     size="lg"
                   >
                     <Avatar className="mr-2">
-                      <AvatarImage alt={auth.user.name} src={auth.user.image ?? undefined} />
-                      <AvatarFallback>{auth.user.name.charAt(0)}</AvatarFallback>
+                      <AvatarImage alt={user.name} src={user.image || undefined} />
+                      <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <div className="flex flex-col items-start gap-0.5 leading-none">
-                      <span className="font-medium">{auth.user.name}</span>
-                      <span className="text-muted-foreground text-xs">{auth.user.email}</span>
+                      <span className="font-medium">{user.name}</span>
+                      <span className="text-muted-foreground text-xs">{user.email}</span>
                     </div>
                   </SidebarMenuButton>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-(--radix-dropdown-menu-trigger-width)" side="top">
+                  <DropdownMenuItem asChild>
+                    <Link to="/user-profile">
+                      <UserIcon className="mr-2 h-4 w-4" />
+                      <span>Your profile</span>
+                    </Link>
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleSignOut}>
                     <LogOutIcon className="mr-2 h-4 w-4" />
                     <span>Sign out</span>
