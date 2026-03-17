@@ -46,6 +46,7 @@
     "@homewise/eslint-config": "workspace:*",
     "@homewise/prettier-config": "workspace:*",
     "@homewise/typescript-config": "workspace:*",
+    "@better-auth/drizzle-adapter": "catalog:",
     "@react-email/preview-server": "catalog:",
     "@types/node": "catalog:",
     "@types/pg": "catalog:",

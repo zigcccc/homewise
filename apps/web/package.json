@@ -19,8 +19,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@homewise/ui": "workspace:*",
     "@homewise/server": "workspace:*",
+    "@homewise/ui": "workspace:*",
     "@hookform/resolvers": "catalog:",
     "@tanstack/react-query": "catalog:",
     "@tanstack/react-router": "catalog:",
@@ -38,6 +38,7 @@
     "react-hook-form": "catalog:",
     "sonner": "catalog:",
     "tailwind-merge": "catalog:",
+    "usehooks-ts": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {

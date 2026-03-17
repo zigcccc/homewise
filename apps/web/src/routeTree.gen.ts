@@ -23,6 +23,7 @@ import { Route as AuthenticatedOnboardingCreateHouseholdRouteImport } from './ro
 import { Route as AuthenticatedOnboardedUserProfileRouteImport } from './routes/_authenticated/_onboarded/user-profile'
 import { Route as AuthenticatedOnboardedManageSettingsRouteImport } from './routes/_authenticated/_onboarded/manage/settings'
 import { Route as AuthenticatedOnboardedManageHouseholdMembersRouteImport } from './routes/_authenticated/_onboarded/manage/household-members'
+import { Route as AuthenticatedOnboardedExpensesMonthlyExpensesRouteImport } from './routes/_authenticated/_onboarded/expenses/monthly-expenses'
 
 const VerifyEmailRoute = VerifyEmailRouteImport.update({
   id: '/verify-email',
@@ -101,8 +102,15 @@ const AuthenticatedOnboardedManageHouseholdMembersRoute =
     path: '/manage/household-members',
     getParentRoute: () => AuthenticatedOnboardedRoute,
   } as any)
+const AuthenticatedOnboardedExpensesMonthlyExpensesRoute =
+  AuthenticatedOnboardedExpensesMonthlyExpensesRouteImport.update({
+    id: '/expenses/monthly-expenses',
+    path: '/expenses/monthly-expenses',
+    getParentRoute: () => AuthenticatedOnboardedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
+  '/': typeof AuthenticatedOnboardedIndexRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/verify-email': typeof VerifyEmailRoute
@@ -111,12 +119,13 @@ export interface FileRoutesByFullPath {
   '/user-profile': typeof AuthenticatedOnboardedUserProfileRoute
   '/onboarding/create-household': typeof AuthenticatedOnboardingCreateHouseholdRoute
   '/onboarding/invite-members': typeof AuthenticatedOnboardingInviteMembersRoute
-  '/': typeof AuthenticatedOnboardedIndexRoute
   '/onboarding/': typeof AuthenticatedOnboardingIndexRoute
+  '/expenses/monthly-expenses': typeof AuthenticatedOnboardedExpensesMonthlyExpensesRoute
   '/manage/household-members': typeof AuthenticatedOnboardedManageHouseholdMembersRoute
   '/manage/settings': typeof AuthenticatedOnboardedManageSettingsRoute
 }
 export interface FileRoutesByTo {
+  '/': typeof AuthenticatedOnboardedIndexRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/verify-email': typeof VerifyEmailRoute
@@ -124,8 +133,8 @@ export interface FileRoutesByTo {
   '/user-profile': typeof AuthenticatedOnboardedUserProfileRoute
   '/onboarding/create-household': typeof AuthenticatedOnboardingCreateHouseholdRoute
   '/onboarding/invite-members': typeof AuthenticatedOnboardingInviteMembersRoute
-  '/': typeof AuthenticatedOnboardedIndexRoute
   '/onboarding': typeof AuthenticatedOnboardingIndexRoute
+  '/expenses/monthly-expenses': typeof AuthenticatedOnboardedExpensesMonthlyExpensesRoute
   '/manage/household-members': typeof AuthenticatedOnboardedManageHouseholdMembersRoute
   '/manage/settings': typeof AuthenticatedOnboardedManageSettingsRoute
 }
@@ -143,12 +152,14 @@ export interface FileRoutesById {
   '/_authenticated/onboarding/invite-members': typeof AuthenticatedOnboardingInviteMembersRoute
   '/_authenticated/_onboarded/': typeof AuthenticatedOnboardedIndexRoute
   '/_authenticated/onboarding/': typeof AuthenticatedOnboardingIndexRoute
+  '/_authenticated/_onboarded/expenses/monthly-expenses': typeof AuthenticatedOnboardedExpensesMonthlyExpensesRoute
   '/_authenticated/_onboarded/manage/household-members': typeof AuthenticatedOnboardedManageHouseholdMembersRoute
   '/_authenticated/_onboarded/manage/settings': typeof AuthenticatedOnboardedManageSettingsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/'
     | '/login'
     | '/signup'
     | '/verify-email'
@@ -157,12 +168,13 @@ export interface FileRouteTypes {
     | '/user-profile'
     | '/onboarding/create-household'
     | '/onboarding/invite-members'
-    | '/'
     | '/onboarding/'
+    | '/expenses/monthly-expenses'
     | '/manage/household-members'
     | '/manage/settings'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/'
     | '/login'
     | '/signup'
     | '/verify-email'
@@ -170,8 +182,8 @@ export interface FileRouteTypes {
     | '/user-profile'
     | '/onboarding/create-household'
     | '/onboarding/invite-members'
-    | '/'
     | '/onboarding'
+    | '/expenses/monthly-expenses'
     | '/manage/household-members'
     | '/manage/settings'
   id:
@@ -188,6 +200,7 @@ export interface FileRouteTypes {
     | '/_authenticated/onboarding/invite-members'
     | '/_authenticated/_onboarded/'
     | '/_authenticated/onboarding/'
+    | '/_authenticated/_onboarded/expenses/monthly-expenses'
     | '/_authenticated/_onboarded/manage/household-members'
     | '/_authenticated/_onboarded/manage/settings'
   fileRoutesById: FileRoutesById
@@ -225,7 +238,7 @@ declare module '@tanstack/react-router' {
     '/_authenticated': {
       id: '/_authenticated'
       path: ''
-      fullPath: ''
+      fullPath: '/'
       preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
@@ -239,7 +252,7 @@ declare module '@tanstack/react-router' {
     '/_authenticated/_onboarded': {
       id: '/_authenticated/_onboarded'
       path: ''
-      fullPath: ''
+      fullPath: '/'
       preLoaderRoute: typeof AuthenticatedOnboardedRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
@@ -299,6 +312,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOnboardedManageHouseholdMembersRouteImport
       parentRoute: typeof AuthenticatedOnboardedRoute
     }
+    '/_authenticated/_onboarded/expenses/monthly-expenses': {
+      id: '/_authenticated/_onboarded/expenses/monthly-expenses'
+      path: '/expenses/monthly-expenses'
+      fullPath: '/expenses/monthly-expenses'
+      preLoaderRoute: typeof AuthenticatedOnboardedExpensesMonthlyExpensesRouteImport
+      parentRoute: typeof AuthenticatedOnboardedRoute
+    }
   }
 }
 
@@ -325,6 +345,7 @@ const AuthenticatedOnboardingRouteRouteWithChildren =
 interface AuthenticatedOnboardedRouteChildren {
   AuthenticatedOnboardedUserProfileRoute: typeof AuthenticatedOnboardedUserProfileRoute
   AuthenticatedOnboardedIndexRoute: typeof AuthenticatedOnboardedIndexRoute
+  AuthenticatedOnboardedExpensesMonthlyExpensesRoute: typeof AuthenticatedOnboardedExpensesMonthlyExpensesRoute
   AuthenticatedOnboardedManageHouseholdMembersRoute: typeof AuthenticatedOnboardedManageHouseholdMembersRoute
   AuthenticatedOnboardedManageSettingsRoute: typeof AuthenticatedOnboardedManageSettingsRoute
 }
@@ -334,6 +355,8 @@ const AuthenticatedOnboardedRouteChildren: AuthenticatedOnboardedRouteChildren =
     AuthenticatedOnboardedUserProfileRoute:
       AuthenticatedOnboardedUserProfileRoute,
     AuthenticatedOnboardedIndexRoute: AuthenticatedOnboardedIndexRoute,
+    AuthenticatedOnboardedExpensesMonthlyExpensesRoute:
+      AuthenticatedOnboardedExpensesMonthlyExpensesRoute,
     AuthenticatedOnboardedManageHouseholdMembersRoute:
       AuthenticatedOnboardedManageHouseholdMembersRoute,
     AuthenticatedOnboardedManageSettingsRoute:

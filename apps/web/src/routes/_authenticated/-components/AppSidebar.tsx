@@ -82,11 +82,13 @@ export function AppSidebar() {
           <SidebarGroupLabel>Expenses</SidebarGroupLabel>
           <SidebarMenu>
             <SidebarMenuItem>
-              <Link to="/">
-                <SidebarMenuButton tooltip="Monthly expenses">
-                  <PiggyBankIcon className="size-4" />
-                  <span>Monthly expenses</span>
-                </SidebarMenuButton>
+              <Link to="/expenses/monthly-expenses">
+                {({ isActive }) => (
+                  <SidebarMenuButton isActive={isActive} tooltip="Monthly expenses">
+                    <PiggyBankIcon className="size-4" />
+                    <span>Monthly expenses</span>
+                  </SidebarMenuButton>
+                )}
               </Link>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -127,7 +129,7 @@ export function AppSidebar() {
               <Link to="/">
                 <SidebarMenuButton tooltip="Meal plans">
                   <CookingPotIcon className="size-4" />
-                  <span>Meal plans</span>
+                  <span>Weekly meal plans</span>
                 </SidebarMenuButton>
               </Link>
             </SidebarMenuItem>

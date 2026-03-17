@@ -21,11 +21,12 @@
     "@types/react": "catalog:",
     "lint-staged": "catalog:",
     "prettier": "catalog:",
-    "turbo": "^2.5.8",
+    "prettier-plugin-tailwindcss": "catalog:",
+    "turbo": "^2.8.17",
     "typescript": "catalog:"
   },
-  "packageManager": "pnpm@10.19.0",
+  "packageManager": "pnpm@10.32.1",
   "engines": {
-    "node": ">=22"
+    "node": ">=24"
   }
 }

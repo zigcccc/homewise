@@ -1,6 +1,6 @@
 import js from '@eslint/js';
 import { defineConfig } from 'eslint/config';
-import eslintPluginImport from 'eslint-plugin-import';
+import { importX } from 'eslint-plugin-import-x';
 import eslintPluginPrettier from 'eslint-plugin-prettier/recommended';
 import eslintPluginReact from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
@@ -23,7 +23,7 @@ export default defineConfig(
       'react-hooks': reactHooks,
       'react-refresh': reactRefresh,
       'unused-imports': eslintPluginUnusedImports,
-      import: eslintPluginImport,
+      'import-x': importX,
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
@@ -50,7 +50,7 @@ export default defineConfig(
           argsIgnorePattern: '^_',
         },
       ],
-      'import/order': [
+      'import-x/order': [
         'error',
         {
           'newlines-between': 'always',

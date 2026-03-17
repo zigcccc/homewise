@@ -12,14 +12,14 @@ export function JoinHousehold({ householdName, inviteeEmailAddress, url }: Props
   return (
     <Layout title={`Join "${householdName}" household`}>
       <Container>
-        <Heading as="h2" className="text-xs font-normal leading-none text-zinc-500">
+        <Heading as="h2" className="text-xs leading-none font-normal text-zinc-500">
           {`Join "${householdName}" household`}
         </Heading>
         <Heading className="mt-3 leading-none">Howdy {inviteeEmailAddress} 👋</Heading>
         <Text>You have been invited to join the {householdName} household!</Text>
         <Hr />
         <Text>To join the household, click on the link below:</Text>
-        <Button className="w-full rounded-md bg-zinc-800 py-4 text-center font-medium leading-4 text-white" href={url}>
+        <Button className="w-full rounded-md bg-zinc-800 py-4 text-center leading-4 font-medium text-white" href={url}>
           Join household
         </Button>
       </Container>
