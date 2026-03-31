@@ -3,11 +3,7 @@
 // For a full list of overridable settings, and general information on folder-specific settings,
 // see the documentation: https://zed.dev/docs/configuring-zed#settings-files
 {
-  "tabs": {
-    "file_icons": true,
-    "git_status": true
-  },
   "prettier": {
-    "plugins": ["prettier-plugin-tailwindcss"]
-  }
+    "plugins": ["prettier-plugin-tailwindcss"],
+  },
 }
