@@ -22,7 +22,7 @@
     "lint-staged": "catalog:",
     "prettier": "catalog:",
     "prettier-plugin-tailwindcss": "catalog:",
-    "turbo": "^2.9.5",
+    "turbo": "^2.9.6",
     "typescript": "catalog:"
   },
   "packageManager": "pnpm@10.33.0",
