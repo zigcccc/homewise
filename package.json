@@ -25,7 +25,7 @@
     "turbo": "^2.9.18",
     "typescript": "catalog:"
   },
-  "packageManager": "pnpm@11.6.0",
+  "packageManager": "pnpm@11.7.0",
   "engines": {
     "node": ">=24"
   }
