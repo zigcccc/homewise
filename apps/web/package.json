@@ -56,8 +56,7 @@
     "prettier-plugin-tailwindcss": "catalog:",
     "tailwindcss": "catalog:",
     "tw-animate-css": "catalog:",
-    "vite": "catalog:",
-    "vite-tsconfig-paths": "catalog:"
+    "vite": "catalog:"
   },
   "prettier": "@homewise/prettier-config/default"
 }

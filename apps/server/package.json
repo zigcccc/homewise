@@ -60,8 +60,6 @@
     "tsc-alias": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",
-    "vite": "catalog:",
-    "vite-tsconfig-paths": "catalog:",
     "zod": "catalog:"
   },
   "prettier": "@homewise/prettier-config/default"
