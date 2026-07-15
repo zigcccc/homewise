@@ -22,10 +22,10 @@
     "lint-staged": "catalog:",
     "prettier": "catalog:",
     "prettier-plugin-tailwindcss": "catalog:",
-    "turbo": "^2.9.18",
+    "turbo": "^2.10.5",
     "typescript": "catalog:"
   },
-  "packageManager": "pnpm@11.7.0",
+  "packageManager": "pnpm@11.13.0",
   "engines": {
     "node": ">=24"
   }
