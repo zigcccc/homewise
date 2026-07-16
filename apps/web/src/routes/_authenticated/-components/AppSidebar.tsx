@@ -1,3 +1,19 @@
+import { useQuery } from '@tanstack/react-query';
+import { Link, useNavigate, useRouteContext } from '@tanstack/react-router';
+import {
+  CogIcon,
+  CookingPotIcon,
+  LayoutDashboardIcon,
+  ListTodoIcon,
+  LogOutIcon,
+  MapPinIcon,
+  PackageOpenIcon,
+  PiggyBankIcon,
+  ScrollTextIcon,
+  UserIcon,
+  UsersIcon,
+} from 'lucide-react';
+
 import { Avatar, AvatarFallback, AvatarImage } from '@homewise/ui/core/avatar';
 import {
   DropdownMenu,
@@ -16,21 +32,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@homewise/ui/core/sidebar';
-import { useQuery } from '@tanstack/react-query';
-import { Link, useNavigate, useRouteContext } from '@tanstack/react-router';
-import {
-  CogIcon,
-  CookingPotIcon,
-  LayoutDashboardIcon,
-  ListTodoIcon,
-  LogOutIcon,
-  MapPinIcon,
-  PackageOpenIcon,
-  PiggyBankIcon,
-  ScrollTextIcon,
-  UserIcon,
-  UsersIcon,
-} from 'lucide-react';
 
 import { authClient } from '@/auth/client';
 import { getSessionQueryOptions } from '@/auth/queries';

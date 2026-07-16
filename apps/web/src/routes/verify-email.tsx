@@ -1,9 +1,10 @@
-import { Button } from '@homewise/ui/core/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@homewise/ui/core/card';
-import { Separator } from '@homewise/ui/core/separator';
 import { createFileRoute, redirect } from '@tanstack/react-router';
 import { toast } from 'sonner';
 import * as z from 'zod';
+
+import { Button } from '@homewise/ui/core/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@homewise/ui/core/card';
+import { Separator } from '@homewise/ui/core/separator';
 
 import { authClient } from '@/auth/client';
 
@@ -41,7 +42,7 @@ function VerifyEmailRoute() {
 
   return (
     <main className="flex h-screen w-screen items-center justify-center">
-      <div className="w-[450px] max-w-full">
+      <div className="w-112.5 max-w-full">
         <Card>
           <CardHeader>
             <CardTitle>Alrighty, you&apos;re almost done!</CardTitle>

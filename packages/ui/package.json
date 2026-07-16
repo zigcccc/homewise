@@ -17,11 +17,9 @@
     "@homewise/typescript-config": "workspace:*",
     "@types/node": "catalog:",
     "@types/react-dom": "catalog:",
-    "tailwindcss": "catalog:",
     "typescript": "catalog:"
   },
   "dependencies": {
-    "@hookform/resolvers": "catalog:",
     "@radix-ui/react-avatar": "catalog:",
     "@radix-ui/react-checkbox": "catalog:",
     "@radix-ui/react-dialog": "catalog:",
@@ -39,8 +37,6 @@
     "react": "catalog:",
     "react-dom": "catalog:",
     "react-hook-form": "catalog:",
-    "tailwind-merge": "catalog:",
-    "tw-animate-css": "catalog:",
-    "zod": "catalog:"
+    "tailwind-merge": "catalog:"
   }
 }

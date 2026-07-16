@@ -3,16 +3,18 @@
   "private": true,
   "scripts": {
     "build": "turbo run build",
-    "build:backend": "turbo run build --filter @homewise/backend-app --cwd ./apps/server",
+    "build:backend": "turbo run build --filter @homewise/server --cwd ./apps/server",
     "build:web": "turbo run build --filter @homewise/web-app --cwd ./apps/web",
     "dev": "turbo run dev --parallel",
     "lint": "biome check .",
     "lint:ci": "biome ci .",
     "format": "biome check --write .",
+    "knip": "knip",
     "check-types": "turbo run check-types",
     "db:migrations:create": "turbo run db:migrations:create",
     "db:migrations:apply": "turbo run db:migrations:apply",
-    "db:studio": "turbo run db:studio"
+    "db:studio": "turbo run db:studio",
+    "prepare": "husky"
   },
   "dependencies": {
     "hono": "catalog:"
@@ -21,7 +23,8 @@
     "@biomejs/biome": "catalog:",
     "@homewise/typescript-config": "workspace:*",
     "@types/react": "catalog:",
-    "lint-staged": "catalog:",
+    "husky": "catalog:",
+    "knip": "catalog:",
     "turbo": "^2.10.5",
     "typescript": "catalog:"
   },

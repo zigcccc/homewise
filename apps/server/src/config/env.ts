@@ -11,7 +11,6 @@ const envModel = z.object({
   DATABASE_URL: z.string(),
   NODE_ENV: nodeEnv.default('development'),
 });
-export type EnvType = z.infer<typeof envModel>;
 
 const parsedEnv = envModel.safeParse(process.env);
 

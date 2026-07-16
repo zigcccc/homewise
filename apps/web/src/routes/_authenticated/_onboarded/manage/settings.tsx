@@ -1,3 +1,12 @@
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
+import { createFileRoute, Link } from '@tanstack/react-router';
+import { type InferRequestType } from 'hono';
+import { SaveIcon, TrashIcon } from 'lucide-react';
+import { type SubmitHandler, useForm } from 'react-hook-form';
+import { toast } from 'sonner';
+import z from 'zod';
+
 import { patchHouseholdModel } from '@homewise/server/households';
 import {
   Breadcrumb,
@@ -29,18 +38,9 @@ import {
   SelectValue,
 } from '@homewise/ui/core/select';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@homewise/ui/core/tooltip';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
-import { createFileRoute, Link } from '@tanstack/react-router';
-import { type InferRequestType } from 'hono';
-import { SaveIcon, TrashIcon } from 'lucide-react';
-import { type SubmitHandler, useForm } from 'react-hook-form';
-import { toast } from 'sonner';
-import z from 'zod';
 
 import { client, DetailedError, parseResponse } from '@/api/client';
 import { getMyHouseholdQueryOptions } from '@/modules/households';
-
 import { Actionbar } from '../../-components/Actionbar';
 
 const $deleteHousehold = client.households.my.$delete;

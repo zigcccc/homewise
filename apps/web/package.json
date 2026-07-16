@@ -2,16 +2,12 @@
   "name": "@homewise/web-app",
   "version": "0.1.0",
   "description": "",
-  "main": "index.js",
   "type": "module",
   "scripts": {
     "dev": "vite dev",
     "build": "vite build && tsc --noEmit",
     "start": "vite preview",
-    "check-types": "tsc --noEmit",
-    "test": "vitest",
-    "test:ui": "vitest --ui --coverage.enabled=true",
-    "test:coverage": "vitest run --coverage"
+    "check-types": "tsc --noEmit"
   },
   "keywords": [],
   "author": "",
@@ -27,7 +23,6 @@
     "@vercel/analytics": "catalog:",
     "@vercel/speed-insights": "catalog:",
     "better-auth": "catalog:",
-    "class-variance-authority": "catalog:",
     "clsx": "catalog:",
     "dayjs": "catalog:",
     "lucide-react": "catalog:",
@@ -35,7 +30,6 @@
     "react-dom": "catalog:",
     "react-hook-form": "catalog:",
     "sonner": "catalog:",
-    "tailwind-merge": "catalog:",
     "usehooks-ts": "catalog:",
     "zod": "catalog:"
   },
@@ -46,7 +40,6 @@
     "@tanstack/react-router-devtools": "catalog:",
     "@types/react-dom": "catalog:",
     "@vitejs/plugin-react": "catalog:",
-    "autoprefixer": "catalog:",
     "tailwindcss": "catalog:",
     "tw-animate-css": "catalog:",
     "vite": "catalog:"

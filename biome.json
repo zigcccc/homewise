@@ -62,7 +62,15 @@
         "organizeImports": {
           "level": "on",
           "options": {
-            "groups": [":NODE:", ":BLANK_LINE:", ":PACKAGE:", ":BLANK_LINE:", ":ALIAS:", ":BLANK_LINE:", [":PATH:"]]
+            "groups": [
+              ":NODE:",
+              ":BLANK_LINE:",
+              [":PACKAGE:", "!@homewise/**"],
+              ":BLANK_LINE:",
+              ["@homewise/**"],
+              ":BLANK_LINE:",
+              [":ALIAS:", ":PATH:"]
+            ]
           }
         },
         "useSortedAttributes": "on"
