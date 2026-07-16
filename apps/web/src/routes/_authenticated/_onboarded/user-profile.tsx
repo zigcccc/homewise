@@ -1,17 +1,3 @@
-import {
-  Breadcrumb,
-  BreadcrumbList,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbSeparator,
-  BreadcrumbPage,
-} from '@homewise/ui/core/breadcrumb';
-import { Button } from '@homewise/ui/core/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@homewise/ui/core/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@homewise/ui/core/form';
-import { ImageInput } from '@homewise/ui/core/image-input';
-import { Input } from '@homewise/ui/core/input';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@homewise/ui/core/tooltip';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
@@ -22,9 +8,23 @@ import { type SubmitHandler, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@homewise/ui/core/breadcrumb';
+import { Button } from '@homewise/ui/core/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@homewise/ui/core/card';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@homewise/ui/core/form';
+import { ImageInput } from '@homewise/ui/core/image-input';
+import { Input } from '@homewise/ui/core/input';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@homewise/ui/core/tooltip';
+
 import { client, parseResponse } from '@/api/client';
 import { getSessionQueryOptions } from '@/auth/queries';
-
 import { Actionbar } from '../-components/Actionbar';
 
 const userProfileFormModel = z.object({
@@ -113,7 +113,7 @@ function UserProfileRoute() {
         </Breadcrumb>
       </Actionbar.Content>
       <main className="flex-1 space-y-4 p-4">
-        <h1 className="text-lg font-medium">Your profile</h1>
+        <h1 className="font-medium text-lg">Your profile</h1>
         <Form {...form}>
           <Card className="lg:max-w-1/2">
             <CardHeader>
@@ -128,7 +128,6 @@ function UserProfileRoute() {
                   <FormItem>
                     <FormControl>
                       <ImageInput
-                        ref={field.ref}
                         currentImage={formImage}
                         name={field.name}
                         onChange={field.onChange}
@@ -137,6 +136,7 @@ function UserProfileRoute() {
                           deleteProfilePicture();
                           reset(form.getValues());
                         }}
+                        ref={field.ref}
                       />
                     </FormControl>
                     <FormMessage />

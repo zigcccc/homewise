@@ -22,11 +22,11 @@ function AvatarImage({ className, ...props }: ComponentProps<typeof AvatarPrimit
 function AvatarFallback({ className, ...props }: ComponentProps<typeof AvatarPrimitive.Fallback>) {
   return (
     <AvatarPrimitive.Fallback
-      className={cn('bg-muted flex size-full items-center justify-center rounded-full', className)}
+      className={cn('flex size-full items-center justify-center rounded-full bg-muted', className)}
       data-slot="avatar-fallback"
       {...props}
     />
   );
 }
 
-export { Avatar, AvatarImage, AvatarFallback };
+export { Avatar, AvatarFallback, AvatarImage };

@@ -29,7 +29,7 @@ export function ImageInput({
           src={currentImage}
         />
         <button
-          className="absolute top-0 right-0 bottom-0 left-0 flex flex-col items-center justify-center gap-1 text-xs font-semibold text-red-600 opacity-0 group-hover:opacity-100 hover:cursor-pointer"
+          className="absolute top-0 right-0 bottom-0 left-0 flex flex-col items-center justify-center gap-1 font-semibold text-red-600 text-xs opacity-0 hover:cursor-pointer group-hover:opacity-100"
           onClick={() => {
             URL.revokeObjectURL(currentImage);
             onImagePreview(null);
@@ -45,10 +45,9 @@ export function ImageInput({
     );
   }
   return (
-    <label className="flex size-24 cursor-pointer flex-col items-center justify-center rounded-full border-2 border-dashed border-zinc-200 p-4 hover:border-zinc-400">
-      <span className="text-center text-xs text-gray-500">{placeholder}</span>
+    <label className="flex size-24 cursor-pointer flex-col items-center justify-center rounded-full border-2 border-zinc-200 border-dashed p-4 hover:border-zinc-400">
+      <span className="text-center text-gray-500 text-xs">{placeholder}</span>
       <input
-        ref={ref}
         accept="image/*"
         className="hidden"
         name={name}
@@ -59,6 +58,7 @@ export function ImageInput({
             onChange(file);
           }
         }}
+        ref={ref}
         type="file"
       />
     </label>

@@ -1,3 +1,9 @@
+import { zodResolver } from '@hookform/resolvers/zod';
+import { createFileRoute, Link, redirect } from '@tanstack/react-router';
+import { type SubmitHandler, useForm } from 'react-hook-form';
+import { toast } from 'sonner';
+import * as z from 'zod';
+
 import { Button } from '@homewise/ui/core/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@homewise/ui/core/card';
 import { Checkbox } from '@homewise/ui/core/checkbox';
@@ -5,11 +11,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@homewise/ui/core/input';
 import { Separator } from '@homewise/ui/core/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@homewise/ui/core/tooltip';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { createFileRoute, Link, redirect } from '@tanstack/react-router';
-import { type SubmitHandler, useForm } from 'react-hook-form';
-import { toast } from 'sonner';
-import * as z from 'zod';
 
 import { authClient } from '@/auth/client';
 
@@ -73,7 +74,7 @@ function LoginRoute() {
 
   return (
     <main className="flex h-screen w-screen items-center justify-center">
-      <div className="w-[450px] max-w-full">
+      <div className="w-112.5 max-w-full">
         <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
           <Card className="w-full max-w-sm">
             <CardHeader>
@@ -116,21 +117,21 @@ function LoginRoute() {
                       <FormItem className="flex flex-row items-center gap-2">
                         <FormControl>
                           <Checkbox
-                            ref={field.ref}
                             checked={field.value}
                             name={field.name}
                             onBlur={field.onBlur}
                             onCheckedChange={field.onChange}
+                            ref={field.ref}
                           />
                         </FormControl>
-                        <FormLabel className="text-sm font-normal">Remember me?</FormLabel>
+                        <FormLabel className="font-normal text-sm">Remember me?</FormLabel>
                       </FormItem>
                     )}
                   />
 
                   {errors.root && (
                     <div className="rounded-md bg-red-100 px-4 py-3">
-                      <span className="text-sm text-red-600">{errors.root.message}</span>
+                      <span className="text-red-600 text-sm">{errors.root.message}</span>
                     </div>
                   )}
                 </div>

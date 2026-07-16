@@ -1,3 +1,12 @@
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
+import { createFileRoute, Link } from '@tanstack/react-router';
+import { type InferRequestType } from 'hono';
+import { SaveIcon, TrashIcon } from 'lucide-react';
+import { type SubmitHandler, useForm } from 'react-hook-form';
+import { toast } from 'sonner';
+import z from 'zod';
+
 import { patchHouseholdModel } from '@homewise/server/households';
 import {
   Breadcrumb,
@@ -21,26 +30,17 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@homewise/ui/core/input';
 import {
   Select,
-  SelectTrigger,
-  SelectValue,
   SelectContent,
   SelectGroup,
-  SelectLabel,
   SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
 } from '@homewise/ui/core/select';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@homewise/ui/core/tooltip';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
-import { createFileRoute, Link } from '@tanstack/react-router';
-import { type InferRequestType } from 'hono';
-import { SaveIcon, TrashIcon } from 'lucide-react';
-import { type SubmitHandler, useForm } from 'react-hook-form';
-import { toast } from 'sonner';
-import z from 'zod';
 
 import { client, DetailedError, parseResponse } from '@/api/client';
 import { getMyHouseholdQueryOptions } from '@/modules/households';
-
 import { Actionbar } from '../../-components/Actionbar';
 
 const $deleteHousehold = client.households.my.$delete;
@@ -131,7 +131,7 @@ function SettingsRoute() {
         </Breadcrumb>
       </Actionbar.Content>
       <main className="flex-1 space-y-4 p-4">
-        <h1 className="text-lg font-medium">Manage "{household.name}" household</h1>
+        <h1 className="font-medium text-lg">Manage "{household.name}" household</h1>
         <Card className="lg:max-w-1/2">
           <Form {...form}>
             <CardHeader>

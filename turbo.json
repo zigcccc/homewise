@@ -3,9 +3,7 @@
   "ui": "tui",
   "tasks": {
     "db:up": {
-      "dependsOn": [
-        "^db:up"
-      ],
+      "dependsOn": ["^db:up"],
       "cache": false
     },
     "db:migrations:create": {
@@ -15,15 +13,11 @@
       "cache": false
     },
     "db:studio": {
-      "dependsOn": [
-        "db:up"
-      ],
+      "dependsOn": ["db:up"],
       "cache": false
     },
     "build": {
-      "dependsOn": [
-        "^build"
-      ],
+      "dependsOn": ["^build"],
       "env": [
         "DATABASE_URL",
         "DATABASE_URL_UNPOOLED",
@@ -35,29 +29,16 @@
         "NODEJS_HELPERS",
         "HOMEWISE_FILES_READ_WRITE_TOKEN"
       ],
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        ".env*"
-      ],
-      "outputs": [
-        "dist/**",
-        ".vercel/**"
-      ]
-    },
-    "lint": {
-      "dependsOn": [
-        "^lint"
-      ]
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputs": ["dist/**", ".vercel/**"]
     },
     "check-types": {
-      "dependsOn": [
-        "^check-types"
-      ]
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", "../../packages/typescript-config/*.json", "!**/*.md"],
+      "outputs": []
     },
     "dev": {
-      "dependsOn": [
-        "db:up"
-      ],
+      "dependsOn": ["db:up"],
       "cache": false,
       "persistent": true
     }

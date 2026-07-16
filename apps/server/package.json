@@ -19,7 +19,6 @@
     "db:migrations:apply": "drizzle-kit migrate",
     "dev": "tsx watch ./src/index.ts",
     "build": "tsc && tsc-alias -f",
-    "lint": "eslint .",
     "check-types": "tsc --noEmit",
     "emails:preview": "email dev --port 4000"
   },
@@ -29,35 +28,25 @@
     "@neondatabase/serverless": "catalog:",
     "@vercel/blob": "catalog:",
     "better-auth": "catalog:",
-    "class-variance-authority": "catalog:",
-    "clsx": "catalog:",
     "dotenv": "catalog:",
     "drizzle-orm": "catalog:",
     "drizzle-zod": "catalog:",
-    "lucide-react": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
     "resend": "catalog:",
     "sharp": "catalog:"
   },
   "devDependencies": {
-    "@homewise/eslint-config": "workspace:*",
-    "@homewise/prettier-config": "workspace:*",
     "@homewise/typescript-config": "workspace:*",
-    "@better-auth/drizzle-adapter": "catalog:",
     "@types/node": "catalog:",
     "@types/pg": "catalog:",
     "@types/react-dom": "catalog:",
     "drizzle-kit": "catalog:",
-    "eslint": "catalog:",
     "pg": "catalog:",
-    "prettier-eslint": "catalog:",
-    "prettier-plugin-tailwindcss": "catalog:",
     "react-email": "catalog:",
     "tsc-alias": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",
     "zod": "catalog:"
-  },
-  "prettier": "@homewise/prettier-config/default"
+  }
 }

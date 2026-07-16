@@ -2,18 +2,12 @@
   "name": "@homewise/web-app",
   "version": "0.1.0",
   "description": "",
-  "main": "index.js",
   "type": "module",
   "scripts": {
     "dev": "vite dev",
     "build": "vite build && tsc --noEmit",
     "start": "vite preview",
-    "check-types": "tsc --noEmit",
-    "lint": "eslint .",
-    "lint:fix": "yarn lint --fix",
-    "test": "vitest",
-    "test:ui": "vitest --ui --coverage.enabled=true",
-    "test:coverage": "vitest run --coverage"
+    "check-types": "tsc --noEmit"
   },
   "keywords": [],
   "author": "",
@@ -29,7 +23,6 @@
     "@vercel/analytics": "catalog:",
     "@vercel/speed-insights": "catalog:",
     "better-auth": "catalog:",
-    "class-variance-authority": "catalog:",
     "clsx": "catalog:",
     "dayjs": "catalog:",
     "lucide-react": "catalog:",
@@ -37,26 +30,18 @@
     "react-dom": "catalog:",
     "react-hook-form": "catalog:",
     "sonner": "catalog:",
-    "tailwind-merge": "catalog:",
     "usehooks-ts": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@homewise/eslint-config": "workspace:*",
-    "@homewise/prettier-config": "workspace:*",
     "@homewise/typescript-config": "workspace:*",
     "@tailwindcss/vite": "catalog:",
     "@tanstack/react-query-devtools": "catalog:",
     "@tanstack/react-router-devtools": "catalog:",
     "@types/react-dom": "catalog:",
     "@vitejs/plugin-react": "catalog:",
-    "autoprefixer": "catalog:",
-    "eslint": "catalog:",
-    "prettier-eslint": "catalog:",
-    "prettier-plugin-tailwindcss": "catalog:",
     "tailwindcss": "catalog:",
     "tw-animate-css": "catalog:",
     "vite": "catalog:"
-  },
-  "prettier": "@homewise/prettier-config/default"
+  }
 }

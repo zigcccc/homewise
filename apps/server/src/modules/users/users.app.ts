@@ -4,7 +4,6 @@ import { z } from 'zod';
 import { auth } from '@/lib/auth';
 import { zValidator } from '@/lib/validation';
 import { type AppContext } from '@/types/app.type';
-
 import { ImagesService } from '../images/images.service';
 
 const usersApp = new Hono<AppContext>()
@@ -24,7 +23,7 @@ const usersApp = new Hono<AppContext>()
       const { user } = c.var;
       const { image, name } = c.req.valid('form');
 
-      let imageUrl: string | undefined = undefined;
+      let imageUrl: string | undefined;
 
       if (image instanceof File) {
         const { url } = await ImagesService.put(image, `avatars/${user.id}/${image.name}`, { size: 128 });

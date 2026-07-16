@@ -1,18 +1,17 @@
 import type * as LabelPrimitive from '@radix-ui/react-label';
 import { Slot } from '@radix-ui/react-slot';
-import { createContext, useContext, type ComponentProps, useId } from 'react';
+import { type ComponentProps, createContext, useContext, useId } from 'react';
 import {
   Controller,
-  FormProvider,
-  useFormContext,
-  useFormState,
   type ControllerProps,
   type FieldPath,
   type FieldValues,
+  FormProvider,
+  useFormContext,
+  useFormState,
 } from 'react-hook-form';
 
 import { cn } from '../lib/utils';
-
 import { Label } from './label';
 
 const Form: typeof FormProvider = FormProvider;
@@ -134,4 +133,4 @@ function FormMessage({ className, ...props }: ComponentProps<'p'>) {
   );
 }
 
-export { useFormField, Form, FormItem, FormLabel, FormControl, FormDescription, FormMessage, FormField };
+export { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage, useFormField };

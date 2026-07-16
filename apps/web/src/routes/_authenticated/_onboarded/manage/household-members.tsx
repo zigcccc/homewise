@@ -1,3 +1,15 @@
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
+import { createFileRoute, Link } from '@tanstack/react-router';
+import { getCoreRowModel, useReactTable } from '@tanstack/react-table';
+import clsx from 'clsx';
+import { type InferRequestType } from 'hono';
+import { PlusIcon, RefreshCwIcon, Rows3Icon, TrashIcon } from 'lucide-react';
+import { useState } from 'react';
+import { type SubmitHandler, useFieldArray, useForm } from 'react-hook-form';
+import { toast } from 'sonner';
+import z from 'zod';
+
 import {
   householdMemberRole,
   type InviteHouseholdMembers,
@@ -5,11 +17,11 @@ import {
 } from '@homewise/server/households';
 import {
   Breadcrumb,
-  BreadcrumbList,
   BreadcrumbItem,
   BreadcrumbLink,
-  BreadcrumbSeparator,
+  BreadcrumbList,
   BreadcrumbPage,
+  BreadcrumbSeparator,
 } from '@homewise/ui/core/breadcrumb';
 import { Button } from '@homewise/ui/core/button';
 import { ButtonGroup } from '@homewise/ui/core/button-group';
@@ -28,31 +40,18 @@ import { Form, FormControl, FormField, FormItem, FormLabel } from '@homewise/ui/
 import { Input } from '@homewise/ui/core/input';
 import {
   Select,
-  SelectTrigger,
-  SelectValue,
   SelectContent,
   SelectGroup,
-  SelectLabel,
   SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
 } from '@homewise/ui/core/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@homewise/ui/core/tabs';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
-import { createFileRoute, Link } from '@tanstack/react-router';
-import { getCoreRowModel, useReactTable } from '@tanstack/react-table';
-import clsx from 'clsx';
-import { type InferRequestType } from 'hono';
-import { PlusIcon, RefreshCwIcon, Rows3Icon, TrashIcon } from 'lucide-react';
-import { useState } from 'react';
-import { type SubmitHandler, useFieldArray, useForm } from 'react-hook-form';
-import { toast } from 'sonner';
-import z from 'zod';
 
 import { client } from '@/api/client';
 import { getMyHouseholdQueryOptions, listMyHouseholdActiveInvitesQueryOptions } from '@/modules/households';
-
 import { Actionbar } from '../../-components/Actionbar';
-
 import { invitesTableColumns, membersTableColumns } from './-household-members.config';
 
 const householdMembersTab = z.enum(['members', 'invites']);
@@ -143,7 +142,7 @@ function HouseholdMembersRoute() {
         </Breadcrumb>
       </Actionbar.Content>
       <main className="flex-1 space-y-4 p-4">
-        <h1 className="text-lg font-medium">Manage "{household.name}" members</h1>
+        <h1 className="font-medium text-lg">Manage "{household.name}" members</h1>
         <Tabs
           onValueChange={(tab) =>
             navigate({ to: '/manage/household-members', search: { tab: tab as z.Infer<typeof householdMembersTab> } })
@@ -199,7 +198,7 @@ function HouseholdMembersRoute() {
             <Form {...form}>
               <form className="space-y-4">
                 {fields.map((field, idx) => (
-                  <div key={field.id} className="flex items-end gap-2">
+                  <div className="flex items-end gap-2" key={field.id}>
                     <FormField
                       control={control}
                       name={`members.${idx}.email`}

@@ -1,8 +1,9 @@
-import { Button } from '@homewise/ui/core/button';
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 import { toast } from 'sonner';
 import z from 'zod';
+
+import { Button } from '@homewise/ui/core/button';
 
 import { client } from '@/api/client';
 import { getReadHouseholdInviteQueryOptions } from '@/modules/households';
@@ -42,8 +43,8 @@ function JoinHouseholdRoute() {
     <main className="flex h-screen w-screen items-center justify-center">
       <div className="flex w-[480px] max-w-screen flex-col gap-4">
         <div className="flex flex-col">
-          <span className="text-foreground text-2xl font-medium">Hello {user.name} 👋</span>
-          <span className="text-foreground text-lg font-light">
+          <span className="font-medium text-2xl text-foreground">Hello {user.name} 👋</span>
+          <span className="font-light text-foreground text-lg">
             Ready to join the "{householdInvite.household.name}" household?
           </span>
         </div>

@@ -1,9 +1,9 @@
-import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from '@homewise/ui/core/breadcrumb';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 
-import { getMyHouseholdQueryOptions } from '@/modules/households';
+import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from '@homewise/ui/core/breadcrumb';
 
+import { getMyHouseholdQueryOptions } from '@/modules/households';
 import { Actionbar } from '../-components/Actionbar';
 
 export const Route = createFileRoute('/_authenticated/_onboarded/')({

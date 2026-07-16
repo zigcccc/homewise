@@ -9,7 +9,7 @@
     "allowSyntheticDefaultImports": true,
     "declaration": true,
     "paths": {
-      "@/*": ["./src/*"],
+      "@/*": ["./src/*"]
     }
   },
   "include": ["src"],

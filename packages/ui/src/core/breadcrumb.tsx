@@ -12,7 +12,7 @@ function BreadcrumbList({ className, ...props }: ComponentProps<'ol'>) {
   return (
     <ol
       className={cn(
-        'text-muted-foreground flex flex-wrap items-center gap-1.5 text-sm wrap-break-word sm:gap-2.5',
+        'wrap-break-word flex flex-wrap items-center gap-1.5 text-muted-foreground text-sm sm:gap-2.5',
         className
       )}
       data-slot="breadcrumb-list"
@@ -35,7 +35,7 @@ function BreadcrumbLink({
   const Comp = asChild ? Slot : 'a';
 
   return (
-    <Comp className={cn('hover:text-foreground transition-colors', className)} data-slot="breadcrumb-link" {...props} />
+    <Comp className={cn('transition-colors hover:text-foreground', className)} data-slot="breadcrumb-link" {...props} />
   );
 }
 
@@ -44,7 +44,7 @@ function BreadcrumbPage({ className, ...props }: ComponentProps<'span'>) {
     <span
       aria-current="page"
       aria-disabled="true"
-      className={cn('text-foreground font-normal first-letter:capitalize', className)}
+      className={cn('font-normal text-foreground first-letter:capitalize', className)}
       data-slot="breadcrumb-page"
       role="link"
       {...props}
@@ -83,10 +83,10 @@ function BreadcrumbEllipsis({ className, ...props }: ComponentProps<'span'>) {
 
 export {
   Breadcrumb,
-  BreadcrumbList,
+  BreadcrumbEllipsis,
   BreadcrumbItem,
   BreadcrumbLink,
+  BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-  BreadcrumbEllipsis,
 };

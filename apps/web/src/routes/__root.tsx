@@ -1,4 +1,3 @@
-import { SidebarProvider } from '@homewise/ui/core/sidebar';
 import { type QueryClient } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { createRootRouteWithContext, HeadContent, Link, Outlet } from '@tanstack/react-router';
@@ -7,6 +6,8 @@ import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import { Suspense } from 'react';
 import { Toaster } from 'sonner';
+
+import { SidebarProvider } from '@homewise/ui/core/sidebar';
 
 function RootLayout() {
   const { queryClient } = Route.useRouteContext();
