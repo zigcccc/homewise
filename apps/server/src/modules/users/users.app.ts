@@ -24,7 +24,7 @@ const usersApp = new Hono<AppContext>()
       const { user } = c.var;
       const { image, name } = c.req.valid('form');
 
-      let imageUrl: string | undefined = undefined;
+      let imageUrl: string | undefined;
 
       if (image instanceof File) {
         const { url } = await ImagesService.put(image, `avatars/${user.id}/${image.name}`, { size: 128 });

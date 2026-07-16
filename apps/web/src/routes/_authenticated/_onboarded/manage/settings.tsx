@@ -21,12 +21,12 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@homewise/ui/core/input';
 import {
   Select,
-  SelectTrigger,
-  SelectValue,
   SelectContent,
   SelectGroup,
-  SelectLabel,
   SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
 } from '@homewise/ui/core/select';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@homewise/ui/core/tooltip';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -131,7 +131,7 @@ function SettingsRoute() {
         </Breadcrumb>
       </Actionbar.Content>
       <main className="flex-1 space-y-4 p-4">
-        <h1 className="text-lg font-medium">Manage "{household.name}" household</h1>
+        <h1 className="font-medium text-lg">Manage "{household.name}" household</h1>
         <Card className="lg:max-w-1/2">
           <Form {...form}>
             <CardHeader>

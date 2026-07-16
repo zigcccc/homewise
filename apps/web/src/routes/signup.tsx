@@ -1,13 +1,13 @@
 import { Button } from '@homewise/ui/core/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@homewise/ui/core/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@homewise/ui/core/card';
 import { Checkbox } from '@homewise/ui/core/checkbox';
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@homewise/ui/core/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@homewise/ui/core/form';
 import { Input } from '@homewise/ui/core/input';
 import { Separator } from '@homewise/ui/core/separator';
-import { Tooltip, TooltipTrigger, TooltipContent } from '@homewise/ui/core/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@homewise/ui/core/tooltip';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createFileRoute, Link, redirect } from '@tanstack/react-router';
-import { useForm, type SubmitHandler } from 'react-hook-form';
+import { type SubmitHandler, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import * as z from 'zod';
 
@@ -196,14 +196,14 @@ function SignupRoute() {
                         <FormItem className="flex flex-row items-center gap-2">
                           <FormControl>
                             <Checkbox
-                              ref={field.ref}
                               checked={field.value}
                               name={field.name}
                               onBlur={field.onBlur}
                               onCheckedChange={field.onChange}
+                              ref={field.ref}
                             />
                           </FormControl>
-                          <FormLabel className="text-sm font-normal">Remember me?</FormLabel>
+                          <FormLabel className="font-normal text-sm">Remember me?</FormLabel>
                         </FormItem>
                       );
                     }}
@@ -211,7 +211,7 @@ function SignupRoute() {
 
                   {errors.root && (
                     <div className="rounded-md bg-red-100 px-4 py-3">
-                      <span className="text-sm text-red-600">{errors.root.message}</span>
+                      <span className="text-red-600 text-sm">{errors.root.message}</span>
                     </div>
                   )}
                 </div>

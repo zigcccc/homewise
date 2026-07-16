@@ -11,17 +11,12 @@
   "scripts": {
     "dev": "tsc --watch",
     "build": "tsc",
-    "lint": "eslint . --max-warnings 0",
     "check-types": "tsc --noEmit"
   },
   "devDependencies": {
-    "@homewise/eslint-config": "workspace:*",
-    "@homewise/prettier-config": "workspace:*",
     "@homewise/typescript-config": "workspace:*",
     "@types/node": "catalog:",
     "@types/react-dom": "catalog:",
-    "eslint": "catalog:",
-    "prettier-plugin-tailwindcss": "catalog:",
     "tailwindcss": "catalog:",
     "typescript": "catalog:"
   },
@@ -47,6 +42,5 @@
     "tailwind-merge": "catalog:",
     "tw-animate-css": "catalog:",
     "zod": "catalog:"
-  },
-  "prettier": "@homewise/prettier-config/default"
+  }
 }

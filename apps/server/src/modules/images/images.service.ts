@@ -1,4 +1,4 @@
-import { put, del } from '@vercel/blob';
+import { del, put } from '@vercel/blob';
 import sharp from 'sharp';
 
 type PutImageOptions =

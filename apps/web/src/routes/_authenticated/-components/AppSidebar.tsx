@@ -7,14 +7,14 @@ import {
 } from '@homewise/ui/core/dropdown-menu';
 import {
   Sidebar,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuItem,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupLabel,
-  SidebarFooter,
+  SidebarHeader,
+  SidebarMenu,
   SidebarMenuButton,
+  SidebarMenuItem,
 } from '@homewise/ui/core/sidebar';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate, useRouteContext } from '@tanstack/react-router';
@@ -57,7 +57,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton asChild tooltip="Homewise">
               <Link to="/">
-                <span className="text-lg font-bold">Homewise</span>
+                <span className="font-bold text-lg">Homewise</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -176,7 +176,7 @@ export function AppSidebar() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <SidebarMenuButton
-                    className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground w-full justify-start hover:cursor-pointer"
+                    className="w-full justify-start hover:cursor-pointer data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                     size="lg"
                   >
                     <Avatar className="mr-2">

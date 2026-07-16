@@ -10,4 +10,4 @@ const Pool = env.NODE_ENV === 'production' ? NeonPool : (PgPool as unknown as ty
 const pool = new Pool({ connectionString: env.DATABASE_URL });
 const db = drizzle(pool, { schema, casing: 'snake_case' });
 
-export { schema, db };
+export { db, schema };

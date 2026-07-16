@@ -1,10 +1,10 @@
 import {
   Breadcrumb,
-  BreadcrumbList,
   BreadcrumbItem,
   BreadcrumbLink,
-  BreadcrumbSeparator,
+  BreadcrumbList,
   BreadcrumbPage,
+  BreadcrumbSeparator,
 } from '@homewise/ui/core/breadcrumb';
 import { Button } from '@homewise/ui/core/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@homewise/ui/core/card';
@@ -113,7 +113,7 @@ function UserProfileRoute() {
         </Breadcrumb>
       </Actionbar.Content>
       <main className="flex-1 space-y-4 p-4">
-        <h1 className="text-lg font-medium">Your profile</h1>
+        <h1 className="font-medium text-lg">Your profile</h1>
         <Form {...form}>
           <Card className="lg:max-w-1/2">
             <CardHeader>
@@ -128,7 +128,6 @@ function UserProfileRoute() {
                   <FormItem>
                     <FormControl>
                       <ImageInput
-                        ref={field.ref}
                         currentImage={formImage}
                         name={field.name}
                         onChange={field.onChange}
@@ -137,6 +136,7 @@ function UserProfileRoute() {
                           deleteProfilePicture();
                           reset(form.getValues());
                         }}
+                        ref={field.ref}
                       />
                     </FormControl>
                     <FormMessage />

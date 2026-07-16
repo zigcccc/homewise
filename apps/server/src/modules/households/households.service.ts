@@ -10,8 +10,8 @@ import { resend } from '@/lib/resend';
 import { type AppContext } from '@/types/app.type';
 
 import {
-  type InviteHouseholdMembers,
   type InsertHousehold,
+  type InviteHouseholdMembers,
   type PatchHousehold,
   type PatchHouseholdMember,
 } from './models';

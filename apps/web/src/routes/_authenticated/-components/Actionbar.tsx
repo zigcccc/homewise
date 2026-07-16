@@ -28,8 +28,8 @@ function ActionbarRoot() {
 
   return (
     <nav
-      ref={setActionbarRef}
       className="sticky top-0 left-1 z-10 flex h-[70px] items-center gap-2 rounded-t-xl border-b border-b-zinc-200 bg-white p-3"
+      ref={setActionbarRef}
     >
       <SidebarTrigger />
     </nav>

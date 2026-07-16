@@ -5,7 +5,7 @@ import { cn } from '../lib/utils';
 function Card({ className, ...props }: ComponentProps<'div'>) {
   return (
     <div
-      className={cn('bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm', className)}
+      className={cn('flex flex-col gap-6 rounded-xl border bg-card py-6 text-card-foreground shadow-sm', className)}
       data-slot="card"
       {...props}
     />
@@ -26,7 +26,7 @@ function CardHeader({ className, ...props }: ComponentProps<'div'>) {
 }
 
 function CardTitle({ className, ...props }: ComponentProps<'div'>) {
-  return <div className={cn('leading-none font-semibold', className)} data-slot="card-title" {...props} />;
+  return <div className={cn('font-semibold leading-none', className)} data-slot="card-title" {...props} />;
 }
 
 function CardDescription({ className, ...props }: ComponentProps<'div'>) {
@@ -53,4 +53,4 @@ function CardFooter({ className, ...props }: ComponentProps<'div'>) {
   );
 }
 
-export { Card, CardHeader, CardFooter, CardTitle, CardAction, CardDescription, CardContent };
+export { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle };

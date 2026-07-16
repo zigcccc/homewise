@@ -3,7 +3,6 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { type ComponentProps } from 'react';
 
 import { cn } from '../lib/utils';
-
 import { Separator } from './separator';
 
 const buttonGroupVariants = cva(
@@ -51,7 +50,7 @@ function ButtonGroupText({
   return (
     <Comp
       className={cn(
-        "bg-muted flex items-center gap-2 rounded-md border px-4 text-sm font-medium shadow-xs [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4",
+        "flex items-center gap-2 rounded-md border bg-muted px-4 font-medium text-sm shadow-xs [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none",
         className
       )}
       {...props}
@@ -62,7 +61,7 @@ function ButtonGroupText({
 function ButtonGroupSeparator({ className, orientation = 'vertical', ...props }: ComponentProps<typeof Separator>) {
   return (
     <Separator
-      className={cn('bg-input relative !m-0 self-stretch data-[orientation=vertical]:h-auto', className)}
+      className={cn('!m-0 relative self-stretch bg-input data-[orientation=vertical]:h-auto', className)}
       data-slot="button-group-separator"
       orientation={orientation}
       {...props}

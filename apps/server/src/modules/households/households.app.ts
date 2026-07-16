@@ -5,7 +5,6 @@ import { zValidator } from '@/lib/validation';
 import { type AppContext } from '@/types/app.type';
 
 import { ErrorsService } from '../errors/errors.service';
-
 import { HouseholdsService } from './households.service';
 import {
   acceptHouseholdInvitePathParamsModel,

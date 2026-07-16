@@ -7,7 +7,7 @@ function Empty({ className, ...props }: ComponentProps<'div'>) {
   return (
     <div
       className={cn(
-        'flex min-w-0 flex-1 flex-col items-center justify-center gap-6 rounded-lg border-dashed p-6 text-center text-balance md:p-12',
+        'flex min-w-0 flex-1 flex-col items-center justify-center gap-6 text-balance rounded-lg border-dashed p-6 text-center md:p-12',
         className
       )}
       data-slot="empty"
@@ -32,7 +32,7 @@ const emptyMediaVariants = cva(
     variants: {
       variant: {
         default: 'bg-transparent',
-        icon: "bg-muted text-foreground flex size-10 shrink-0 items-center justify-center rounded-lg [&_svg:not([class*='size-'])]:size-6",
+        icon: "flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground [&_svg:not([class*='size-'])]:size-6",
       },
     },
     defaultVariants: {
@@ -57,14 +57,14 @@ function EmptyMedia({
 }
 
 function EmptyTitle({ className, ...props }: ComponentProps<'div'>) {
-  return <div className={cn('text-lg font-medium tracking-tight', className)} data-slot="empty-title" {...props} />;
+  return <div className={cn('font-medium text-lg tracking-tight', className)} data-slot="empty-title" {...props} />;
 }
 
 function EmptyDescription({ className, ...props }: ComponentProps<'p'>) {
   return (
     <div
       className={cn(
-        'text-muted-foreground [&>a:hover]:text-primary text-sm/relaxed [&>a]:underline [&>a]:underline-offset-4',
+        'text-muted-foreground text-sm/relaxed [&>a:hover]:text-primary [&>a]:underline [&>a]:underline-offset-4',
         className
       )}
       data-slot="empty-description"
@@ -76,11 +76,11 @@ function EmptyDescription({ className, ...props }: ComponentProps<'p'>) {
 function EmptyContent({ className, ...props }: ComponentProps<'div'>) {
   return (
     <div
-      className={cn('flex w-full max-w-sm min-w-0 flex-col items-center gap-4 text-sm text-balance', className)}
+      className={cn('flex w-full min-w-0 max-w-sm flex-col items-center gap-4 text-balance text-sm', className)}
       data-slot="empty-content"
       {...props}
     />
   );
 }
 
-export { Empty, EmptyHeader, EmptyTitle, EmptyDescription, EmptyContent, EmptyMedia };
+export { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle };

@@ -12,8 +12,6 @@ apps/
   web/      # React + TanStack Router SPA
 packages/
   ui/              # Shared ShadCN component library
-  eslint-config/   # Shared ESLint rules
-  prettier-config/ # Shared Prettier config
   typescript-config/ # Shared TS configs
 migrations/        # Drizzle migration files
 ```
@@ -30,9 +28,9 @@ pnpm dev --filter @homewise/web     # Run web only
 pnpm build                      # Build all apps
 pnpm check-types                # TypeScript type check all packages
 
-# Linting & formatting
-pnpm lint                       # ESLint all packages
-pnpm format                     # Prettier format TS/TSX/MD
+# Linting & formatting (Biome)
+pnpm lint                       # Biome check (lint + format diagnostics)
+pnpm format                     # Biome check --write (apply lint + format fixes)
 
 # Database (run from apps/server or root)
 pnpm db:up                      # Start PostgreSQL via Docker
@@ -93,7 +91,8 @@ Better Auth manages its own tables (`user`, `session`, `account`). Domain tables
 
 ## Key Conventions
 
-- **Type-only imports** are enforced by ESLint (`import type { ... }`).
-- **Import alphabetization** is enforced; unused imports are auto-removed.
+- **Linting & formatting** are handled by [Biome](https://biomejs.dev/) via the root `biome.json` (single config, no per-package overrides).
+- **Type-only imports** are enforced by Biome's `useImportType` (inline style: `import { type Foo }`).
+- **Import organization** is enforced by Biome's `organizeImports` assist; unused imports/variables are auto-removed.
 - Environment variables are validated at startup via `src/config/env.ts` (server) — add new vars there.
 - The Hono `AppType` exported from `apps/server/src/index.ts` is the contract consumed by the web client — keep it exported.

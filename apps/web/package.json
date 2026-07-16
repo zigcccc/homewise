@@ -9,8 +9,6 @@
     "build": "vite build && tsc --noEmit",
     "start": "vite preview",
     "check-types": "tsc --noEmit",
-    "lint": "eslint .",
-    "lint:fix": "yarn lint --fix",
     "test": "vitest",
     "test:ui": "vitest --ui --coverage.enabled=true",
     "test:coverage": "vitest run --coverage"
@@ -42,8 +40,6 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@homewise/eslint-config": "workspace:*",
-    "@homewise/prettier-config": "workspace:*",
     "@homewise/typescript-config": "workspace:*",
     "@tailwindcss/vite": "catalog:",
     "@tanstack/react-query-devtools": "catalog:",
@@ -51,12 +47,8 @@
     "@types/react-dom": "catalog:",
     "@vitejs/plugin-react": "catalog:",
     "autoprefixer": "catalog:",
-    "eslint": "catalog:",
-    "prettier-eslint": "catalog:",
-    "prettier-plugin-tailwindcss": "catalog:",
     "tailwindcss": "catalog:",
     "tw-animate-css": "catalog:",
     "vite": "catalog:"
-  },
-  "prettier": "@homewise/prettier-config/default"
+  }
 }

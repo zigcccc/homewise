@@ -116,21 +116,21 @@ function LoginRoute() {
                       <FormItem className="flex flex-row items-center gap-2">
                         <FormControl>
                           <Checkbox
-                            ref={field.ref}
                             checked={field.value}
                             name={field.name}
                             onBlur={field.onBlur}
                             onCheckedChange={field.onChange}
+                            ref={field.ref}
                           />
                         </FormControl>
-                        <FormLabel className="text-sm font-normal">Remember me?</FormLabel>
+                        <FormLabel className="font-normal text-sm">Remember me?</FormLabel>
                       </FormItem>
                     )}
                   />
 
                   {errors.root && (
                     <div className="rounded-md bg-red-100 px-4 py-3">
-                      <span className="text-sm text-red-600">{errors.root.message}</span>
+                      <span className="text-red-600 text-sm">{errors.root.message}</span>
                     </div>
                   )}
                 </div>
