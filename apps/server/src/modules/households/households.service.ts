@@ -1,7 +1,7 @@
-import { render } from '@react-email/components';
 import { and, count, eq, inArray, or } from 'drizzle-orm';
 import { type Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
+import { render } from 'react-email';
 
 import { db, schema } from '@/db';
 import { JoinHousehold } from '@/emails/JoinHousehold';

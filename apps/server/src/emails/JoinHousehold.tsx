@@ -1,4 +1,4 @@
-import { Button, Container, Heading, Hr, Text } from '@react-email/components';
+import { Button, Container, Heading, Hr, Text } from 'react-email';
 
 import { Layout } from './shared/Layout';
 

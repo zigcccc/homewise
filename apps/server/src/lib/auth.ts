@@ -1,7 +1,7 @@
-import { render } from '@react-email/components';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { oneTimeToken, openAPI } from 'better-auth/plugins';
+import { render } from 'react-email';
 
 import { allowedOrigins } from '@/config/cors';
 import { env } from '@/config/env';

@@ -1,6 +1,5 @@
-import { Body, Head, Html } from '@react-email/components';
-import { pixelBasedPreset, Tailwind } from '@react-email/tailwind';
 import { type PropsWithChildren } from 'react';
+import { Body, Head, Html, pixelBasedPreset, Tailwind } from 'react-email';
 
 export function Layout({ children, title }: PropsWithChildren<{ title: string }>) {
   return (
