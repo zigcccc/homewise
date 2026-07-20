@@ -1,4 +1,4 @@
-import { and, count, eq, inArray, or } from 'drizzle-orm';
+import { and, count, eq, inArray, isNull, or } from 'drizzle-orm';
 import { type Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { render } from 'react-email';
@@ -8,14 +8,39 @@ import { JoinHousehold } from '@/emails/JoinHousehold';
 import { auth } from '@/lib/auth';
 import { resend } from '@/lib/resend';
 import { type AppContext } from '@/types/app.type';
+
 import {
+  type CreateHouseholdMember,
   type InsertHousehold,
   type InviteHouseholdMembers,
   type PatchHousehold,
   type PatchHouseholdMember,
 } from './models';
 
+type MemberWithUser = {
+  userId: string | null;
+  name: string | null;
+  nickname: string | null;
+  user?: { id: string; email: string; name: string } | null;
+};
+
+// Returns the first value that is a non-blank string, skipping null/undefined/"".
+const firstFilled = (...values: (string | null | undefined)[]) =>
+  values.find((value): value is string => typeof value === 'string' && value.trim().length > 0);
+
 export class HouseholdsService {
+  public static toMemberResponse<M extends MemberWithUser>(member: M, ownerId: string) {
+    const { user, ...rest } = member;
+    return {
+      ...rest,
+      isOwner: member.userId === ownerId,
+      isManaged: member.userId === null,
+      householdOwnerId: ownerId,
+      displayName: firstFilled(member.nickname, user?.name, member.name) ?? 'Unknown',
+      email: user?.email ?? null,
+    };
+  }
+
   private static getUserHouseholdSql(userId: string) {
     return inArray(
       schema.household.id,
@@ -126,10 +151,45 @@ export class HouseholdsService {
     return member;
   }
 
+  public static async addHouseholdMembers(householdId: number, members: CreateHouseholdMember[]) {
+    const created = await db
+      .insert(schema.householdMember)
+      .values(
+        members.map((member) => ({
+          householdId,
+          userId: null,
+          name: member.name,
+          nickname: member.nickname || null,
+          role: member.role,
+        }))
+      )
+      .returning();
+
+    if (created.length !== members.length) {
+      throw new HTTPException(400, { message: 'Something went wrong.' });
+    }
+
+    return created;
+  }
+
   public static async patchHouseholdMember(householdId: number, memberId: number, data: PatchHouseholdMember) {
+    const existing = await HouseholdsService.readHouseholdMember(householdId, memberId);
+
+    const patch: Partial<typeof schema.householdMember.$inferInsert> = { ...data };
+
+    // Account members derive their name from the linked user account, so ignore name changes for them.
+    if (existing.userId) {
+      patch.name = undefined;
+    }
+
+    // Normalize an explicitly cleared nickname to null rather than an empty string.
+    if (data.nickname === '') {
+      patch.nickname = null;
+    }
+
     const [updated] = await db
       .update(schema.householdMember)
-      .set(data)
+      .set(patch)
       .where(and(eq(schema.householdMember.householdId, householdId), eq(schema.householdMember.id, memberId)))
       .returning();
 
@@ -159,7 +219,7 @@ export class HouseholdsService {
     callbackUrl: string,
     ctx: Context<AppContext>
   ) {
-    const household = await HouseholdsService.readForOwner(userId);
+    const household = await HouseholdsService.readForUser(userId);
 
     if (!household) {
       throw new HTTPException(404, { message: 'Houshold not found.' });
@@ -196,6 +256,53 @@ export class HouseholdsService {
     });
   }
 
+  public static async inviteExistingMember(
+    userId: string,
+    memberId: number,
+    email: string,
+    callbackUrl: string,
+    ctx: Context<AppContext>
+  ) {
+    const household = await HouseholdsService.readForUser(userId);
+
+    if (!household) {
+      throw new HTTPException(404, { message: 'Household not found.' });
+    }
+
+    const member = await HouseholdsService.readHouseholdMember(household.id, memberId);
+
+    if (member.userId) {
+      throw new HTTPException(400, { message: 'This member already has an account.' });
+    }
+
+    const { token } = await auth.api.generateOneTimeToken({ headers: ctx.req.raw.headers });
+
+    const [invite] = await db
+      .insert(schema.householdInvite)
+      .values({ email, role: member.role, householdId: household.id, memberId: member.id, token })
+      .returning();
+
+    if (!invite) {
+      throw new HTTPException(400, { message: 'Something went wrong' });
+    }
+
+    const html = await render(
+      JoinHousehold({
+        url: `${callbackUrl}/join-household?token=${token}`,
+        inviteeEmailAddress: email,
+        householdName: household.name,
+      })
+    );
+    await resend.emails.send({
+      from: 'Homewise 🏡 <no-reply@home-wise.app>',
+      to: email,
+      subject: `Join "${household.name}" household`,
+      html,
+    });
+
+    return invite;
+  }
+
   public static async readInvite(token: string) {
     await auth.api.verifyOneTimeToken({ body: { token } });
 
@@ -230,10 +337,38 @@ export class HouseholdsService {
       throw new HTTPException(404, { message: 'Invite not found' });
     }
 
-    const [householdMember] = await db
-      .insert(schema.householdMember)
-      .values({ userId, householdId: invite.householdId, role: invite.role })
-      .returning();
+    // Prevent a second membership if the accepting user already belongs to this household.
+    const existingMembership = await db.query.householdMember.findFirst({
+      where: (fields, { and, eq }) => and(eq(fields.householdId, invite.householdId), eq(fields.userId, userId)),
+    });
+
+    if (existingMembership) {
+      await HouseholdsService.deleteInvite(invite.householdId, invite.id);
+      return existingMembership;
+    }
+
+    let householdMember: typeof schema.householdMember.$inferSelect | undefined;
+
+    if (invite.memberId) {
+      // Upgrade an existing managed member by linking it to the accepting user's account.
+      // Require userId to still be null so concurrent accepts can't overwrite an existing link.
+      [householdMember] = await db
+        .update(schema.householdMember)
+        .set({ userId })
+        .where(
+          and(
+            eq(schema.householdMember.id, invite.memberId),
+            eq(schema.householdMember.householdId, invite.householdId),
+            isNull(schema.householdMember.userId)
+          )
+        )
+        .returning();
+    } else {
+      [householdMember] = await db
+        .insert(schema.householdMember)
+        .values({ userId, householdId: invite.householdId, role: invite.role })
+        .returning();
+    }
 
     if (!householdMember) {
       throw new HTTPException(400, { message: 'Something went wrong' });

@@ -1,5 +1,5 @@
 import { relations } from 'drizzle-orm';
-import { boolean, integer, pgEnum, pgTable, serial, text } from 'drizzle-orm/pg-core';
+import { boolean, integer, pgEnum, pgTable, text } from 'drizzle-orm/pg-core';
 
 import { baseDbEntityFields } from './__shared/base';
 import { user } from './user';
@@ -16,20 +16,21 @@ export const household = pgTable('household', {
 
 export const householdMember = pgTable('household_member', {
   ...baseDbEntityFields,
-  userId: text('user_id')
-    .notNull()
-    .references(() => user.id, { onDelete: 'cascade' }),
+  userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }),
   householdId: integer('household_id')
     .notNull()
     .references(() => household.id, { onDelete: 'cascade' }),
+  name: text('name'),
+  nickname: text('nickname'),
   role: householdMemberRoleEnum(),
 });
 
 export const householdInvite = pgTable('household_invite', {
   ...baseDbEntityFields,
-  householdId: serial('household_id')
+  householdId: integer('household_id')
     .notNull()
     .references(() => household.id, { onDelete: 'cascade' }),
+  memberId: integer('member_id').references(() => householdMember.id, { onDelete: 'cascade' }),
   token: text('token').notNull().unique(),
   email: text('email').notNull(),
   role: householdMemberRoleEnum(),
@@ -49,4 +50,5 @@ export const householdRelations = relations(household, ({ many, one }) => ({
 
 export const householdInviteRelations = relations(householdInvite, ({ one }) => ({
   household: one(household, { fields: [householdInvite.householdId], references: [household.id] }),
+  member: one(householdMember, { fields: [householdInvite.memberId], references: [householdMember.id] }),
 }));

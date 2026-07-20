@@ -7,6 +7,7 @@ import { allowedOrigins } from '@/config/cors';
 import { env } from '@/config/env';
 import { db, schema } from '@/db';
 import { VerifyEmail } from '@/emails/VerifyEmail';
+
 import { resend } from './resend';
 
 export const auth = betterAuth({

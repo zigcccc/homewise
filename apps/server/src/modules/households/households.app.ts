@@ -3,14 +3,18 @@ import { HTTPException } from 'hono/http-exception';
 
 import { zValidator } from '@/lib/validation';
 import { type AppContext } from '@/types/app.type';
+
 import { ErrorsService } from '../errors/errors.service';
 import { HouseholdsService } from './households.service';
 import {
   acceptHouseholdInvitePathParamsModel,
   acceptHouseholdInviteQueryParamsModel,
+  createHouseholdMembersModel,
   createHouseholdModel,
   deleteHouseholdInvitePathParamsModel,
   deleteHouseholdMemberPathParamsModel,
+  inviteExistingMemberModel,
+  inviteExistingMemberPathParamsModel,
   inviteHouseholdMembersModel,
   inviteHouseholdMembersQueryParamsModel,
   patchHouseholdMemberModel,
@@ -39,11 +43,7 @@ const householdsApp = new Hono<AppContext>()
 
     const mappedHousehold = {
       ...household,
-      members: household.members.map((member) => ({
-        ...member,
-        isOwner: member.userId === household.ownerId,
-        householdOwnerId: household.ownerId,
-      })),
+      members: household.members.map((member) => HouseholdsService.toMemberResponse(member, household.ownerId)),
     };
 
     return c.json(mappedHousehold, 200);
@@ -107,6 +107,32 @@ const householdsApp = new Hono<AppContext>()
 
     return c.json({ success: true }, 202);
   })
+  .post('/my/members', zValidator('json', createHouseholdMembersModel), async (c) => {
+    const household = await HouseholdsService.readForUser(c.var.user.id);
+
+    if (!household) {
+      throw new HTTPException(404, { message: 'Household not found' });
+    }
+
+    const members = await HouseholdsService.addHouseholdMembers(household.id, c.req.valid('json').members);
+
+    return c.json(members, 201);
+  })
+  .post(
+    '/my/members/:id/invite',
+    zValidator('param', inviteExistingMemberPathParamsModel),
+    zValidator('json', inviteExistingMemberModel),
+    zValidator('query', inviteHouseholdMembersQueryParamsModel),
+    async (c) => {
+      const { id: memberId } = c.req.valid('param');
+      const { email } = c.req.valid('json');
+      const { callbackUrl } = c.req.valid('query');
+
+      await HouseholdsService.inviteExistingMember(c.var.user.id, memberId, email, callbackUrl, c);
+
+      return c.json({ success: true }, 200);
+    }
+  )
   .post(
     '/my/invite',
     zValidator('json', inviteHouseholdMembersModel),

@@ -3,6 +3,7 @@ import { createFileRoute, Outlet, redirect } from '@tanstack/react-router';
 import { SidebarInset } from '@homewise/ui/core/sidebar';
 
 import { getMyHouseholdQueryOptions } from '@/modules/households';
+
 import { Actionbar } from './-components/Actionbar';
 import { AppSidebar } from './-components/AppSidebar';
 

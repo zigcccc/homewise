@@ -1,20 +1,11 @@
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
+import { useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import clsx from 'clsx';
-import { type InferRequestType } from 'hono';
-import { PlusIcon, RefreshCwIcon, Rows3Icon, TrashIcon } from 'lucide-react';
+import { PlusIcon, RefreshCwIcon, Rows3Icon } from 'lucide-react';
 import { useState } from 'react';
-import { type SubmitHandler, useFieldArray, useForm } from 'react-hook-form';
-import { toast } from 'sonner';
 import z from 'zod';
 
-import {
-  householdMemberRole,
-  type InviteHouseholdMembers,
-  inviteHouseholdMembersModel,
-} from '@homewise/server/households';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -31,32 +22,19 @@ import {
   DialogClose,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@homewise/ui/core/dialog';
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@homewise/ui/core/empty';
-import { Form, FormControl, FormField, FormItem, FormLabel } from '@homewise/ui/core/form';
-import { Input } from '@homewise/ui/core/input';
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from '@homewise/ui/core/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@homewise/ui/core/tabs';
 
-import { client } from '@/api/client';
 import { getMyHouseholdQueryOptions, listMyHouseholdActiveInvitesQueryOptions } from '@/modules/households';
+import { AddMemberTabs } from '@/modules/households/components';
+
 import { Actionbar } from '../../-components/Actionbar';
 import { invitesTableColumns, membersTableColumns } from './-household-members.config';
 
 const householdMembersTab = z.enum(['members', 'invites']);
-const $postInvite = client.households.my.invite.$post;
-type InviteMembersPayload = InferRequestType<typeof $postInvite>['json'];
 
 export const Route = createFileRoute('/_authenticated/_onboarded/manage/household-members')({
   validateSearch: z.object({ tab: householdMembersTab.default('members').catch('members') }),
@@ -72,34 +50,10 @@ export const Route = createFileRoute('/_authenticated/_onboarded/manage/househol
 function HouseholdMembersRoute() {
   const navigate = Route.useNavigate();
   const { tab } = Route.useSearch();
-  const { queryClient } = Route.useRouteContext();
   const { data: household } = useSuspenseQuery(getMyHouseholdQueryOptions());
   const { data: invites, refetch, isRefetching } = useSuspenseQuery(listMyHouseholdActiveInvitesQueryOptions());
 
-  const { mutateAsync: inviteMembersAsync } = useMutation({
-    mutationFn: async (data: InviteMembersPayload) =>
-      $postInvite({
-        json: data,
-        query: { callbackUrl: window.location.origin },
-      }),
-  });
-
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
-
-  const form = useForm({
-    resolver: zodResolver(inviteHouseholdMembersModel),
-    defaultValues: {
-      members: [{ email: '', role: householdMemberRole.enum.adult }],
-    },
-  });
-  const { fields, append, remove } = useFieldArray({ control: form.control, name: 'members' });
-
-  const {
-    reset,
-    control,
-    handleSubmit,
-    formState: { isSubmitting },
-  } = form;
 
   const membersTable = useReactTable({
     data: household.members,
@@ -111,18 +65,6 @@ function HouseholdMembersRoute() {
     columns: invitesTableColumns,
     getCoreRowModel: getCoreRowModel(),
   });
-
-  const onSubmitValid: SubmitHandler<InviteHouseholdMembers> = async (data) => {
-    try {
-      await inviteMembersAsync(data);
-      await queryClient.invalidateQueries({ queryKey: ['households'] });
-      setInviteDialogOpen(false);
-      reset({ members: [{ email: '', role: householdMemberRole.enum.adult }] });
-      toast.success(`${data.members.length} ${data.members.length === 1 ? 'member' : 'members'} invited.`);
-    } catch {
-      toast.error('Something went wrong.');
-    }
-  };
 
   return (
     <>
@@ -155,7 +97,7 @@ function HouseholdMembersRoute() {
               <TabsTrigger value="invites">Pending invites ({invites.length})</TabsTrigger>
             </TabsList>
             <Button className="pr-4" onClick={() => setInviteDialogOpen(true)} size="sm">
-              <PlusIcon /> Invite
+              <PlusIcon /> Add member
             </Button>
           </div>
           <TabsContent value="members">
@@ -190,86 +132,21 @@ function HouseholdMembersRoute() {
         <Dialog onOpenChange={setInviteDialogOpen} open={inviteDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Invite new member(s)</DialogTitle>
+              <DialogTitle>Add a household member</DialogTitle>
               <DialogDescription>
-                By inviting them to your household, they'll be able to interact with data available in the dashboard.
+                Invite someone with an email to create their own account, or add a member (child, pet, …) that you
+                manage on their behalf.
               </DialogDescription>
             </DialogHeader>
-            <Form {...form}>
-              <form className="space-y-4">
-                {fields.map((field, idx) => (
-                  <div className="flex items-end gap-2" key={field.id}>
-                    <FormField
-                      control={control}
-                      name={`members.${idx}.email`}
-                      render={({ field }) => (
-                        <FormItem className="grow">
-                          {idx === 0 && <FormLabel>Email</FormLabel>}
-                          <FormControl>
-                            <Input {...field} placeholder="invitee@email.com" />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={control}
-                      name={`members.${idx}.role`}
-                      render={({ field }) => (
-                        <FormItem className="grow-0">
-                          {idx === 0 && <FormLabel>Role</FormLabel>}
-                          <FormControl>
-                            <Select name={field.name} onValueChange={field.onChange} value={field.value}>
-                              <SelectTrigger className="w-[120px]">
-                                <SelectValue placeholder="Select a fruit" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectGroup>
-                                  <SelectLabel>Household member role</SelectLabel>
-                                  <SelectItem value={householdMemberRole.enum.adult}>Adult</SelectItem>
-                                  <SelectItem value={householdMemberRole.enum.child}>Child</SelectItem>
-                                  <SelectItem value={householdMemberRole.enum.pet}>Pet</SelectItem>
-                                  <SelectItem value={householdMemberRole.enum.external}>External</SelectItem>
-                                </SelectGroup>
-                              </SelectContent>
-                            </Select>
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    <Button
-                      className="grow-0 px-2"
-                      disabled={fields.length === 1}
-                      onClick={() => remove(idx)}
-                      type="button"
-                      variant="ghost"
-                    >
-                      <TrashIcon />
-                    </Button>
-                  </div>
-                ))}
-                <div className="flex justify-start pb-2">
-                  <Button
-                    className="grow-0"
-                    onClick={() => append({ email: '', role: householdMemberRole.enum.adult })}
-                    type="button"
-                    variant="ghost"
-                  >
-                    <PlusIcon />
-                    Add more
-                  </Button>
-                </div>
-              </form>
-            </Form>
-            <DialogFooter>
-              <ButtonGroup>
+            <AddMemberTabs
+              onInvited={() => setInviteDialogOpen(false)}
+              onMemberAdded={() => setInviteDialogOpen(false)}
+              secondaryAction={
                 <DialogClose asChild>
                   <Button variant="outline">Cancel</Button>
                 </DialogClose>
-                <Button loading={isSubmitting} onClick={handleSubmit(onSubmitValid)}>
-                  Send {fields.length > 1 ? 'invites' : 'invite'}
-                </Button>
-              </ButtonGroup>
-            </DialogFooter>
+              }
+            />
           </DialogContent>
         </Dialog>
       </main>

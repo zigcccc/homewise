@@ -41,6 +41,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@homewise/ui/core/toolt
 
 import { client, DetailedError, parseResponse } from '@/api/client';
 import { getMyHouseholdQueryOptions } from '@/modules/households';
+
 import { Actionbar } from '../../-components/Actionbar';
 
 const $deleteHousehold = client.households.my.$delete;
@@ -190,11 +191,13 @@ function SettingsRoute() {
                         <SelectContent>
                           <SelectGroup>
                             <SelectLabel>Household members</SelectLabel>
-                            {household.members.map((member) => (
-                              <SelectItem key={member.id} value={member.userId}>
-                                {member.user.name}
-                              </SelectItem>
-                            ))}
+                            {household.members
+                              .filter((member) => member.userId !== null)
+                              .map((member) => (
+                                <SelectItem key={member.id} value={member.userId as string}>
+                                  {member.displayName}
+                                </SelectItem>
+                              ))}
                           </SelectGroup>
                         </SelectContent>
                       </Select>

@@ -15,6 +15,13 @@
       "when": 1760525695708,
       "tag": "0001_tricky_spitfire",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784530435780,
+      "tag": "0002_clever_martin_li",
+      "breakpoints": true
     }
   ]
 }
