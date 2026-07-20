@@ -9,30 +9,24 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as VerifyEmailRouteImport } from './routes/verify-email'
-import { Route as SignupRouteImport } from './routes/signup'
-import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
-import { Route as AuthenticatedJoinHouseholdRouteImport } from './routes/_authenticated/join-household'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as SignupRouteImport } from './routes/signup'
+import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as AuthenticatedOnboardedRouteImport } from './routes/_authenticated/_onboarded'
+import { Route as AuthenticatedJoinHouseholdRouteImport } from './routes/_authenticated/join-household'
 import { Route as AuthenticatedOnboardingRouteRouteImport } from './routes/_authenticated/onboarding/route'
-import { Route as AuthenticatedOnboardingIndexRouteImport } from './routes/_authenticated/onboarding/index'
 import { Route as AuthenticatedOnboardedIndexRouteImport } from './routes/_authenticated/_onboarded/index'
-import { Route as AuthenticatedOnboardingInviteMembersRouteImport } from './routes/_authenticated/onboarding/invite-members'
-import { Route as AuthenticatedOnboardingCreateHouseholdRouteImport } from './routes/_authenticated/onboarding/create-household'
 import { Route as AuthenticatedOnboardedUserProfileRouteImport } from './routes/_authenticated/_onboarded/user-profile'
-import { Route as AuthenticatedOnboardedManageSettingsRouteImport } from './routes/_authenticated/_onboarded/manage/settings'
-import { Route as AuthenticatedOnboardedManageHouseholdMembersRouteImport } from './routes/_authenticated/_onboarded/manage/household-members'
+import { Route as AuthenticatedOnboardingIndexRouteImport } from './routes/_authenticated/onboarding/index'
+import { Route as AuthenticatedOnboardingCreateHouseholdRouteImport } from './routes/_authenticated/onboarding/create-household'
+import { Route as AuthenticatedOnboardingInviteMembersRouteImport } from './routes/_authenticated/onboarding/invite-members'
 import { Route as AuthenticatedOnboardedExpensesMonthlyExpensesRouteImport } from './routes/_authenticated/_onboarded/expenses/monthly-expenses'
+import { Route as AuthenticatedOnboardedManageHouseholdMembersRouteImport } from './routes/_authenticated/_onboarded/manage/household-members'
+import { Route as AuthenticatedOnboardedManageSettingsRouteImport } from './routes/_authenticated/_onboarded/manage/settings'
 
-const VerifyEmailRoute = VerifyEmailRouteImport.update({
-  id: '/verify-email',
-  path: '/verify-email',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SignupRoute = SignupRouteImport.update({
-  id: '/signup',
-  path: '/signup',
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -40,9 +34,19 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedRoute = AuthenticatedRouteImport.update({
-  id: '/_authenticated',
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
   getParentRoute: () => rootRouteImport,
+} as any)
+const VerifyEmailRoute = VerifyEmailRouteImport.update({
+  id: '/verify-email',
+  path: '/verify-email',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedOnboardedRoute = AuthenticatedOnboardedRouteImport.update({
+  id: '/_onboarded',
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedJoinHouseholdRoute =
   AuthenticatedJoinHouseholdRouteImport.update({
@@ -50,21 +54,11 @@ const AuthenticatedJoinHouseholdRoute =
     path: '/join-household',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedOnboardedRoute = AuthenticatedOnboardedRouteImport.update({
-  id: '/_onboarded',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
 const AuthenticatedOnboardingRouteRoute =
   AuthenticatedOnboardingRouteRouteImport.update({
     id: '/onboarding',
     path: '/onboarding',
     getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedOnboardingIndexRoute =
-  AuthenticatedOnboardingIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AuthenticatedOnboardingRouteRoute,
   } as any)
 const AuthenticatedOnboardedIndexRoute =
   AuthenticatedOnboardedIndexRouteImport.update({
@@ -72,10 +66,16 @@ const AuthenticatedOnboardedIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedOnboardedRoute,
   } as any)
-const AuthenticatedOnboardingInviteMembersRoute =
-  AuthenticatedOnboardingInviteMembersRouteImport.update({
-    id: '/invite-members',
-    path: '/invite-members',
+const AuthenticatedOnboardedUserProfileRoute =
+  AuthenticatedOnboardedUserProfileRouteImport.update({
+    id: '/user-profile',
+    path: '/user-profile',
+    getParentRoute: () => AuthenticatedOnboardedRoute,
+  } as any)
+const AuthenticatedOnboardingIndexRoute =
+  AuthenticatedOnboardingIndexRouteImport.update({
+    id: '/',
+    path: '/',
     getParentRoute: () => AuthenticatedOnboardingRouteRoute,
   } as any)
 const AuthenticatedOnboardingCreateHouseholdRoute =
@@ -84,16 +84,16 @@ const AuthenticatedOnboardingCreateHouseholdRoute =
     path: '/create-household',
     getParentRoute: () => AuthenticatedOnboardingRouteRoute,
   } as any)
-const AuthenticatedOnboardedUserProfileRoute =
-  AuthenticatedOnboardedUserProfileRouteImport.update({
-    id: '/user-profile',
-    path: '/user-profile',
-    getParentRoute: () => AuthenticatedOnboardedRoute,
+const AuthenticatedOnboardingInviteMembersRoute =
+  AuthenticatedOnboardingInviteMembersRouteImport.update({
+    id: '/invite-members',
+    path: '/invite-members',
+    getParentRoute: () => AuthenticatedOnboardingRouteRoute,
   } as any)
-const AuthenticatedOnboardedManageSettingsRoute =
-  AuthenticatedOnboardedManageSettingsRouteImport.update({
-    id: '/manage/settings',
-    path: '/manage/settings',
+const AuthenticatedOnboardedExpensesMonthlyExpensesRoute =
+  AuthenticatedOnboardedExpensesMonthlyExpensesRouteImport.update({
+    id: '/expenses/monthly-expenses',
+    path: '/expenses/monthly-expenses',
     getParentRoute: () => AuthenticatedOnboardedRoute,
   } as any)
 const AuthenticatedOnboardedManageHouseholdMembersRoute =
@@ -102,10 +102,10 @@ const AuthenticatedOnboardedManageHouseholdMembersRoute =
     path: '/manage/household-members',
     getParentRoute: () => AuthenticatedOnboardedRoute,
   } as any)
-const AuthenticatedOnboardedExpensesMonthlyExpensesRoute =
-  AuthenticatedOnboardedExpensesMonthlyExpensesRouteImport.update({
-    id: '/expenses/monthly-expenses',
-    path: '/expenses/monthly-expenses',
+const AuthenticatedOnboardedManageSettingsRoute =
+  AuthenticatedOnboardedManageSettingsRouteImport.update({
+    id: '/manage/settings',
+    path: '/manage/settings',
     getParentRoute: () => AuthenticatedOnboardedRoute,
   } as any)
 
@@ -214,18 +214,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/verify-email': {
-      id: '/verify-email'
-      path: '/verify-email'
-      fullPath: '/verify-email'
-      preLoaderRoute: typeof VerifyEmailRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/signup': {
-      id: '/signup'
-      path: '/signup'
-      fullPath: '/signup'
-      preLoaderRoute: typeof SignupRouteImport
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -235,25 +228,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated': {
-      id: '/_authenticated'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedRouteImport
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/join-household': {
-      id: '/_authenticated/join-household'
-      path: '/join-household'
-      fullPath: '/join-household'
-      preLoaderRoute: typeof AuthenticatedJoinHouseholdRouteImport
-      parentRoute: typeof AuthenticatedRoute
+    '/verify-email': {
+      id: '/verify-email'
+      path: '/verify-email'
+      fullPath: '/verify-email'
+      preLoaderRoute: typeof VerifyEmailRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/_onboarded': {
       id: '/_authenticated/_onboarded'
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedOnboardedRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/join-household': {
+      id: '/_authenticated/join-household'
+      path: '/join-household'
+      fullPath: '/join-household'
+      preLoaderRoute: typeof AuthenticatedJoinHouseholdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/onboarding': {
@@ -263,13 +263,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOnboardingRouteRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/onboarding/': {
-      id: '/_authenticated/onboarding/'
-      path: '/'
-      fullPath: '/onboarding/'
-      preLoaderRoute: typeof AuthenticatedOnboardingIndexRouteImport
-      parentRoute: typeof AuthenticatedOnboardingRouteRoute
-    }
     '/_authenticated/_onboarded/': {
       id: '/_authenticated/_onboarded/'
       path: '/'
@@ -277,11 +270,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOnboardedIndexRouteImport
       parentRoute: typeof AuthenticatedOnboardedRoute
     }
-    '/_authenticated/onboarding/invite-members': {
-      id: '/_authenticated/onboarding/invite-members'
-      path: '/invite-members'
-      fullPath: '/onboarding/invite-members'
-      preLoaderRoute: typeof AuthenticatedOnboardingInviteMembersRouteImport
+    '/_authenticated/_onboarded/user-profile': {
+      id: '/_authenticated/_onboarded/user-profile'
+      path: '/user-profile'
+      fullPath: '/user-profile'
+      preLoaderRoute: typeof AuthenticatedOnboardedUserProfileRouteImport
+      parentRoute: typeof AuthenticatedOnboardedRoute
+    }
+    '/_authenticated/onboarding/': {
+      id: '/_authenticated/onboarding/'
+      path: '/'
+      fullPath: '/onboarding/'
+      preLoaderRoute: typeof AuthenticatedOnboardingIndexRouteImport
       parentRoute: typeof AuthenticatedOnboardingRouteRoute
     }
     '/_authenticated/onboarding/create-household': {
@@ -291,18 +291,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOnboardingCreateHouseholdRouteImport
       parentRoute: typeof AuthenticatedOnboardingRouteRoute
     }
-    '/_authenticated/_onboarded/user-profile': {
-      id: '/_authenticated/_onboarded/user-profile'
-      path: '/user-profile'
-      fullPath: '/user-profile'
-      preLoaderRoute: typeof AuthenticatedOnboardedUserProfileRouteImport
-      parentRoute: typeof AuthenticatedOnboardedRoute
+    '/_authenticated/onboarding/invite-members': {
+      id: '/_authenticated/onboarding/invite-members'
+      path: '/invite-members'
+      fullPath: '/onboarding/invite-members'
+      preLoaderRoute: typeof AuthenticatedOnboardingInviteMembersRouteImport
+      parentRoute: typeof AuthenticatedOnboardingRouteRoute
     }
-    '/_authenticated/_onboarded/manage/settings': {
-      id: '/_authenticated/_onboarded/manage/settings'
-      path: '/manage/settings'
-      fullPath: '/manage/settings'
-      preLoaderRoute: typeof AuthenticatedOnboardedManageSettingsRouteImport
+    '/_authenticated/_onboarded/expenses/monthly-expenses': {
+      id: '/_authenticated/_onboarded/expenses/monthly-expenses'
+      path: '/expenses/monthly-expenses'
+      fullPath: '/expenses/monthly-expenses'
+      preLoaderRoute: typeof AuthenticatedOnboardedExpensesMonthlyExpensesRouteImport
       parentRoute: typeof AuthenticatedOnboardedRoute
     }
     '/_authenticated/_onboarded/manage/household-members': {
@@ -312,11 +312,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOnboardedManageHouseholdMembersRouteImport
       parentRoute: typeof AuthenticatedOnboardedRoute
     }
-    '/_authenticated/_onboarded/expenses/monthly-expenses': {
-      id: '/_authenticated/_onboarded/expenses/monthly-expenses'
-      path: '/expenses/monthly-expenses'
-      fullPath: '/expenses/monthly-expenses'
-      preLoaderRoute: typeof AuthenticatedOnboardedExpensesMonthlyExpensesRouteImport
+    '/_authenticated/_onboarded/manage/settings': {
+      id: '/_authenticated/_onboarded/manage/settings'
+      path: '/manage/settings'
+      fullPath: '/manage/settings'
+      preLoaderRoute: typeof AuthenticatedOnboardedManageSettingsRouteImport
       parentRoute: typeof AuthenticatedOnboardedRoute
     }
   }
