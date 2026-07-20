@@ -69,7 +69,9 @@
               ":BLANK_LINE:",
               ["@homewise/**"],
               ":BLANK_LINE:",
-              [":ALIAS:", ":PATH:"]
+              [":ALIAS:"],
+              ":BLANK_LINE:",
+              [":PATH:"]
             ]
           }
         },

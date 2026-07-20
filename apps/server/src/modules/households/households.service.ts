@@ -8,6 +8,7 @@ import { JoinHousehold } from '@/emails/JoinHousehold';
 import { auth } from '@/lib/auth';
 import { resend } from '@/lib/resend';
 import { type AppContext } from '@/types/app.type';
+
 import {
   type CreateHouseholdMember,
   type InsertHousehold,

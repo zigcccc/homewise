@@ -41,6 +41,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@homewise/ui/core/toolt
 
 import { client, DetailedError, parseResponse } from '@/api/client';
 import { getMyHouseholdQueryOptions } from '@/modules/households';
+
 import { Actionbar } from '../../-components/Actionbar';
 
 const $deleteHousehold = client.households.my.$delete;

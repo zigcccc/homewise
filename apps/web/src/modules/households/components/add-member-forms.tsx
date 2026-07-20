@@ -18,6 +18,7 @@ import { Input } from '@homewise/ui/core/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@homewise/ui/core/tabs';
 
 import { client, parseResponse } from '@/api/client';
+
 import { HouseholdMemberRoleSelect } from './household-member-role-select';
 
 const $postInvite = client.households.my.invite.$post;
@@ -29,13 +30,7 @@ const emptyInviteRow = () => ({ email: '', role: householdMemberRole.enum.adult 
 const emptyManagedMember = () => ({ name: '', nickname: '', role: householdMemberRole.enum.child });
 
 /** Email-invite form (one or more rows) that creates account members. */
-export function InviteMembersForm({
-  onInvited,
-  secondaryAction,
-}: {
-  onInvited?: () => void;
-  secondaryAction?: ReactNode;
-}) {
+function InviteMembersForm({ onInvited, secondaryAction }: { onInvited?: () => void; secondaryAction?: ReactNode }) {
   const queryClient = useQueryClient();
 
   const form = useForm({
@@ -133,13 +128,7 @@ export function InviteMembersForm({
 }
 
 /** Form for adding a managed member (child, pet, …) with no account. */
-export function AddManagedMemberForm({
-  onAdded,
-  secondaryAction,
-}: {
-  onAdded?: () => void;
-  secondaryAction?: ReactNode;
-}) {
+function AddManagedMemberForm({ onAdded, secondaryAction }: { onAdded?: () => void; secondaryAction?: ReactNode }) {
   const queryClient = useQueryClient();
 
   const form = useForm({

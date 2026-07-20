@@ -4,6 +4,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from '@homewise/ui/core/breadcrumb';
 
 import { getMyHouseholdQueryOptions } from '@/modules/households';
+
 import { Actionbar } from '../-components/Actionbar';
 
 export const Route = createFileRoute('/_authenticated/_onboarded/')({
