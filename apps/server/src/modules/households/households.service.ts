@@ -1,4 +1,4 @@
-import { and, count, eq, inArray, or } from 'drizzle-orm';
+import { and, count, eq, inArray, isNull, or } from 'drizzle-orm';
 import { type Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { render } from 'react-email';
@@ -151,13 +151,21 @@ export class HouseholdsService {
     return member;
   }
 
-  public static async addHouseholdMember(householdId: number, data: CreateHouseholdMember) {
-    const [created] = await db
+  public static async addHouseholdMembers(householdId: number, members: CreateHouseholdMember[]) {
+    const created = await db
       .insert(schema.householdMember)
-      .values({ householdId, userId: null, name: data.name, nickname: data.nickname || null, role: data.role })
+      .values(
+        members.map((member) => ({
+          householdId,
+          userId: null,
+          name: member.name,
+          nickname: member.nickname || null,
+          role: member.role,
+        }))
+      )
       .returning();
 
-    if (!created) {
+    if (created.length !== members.length) {
       throw new HTTPException(400, { message: 'Something went wrong.' });
     }
 
@@ -343,13 +351,15 @@ export class HouseholdsService {
 
     if (invite.memberId) {
       // Upgrade an existing managed member by linking it to the accepting user's account.
+      // Require userId to still be null so concurrent accepts can't overwrite an existing link.
       [householdMember] = await db
         .update(schema.householdMember)
         .set({ userId })
         .where(
           and(
             eq(schema.householdMember.id, invite.memberId),
-            eq(schema.householdMember.householdId, invite.householdId)
+            eq(schema.householdMember.householdId, invite.householdId),
+            isNull(schema.householdMember.userId)
           )
         )
         .returning();

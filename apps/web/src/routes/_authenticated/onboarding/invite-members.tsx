@@ -22,7 +22,7 @@ function InviteMembersRoute() {
 
   return (
     <div className="space-y-4">
-      <AddMemberTabs onInvited={goToDashboard} />
+      <AddMemberTabs managedVariant="multi" onInvited={goToDashboard} onMemberAdded={goToDashboard} />
       <Button className="w-full" onClick={goToDashboard} type="button" variant="outline">
         Skip for now
       </Button>

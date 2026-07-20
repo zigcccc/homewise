@@ -9,7 +9,7 @@ import { HouseholdsService } from './households.service';
 import {
   acceptHouseholdInvitePathParamsModel,
   acceptHouseholdInviteQueryParamsModel,
-  createHouseholdMemberModel,
+  createHouseholdMembersModel,
   createHouseholdModel,
   deleteHouseholdInvitePathParamsModel,
   deleteHouseholdMemberPathParamsModel,
@@ -107,16 +107,16 @@ const householdsApp = new Hono<AppContext>()
 
     return c.json({ success: true }, 202);
   })
-  .post('/my/members', zValidator('json', createHouseholdMemberModel), async (c) => {
+  .post('/my/members', zValidator('json', createHouseholdMembersModel), async (c) => {
     const household = await HouseholdsService.readForUser(c.var.user.id);
 
     if (!household) {
       throw new HTTPException(404, { message: 'Household not found' });
     }
 
-    const member = await HouseholdsService.addHouseholdMember(household.id, c.req.valid('json'));
+    const members = await HouseholdsService.addHouseholdMembers(household.id, c.req.valid('json').members);
 
-    return c.json(member, 201);
+    return c.json(members, 201);
   })
   .post(
     '/my/members/:id/invite',

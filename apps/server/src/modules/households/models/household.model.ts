@@ -47,6 +47,11 @@ export const createHouseholdMemberModel = z.object({
 });
 export type CreateHouseholdMember = z.infer<typeof createHouseholdMemberModel>;
 
+export const createHouseholdMembersModel = z.object({
+  members: z.array(createHouseholdMemberModel).min(1),
+});
+export type CreateHouseholdMembers = z.infer<typeof createHouseholdMembersModel>;
+
 export const patchHouseholdMemberModel = createUpdateSchema(schema.householdMember)
   .omit({
     createdAt: true,

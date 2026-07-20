@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 
 import {
   createHouseholdMemberModel,
+  createHouseholdMembersModel,
   householdMemberRole,
   inviteHouseholdMembersModel,
 } from '@homewise/server/households';
@@ -24,10 +25,42 @@ import { HouseholdMemberRoleSelect } from './household-member-role-select';
 const $postInvite = client.households.my.invite.$post;
 type InviteMembersPayload = InferRequestType<typeof $postInvite>['json'];
 const $postMember = client.households.my.members.$post;
-type AddMemberPayload = InferRequestType<typeof $postMember>['json'];
+type AddMembersPayload = InferRequestType<typeof $postMember>['json'];
+type ManagedMemberInput = AddMembersPayload['members'][number];
 
 const emptyInviteRow = () => ({ email: '', role: householdMemberRole.enum.adult });
 const emptyManagedMember = () => ({ name: '', nickname: '', role: householdMemberRole.enum.child });
+const emptyManagedRow = () => ({ name: '', role: householdMemberRole.enum.child });
+
+/** Form footer: a full-width submit, or a right-aligned secondary action + submit when one is provided. */
+function FormFooterActions({
+  secondaryAction,
+  submitting,
+  submitLabel,
+}: {
+  secondaryAction?: ReactNode;
+  submitting: boolean;
+  submitLabel: ReactNode;
+}) {
+  if (secondaryAction) {
+    return (
+      <div className="flex justify-end">
+        <ButtonGroup>
+          {secondaryAction}
+          <Button loading={submitting} type="submit">
+            {submitLabel}
+          </Button>
+        </ButtonGroup>
+      </div>
+    );
+  }
+
+  return (
+    <Button className="w-full" loading={submitting} type="submit">
+      {submitLabel}
+    </Button>
+  );
+}
 
 /** Email-invite form (one or more rows) that creates account members. */
 function InviteMembersForm({ onInvited, secondaryAction }: { onInvited?: () => void; secondaryAction?: ReactNode }) {
@@ -68,7 +101,7 @@ function InviteMembersForm({ onInvited, secondaryAction }: { onInvited?: () => v
                 <FormItem className="grow">
                   {idx === 0 && <FormLabel>Email</FormLabel>}
                   <FormControl>
-                    <Input {...field} placeholder="invitee@email.com" />
+                    <Input {...field} placeholder="invitee@email.com" type="email" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -108,20 +141,11 @@ function InviteMembersForm({ onInvited, secondaryAction }: { onInvited?: () => v
             Add more
           </Button>
         </div>
-        {secondaryAction ? (
-          <div className="flex justify-end">
-            <ButtonGroup>
-              {secondaryAction}
-              <Button loading={form.formState.isSubmitting} type="submit">
-                Send {fields.length > 1 ? 'invites' : 'invite'}
-              </Button>
-            </ButtonGroup>
-          </div>
-        ) : (
-          <Button className="w-full" loading={form.formState.isSubmitting} type="submit">
-            Send {fields.length > 1 ? 'invites' : 'invite'}
-          </Button>
-        )}
+        <FormFooterActions
+          secondaryAction={secondaryAction}
+          submitLabel={`Send ${fields.length > 1 ? 'invites' : 'invite'}`}
+          submitting={form.formState.isSubmitting}
+        />
       </form>
     </Form>
   );
@@ -137,12 +161,12 @@ function AddManagedMemberForm({ onAdded, secondaryAction }: { onAdded?: () => vo
   });
 
   const { mutateAsync } = useMutation({
-    mutationFn: async (data: AddMemberPayload) => parseResponse($postMember({ json: data })),
+    mutationFn: async (data: AddMembersPayload) => parseResponse($postMember({ json: data })),
   });
 
-  const onSubmit: SubmitHandler<AddMemberPayload> = async (data) => {
+  const onSubmit: SubmitHandler<ManagedMemberInput> = async (data) => {
     try {
-      await mutateAsync(data);
+      await mutateAsync({ members: [data] });
       await queryClient.invalidateQueries({ queryKey: ['households'] });
       form.reset(emptyManagedMember());
       toast.success(`${data.name} added to the household.`);
@@ -198,20 +222,99 @@ function AddManagedMemberForm({ onAdded, secondaryAction }: { onAdded?: () => vo
             </FormItem>
           )}
         />
-        {secondaryAction ? (
-          <div className="flex justify-end">
-            <ButtonGroup>
-              {secondaryAction}
-              <Button loading={form.formState.isSubmitting} type="submit">
-                Add member
-              </Button>
-            </ButtonGroup>
+        <FormFooterActions
+          secondaryAction={secondaryAction}
+          submitLabel="Add member"
+          submitting={form.formState.isSubmitting}
+        />
+      </form>
+    </Form>
+  );
+}
+
+/** Inline, multi-row form for adding one or more managed members (name + role) at once. */
+function AddManagedMembersForm({ onAdded, secondaryAction }: { onAdded?: () => void; secondaryAction?: ReactNode }) {
+  const queryClient = useQueryClient();
+
+  const form = useForm({
+    resolver: zodResolver(createHouseholdMembersModel),
+    defaultValues: { members: [emptyManagedRow()] },
+  });
+  const { fields, append, remove } = useFieldArray({ control: form.control, name: 'members' });
+
+  const { mutateAsync } = useMutation({
+    mutationFn: async (data: AddMembersPayload) => parseResponse($postMember({ json: data })),
+  });
+
+  const onSubmit: SubmitHandler<AddMembersPayload> = async (data) => {
+    try {
+      await mutateAsync(data);
+      await queryClient.invalidateQueries({ queryKey: ['households'] });
+      form.reset({ members: [emptyManagedRow()] });
+      toast.success(`${data.members.length} ${data.members.length === 1 ? 'member' : 'members'} added.`);
+      onAdded?.();
+    } catch {
+      toast.error('Something went wrong.');
+    }
+  };
+
+  return (
+    <Form {...form}>
+      <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
+        {fields.map((field, idx) => (
+          <div className="flex items-end gap-2" key={field.id}>
+            <FormField
+              control={form.control}
+              name={`members.${idx}.name`}
+              render={({ field }) => (
+                <FormItem className="grow">
+                  {idx === 0 && <FormLabel>Name</FormLabel>}
+                  <FormControl>
+                    <Input {...field} placeholder="e.g. Rex, Grandma Jo" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name={`members.${idx}.role`}
+              render={({ field }) => (
+                <FormItem className="grow-0">
+                  {idx === 0 && <FormLabel>Role</FormLabel>}
+                  <FormControl>
+                    <HouseholdMemberRoleSelect
+                      name={field.name}
+                      onValueChange={field.onChange}
+                      triggerClassName="w-30"
+                      value={field.value}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            <Button
+              className="grow-0 px-2"
+              disabled={fields.length === 1}
+              onClick={() => remove(idx)}
+              type="button"
+              variant="ghost"
+            >
+              <TrashIcon />
+            </Button>
           </div>
-        ) : (
-          <Button className="w-full" loading={form.formState.isSubmitting} type="submit">
-            Add member
+        ))}
+        <div className="flex justify-start pb-2">
+          <Button className="grow-0" onClick={() => append(emptyManagedRow())} type="button" variant="ghost">
+            <PlusIcon />
+            Add more
           </Button>
-        )}
+        </div>
+        <FormFooterActions
+          secondaryAction={secondaryAction}
+          submitLabel={`Add ${fields.length > 1 ? 'members' : 'member'}`}
+          submitting={form.formState.isSubmitting}
+        />
       </form>
     </Form>
   );
@@ -222,10 +325,13 @@ export function AddMemberTabs({
   onInvited,
   onMemberAdded,
   secondaryAction,
+  managedVariant = 'single',
 }: {
   onInvited?: () => void;
   onMemberAdded?: () => void;
   secondaryAction?: ReactNode;
+  /** 'single' renders one managed member (with nickname); 'multi' renders an inline multi-row name+role form. */
+  managedVariant?: 'single' | 'multi';
 }) {
   const [addMode, setAddMode] = useState<'invite' | 'managed'>('invite');
 
@@ -239,7 +345,11 @@ export function AddMemberTabs({
         <InviteMembersForm onInvited={onInvited} secondaryAction={secondaryAction} />
       </TabsContent>
       <TabsContent value="managed">
-        <AddManagedMemberForm onAdded={onMemberAdded} secondaryAction={secondaryAction} />
+        {managedVariant === 'multi' ? (
+          <AddManagedMembersForm onAdded={onMemberAdded} secondaryAction={secondaryAction} />
+        ) : (
+          <AddManagedMemberForm onAdded={onMemberAdded} secondaryAction={secondaryAction} />
+        )}
       </TabsContent>
     </Tabs>
   );
