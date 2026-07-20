@@ -79,6 +79,8 @@ API calls use the **Hono RPC client** (`src/api/client.ts`) initialized with `hc
 
 Data fetching uses **TanStack Query** with `queryOptions` helpers defined alongside each feature (e.g., `src/modules/households/households.queries.ts`). Session is cached with a 5-minute stale time.
 
+Domain-specific code that is reused across routes lives under `src/modules/<domain>/<mechanism>/<file>` — where `<mechanism>` is `components`, `hooks`, `queries`, `helpers`, etc. (e.g. `src/modules/households/components/add-member-forms.tsx`). Each mechanism folder exposes an `index.ts` barrel; import via `@/modules/<domain>/<mechanism>`. Keep route files thin — when the same domain component/hook/query appears in more than one route, extract it into the matching module folder rather than duplicating it. Route-local, single-use components stay colocated in the route's `-components/`.
+
 ### Shared UI (`packages/ui`)
 
 ShadCN components built on Radix UI primitives + TailwindCSS v4. Add new components here when they are reused across routes.
@@ -96,3 +98,5 @@ Better Auth manages its own tables (`user`, `session`, `account`). Domain tables
 - **Import organization** is enforced by Biome's `organizeImports` assist; unused imports/variables are auto-removed.
 - Environment variables are validated at startup via `src/config/env.ts` (server) — add new vars there.
 - The Hono `AppType` exported from `apps/server/src/index.ts` is the contract consumed by the web client — keep it exported.
+- **Never hand-write request/response payload types on the web client.** Derive them from the Hono RPC client with `InferRequestType`/`InferResponseType` so they can't drift from the server contract. E.g. `type Payload = InferRequestType<typeof client.households.my.members[':id'].$patch>['json']` rather than `{ name?: string; nickname?: string }`. Same for response shapes consumed by tables/components.
+- **Always use react-hook-form for forms and form fields** — never track field values with `useState`. Use `useForm` with `zodResolver(<server model>)`, explicit `defaultValues`, and the shared `Form`/`FormField`/`FormItem`/`FormControl`/`FormLabel`/`FormMessage` components from `@homewise/ui/core/form`. Reuse the exported Zod model that matches the endpoint (e.g. `patchHouseholdMemberModel`) as the resolver so validation and the request payload stay aligned. This applies even to single-field dialogs.

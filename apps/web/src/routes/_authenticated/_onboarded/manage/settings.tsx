@@ -190,11 +190,13 @@ function SettingsRoute() {
                         <SelectContent>
                           <SelectGroup>
                             <SelectLabel>Household members</SelectLabel>
-                            {household.members.map((member) => (
-                              <SelectItem key={member.id} value={member.userId}>
-                                {member.user.name}
-                              </SelectItem>
-                            ))}
+                            {household.members
+                              .filter((member) => member.userId !== null)
+                              .map((member) => (
+                                <SelectItem key={member.id} value={member.userId as string}>
+                                  {member.displayName}
+                                </SelectItem>
+                              ))}
                           </SelectGroup>
                         </SelectContent>
                       </Select>
