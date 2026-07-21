@@ -31,6 +31,7 @@ pnpm check-types                # TypeScript type check all packages
 # Linting & formatting (Biome)
 pnpm lint                       # Biome check (lint + format diagnostics)
 pnpm format                     # Biome check --write (apply lint + format fixes)
+pnpm knip                       # Find unused files, exports, and dependencies
 
 # Database (run from apps/server or root)
 pnpm db:up                      # Start PostgreSQL via Docker
@@ -113,6 +114,7 @@ App-specific shared code — components/hooks/helpers reused across domains but 
 **Adding a ShadCN component** — run `pnpm dlx shadcn@latest add <name>` from `packages/ui`, then correct what the CLI gets wrong:
 - It prompts to overwrite existing files. **Never overwrite `button.tsx`** — it carries a custom `loading` prop and `not-disabled:hover` variants. The CLI is interactive and will hang in a non-interactive shell; expect to finish the job by hand.
 - It writes pinned dep versions and pulls the unified `radix-ui` package. This repo uses per-component `@radix-ui/react-*` at `catalog:`. Add the version to `pnpm-workspace.yaml`'s catalog and reference `catalog:` in `package.json`.
+- **It installs everything the registry lists, including deps the generated component never imports** — `calendar` pulls in `date-fns`, but the component only uses `react-day-picker` (which declares `date-fns` as its own dependency, not a peer). Check what the file actually imports before keeping a dep; `pnpm knip` will catch what you miss.
 - Rewrite generated files to house style: relative `../lib/utils` import, `import { type ComponentProps } from 'react'`, alphabetized props.
 - Export from `src/core/index.ts`, and add the dep to `apps/web/package.json` too if the app imports it directly (e.g. `date-fns`).
 
@@ -136,4 +138,5 @@ Better Auth manages its own tables (`user`, `session`, `account`). Domain tables
 - **Dependencies use `catalog:`** — add the version to `pnpm-workspace.yaml`'s catalog and reference `catalog:` from each `package.json`. Never pin a raw version in a workspace package.
 - **A `TooltipTrigger asChild` around an enabled `DropdownMenuItem` swallows its `onClick`.** The household-members table gets away with the pattern only because its items are disabled whenever the tooltip content renders. For an always-enabled menu item, drop the tooltip.
 - **Verify against the running app, not just the type-checker.** Boot the server and exercise the endpoints (including the negative cases: wrong role, cross-household id, duplicate, malformed input), then drive the actual UI. Type-checking passing is not evidence a feature works — a swallowed `onClick` and a US-vs-European date parse both type-check fine. Clean up any test data you create.
+- **Before finishing, run all three**: `pnpm check-types`, `pnpm lint` (zero diagnostics), and `pnpm knip`. Each catches a category the others miss — knip is the only one that flags a dependency declared in a `package.json` that nothing in that package actually imports.
 - **Always use react-hook-form for forms and form fields** — never track field values with `useState`. Use `useForm` with `zodResolver(<server model>)`, explicit `defaultValues`, and the shared `Form`/`FormField`/`FormItem`/`FormControl`/`FormLabel`/`FormMessage` components from `@homewise/ui/core/form`. Reuse the exported Zod model that matches the endpoint (e.g. `patchHouseholdMemberModel`) as the resolver so validation and the request payload stay aligned. This applies even to single-field dialogs.
