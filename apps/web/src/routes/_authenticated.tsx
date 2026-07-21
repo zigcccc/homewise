@@ -1,5 +1,6 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
-import { LoaderCircleIcon } from 'lucide-react';
+
+import { Spinner } from '@homewise/ui/core';
 
 import { getSessionQueryOptions } from '@/auth/queries';
 
@@ -12,14 +13,5 @@ export const Route = createFileRoute('/_authenticated')({
     }
     return session.data;
   },
-  pendingComponent() {
-    return (
-      <div className="flex min-h-[100dvh] min-w-[100dvw] items-center justify-center">
-        <div className="flex flex-col items-center gap-2">
-          <LoaderCircleIcon className="animate-spin" />
-          <span className="text-muted-foreground text-sm">Loading...</span>
-        </div>
-      </div>
-    );
-  },
+  pendingComponent: () => <Spinner className="min-h-dvh min-w-dvw" />,
 });
