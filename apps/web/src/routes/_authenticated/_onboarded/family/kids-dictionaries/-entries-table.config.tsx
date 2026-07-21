@@ -44,7 +44,7 @@ import {
 } from '@homewise/ui/core';
 
 import { client, parseResponse } from '@/api/client';
-import { ConfirmDeleteDialog } from '@/modules/shared/components';
+import { ConfirmDeleteDialog } from '@/modules/shared';
 
 const $listEntries = client['child-dictionaries'][':id'].entries.$get;
 /** Narrowed to the 200 response — the bare inference unions in every error status too. */

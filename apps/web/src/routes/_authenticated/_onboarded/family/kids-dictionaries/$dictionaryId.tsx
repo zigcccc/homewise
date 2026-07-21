@@ -53,7 +53,7 @@ import {
 
 import { client, parseResponse } from '@/api/client';
 import { getChildDictionaryQueryOptions, listChildDictionaryEntriesQueryOptions } from '@/modules/child-dictionaries';
-import { ConfirmDeleteDialog } from '@/modules/shared/components';
+import { ConfirmDeleteDialog } from '@/modules/shared';
 
 import { Actionbar } from '../../../-components/Actionbar';
 import { EntryForm, entriesTableColumns, invalidateDictionary } from './-entries-table.config';

@@ -40,7 +40,6 @@
     "@tanstack/react-table": "catalog:",
     "class-variance-authority": "catalog:",
     "clsx": "catalog:",
-    "date-fns": "catalog:",
     "lucide-react": "catalog:",
     "react": "catalog:",
     "react-day-picker": "catalog:",
