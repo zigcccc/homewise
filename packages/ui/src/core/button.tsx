@@ -72,4 +72,4 @@ function Button({ children, className, variant, disabled, loading = false, size,
   );
 }
 
-export { Button };
+export { Button, buttonVariants };
