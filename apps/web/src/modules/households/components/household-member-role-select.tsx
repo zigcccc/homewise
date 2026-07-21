@@ -7,7 +7,7 @@ import {
   SelectLabel,
   SelectTrigger,
   SelectValue,
-} from '@homewise/ui/core/select';
+} from '@homewise/ui/core';
 
 /**
  * The household member role options (Adult / Child / Pet / External).

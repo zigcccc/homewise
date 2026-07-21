@@ -5,7 +5,7 @@
     "build": "turbo run build",
     "build:backend": "turbo run build --filter @homewise/server --cwd ./apps/server",
     "build:web": "turbo run build --filter @homewise/web-app --cwd ./apps/web",
-    "dev": "turbo run dev --parallel",
+    "dev": "turbo run dev",
     "lint": "biome check .",
     "lint:ci": "biome ci .",
     "format": "biome check --write .",

@@ -15,8 +15,8 @@ import {
   inviteExistingMemberModel,
   patchHouseholdMemberModel,
 } from '@homewise/server/households';
-import { Button } from '@homewise/ui/core/button';
 import {
+  Button,
   Dialog,
   DialogClose,
   DialogContent,
@@ -24,8 +24,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@homewise/ui/core/dialog';
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
@@ -33,11 +31,21 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@homewise/ui/core/dropdown-menu';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@homewise/ui/core/form';
-import { Input } from '@homewise/ui/core/input';
-import { Select, SelectContent, SelectTrigger, SelectValue } from '@homewise/ui/core/select';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@homewise/ui/core/tooltip';
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+  Input,
+  Select,
+  SelectContent,
+  SelectTrigger,
+  SelectValue,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@homewise/ui/core';
 
 import { client, parseResponse } from '@/api/client';
 import { HouseholdMemberRoleSelectItems } from '@/modules/households/components';

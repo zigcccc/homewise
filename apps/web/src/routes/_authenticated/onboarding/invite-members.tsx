@@ -1,6 +1,6 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
 
-import { Button } from '@homewise/ui/core/button';
+import { Button } from '@homewise/ui/core';
 
 import { getMyHouseholdQueryOptions } from '@/modules/households';
 import { AddMemberTabs } from '@/modules/households/components';

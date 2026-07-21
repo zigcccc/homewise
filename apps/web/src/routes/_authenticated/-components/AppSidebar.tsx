@@ -14,14 +14,14 @@ import {
   UsersIcon,
 } from 'lucide-react';
 
-import { Avatar, AvatarFallback, AvatarImage } from '@homewise/ui/core/avatar';
 import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@homewise/ui/core/dropdown-menu';
-import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
@@ -31,7 +31,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from '@homewise/ui/core/sidebar';
+} from '@homewise/ui/core';
 
 import { authClient } from '@/auth/client';
 import { getSessionQueryOptions } from '@/auth/queries';

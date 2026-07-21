@@ -6,9 +6,7 @@ import { type SubmitHandler, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 
 import { type CreateHousehold, createHouseholdModel } from '@homewise/server/households';
-import { Button } from '@homewise/ui/core/button';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@homewise/ui/core/form';
-import { Input } from '@homewise/ui/core/input';
+import { Button, Form, FormControl, FormField, FormItem, FormLabel, FormMessage, Input } from '@homewise/ui/core';
 
 import { client } from '@/api/client';
 import { getMyHouseholdQueryOptions } from '@/modules/households';

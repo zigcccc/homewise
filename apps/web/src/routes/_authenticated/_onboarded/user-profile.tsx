@@ -15,13 +15,25 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from '@homewise/ui/core/breadcrumb';
-import { Button } from '@homewise/ui/core/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@homewise/ui/core/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@homewise/ui/core/form';
-import { ImageInput } from '@homewise/ui/core/image-input';
-import { Input } from '@homewise/ui/core/input';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@homewise/ui/core/tooltip';
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+  ImageInput,
+  Input,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@homewise/ui/core';
 
 import { client, parseResponse } from '@/api/client';
 import { getSessionQueryOptions } from '@/auth/queries';

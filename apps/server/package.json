@@ -38,6 +38,7 @@
   },
   "devDependencies": {
     "@homewise/typescript-config": "workspace:*",
+    "@react-email/ui": "catalog:",
     "@types/node": "catalog:",
     "@types/pg": "catalog:",
     "@types/react-dom": "catalog:",

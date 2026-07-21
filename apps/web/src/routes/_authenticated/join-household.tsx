@@ -3,7 +3,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { toast } from 'sonner';
 import z from 'zod';
 
-import { Button } from '@homewise/ui/core/button';
+import { Button } from '@homewise/ui/core';
 
 import { client } from '@/api/client';
 import { getReadHouseholdInviteQueryOptions } from '@/modules/households';

@@ -2,9 +2,7 @@ import { createFileRoute, redirect } from '@tanstack/react-router';
 import { toast } from 'sonner';
 import * as z from 'zod';
 
-import { Button } from '@homewise/ui/core/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@homewise/ui/core/card';
-import { Separator } from '@homewise/ui/core/separator';
+import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Separator } from '@homewise/ui/core';
 
 import { authClient } from '@/auth/client';
 

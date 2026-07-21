@@ -12,11 +12,21 @@ import {
   householdMemberRole,
   inviteHouseholdMembersModel,
 } from '@homewise/server/households';
-import { Button } from '@homewise/ui/core/button';
-import { ButtonGroup } from '@homewise/ui/core/button-group';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@homewise/ui/core/form';
-import { Input } from '@homewise/ui/core/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@homewise/ui/core/tabs';
+import {
+  Button,
+  ButtonGroup,
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+  Input,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@homewise/ui/core';
 
 import { client, parseResponse } from '@/api/client';
 
