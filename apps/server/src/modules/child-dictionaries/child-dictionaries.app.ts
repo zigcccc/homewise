@@ -12,7 +12,6 @@ import {
   createChildDictionaryModel,
   listChildDictionaryEntriesQueryParamsModel,
   patchChildDictionaryEntryModel,
-  patchChildDictionaryModel,
 } from './models';
 
 /**
@@ -39,22 +38,6 @@ const childDictionariesApp = new Hono<AppContext>()
 
     return c.json(dictionary, 200);
   })
-  .patch(
-    '/:id',
-    zValidator('param', childDictionaryPathParamsModel),
-    zValidator('json', patchChildDictionaryModel),
-    async (c) => {
-      const { household } = c.var;
-      const dictionary = await ChildDictionariesService.patch(
-        household.id,
-        c.req.valid('param').id,
-        c.req.valid('json'),
-        household.ownerId
-      );
-
-      return c.json(dictionary, 200);
-    }
-  )
   .delete('/:id', zValidator('param', childDictionaryPathParamsModel), async (c) => {
     await ChildDictionariesService.delete(c.var.household.id, c.req.valid('param').id);
 

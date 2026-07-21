@@ -53,9 +53,10 @@ import {
 
 import { client, parseResponse } from '@/api/client';
 import { getChildDictionaryQueryOptions, listChildDictionaryEntriesQueryOptions } from '@/modules/child-dictionaries';
+import { ConfirmDeleteDialog } from '@/modules/shared/components';
 
 import { Actionbar } from '../../../-components/Actionbar';
-import { ConfirmDeleteDialog, EntryForm, entriesTableColumns, invalidateDictionary } from './-entries-table.config';
+import { EntryForm, entriesTableColumns, invalidateDictionary } from './-entries-table.config';
 
 const searchParamsModel = z.object({
   search: z
@@ -137,7 +138,7 @@ function KidsDictionaryDetailRoute() {
 
   const debouncedSearch = useDebounceCallback((value: string) => setSearchParam('search', value || undefined), 400);
 
-  const title = dictionary.title || `${dictionary.child.displayName}'s dictionary`;
+  const title = `${dictionary.child.displayName}'s dictionary`;
   const isFiltered = Boolean(searchParams.search);
 
   return (

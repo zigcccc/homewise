@@ -5,7 +5,7 @@ import { format, isValid, parse, parseISO } from 'date-fns';
 import dayjs from 'dayjs';
 import { type InferRequestType, type InferResponseType } from 'hono';
 import { ArchiveIcon, ArchiveRestoreIcon, CalendarIcon, MoreHorizontal, PencilIcon, TrashIcon } from 'lucide-react';
-import { type ReactNode, useState } from 'react';
+import { useState } from 'react';
 import { type SubmitHandler, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 
@@ -44,6 +44,7 @@ import {
 } from '@homewise/ui/core';
 
 import { client, parseResponse } from '@/api/client';
+import { ConfirmDeleteDialog } from '@/modules/shared/components';
 
 const $listEntries = client['child-dictionaries'][':id'].entries.$get;
 /** Narrowed to the 200 response — the bare inference unions in every error status too. */
@@ -177,57 +178,6 @@ function DateField({ id, onChange, value }: { id: string; onChange: (value: stri
         </PopoverContent>
       </Popover>
     </div>
-  );
-}
-
-/**
- * Confirmation gate for destructive actions. Kept local for now — worth promoting to
- * `packages/ui` as an AlertDialog if a third caller shows up.
- */
-export function ConfirmDeleteDialog({
-  confirmLabel = 'Delete',
-  description,
-  onConfirm,
-  onOpenChange,
-  open,
-  title,
-}: {
-  confirmLabel?: string;
-  description: ReactNode;
-  onConfirm: () => Promise<void> | void;
-  onOpenChange: (open: boolean) => void;
-  open: boolean;
-  title: string;
-}) {
-  const [isDeleting, setIsDeleting] = useState(false);
-
-  const handleConfirm = async () => {
-    setIsDeleting(true);
-    try {
-      await onConfirm();
-      onOpenChange(false);
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  return (
-    <Dialog onOpenChange={onOpenChange} open={open}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button variant="outline">Cancel</Button>
-          </DialogClose>
-          <Button loading={isDeleting} onClick={handleConfirm} variant="destructive">
-            {confirmLabel}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }
 

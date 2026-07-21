@@ -1,8 +1,5 @@
 import z from 'zod';
 
-const dictionaryTitle = (model: z.ZodString) =>
-  model.trim().max(64, { error: 'Title must contain at most 64 characters' });
-
 const childPhrase = (model: z.ZodString) =>
   model
     .trim()
@@ -22,14 +19,8 @@ const firstHeardOn = z.iso.date({ error: 'Use a valid date' }).or(z.literal(''))
 
 export const createChildDictionaryModel = z.object({
   memberId: z.coerce.number<number>().int().positive(),
-  title: dictionaryTitle(z.string()).optional(),
 });
 export type CreateChildDictionary = z.infer<typeof createChildDictionaryModel>;
-
-export const patchChildDictionaryModel = z.object({
-  title: dictionaryTitle(z.string()).optional(),
-});
-export type PatchChildDictionary = z.infer<typeof patchChildDictionaryModel>;
 
 export const createChildDictionaryEntryModel = z.object({
   childPhrase: childPhrase(z.string()),

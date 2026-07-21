@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, ilike, or } from 'drizzle-orm';
+import { and, asc, count, desc, eq, ilike, inArray, or } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 
 import { db, schema } from '@/db';
@@ -8,7 +8,6 @@ import {
   type CreateChildDictionary,
   type CreateChildDictionaryEntry,
   type ListChildDictionaryEntriesQueryParams,
-  type PatchChildDictionary,
   type PatchChildDictionaryEntry,
 } from './models';
 
@@ -44,10 +43,17 @@ export class ChildDictionariesService {
       with: { child: childWith },
     });
 
-    const entryCounts = await db
-      .select({ dictionaryId: schema.childDictionaryEntry.dictionaryId, count: count() })
-      .from(schema.childDictionaryEntry)
-      .groupBy(schema.childDictionaryEntry.dictionaryId);
+    // Scoped to the dictionaries we just read — without this the group-by scans every entry row in
+    // the table, across all households.
+    const dictionaryIds = dictionaries.map((dictionary) => dictionary.id);
+
+    const entryCounts = dictionaryIds.length
+      ? await db
+          .select({ dictionaryId: schema.childDictionaryEntry.dictionaryId, count: count() })
+          .from(schema.childDictionaryEntry)
+          .where(inArray(schema.childDictionaryEntry.dictionaryId, dictionaryIds))
+          .groupBy(schema.childDictionaryEntry.dictionaryId)
+      : [];
 
     const countByDictionary = new Map(entryCounts.map(({ dictionaryId, count }) => [dictionaryId, count]));
 
@@ -134,32 +140,13 @@ export class ChildDictionariesService {
       throw new HTTPException(409, { message: 'This child already has a dictionary.' });
     }
 
-    const [created] = await db
-      .insert(schema.childDictionary)
-      .values({ householdId, memberId: member.id, title: emptyToNull(data.title) })
-      .returning();
+    const [created] = await db.insert(schema.childDictionary).values({ householdId, memberId: member.id }).returning();
 
     if (!created) {
       throw new HTTPException(400, { message: 'Something went wrong.' });
     }
 
     return ChildDictionariesService.read(householdId, created.id, ownerId);
-  }
-
-  public static async patch(householdId: number, dictionaryId: number, data: PatchChildDictionary, ownerId: string) {
-    await ChildDictionariesService.readDictionaryRow(householdId, dictionaryId);
-
-    const [updated] = await db
-      .update(schema.childDictionary)
-      .set({ title: emptyToNull(data.title) })
-      .where(and(eq(schema.childDictionary.householdId, householdId), eq(schema.childDictionary.id, dictionaryId)))
-      .returning();
-
-    if (!updated) {
-      throw new HTTPException(400, { message: 'Something went wrong.' });
-    }
-
-    return ChildDictionariesService.read(householdId, dictionaryId, ownerId);
   }
 
   public static async delete(householdId: number, dictionaryId: number) {

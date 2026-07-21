@@ -22,6 +22,7 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
+  Spinner,
 } from '@homewise/ui/core';
 
 import { client, parseResponse } from '@/api/client';
@@ -38,6 +39,7 @@ export const Route = createFileRoute('/_authenticated/_onboarded/family/kids-dic
     ]);
   },
   component: KidsDictionariesRoute,
+  pendingComponent: () => <Spinner />,
 });
 
 function KidsDictionariesRoute() {
@@ -134,7 +136,7 @@ function KidsDictionariesRoute() {
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                           <BookHeartIcon className="size-4 text-muted-foreground" />
-                          {dictionary.title || dictionary.child.displayName}
+                          {dictionary.child.displayName}
                         </CardTitle>
                         <CardDescription>
                           {dictionary.entryCount} {dictionary.entryCount === 1 ? 'word' : 'words'}

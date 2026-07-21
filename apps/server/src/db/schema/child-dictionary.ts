@@ -15,8 +15,6 @@ export const childDictionary = pgTable(
     memberId: integer('member_id')
       .notNull()
       .references(() => householdMember.id, { onDelete: 'cascade' }),
-    // Optional override; the UI falls back to the child's display name.
-    title: text('title'),
   },
   (table) => [unique('child_dictionary_member_unique').on(table.householdId, table.memberId)]
 );
