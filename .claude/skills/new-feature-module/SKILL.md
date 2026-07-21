@@ -63,8 +63,9 @@ confirm it's additive. Never hand-write it.
 
 **6. Verify, then stop**
 
-Boot the server and exercise every route with curl, including negatives: wrong role → 400, foreign id
-→ 404, duplicate → 409, malformed body → 400 with field-level messages. Then report and **ask the user
+Boot the server and exercise every route with curl, including negatives: non-owner on an owner-only
+route → 403, wrong member role → 400, foreign id → 404, duplicate → 409, malformed body → 400 with
+field-level messages. Then report and **ask the user
 to commit** before starting the web work.
 
 ## Web
@@ -96,7 +97,7 @@ the stubbed `<Link to="/">` placeholder if one exists.
 **10. Verify in the browser**
 
 `pnpm check-types`, then `pnpm lint` to **zero diagnostics**. Then drive the real UI: create, edit,
-search, sort, archive, delete, and the validation failure path. Type-checking green is not evidence
+search, sort, archive (when supported), delete, and the validation failure path. Type-checking green is not evidence
 the feature works. Clean up test data; never touch rows the user created.
 
 ## Working agreement

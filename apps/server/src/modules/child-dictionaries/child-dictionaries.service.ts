@@ -132,18 +132,16 @@ export class ChildDictionariesService {
       throw new HTTPException(400, { message: 'Only members with the "child" role can have a dictionary.' });
     }
 
-    const existing = await db.query.childDictionary.findFirst({
-      where: (fields, { and, eq }) => and(eq(fields.householdId, householdId), eq(fields.memberId, member.id)),
-    });
-
-    if (existing) {
-      throw new HTTPException(409, { message: 'This child already has a dictionary.' });
-    }
-
-    const [created] = await db.insert(schema.childDictionary).values({ householdId, memberId: member.id }).returning();
+    // `onConflictDoNothing` lets the (householdId, memberId) unique constraint be the single source of
+    // truth — a pre-read plus insert would race two concurrent creates into a raw DB error instead of a 409.
+    const [created] = await db
+      .insert(schema.childDictionary)
+      .values({ householdId, memberId: member.id })
+      .onConflictDoNothing({ target: [schema.childDictionary.householdId, schema.childDictionary.memberId] })
+      .returning();
 
     if (!created) {
-      throw new HTTPException(400, { message: 'Something went wrong.' });
+      throw new HTTPException(409, { message: 'This child already has a dictionary.' });
     }
 
     return ChildDictionariesService.read(householdId, created.id, ownerId);

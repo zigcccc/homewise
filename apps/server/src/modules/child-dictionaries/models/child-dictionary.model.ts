@@ -39,11 +39,11 @@ export const patchChildDictionaryEntryModel = z.object({
 });
 export type PatchChildDictionaryEntry = z.infer<typeof patchChildDictionaryEntryModel>;
 
-export const childDictionaryPathParamsModel = z.object({ id: z.coerce.number<number>() });
+export const childDictionaryPathParamsModel = z.object({ id: z.coerce.number<number>().int().positive() });
 
 export const childDictionaryEntryPathParamsModel = z.object({
-  id: z.coerce.number<number>(),
-  entryId: z.coerce.number<number>(),
+  id: z.coerce.number<number>().int().positive(),
+  entryId: z.coerce.number<number>().int().positive(),
 });
 
 export const childDictionaryEntrySortKey = z.enum(['childPhrase', 'adultTranslation', 'createdAt']);
