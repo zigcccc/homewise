@@ -3,10 +3,18 @@
   "version": "0.1.0",
   "private": true,
   "sideEffects": false,
+  "imports": {
+    "#core/*": "./src/core/*.tsx",
+    "#lib/*": "./src/lib/*.ts",
+    "#hooks/*": "./src/hooks/*.ts"
+  },
   "exports": {
     "./core": "./src/core/index.ts",
+    "./core/*": "./src/core/*.tsx",
     "./hooks": "./src/hooks/index.ts",
-    "./lib": "./src/lib/index.ts"
+    "./hooks/*": "./src/hooks/*.ts",
+    "./lib": "./src/lib/index.ts",
+    "./lib/*": "./src/lib/*.ts"
   },
   "scripts": {
     "check-types": "tsc --noEmit"

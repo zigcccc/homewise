@@ -3,8 +3,11 @@
   "workspaces": {
     "apps/server": {
       "entry": ["drizzle.config.ts", "src/db/schema/**/*.ts"],
-      "drizzle": false,
-      "ignoreDependencies": ["@react-email/ui"]
+      "drizzle": false
+    },
+    "packages/ui": {
+      "includeEntryExports": true,
+      "ignore": ["src/core/**"]
     }
   }
 }
