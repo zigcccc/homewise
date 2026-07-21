@@ -1,5 +1,4 @@
 import { and, count, eq, inArray, isNull, or } from 'drizzle-orm';
-import { type Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { render } from 'react-email';
 
@@ -7,7 +6,6 @@ import { db, schema } from '@/db';
 import { JoinHousehold } from '@/emails/JoinHousehold';
 import { auth } from '@/lib/auth';
 import { resend } from '@/lib/resend';
-import { type AppContext } from '@/types/app.type';
 
 import {
   type CreateHouseholdMember,
@@ -23,6 +21,9 @@ type MemberWithUser = {
   nickname: string | null;
   user?: { id: string; email: string; name: string } | null;
 };
+
+/** A household row without its members — what the `withHousehold` middleware puts on the context. */
+export type HouseholdSummary = typeof schema.household.$inferSelect;
 
 // Returns the first value that is a non-blank string, skipping null/undefined/"".
 const firstFilled = (...values: (string | null | undefined)[]) =>
@@ -75,10 +76,14 @@ export class HouseholdsService {
     return household;
   }
 
-  public static async readForOwner(userId: string) {
+  /**
+   * Same scoping as {@link readForUser}, but without loading members — cheap enough to run on every
+   * household-scoped request via the `withHousehold` middleware.
+   */
+  public static async readSummaryForUser(userId: string) {
     const household = await db.query.household.findFirst({
-      where: (households, { eq }) => eq(households.ownerId, userId),
-      with: { members: { with: { user: { columns: { id: true, email: true, name: true } } } } },
+      where: (households, { eq, or }) =>
+        or(eq(households.ownerId, userId), HouseholdsService.getUserHouseholdSql(userId)),
     });
 
     return household;
@@ -105,17 +110,11 @@ export class HouseholdsService {
     });
   }
 
-  public static async patch(partialData: PatchHousehold, ownerId: string) {
-    const household = await HouseholdsService.readForOwner(ownerId);
-
-    if (!household) {
-      throw new HTTPException(404, { message: 'Household not found' });
-    }
-
+  public static async patch(householdId: number, partialData: PatchHousehold) {
     const [updatedHousehold] = await db
       .update(schema.household)
       .set(partialData)
-      .where(eq(schema.household.id, household.id))
+      .where(eq(schema.household.id, householdId))
       .returning();
 
     if (!updatedHousehold) {
@@ -125,11 +124,8 @@ export class HouseholdsService {
     return updatedHousehold;
   }
 
-  public static async delete(id: number, ownerId: string) {
-    const [deleted] = await db
-      .delete(schema.household)
-      .where(and(eq(schema.household.id, id), eq(schema.household.ownerId, ownerId)))
-      .returning();
+  public static async delete(householdId: number) {
+    const [deleted] = await db.delete(schema.household).where(eq(schema.household.id, householdId)).returning();
 
     if (!deleted) {
       throw new HTTPException(404);
@@ -214,20 +210,14 @@ export class HouseholdsService {
   }
 
   public static async invite(
-    userId: string,
+    household: HouseholdSummary,
     payload: InviteHouseholdMembers,
     callbackUrl: string,
-    ctx: Context<AppContext>
+    headers: Headers
   ) {
-    const household = await HouseholdsService.readForUser(userId);
-
-    if (!household) {
-      throw new HTTPException(404, { message: 'Houshold not found.' });
-    }
-
     await db.transaction(async (tx) => {
       for (const member of payload.members) {
-        const { token } = await auth.api.generateOneTimeToken({ headers: ctx.req.raw.headers });
+        const { token } = await auth.api.generateOneTimeToken({ headers });
 
         const [invite] = await db
           .insert(schema.householdInvite)
@@ -257,25 +247,19 @@ export class HouseholdsService {
   }
 
   public static async inviteExistingMember(
-    userId: string,
+    household: HouseholdSummary,
     memberId: number,
     email: string,
     callbackUrl: string,
-    ctx: Context<AppContext>
+    headers: Headers
   ) {
-    const household = await HouseholdsService.readForUser(userId);
-
-    if (!household) {
-      throw new HTTPException(404, { message: 'Household not found.' });
-    }
-
     const member = await HouseholdsService.readHouseholdMember(household.id, memberId);
 
     if (member.userId) {
       throw new HTTPException(400, { message: 'This member already has an account.' });
     }
 
-    const { token } = await auth.api.generateOneTimeToken({ headers: ctx.req.raw.headers });
+    const { token } = await auth.api.generateOneTimeToken({ headers });
 
     const [invite] = await db
       .insert(schema.householdInvite)

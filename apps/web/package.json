@@ -24,6 +24,7 @@
     "@vercel/speed-insights": "catalog:",
     "better-auth": "catalog:",
     "clsx": "catalog:",
+    "date-fns": "catalog:",
     "dayjs": "catalog:",
     "lucide-react": "catalog:",
     "react": "catalog:",

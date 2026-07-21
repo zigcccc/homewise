@@ -1,0 +1,1 @@
+ALTER TABLE "child_dictionary" DROP COLUMN "title";

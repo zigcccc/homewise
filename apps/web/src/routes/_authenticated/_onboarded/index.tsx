@@ -1,7 +1,7 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 
-import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from '@homewise/ui/core';
+import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, Spinner } from '@homewise/ui/core';
 
 import { getMyHouseholdQueryOptions } from '@/modules/households';
 
@@ -9,7 +9,7 @@ import { Actionbar } from '../-components/Actionbar';
 
 export const Route = createFileRoute('/_authenticated/_onboarded/')({
   component: HomeRoute,
-  pendingComponent: () => <p>Loading...</p>,
+  pendingComponent: () => <Spinner />,
   async loader({ context }) {
     await context.queryClient.ensureQueryData(getMyHouseholdQueryOptions());
   },
