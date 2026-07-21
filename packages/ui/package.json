@@ -2,15 +2,13 @@
   "name": "@homewise/ui",
   "version": "0.1.0",
   "private": true,
+  "sideEffects": false,
   "exports": {
-    "./*": {
-      "import": "./dist/*.js",
-      "types": "./dist/*.d.ts"
-    }
+    "./core": "./src/core/index.ts",
+    "./hooks": "./src/hooks/index.ts",
+    "./lib": "./src/lib/index.ts"
   },
   "scripts": {
-    "dev": "tsc --watch",
-    "build": "tsc",
     "check-types": "tsc --noEmit"
   },
   "devDependencies": {
