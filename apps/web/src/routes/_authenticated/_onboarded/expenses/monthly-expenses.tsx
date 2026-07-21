@@ -13,10 +13,10 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from '@homewise/ui/core/breadcrumb';
-import { Button } from '@homewise/ui/core/button';
-import { InputGroup, InputGroupAddon, InputGroupInput } from '@homewise/ui/core/input-group';
-import {
+  Button,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
   Select,
   SelectContent,
   SelectGroup,
@@ -24,7 +24,7 @@ import {
   SelectLabel,
   SelectTrigger,
   SelectValue,
-} from '@homewise/ui/core/select';
+} from '@homewise/ui/core';
 
 import { getMyHouseholdQueryOptions } from '@/modules/households';
 

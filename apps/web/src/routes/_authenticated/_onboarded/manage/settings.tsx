@@ -15,20 +15,26 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from '@homewise/ui/core/breadcrumb';
-import { Button } from '@homewise/ui/core/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@homewise/ui/core/card';
-import {
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@homewise/ui/core/dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@homewise/ui/core/form';
-import { Input } from '@homewise/ui/core/input';
-import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+  Input,
   Select,
   SelectContent,
   SelectGroup,
@@ -36,8 +42,10 @@ import {
   SelectLabel,
   SelectTrigger,
   SelectValue,
-} from '@homewise/ui/core/select';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@homewise/ui/core/tooltip';
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@homewise/ui/core';
 
 import { client, DetailedError, parseResponse } from '@/api/client';
 import { getMyHouseholdQueryOptions } from '@/modules/households';

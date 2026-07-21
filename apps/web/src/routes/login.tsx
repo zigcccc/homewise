@@ -4,13 +4,27 @@ import { type SubmitHandler, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import * as z from 'zod';
 
-import { Button } from '@homewise/ui/core/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@homewise/ui/core/card';
-import { Checkbox } from '@homewise/ui/core/checkbox';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@homewise/ui/core/form';
-import { Input } from '@homewise/ui/core/input';
-import { Separator } from '@homewise/ui/core/separator';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@homewise/ui/core/tooltip';
+import {
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+  Checkbox,
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+  Input,
+  Separator,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@homewise/ui/core';
 
 import { authClient } from '@/auth/client';
 

@@ -13,20 +13,26 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from '@homewise/ui/core/breadcrumb';
-import { Button } from '@homewise/ui/core/button';
-import { ButtonGroup } from '@homewise/ui/core/button-group';
-import { DataTable } from '@homewise/ui/core/data-table';
-import {
+  Button,
+  ButtonGroup,
+  DataTable,
   Dialog,
   DialogClose,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@homewise/ui/core/dialog';
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@homewise/ui/core/empty';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@homewise/ui/core/tabs';
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@homewise/ui/core';
 
 import { getMyHouseholdQueryOptions, listMyHouseholdActiveInvitesQueryOptions } from '@/modules/households';
 import { AddMemberTabs } from '@/modules/households/components';

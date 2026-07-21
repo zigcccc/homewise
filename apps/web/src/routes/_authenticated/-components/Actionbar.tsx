@@ -1,7 +1,7 @@
 import { createContext, type PropsWithChildren, useContext, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-import { SidebarTrigger } from '@homewise/ui/core/sidebar';
+import { SidebarTrigger } from '@homewise/ui/core';
 
 const ActionbarContext = createContext<{
   actionbarRef: HTMLElement | null;

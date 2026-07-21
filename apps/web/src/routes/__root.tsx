@@ -7,7 +7,7 @@ import { SpeedInsights } from '@vercel/speed-insights/react';
 import { Suspense } from 'react';
 import { Toaster } from 'sonner';
 
-import { SidebarProvider } from '@homewise/ui/core/sidebar';
+import { SidebarProvider } from '@homewise/ui/core';
 
 function RootLayout() {
   const { queryClient } = Route.useRouteContext();
