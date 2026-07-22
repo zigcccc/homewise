@@ -100,66 +100,26 @@ export class PetProfilesService {
       sex: data.sex === '' ? null : data.sex,
     };
 
-    // Picture resolves photo → avatar → clear. Both become blob URLs, so the stored value is
-    // portable across clients (no dependency on any app's bundled assets).
-    if (data.image instanceof File) {
-      const { url } = await ImagesService.put(data.image, `pet-profiles/${profileId}/${data.image.name}`, {
-        size: 256,
-      });
-      patch.profilePicture = url;
-      await PetProfilesService.deleteBlobIfUploaded(existing.profilePicture);
-    } else if (data.avatar instanceof File) {
-      patch.profilePicture = await PetProfilesService.resolveAvatar(data.avatar);
-      await PetProfilesService.deleteBlobIfUploaded(existing.profilePicture);
-    } else if (data.image === '') {
-      patch.profilePicture = null;
-      await PetProfilesService.deleteBlobIfUploaded(existing.profilePicture);
+    // Picture resolves photo → avatar → clear (all become portable blob URLs). ImagesService uploads
+    // the replacement up front and hands back a commit/rollback pair that retires the old blob only
+    // after the DB write lands — see `commitManagedImage` below.
+    const picture = await ImagesService.resolveManagedImage(
+      { image: data.image, avatar: data.avatar },
+      existing.profilePicture,
+      { ownedPrefix: `pet-profiles/${profileId}`, size: 256 }
+    );
+    if (picture.changed) {
+      patch.profilePicture = picture.value;
     }
 
-    await db
-      .update(schema.petProfile)
-      .set(patch)
-      .where(and(eq(schema.petProfile.householdId, householdId), eq(schema.petProfile.id, profileId)));
+    await ImagesService.commitManagedImage(picture, () =>
+      db
+        .update(schema.petProfile)
+        .set(patch)
+        .where(and(eq(schema.petProfile.householdId, householdId), eq(schema.petProfile.id, profileId)))
+    );
 
     return PetProfilesService.read(householdId, profileId, ownerId);
-  }
-
-  /**
-   * Deduplicates a client-provided avatar in storage, keyed by its filename. Avatars share a flat
-   * `avatars/<filename>` path (not namespaced per pet): if that blob already exists we reuse its
-   * URL and drop the uploaded bytes; otherwise we store them once. Shared avatar blobs are never
-   * deleted. The filename is validated as a safe path segment by `patchPetProfileModel`.
-   */
-  private static async resolveAvatar(file: File) {
-    const pathname = `avatars/${file.name}`;
-    const existing = await ImagesService.find(pathname);
-    if (existing) {
-      return existing;
-    }
-
-    const bytes = Buffer.from(await file.arrayBuffer());
-    return ImagesService.putStable(pathname, bytes, file.type || 'image/svg+xml');
-  }
-
-  /**
-   * Drops a previous picture from blob storage — but only per-pet uploads (`pet-profiles/…`),
-   * never the shared avatar blobs, which other profiles may point at.
-   */
-  private static async deleteBlobIfUploaded(profilePicture: string | null) {
-    if (!profilePicture) {
-      return;
-    }
-
-    let pathname: string;
-    try {
-      pathname = new URL(profilePicture).pathname;
-    } catch {
-      return;
-    }
-
-    if (pathname.startsWith('/pet-profiles/')) {
-      await ImagesService.delete(profilePicture);
-    }
   }
 
   public static async delete(householdId: number, profileId: number) {
@@ -172,7 +132,8 @@ export class PetProfilesService {
       throw new HTTPException(404, { message: 'Profile not found' });
     }
 
-    await PetProfilesService.deleteBlobIfUploaded(deleted.profilePicture);
+    // The row is already gone — cleanup is best-effort and guarded to this pet's own uploads.
+    await ImagesService.cleanupOwnedImage(deleted.profilePicture, `pet-profiles/${profileId}`);
 
     return deleted;
   }
