@@ -3,8 +3,8 @@ import { createFileRoute, Outlet, redirect } from '@tanstack/react-router';
 import { SidebarInset } from '@homewise/ui/core';
 
 import { getMyHouseholdQueryOptions } from '@/modules/households';
+import { Actionbar } from '@/modules/shared';
 
-import { Actionbar } from './-components/Actionbar';
 import { AppSidebar } from './-components/AppSidebar';
 
 export const Route = createFileRoute('/_authenticated/_onboarded')({

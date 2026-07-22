@@ -37,8 +37,7 @@ import {
 
 import { client, parseResponse } from '@/api/client';
 import { getSessionQueryOptions } from '@/auth/queries';
-
-import { Actionbar } from '../-components/Actionbar';
+import { Actionbar } from '@/modules/shared';
 
 const userProfileFormModel = z.object({
   id: z.string(),

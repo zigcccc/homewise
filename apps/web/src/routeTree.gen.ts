@@ -24,8 +24,11 @@ import { Route as AuthenticatedOnboardingInviteMembersRouteImport } from './rout
 import { Route as AuthenticatedOnboardedExpensesMonthlyExpensesRouteImport } from './routes/_authenticated/_onboarded/expenses/monthly-expenses'
 import { Route as AuthenticatedOnboardedManageHouseholdMembersRouteImport } from './routes/_authenticated/_onboarded/manage/household-members'
 import { Route as AuthenticatedOnboardedManageSettingsRouteImport } from './routes/_authenticated/_onboarded/manage/settings'
-import { Route as AuthenticatedOnboardedFamilyKidsDictionariesIndexRouteImport } from './routes/_authenticated/_onboarded/family/kids-dictionaries/index'
-import { Route as AuthenticatedOnboardedFamilyKidsDictionariesDictionaryIdRouteImport } from './routes/_authenticated/_onboarded/family/kids-dictionaries/$dictionaryId'
+import { Route as AuthenticatedOnboardedFamilyKidsIndexRouteImport } from './routes/_authenticated/_onboarded/family/kids/index'
+import { Route as AuthenticatedOnboardedFamilyKidsProfileIdRouteRouteImport } from './routes/_authenticated/_onboarded/family/kids/$profileId/route'
+import { Route as AuthenticatedOnboardedFamilyKidsProfileIdIndexRouteImport } from './routes/_authenticated/_onboarded/family/kids/$profileId/index'
+import { Route as AuthenticatedOnboardedFamilyKidsProfileIdDictionaryRouteImport } from './routes/_authenticated/_onboarded/family/kids/$profileId/dictionary'
+import { Route as AuthenticatedOnboardedFamilyKidsProfileIdGeneralRouteImport } from './routes/_authenticated/_onboarded/family/kids/$profileId/general'
 
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
@@ -110,17 +113,35 @@ const AuthenticatedOnboardedManageSettingsRoute =
     path: '/manage/settings',
     getParentRoute: () => AuthenticatedOnboardedRoute,
   } as any)
-const AuthenticatedOnboardedFamilyKidsDictionariesIndexRoute =
-  AuthenticatedOnboardedFamilyKidsDictionariesIndexRouteImport.update({
-    id: '/family/kids-dictionaries/',
-    path: '/family/kids-dictionaries/',
+const AuthenticatedOnboardedFamilyKidsIndexRoute =
+  AuthenticatedOnboardedFamilyKidsIndexRouteImport.update({
+    id: '/family/kids/',
+    path: '/family/kids/',
     getParentRoute: () => AuthenticatedOnboardedRoute,
   } as any)
-const AuthenticatedOnboardedFamilyKidsDictionariesDictionaryIdRoute =
-  AuthenticatedOnboardedFamilyKidsDictionariesDictionaryIdRouteImport.update({
-    id: '/family/kids-dictionaries/$dictionaryId',
-    path: '/family/kids-dictionaries/$dictionaryId',
+const AuthenticatedOnboardedFamilyKidsProfileIdRouteRoute =
+  AuthenticatedOnboardedFamilyKidsProfileIdRouteRouteImport.update({
+    id: '/family/kids/$profileId',
+    path: '/family/kids/$profileId',
     getParentRoute: () => AuthenticatedOnboardedRoute,
+  } as any)
+const AuthenticatedOnboardedFamilyKidsProfileIdIndexRoute =
+  AuthenticatedOnboardedFamilyKidsProfileIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedOnboardedFamilyKidsProfileIdRouteRoute,
+  } as any)
+const AuthenticatedOnboardedFamilyKidsProfileIdDictionaryRoute =
+  AuthenticatedOnboardedFamilyKidsProfileIdDictionaryRouteImport.update({
+    id: '/dictionary',
+    path: '/dictionary',
+    getParentRoute: () => AuthenticatedOnboardedFamilyKidsProfileIdRouteRoute,
+  } as any)
+const AuthenticatedOnboardedFamilyKidsProfileIdGeneralRoute =
+  AuthenticatedOnboardedFamilyKidsProfileIdGeneralRouteImport.update({
+    id: '/general',
+    path: '/general',
+    getParentRoute: () => AuthenticatedOnboardedFamilyKidsProfileIdRouteRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -137,8 +158,11 @@ export interface FileRoutesByFullPath {
   '/expenses/monthly-expenses': typeof AuthenticatedOnboardedExpensesMonthlyExpensesRoute
   '/manage/household-members': typeof AuthenticatedOnboardedManageHouseholdMembersRoute
   '/manage/settings': typeof AuthenticatedOnboardedManageSettingsRoute
-  '/family/kids-dictionaries/$dictionaryId': typeof AuthenticatedOnboardedFamilyKidsDictionariesDictionaryIdRoute
-  '/family/kids-dictionaries/': typeof AuthenticatedOnboardedFamilyKidsDictionariesIndexRoute
+  '/family/kids/$profileId': typeof AuthenticatedOnboardedFamilyKidsProfileIdRouteRouteWithChildren
+  '/family/kids/': typeof AuthenticatedOnboardedFamilyKidsIndexRoute
+  '/family/kids/$profileId/dictionary': typeof AuthenticatedOnboardedFamilyKidsProfileIdDictionaryRoute
+  '/family/kids/$profileId/general': typeof AuthenticatedOnboardedFamilyKidsProfileIdGeneralRoute
+  '/family/kids/$profileId/': typeof AuthenticatedOnboardedFamilyKidsProfileIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof AuthenticatedOnboardedIndexRoute
@@ -153,8 +177,10 @@ export interface FileRoutesByTo {
   '/expenses/monthly-expenses': typeof AuthenticatedOnboardedExpensesMonthlyExpensesRoute
   '/manage/household-members': typeof AuthenticatedOnboardedManageHouseholdMembersRoute
   '/manage/settings': typeof AuthenticatedOnboardedManageSettingsRoute
-  '/family/kids-dictionaries/$dictionaryId': typeof AuthenticatedOnboardedFamilyKidsDictionariesDictionaryIdRoute
-  '/family/kids-dictionaries': typeof AuthenticatedOnboardedFamilyKidsDictionariesIndexRoute
+  '/family/kids': typeof AuthenticatedOnboardedFamilyKidsIndexRoute
+  '/family/kids/$profileId/dictionary': typeof AuthenticatedOnboardedFamilyKidsProfileIdDictionaryRoute
+  '/family/kids/$profileId/general': typeof AuthenticatedOnboardedFamilyKidsProfileIdGeneralRoute
+  '/family/kids/$profileId': typeof AuthenticatedOnboardedFamilyKidsProfileIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -173,8 +199,11 @@ export interface FileRoutesById {
   '/_authenticated/_onboarded/expenses/monthly-expenses': typeof AuthenticatedOnboardedExpensesMonthlyExpensesRoute
   '/_authenticated/_onboarded/manage/household-members': typeof AuthenticatedOnboardedManageHouseholdMembersRoute
   '/_authenticated/_onboarded/manage/settings': typeof AuthenticatedOnboardedManageSettingsRoute
-  '/_authenticated/_onboarded/family/kids-dictionaries/$dictionaryId': typeof AuthenticatedOnboardedFamilyKidsDictionariesDictionaryIdRoute
-  '/_authenticated/_onboarded/family/kids-dictionaries/': typeof AuthenticatedOnboardedFamilyKidsDictionariesIndexRoute
+  '/_authenticated/_onboarded/family/kids/$profileId': typeof AuthenticatedOnboardedFamilyKidsProfileIdRouteRouteWithChildren
+  '/_authenticated/_onboarded/family/kids/': typeof AuthenticatedOnboardedFamilyKidsIndexRoute
+  '/_authenticated/_onboarded/family/kids/$profileId/dictionary': typeof AuthenticatedOnboardedFamilyKidsProfileIdDictionaryRoute
+  '/_authenticated/_onboarded/family/kids/$profileId/general': typeof AuthenticatedOnboardedFamilyKidsProfileIdGeneralRoute
+  '/_authenticated/_onboarded/family/kids/$profileId/': typeof AuthenticatedOnboardedFamilyKidsProfileIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -192,8 +221,11 @@ export interface FileRouteTypes {
     | '/expenses/monthly-expenses'
     | '/manage/household-members'
     | '/manage/settings'
-    | '/family/kids-dictionaries/$dictionaryId'
-    | '/family/kids-dictionaries/'
+    | '/family/kids/$profileId'
+    | '/family/kids/'
+    | '/family/kids/$profileId/dictionary'
+    | '/family/kids/$profileId/general'
+    | '/family/kids/$profileId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -208,8 +240,10 @@ export interface FileRouteTypes {
     | '/expenses/monthly-expenses'
     | '/manage/household-members'
     | '/manage/settings'
-    | '/family/kids-dictionaries/$dictionaryId'
-    | '/family/kids-dictionaries'
+    | '/family/kids'
+    | '/family/kids/$profileId/dictionary'
+    | '/family/kids/$profileId/general'
+    | '/family/kids/$profileId'
   id:
     | '__root__'
     | '/_authenticated'
@@ -227,8 +261,11 @@ export interface FileRouteTypes {
     | '/_authenticated/_onboarded/expenses/monthly-expenses'
     | '/_authenticated/_onboarded/manage/household-members'
     | '/_authenticated/_onboarded/manage/settings'
-    | '/_authenticated/_onboarded/family/kids-dictionaries/$dictionaryId'
-    | '/_authenticated/_onboarded/family/kids-dictionaries/'
+    | '/_authenticated/_onboarded/family/kids/$profileId'
+    | '/_authenticated/_onboarded/family/kids/'
+    | '/_authenticated/_onboarded/family/kids/$profileId/dictionary'
+    | '/_authenticated/_onboarded/family/kids/$profileId/general'
+    | '/_authenticated/_onboarded/family/kids/$profileId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -345,19 +382,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOnboardedManageSettingsRouteImport
       parentRoute: typeof AuthenticatedOnboardedRoute
     }
-    '/_authenticated/_onboarded/family/kids-dictionaries/': {
-      id: '/_authenticated/_onboarded/family/kids-dictionaries/'
-      path: '/family/kids-dictionaries'
-      fullPath: '/family/kids-dictionaries/'
-      preLoaderRoute: typeof AuthenticatedOnboardedFamilyKidsDictionariesIndexRouteImport
+    '/_authenticated/_onboarded/family/kids/': {
+      id: '/_authenticated/_onboarded/family/kids/'
+      path: '/family/kids'
+      fullPath: '/family/kids/'
+      preLoaderRoute: typeof AuthenticatedOnboardedFamilyKidsIndexRouteImport
       parentRoute: typeof AuthenticatedOnboardedRoute
     }
-    '/_authenticated/_onboarded/family/kids-dictionaries/$dictionaryId': {
-      id: '/_authenticated/_onboarded/family/kids-dictionaries/$dictionaryId'
-      path: '/family/kids-dictionaries/$dictionaryId'
-      fullPath: '/family/kids-dictionaries/$dictionaryId'
-      preLoaderRoute: typeof AuthenticatedOnboardedFamilyKidsDictionariesDictionaryIdRouteImport
+    '/_authenticated/_onboarded/family/kids/$profileId': {
+      id: '/_authenticated/_onboarded/family/kids/$profileId'
+      path: '/family/kids/$profileId'
+      fullPath: '/family/kids/$profileId'
+      preLoaderRoute: typeof AuthenticatedOnboardedFamilyKidsProfileIdRouteRouteImport
       parentRoute: typeof AuthenticatedOnboardedRoute
+    }
+    '/_authenticated/_onboarded/family/kids/$profileId/': {
+      id: '/_authenticated/_onboarded/family/kids/$profileId/'
+      path: '/'
+      fullPath: '/family/kids/$profileId/'
+      preLoaderRoute: typeof AuthenticatedOnboardedFamilyKidsProfileIdIndexRouteImport
+      parentRoute: typeof AuthenticatedOnboardedFamilyKidsProfileIdRouteRoute
+    }
+    '/_authenticated/_onboarded/family/kids/$profileId/dictionary': {
+      id: '/_authenticated/_onboarded/family/kids/$profileId/dictionary'
+      path: '/dictionary'
+      fullPath: '/family/kids/$profileId/dictionary'
+      preLoaderRoute: typeof AuthenticatedOnboardedFamilyKidsProfileIdDictionaryRouteImport
+      parentRoute: typeof AuthenticatedOnboardedFamilyKidsProfileIdRouteRoute
+    }
+    '/_authenticated/_onboarded/family/kids/$profileId/general': {
+      id: '/_authenticated/_onboarded/family/kids/$profileId/general'
+      path: '/general'
+      fullPath: '/family/kids/$profileId/general'
+      preLoaderRoute: typeof AuthenticatedOnboardedFamilyKidsProfileIdGeneralRouteImport
+      parentRoute: typeof AuthenticatedOnboardedFamilyKidsProfileIdRouteRoute
     }
   }
 }
@@ -382,14 +440,35 @@ const AuthenticatedOnboardingRouteRouteWithChildren =
     AuthenticatedOnboardingRouteRouteChildren,
   )
 
+interface AuthenticatedOnboardedFamilyKidsProfileIdRouteRouteChildren {
+  AuthenticatedOnboardedFamilyKidsProfileIdDictionaryRoute: typeof AuthenticatedOnboardedFamilyKidsProfileIdDictionaryRoute
+  AuthenticatedOnboardedFamilyKidsProfileIdGeneralRoute: typeof AuthenticatedOnboardedFamilyKidsProfileIdGeneralRoute
+  AuthenticatedOnboardedFamilyKidsProfileIdIndexRoute: typeof AuthenticatedOnboardedFamilyKidsProfileIdIndexRoute
+}
+
+const AuthenticatedOnboardedFamilyKidsProfileIdRouteRouteChildren: AuthenticatedOnboardedFamilyKidsProfileIdRouteRouteChildren =
+  {
+    AuthenticatedOnboardedFamilyKidsProfileIdDictionaryRoute:
+      AuthenticatedOnboardedFamilyKidsProfileIdDictionaryRoute,
+    AuthenticatedOnboardedFamilyKidsProfileIdGeneralRoute:
+      AuthenticatedOnboardedFamilyKidsProfileIdGeneralRoute,
+    AuthenticatedOnboardedFamilyKidsProfileIdIndexRoute:
+      AuthenticatedOnboardedFamilyKidsProfileIdIndexRoute,
+  }
+
+const AuthenticatedOnboardedFamilyKidsProfileIdRouteRouteWithChildren =
+  AuthenticatedOnboardedFamilyKidsProfileIdRouteRoute._addFileChildren(
+    AuthenticatedOnboardedFamilyKidsProfileIdRouteRouteChildren,
+  )
+
 interface AuthenticatedOnboardedRouteChildren {
   AuthenticatedOnboardedUserProfileRoute: typeof AuthenticatedOnboardedUserProfileRoute
   AuthenticatedOnboardedIndexRoute: typeof AuthenticatedOnboardedIndexRoute
   AuthenticatedOnboardedExpensesMonthlyExpensesRoute: typeof AuthenticatedOnboardedExpensesMonthlyExpensesRoute
   AuthenticatedOnboardedManageHouseholdMembersRoute: typeof AuthenticatedOnboardedManageHouseholdMembersRoute
   AuthenticatedOnboardedManageSettingsRoute: typeof AuthenticatedOnboardedManageSettingsRoute
-  AuthenticatedOnboardedFamilyKidsDictionariesDictionaryIdRoute: typeof AuthenticatedOnboardedFamilyKidsDictionariesDictionaryIdRoute
-  AuthenticatedOnboardedFamilyKidsDictionariesIndexRoute: typeof AuthenticatedOnboardedFamilyKidsDictionariesIndexRoute
+  AuthenticatedOnboardedFamilyKidsProfileIdRouteRoute: typeof AuthenticatedOnboardedFamilyKidsProfileIdRouteRouteWithChildren
+  AuthenticatedOnboardedFamilyKidsIndexRoute: typeof AuthenticatedOnboardedFamilyKidsIndexRoute
 }
 
 const AuthenticatedOnboardedRouteChildren: AuthenticatedOnboardedRouteChildren =
@@ -403,10 +482,10 @@ const AuthenticatedOnboardedRouteChildren: AuthenticatedOnboardedRouteChildren =
       AuthenticatedOnboardedManageHouseholdMembersRoute,
     AuthenticatedOnboardedManageSettingsRoute:
       AuthenticatedOnboardedManageSettingsRoute,
-    AuthenticatedOnboardedFamilyKidsDictionariesDictionaryIdRoute:
-      AuthenticatedOnboardedFamilyKidsDictionariesDictionaryIdRoute,
-    AuthenticatedOnboardedFamilyKidsDictionariesIndexRoute:
-      AuthenticatedOnboardedFamilyKidsDictionariesIndexRoute,
+    AuthenticatedOnboardedFamilyKidsProfileIdRouteRoute:
+      AuthenticatedOnboardedFamilyKidsProfileIdRouteRouteWithChildren,
+    AuthenticatedOnboardedFamilyKidsIndexRoute:
+      AuthenticatedOnboardedFamilyKidsIndexRoute,
   }
 
 const AuthenticatedOnboardedRouteWithChildren =

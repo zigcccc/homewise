@@ -80,6 +80,15 @@ Household-scoped routes mount `withHousehold` (`src/middleware/household.middlew
 - Name relations for **what they are**, not their table. A dictionary's `child` (who it's for) and an entry's `creator` (who added it) are both `household_member`/`user` joins — `member` for either would be ambiguous. Mutations return the same joined shape as reads, so a created row and a refetched one aren't different types.
 - Dates use `z.iso.date()` — never a hand-rolled `YYYY-MM-DD` regex, which accepts `2026-13-45`. Optional dates that a form can clear are `z.iso.date().or(z.literal('')).optional()`, normalized to `null` in the service.
 
+#### Images & file uploads (Vercel blob)
+
+All uploads go through `ImagesService` (`src/modules/images/images.service.ts`) and are stored on **Vercel blob**. Files come in as multipart via `zValidator('form', …)` (see `users.app.ts` `/me`); on the web send them through the RPC client's `form` field.
+
+- **Store the blob URL, never a client-relative path.** The persisted value (e.g. `profilePicture`) must be a full `https://…blob.vercel-storage.com/…` URL so it's portable across clients (web *and* a future mobile app). Never store `/some-asset.svg` pointing at one app's bundled assets.
+- **Per-entity uploads are namespaced and disposable:** `ImagesService.put(file, \`<entity>/<id>/<name>\`, { size })` (resizes, `addRandomSuffix: true`). Replacing or clearing one deletes the old blob — but **guard deletion to paths you own** (e.g. only `new URL(url).pathname.startsWith('/child-profiles/')`), so shared blobs are never touched.
+- **Shared, deduplicated assets use a deterministic path and are never deleted.** For assets many rows point at (e.g. avatars): `ImagesService.find(pathname)` first, and only `putStable(pathname, bytes, contentType)` (`addRandomSuffix: false`) on a miss — so the same asset always resolves to the same URL and is uploaded at most once.
+- **The client owns which client-provided assets exist; the server only dedups + sanitizes.** Don't bundle those assets on the server, prepopulate storage, or add a "list assets" endpoint — the client bundles them and uploads the chosen bytes. When the upload's **filename doubles as the storage-path key** (the dedup identity), validate it as a safe path segment (`/^[a-z0-9-]+\.[a-z0-9]+$/`) so a crafted name can't escape the folder or overwrite another blob. See `child-profiles` avatar handling.
+
 ### Frontend (`apps/web`)
 
 TanStack Router with **file-based routing**. Route file conventions:
@@ -102,6 +111,8 @@ Query keys are hierarchical so prefix matching does the work: `['<domain>', 'lis
 **Every route with a loader needs a `pendingComponent`** — use `<Spinner />` from `@homewise/ui/core` (it fills its container; pass `className="min-h-dvh min-w-dvw"` for the full-viewport variant).
 
 List/filter/sort state belongs in **URL search params** via `validateSearch` + `loaderDeps`, not `useState` — so a filtered view is shareable and survives a refresh.
+
+**Tabs (and any switch between distinct sub-views) are real nested routes, not a `?tab=` search param.** Give the parent a `route.tsx` layout that renders the shared chrome (header, tab bar) plus an `<Outlet />`, an `index.tsx` whose `beforeLoad` throws `redirect(...)` to the default tab, and one route file per tab. Drive the active tab off `useMatchRoute`, and wrap each `TabsTrigger` (`asChild`) around a `<Link>`. Each tab then owns *its own* loader and search params — e.g. the dictionary tab keeps its `search`/`sort` params, the general tab carries none — instead of one route juggling a `tab` param alongside every tab's state. See `family/kids/$profileId/`. A search param is for ephemeral view state *within* a view (search/sort/filter); a route is for *which* view you're on.
 
 Domain-specific code that is reused across routes lives under `src/modules/<domain>/<mechanism>/<file>` — where `<mechanism>` is `components`, `hooks`, `queries`, `helpers`, etc. (e.g. `src/modules/households/components/add-member-forms.tsx`). Each mechanism folder exposes an `index.ts` barrel; import via `@/modules/<domain>/<mechanism>`. Keep route files thin — when the same domain component/hook/query appears in more than one route, extract it into the matching module folder rather than duplicating it. Route-local, single-use components stay co-located in the route's `-components/`.
 
