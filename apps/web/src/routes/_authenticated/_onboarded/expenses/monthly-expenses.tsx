@@ -27,8 +27,7 @@ import {
 } from '@homewise/ui/core';
 
 import { getMyHouseholdQueryOptions } from '@/modules/households';
-
-import { Actionbar } from '../../-components/Actionbar';
+import { Actionbar } from '@/modules/shared';
 
 const monthlyExpensesSearchParamsModel = z.object({
   month: z.coerce.number<number>().min(0).max(11).default(dayjs().month()),

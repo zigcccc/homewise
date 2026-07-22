@@ -49,8 +49,7 @@ import {
 
 import { client, DetailedError, parseResponse } from '@/api/client';
 import { getMyHouseholdQueryOptions } from '@/modules/households';
-
-import { Actionbar } from '../../-components/Actionbar';
+import { Actionbar } from '@/modules/shared';
 
 const $deleteHousehold = client.households.my.$delete;
 const $patchHousehold = client.households.my.$patch;

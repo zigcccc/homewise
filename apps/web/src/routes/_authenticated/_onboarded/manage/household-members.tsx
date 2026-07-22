@@ -36,8 +36,8 @@ import {
 
 import { getMyHouseholdQueryOptions, listMyHouseholdActiveInvitesQueryOptions } from '@/modules/households';
 import { AddMemberTabs } from '@/modules/households/components';
+import { Actionbar } from '@/modules/shared';
 
-import { Actionbar } from '../../-components/Actionbar';
 import { invitesTableColumns, membersTableColumns } from './-household-members.config';
 
 const householdMembersTab = z.enum(['members', 'invites']);

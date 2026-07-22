@@ -2,7 +2,7 @@ import { relations } from 'drizzle-orm';
 import { boolean, integer, pgEnum, pgTable, text } from 'drizzle-orm/pg-core';
 
 import { baseDbEntityFields } from './__shared/base';
-import { childDictionary } from './child-dictionary';
+import { childProfile } from './child-profile';
 import { user } from './user';
 
 export const householdMemberRoleEnum = pgEnum('householdMemberRole', ['adult', 'child', 'pet', 'external']);
@@ -39,13 +39,13 @@ export const householdInvite = pgTable('household_invite', {
 });
 
 export const householdMemberRelations = relations(householdMember, ({ many, one }) => ({
-  childDictionaries: many(childDictionary),
+  childProfiles: many(childProfile),
   household: one(household, { fields: [householdMember.householdId], references: [household.id] }),
   user: one(user, { fields: [householdMember.userId], references: [user.id] }),
 }));
 
 export const householdRelations = relations(household, ({ many, one }) => ({
-  childDictionaries: many(childDictionary),
+  childProfiles: many(childProfile),
   invites: many(householdInvite),
   members: many(householdMember),
   owner: one(user, { fields: [household.ownerId], references: [user.id] }),

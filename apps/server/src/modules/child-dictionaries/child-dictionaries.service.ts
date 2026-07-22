@@ -1,21 +1,13 @@
-import { and, asc, count, desc, eq, ilike, inArray, or } from 'drizzle-orm';
+import { and, asc, desc, eq, ilike, or } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 
 import { db, schema } from '@/db';
 
-import { HouseholdsService } from '../households/households.service';
 import {
-  type CreateChildDictionary,
   type CreateChildDictionaryEntry,
   type ListChildDictionaryEntriesQueryParams,
   type PatchChildDictionaryEntry,
 } from './models';
-
-/** The `child` join: a household member, shaped like the households module returns them. */
-const childWith = {
-  columns: { id: true, name: true, nickname: true, role: true, userId: true },
-  with: { user: { columns: { id: true, email: true, name: true } } },
-} as const;
 
 /** The `creator` join: the user account that added an entry. Null once that account is deleted. */
 const creatorWith = { columns: { id: true, name: true, image: true } } as const;
@@ -24,45 +16,6 @@ const creatorWith = { columns: { id: true, name: true, image: true } } as const;
 const emptyToNull = (value: string | undefined) => (value === '' ? null : value);
 
 export class ChildDictionariesService {
-  /**
-   * Flattens the joined child into the same shape the households module returns everywhere else, so
-   * `displayName` resolution stays in one place.
-   */
-  private static toResponse<D extends { child: Parameters<typeof HouseholdsService.toMemberResponse>[0] }>(
-    dictionary: D,
-    ownerId: string
-  ) {
-    const { child, ...rest } = dictionary;
-    return { ...rest, child: HouseholdsService.toMemberResponse(child, ownerId) };
-  }
-
-  public static async list(householdId: number, ownerId: string) {
-    const dictionaries = await db.query.childDictionary.findMany({
-      where: (fields, { eq }) => eq(fields.householdId, householdId),
-      orderBy: (fields, { asc }) => [asc(fields.createdAt)],
-      with: { child: childWith },
-    });
-
-    // Scoped to the dictionaries we just read — without this the group-by scans every entry row in
-    // the table, across all households.
-    const dictionaryIds = dictionaries.map((dictionary) => dictionary.id);
-
-    const entryCounts = dictionaryIds.length
-      ? await db
-          .select({ dictionaryId: schema.childDictionaryEntry.dictionaryId, count: count() })
-          .from(schema.childDictionaryEntry)
-          .where(inArray(schema.childDictionaryEntry.dictionaryId, dictionaryIds))
-          .groupBy(schema.childDictionaryEntry.dictionaryId)
-      : [];
-
-    const countByDictionary = new Map(entryCounts.map(({ dictionaryId, count }) => [dictionaryId, count]));
-
-    return dictionaries.map((dictionary) => ({
-      ...ChildDictionariesService.toResponse(dictionary, ownerId),
-      entryCount: countByDictionary.get(dictionary.id) ?? 0,
-    }));
-  }
-
   /** Existence + household-scoping check, without the joins the full detail response needs. */
   private static async readDictionaryRow(householdId: number, dictionaryId: number) {
     const dictionary = await db.query.childDictionary.findFirst({
@@ -74,25 +27,6 @@ export class ChildDictionariesService {
     }
 
     return dictionary;
-  }
-
-  /** Entries themselves are served by {@link listEntries}; the detail response only carries the count. */
-  public static async read(householdId: number, dictionaryId: number, ownerId: string) {
-    const dictionary = await db.query.childDictionary.findFirst({
-      where: (fields, { and, eq }) => and(eq(fields.householdId, householdId), eq(fields.id, dictionaryId)),
-      with: { child: childWith },
-    });
-
-    if (!dictionary) {
-      throw new HTTPException(404, { message: 'Dictionary not found' });
-    }
-
-    const [entryCount] = await db
-      .select({ count: count() })
-      .from(schema.childDictionaryEntry)
-      .where(eq(schema.childDictionaryEntry.dictionaryId, dictionaryId));
-
-    return { ...ChildDictionariesService.toResponse(dictionary, ownerId), entryCount: entryCount?.count ?? 0 };
   }
 
   public static async listEntries(
@@ -122,42 +56,6 @@ export class ChildDictionariesService {
       orderBy: sortDirection === 'desc' ? [desc(sortColumn)] : [asc(sortColumn)],
       with: { creator: creatorWith },
     });
-  }
-
-  public static async create(householdId: number, data: CreateChildDictionary, ownerId: string) {
-    // Throws 404 when the member belongs to a different household.
-    const member = await HouseholdsService.readHouseholdMember(householdId, data.memberId);
-
-    if (member.role !== 'child') {
-      throw new HTTPException(400, { message: 'Only members with the "child" role can have a dictionary.' });
-    }
-
-    // `onConflictDoNothing` lets the (householdId, memberId) unique constraint be the single source of
-    // truth — a pre-read plus insert would race two concurrent creates into a raw DB error instead of a 409.
-    const [created] = await db
-      .insert(schema.childDictionary)
-      .values({ householdId, memberId: member.id })
-      .onConflictDoNothing({ target: [schema.childDictionary.householdId, schema.childDictionary.memberId] })
-      .returning();
-
-    if (!created) {
-      throw new HTTPException(409, { message: 'This child already has a dictionary.' });
-    }
-
-    return ChildDictionariesService.read(householdId, created.id, ownerId);
-  }
-
-  public static async delete(householdId: number, dictionaryId: number) {
-    const [deleted] = await db
-      .delete(schema.childDictionary)
-      .where(and(eq(schema.childDictionary.householdId, householdId), eq(schema.childDictionary.id, dictionaryId)))
-      .returning();
-
-    if (!deleted) {
-      throw new HTTPException(404, { message: 'Dictionary not found' });
-    }
-
-    return deleted;
   }
 
   /** Re-reads an entry with its `creator` joined, so mutations return the same shape as `read`. */

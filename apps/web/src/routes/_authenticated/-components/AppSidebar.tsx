@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate, useRouteContext } from '@tanstack/react-router';
 import {
-  BookHeartIcon,
+  BabyIcon,
   CogIcon,
   CookingPotIcon,
   LayoutDashboardIcon,
@@ -84,11 +84,11 @@ export function AppSidebar() {
           <SidebarGroupLabel>Family</SidebarGroupLabel>
           <SidebarMenu>
             <SidebarMenuItem>
-              <Link to="/family/kids-dictionaries">
+              <Link to="/family/kids">
                 {({ isActive }) => (
-                  <SidebarMenuButton isActive={isActive} tooltip="Kids dictionaries">
-                    <BookHeartIcon className="size-4" />
-                    <span>Kids dictionaries</span>
+                  <SidebarMenuButton isActive={isActive} tooltip="Kids">
+                    <BabyIcon className="size-4" />
+                    <span>Kids</span>
                   </SidebarMenuButton>
                 )}
               </Link>
