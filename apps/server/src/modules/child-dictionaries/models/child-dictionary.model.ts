@@ -17,11 +17,6 @@ const notes = (model: z.ZodString) => model.trim().max(1000, { error: 'Notes mus
 /** `YYYY-MM-DD`, matching the `date` column. Empty string clears the value. */
 const firstHeardOn = z.iso.date({ error: 'Use a valid date' }).or(z.literal('')).optional();
 
-export const createChildDictionaryModel = z.object({
-  memberId: z.coerce.number<number>().int().positive(),
-});
-export type CreateChildDictionary = z.infer<typeof createChildDictionaryModel>;
-
 export const createChildDictionaryEntryModel = z.object({
   childPhrase: childPhrase(z.string()),
   adultTranslation: adultTranslation(z.string()),

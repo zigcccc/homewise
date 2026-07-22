@@ -14,6 +14,10 @@
     "./child-dictionaries": {
       "import": "./src/modules/child-dictionaries/models/index.ts",
       "type": "./src/modules/child-dictionaries/models/index.ts"
+    },
+    "./child-profiles": {
+      "import": "./src/modules/child-profiles/models/index.ts",
+      "type": "./src/modules/child-profiles/models/index.ts"
     }
   },
   "scripts": {

@@ -6,6 +6,7 @@ import { corsConfig } from './config/cors';
 import { env } from './config/env';
 import { auth } from './lib/auth';
 import childDictionariesApp from './modules/child-dictionaries';
+import childProfilesApp from './modules/child-profiles';
 import householdsApp from './modules/households';
 import usersApp from './modules/users';
 import { type AppContext } from './types/app.type';
@@ -35,6 +36,7 @@ const app = new Hono<AppContext>()
   // App routes
   .route('/users', usersApp)
   .route('/households', householdsApp)
+  .route('/child-profiles', childProfilesApp)
   .route('/child-dictionaries', childDictionariesApp);
 
 if (env.NODE_ENV === 'development') {
