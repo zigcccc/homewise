@@ -24,6 +24,8 @@ export const patchChildProfileModel = z.object({
   image: z.union([z.file(), z.string()]).optional(),
   avatar: z
     .file()
+    .mime(['image/svg+xml', 'image/png', 'image/jpeg', 'image/webp'], { error: 'Avatar must be an image' })
+    .max(1024 * 1024, { error: 'Avatar must be under 1MB' })
     .refine((file) => /^[a-z0-9-]+\.[a-z0-9]+$/.test(file.name), { error: 'Invalid avatar' })
     .optional(),
 });

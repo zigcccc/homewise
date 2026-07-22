@@ -85,28 +85,15 @@ function DictionaryTab() {
   const { profileId } = Route.useParams();
   const searchParams = Route.useSearch();
   const navigate = Route.useNavigate();
-  const [addOpen, setAddOpen] = useState(false);
 
   const { data: profile } = useSuspenseQuery(getChildProfileQueryOptions(Number(profileId)));
-
-  const dictionaryId = profile.dictionary?.id;
-  const entryCount = profile.dictionary?.entryCount ?? 0;
 
   const setSearchParam = <Key extends keyof SearchParams>(key: Key, value: SearchParams[Key]) =>
     navigate({ to: '.', search: { ...searchParams, [key]: value } });
 
-  const debouncedSearch = useDebounceCallback((value: string) => setSearchParam('search', value || undefined), 400);
-
-  const { data: entries } = useSuspenseQuery(
-    listChildDictionaryEntriesQueryOptions(dictionaryId ?? 0, toQuery(searchParams))
-  );
-
-  const columns = createEntriesTableColumns(profile.id);
-  const table = useReactTable({ data: entries, columns, getCoreRowModel: getCoreRowModel() });
-
-  const isFiltered = Boolean(searchParams.search);
-
-  if (dictionaryId === undefined) {
+  // Guard before the entries query runs — otherwise a dictionary-less profile would request
+  // `/entries/0` and 404 into the route error state instead of showing this empty state.
+  if (!profile.dictionary) {
     return (
       <Empty>
         <EmptyHeader>
@@ -121,10 +108,47 @@ function DictionaryTab() {
   }
 
   return (
+    <DictionaryEntries
+      childName={profile.child.displayName}
+      dictionary={profile.dictionary}
+      profileId={profile.id}
+      searchParams={searchParams}
+      setSearchParam={setSearchParam}
+    />
+  );
+}
+
+function DictionaryEntries({
+  childName,
+  dictionary,
+  profileId,
+  searchParams,
+  setSearchParam,
+}: {
+  childName: string;
+  dictionary: { id: number; entryCount: number };
+  profileId: number;
+  searchParams: SearchParams;
+  setSearchParam: <Key extends keyof SearchParams>(key: Key, value: SearchParams[Key]) => void;
+}) {
+  const [addOpen, setAddOpen] = useState(false);
+
+  const debouncedSearch = useDebounceCallback((value: string) => setSearchParam('search', value || undefined), 400);
+
+  const { data: entries } = useSuspenseQuery(
+    listChildDictionaryEntriesQueryOptions(dictionary.id, toQuery(searchParams))
+  );
+
+  const columns = createEntriesTableColumns(profileId);
+  const table = useReactTable({ data: entries, columns, getCoreRowModel: getCoreRowModel() });
+
+  const isFiltered = Boolean(searchParams.search);
+
+  return (
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-4">
         <p className="text-muted-foreground text-sm">
-          {entryCount} {entryCount === 1 ? 'word' : 'words'} collected
+          {dictionary.entryCount} {dictionary.entryCount === 1 ? 'word' : 'words'} collected
         </p>
         <Button onClick={() => setAddOpen(true)}>
           <PlusIcon />
@@ -187,9 +211,7 @@ function DictionaryTab() {
               </EmptyMedia>
               <EmptyTitle>{isFiltered ? 'No matching words' : 'No words yet'}</EmptyTitle>
               <EmptyDescription>
-                {isFiltered
-                  ? 'Try a different search term.'
-                  : `Add the first word ${profile.child.displayName} invented.`}
+                {isFiltered ? 'Try a different search term.' : `Add the first word ${childName} invented.`}
               </EmptyDescription>
             </EmptyHeader>
           </Empty>
@@ -201,11 +223,9 @@ function DictionaryTab() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Add a word</DialogTitle>
-            <DialogDescription>
-              What does {profile.child.displayName} say, and what do they mean by it?
-            </DialogDescription>
+            <DialogDescription>What does {childName} say, and what do they mean by it?</DialogDescription>
           </DialogHeader>
-          <EntryForm dictionaryId={dictionaryId} onDone={() => setAddOpen(false)} profileId={profile.id} />
+          <EntryForm dictionaryId={dictionary.id} onDone={() => setAddOpen(false)} profileId={profileId} />
         </DialogContent>
       </Dialog>
     </div>
