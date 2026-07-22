@@ -112,12 +112,19 @@ export class PetProfilesService {
       patch.profilePicture = picture.value;
     }
 
-    await ImagesService.commitManagedImage(picture, () =>
-      db
+    const persisted = await ImagesService.commitManagedImage(picture, async () => {
+      const [row] = await db
         .update(schema.petProfile)
         .set(patch)
         .where(and(eq(schema.petProfile.householdId, householdId), eq(schema.petProfile.id, profileId)))
-    );
+        .returning({ id: schema.petProfile.id });
+      return Boolean(row);
+    });
+
+    // Zero rows means the profile was deleted concurrently — the replacement blob was already rolled back.
+    if (!persisted) {
+      throw new HTTPException(404, { message: 'Profile not found' });
+    }
 
     return PetProfilesService.read(householdId, profileId, ownerId);
   }

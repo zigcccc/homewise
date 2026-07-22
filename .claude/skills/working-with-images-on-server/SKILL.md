@@ -61,13 +61,16 @@ Uploads the replacement blob **up front** and returns either `{ changed: false }
 `{ changed: true, value, commit, rollback }`, where `value` is the new column value (`string` URL or
 `null`). It does **not** touch the old blob yet.
 
-### `commitManagedImage(update, write)`
-Runs the caller's DB `write` as the **commit point**:
-- write **succeeds** → the old blob is retired (best-effort, guarded).
-- write **fails** → the freshly uploaded blob is rolled back (best-effort, guarded) and the error re-thrown.
+### `commitManagedImage(update, write) → boolean`
+Runs the caller's DB `write` as the **commit point**. `write` must report whether it actually
+**persisted a row** (do `.returning({ id })` and return `Boolean(row)`):
+- write returns **`true`** → the old blob is retired (best-effort, guarded); returns `true`.
+- write returns **`false`** → the row vanished (e.g. a **concurrent delete**), so the update touched
+  nothing and the new upload would be orphaned. It's rolled back; returns `false` → the caller throws 404.
+- write **throws** → the freshly uploaded blob is rolled back and the error re-thrown.
 
-This ordering (upload → DB write → retire-old / rollback-new) is why a failed update can never leave the
-row pointing at a blob that was already deleted, and a shared avatar is never rolled back.
+This ordering (upload → DB write → retire-old / rollback-new) is why a failed *or* no-op update can never
+leave the row pointing at a deleted blob or orphan the new upload, and a shared avatar is never rolled back.
 
 ### `cleanupOwnedImage(url, ownedPrefix)`
 Best-effort, ownership-guarded deletion — used by `commit`/`rollback` internally, and directly in a
@@ -98,8 +101,11 @@ gallery of many images on one row) — and if you find yourself re-deriving the 
    );
    if (picture.changed) patch.profilePicture = picture.value;
 
-   await ImagesService.commitManagedImage(picture, () =>
-     db.update(schema.<table>).set(patch).where(and(...)));
+   const persisted = await ImagesService.commitManagedImage(picture, async () => {
+     const [row] = await db.update(schema.<table>).set(patch).where(and(...)).returning({ id: schema.<table>.id });
+     return Boolean(row);
+   });
+   if (!persisted) throw new HTTPException(404, { message: 'Profile not found' }); // vanished mid-write
    ```
 5. **Service `delete`** — after the row is removed:
    ```ts

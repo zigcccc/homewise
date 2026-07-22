@@ -81,14 +81,21 @@ export class ImagesService {
 
   /**
    * Uploads to a deterministic pathname (no random suffix), so the same logical asset always lands at
-   * the same URL. Used for shared, deduplicated blobs like the default avatars.
+   * the same URL. Used for shared, deduplicated blobs like the default avatars. `allowOverwrite`
+   * defaults to `true` (replace in place); pass `false` for an atomic create-if-absent that throws
+   * when the pathname already exists.
    */
-  public static async putStable(pathname: string, body: string | Buffer, contentType: string) {
+  public static async putStable(
+    pathname: string,
+    body: string | Buffer,
+    contentType: string,
+    { allowOverwrite = true }: { allowOverwrite?: boolean } = {}
+  ) {
     const { url } = await put(pathname, body, {
       access: 'public',
       token: ImagesService.token,
       addRandomSuffix: false,
-      allowOverwrite: true,
+      allowOverwrite,
       contentType,
     });
 
@@ -99,6 +106,9 @@ export class ImagesService {
    * Uploads a client-provided shared asset at a deterministic path, reusing the existing blob when one
    * is already there (dedup by pathname). Shared blobs are written at most once and never deleted; the
    * filename that keys them is validated as a safe path segment by the calling module's request model.
+   *
+   * The write is a no-overwrite create, so two concurrent first uploads can't both replace the blob:
+   * the loser's `put` conflicts, and we resolve it to the winner's URL rather than clobbering it.
    */
   public static async putShared(pathname: string, file: File) {
     const existing = await ImagesService.find(pathname);
@@ -107,7 +117,16 @@ export class ImagesService {
     }
 
     const bytes = Buffer.from(await file.arrayBuffer());
-    return ImagesService.putStable(pathname, bytes, file.type || 'image/svg+xml');
+    try {
+      return await ImagesService.putStable(pathname, bytes, file.type || 'image/svg+xml', { allowOverwrite: false });
+    } catch (error) {
+      // A concurrent upload created it between our `find` and `put` — reuse that blob, don't overwrite.
+      const raced = await ImagesService.find(pathname);
+      if (raced) {
+        return raced;
+      }
+      throw error;
+    }
   }
 
   /**
@@ -180,12 +199,16 @@ export class ImagesService {
   }
 
   /**
-   * Runs the caller's DB write as the commit point for a resolved managed image: on success the old
-   * blob is retired, on failure the freshly uploaded one is rolled back and the error re-thrown.
+   * Runs the caller's DB write as the commit point for a resolved managed image. `write` must report
+   * whether it actually persisted a row: on `true` the old blob is retired; on `false` (the row
+   * vanished, e.g. a concurrent delete, so the update touched nothing) or a thrown error the freshly
+   * uploaded blob is rolled back so it isn't orphaned — the error is re-thrown. Returns whether the
+   * write persisted, so the caller can 404 a vanished target.
    */
-  public static async commitManagedImage(update: ManagedImageUpdate, write: () => PromiseLike<unknown>) {
+  public static async commitManagedImage(update: ManagedImageUpdate, write: () => PromiseLike<boolean>) {
+    let persisted: boolean;
     try {
-      await write();
+      persisted = await write();
     } catch (error) {
       if (update.changed) {
         await update.rollback();
@@ -193,8 +216,17 @@ export class ImagesService {
       throw error;
     }
 
+    if (!persisted) {
+      if (update.changed) {
+        await update.rollback();
+      }
+      return false;
+    }
+
     if (update.changed) {
       await update.commit();
     }
+
+    return true;
   }
 }
