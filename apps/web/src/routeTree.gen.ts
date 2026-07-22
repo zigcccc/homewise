@@ -26,9 +26,13 @@ import { Route as AuthenticatedOnboardedManageHouseholdMembersRouteImport } from
 import { Route as AuthenticatedOnboardedManageSettingsRouteImport } from './routes/_authenticated/_onboarded/manage/settings'
 import { Route as AuthenticatedOnboardedFamilyKidsIndexRouteImport } from './routes/_authenticated/_onboarded/family/kids/index'
 import { Route as AuthenticatedOnboardedFamilyKidsProfileIdRouteRouteImport } from './routes/_authenticated/_onboarded/family/kids/$profileId/route'
+import { Route as AuthenticatedOnboardedFamilyPetsIndexRouteImport } from './routes/_authenticated/_onboarded/family/pets/index'
+import { Route as AuthenticatedOnboardedFamilyPetsProfileIdRouteRouteImport } from './routes/_authenticated/_onboarded/family/pets/$profileId/route'
 import { Route as AuthenticatedOnboardedFamilyKidsProfileIdIndexRouteImport } from './routes/_authenticated/_onboarded/family/kids/$profileId/index'
 import { Route as AuthenticatedOnboardedFamilyKidsProfileIdDictionaryRouteImport } from './routes/_authenticated/_onboarded/family/kids/$profileId/dictionary'
 import { Route as AuthenticatedOnboardedFamilyKidsProfileIdGeneralRouteImport } from './routes/_authenticated/_onboarded/family/kids/$profileId/general'
+import { Route as AuthenticatedOnboardedFamilyPetsProfileIdIndexRouteImport } from './routes/_authenticated/_onboarded/family/pets/$profileId/index'
+import { Route as AuthenticatedOnboardedFamilyPetsProfileIdGeneralRouteImport } from './routes/_authenticated/_onboarded/family/pets/$profileId/general'
 
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
@@ -125,6 +129,18 @@ const AuthenticatedOnboardedFamilyKidsProfileIdRouteRoute =
     path: '/family/kids/$profileId',
     getParentRoute: () => AuthenticatedOnboardedRoute,
   } as any)
+const AuthenticatedOnboardedFamilyPetsIndexRoute =
+  AuthenticatedOnboardedFamilyPetsIndexRouteImport.update({
+    id: '/family/pets/',
+    path: '/family/pets/',
+    getParentRoute: () => AuthenticatedOnboardedRoute,
+  } as any)
+const AuthenticatedOnboardedFamilyPetsProfileIdRouteRoute =
+  AuthenticatedOnboardedFamilyPetsProfileIdRouteRouteImport.update({
+    id: '/family/pets/$profileId',
+    path: '/family/pets/$profileId',
+    getParentRoute: () => AuthenticatedOnboardedRoute,
+  } as any)
 const AuthenticatedOnboardedFamilyKidsProfileIdIndexRoute =
   AuthenticatedOnboardedFamilyKidsProfileIdIndexRouteImport.update({
     id: '/',
@@ -143,6 +159,18 @@ const AuthenticatedOnboardedFamilyKidsProfileIdGeneralRoute =
     path: '/general',
     getParentRoute: () => AuthenticatedOnboardedFamilyKidsProfileIdRouteRoute,
   } as any)
+const AuthenticatedOnboardedFamilyPetsProfileIdIndexRoute =
+  AuthenticatedOnboardedFamilyPetsProfileIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedOnboardedFamilyPetsProfileIdRouteRoute,
+  } as any)
+const AuthenticatedOnboardedFamilyPetsProfileIdGeneralRoute =
+  AuthenticatedOnboardedFamilyPetsProfileIdGeneralRouteImport.update({
+    id: '/general',
+    path: '/general',
+    getParentRoute: () => AuthenticatedOnboardedFamilyPetsProfileIdRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedOnboardedIndexRoute
@@ -159,10 +187,14 @@ export interface FileRoutesByFullPath {
   '/manage/household-members': typeof AuthenticatedOnboardedManageHouseholdMembersRoute
   '/manage/settings': typeof AuthenticatedOnboardedManageSettingsRoute
   '/family/kids/$profileId': typeof AuthenticatedOnboardedFamilyKidsProfileIdRouteRouteWithChildren
+  '/family/pets/$profileId': typeof AuthenticatedOnboardedFamilyPetsProfileIdRouteRouteWithChildren
   '/family/kids/': typeof AuthenticatedOnboardedFamilyKidsIndexRoute
+  '/family/pets/': typeof AuthenticatedOnboardedFamilyPetsIndexRoute
   '/family/kids/$profileId/dictionary': typeof AuthenticatedOnboardedFamilyKidsProfileIdDictionaryRoute
   '/family/kids/$profileId/general': typeof AuthenticatedOnboardedFamilyKidsProfileIdGeneralRoute
+  '/family/pets/$profileId/general': typeof AuthenticatedOnboardedFamilyPetsProfileIdGeneralRoute
   '/family/kids/$profileId/': typeof AuthenticatedOnboardedFamilyKidsProfileIdIndexRoute
+  '/family/pets/$profileId/': typeof AuthenticatedOnboardedFamilyPetsProfileIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof AuthenticatedOnboardedIndexRoute
@@ -178,9 +210,12 @@ export interface FileRoutesByTo {
   '/manage/household-members': typeof AuthenticatedOnboardedManageHouseholdMembersRoute
   '/manage/settings': typeof AuthenticatedOnboardedManageSettingsRoute
   '/family/kids': typeof AuthenticatedOnboardedFamilyKidsIndexRoute
+  '/family/pets': typeof AuthenticatedOnboardedFamilyPetsIndexRoute
   '/family/kids/$profileId/dictionary': typeof AuthenticatedOnboardedFamilyKidsProfileIdDictionaryRoute
   '/family/kids/$profileId/general': typeof AuthenticatedOnboardedFamilyKidsProfileIdGeneralRoute
+  '/family/pets/$profileId/general': typeof AuthenticatedOnboardedFamilyPetsProfileIdGeneralRoute
   '/family/kids/$profileId': typeof AuthenticatedOnboardedFamilyKidsProfileIdIndexRoute
+  '/family/pets/$profileId': typeof AuthenticatedOnboardedFamilyPetsProfileIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -200,10 +235,14 @@ export interface FileRoutesById {
   '/_authenticated/_onboarded/manage/household-members': typeof AuthenticatedOnboardedManageHouseholdMembersRoute
   '/_authenticated/_onboarded/manage/settings': typeof AuthenticatedOnboardedManageSettingsRoute
   '/_authenticated/_onboarded/family/kids/$profileId': typeof AuthenticatedOnboardedFamilyKidsProfileIdRouteRouteWithChildren
+  '/_authenticated/_onboarded/family/pets/$profileId': typeof AuthenticatedOnboardedFamilyPetsProfileIdRouteRouteWithChildren
   '/_authenticated/_onboarded/family/kids/': typeof AuthenticatedOnboardedFamilyKidsIndexRoute
+  '/_authenticated/_onboarded/family/pets/': typeof AuthenticatedOnboardedFamilyPetsIndexRoute
   '/_authenticated/_onboarded/family/kids/$profileId/dictionary': typeof AuthenticatedOnboardedFamilyKidsProfileIdDictionaryRoute
   '/_authenticated/_onboarded/family/kids/$profileId/general': typeof AuthenticatedOnboardedFamilyKidsProfileIdGeneralRoute
+  '/_authenticated/_onboarded/family/pets/$profileId/general': typeof AuthenticatedOnboardedFamilyPetsProfileIdGeneralRoute
   '/_authenticated/_onboarded/family/kids/$profileId/': typeof AuthenticatedOnboardedFamilyKidsProfileIdIndexRoute
+  '/_authenticated/_onboarded/family/pets/$profileId/': typeof AuthenticatedOnboardedFamilyPetsProfileIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -222,10 +261,14 @@ export interface FileRouteTypes {
     | '/manage/household-members'
     | '/manage/settings'
     | '/family/kids/$profileId'
+    | '/family/pets/$profileId'
     | '/family/kids/'
+    | '/family/pets/'
     | '/family/kids/$profileId/dictionary'
     | '/family/kids/$profileId/general'
+    | '/family/pets/$profileId/general'
     | '/family/kids/$profileId/'
+    | '/family/pets/$profileId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -241,9 +284,12 @@ export interface FileRouteTypes {
     | '/manage/household-members'
     | '/manage/settings'
     | '/family/kids'
+    | '/family/pets'
     | '/family/kids/$profileId/dictionary'
     | '/family/kids/$profileId/general'
+    | '/family/pets/$profileId/general'
     | '/family/kids/$profileId'
+    | '/family/pets/$profileId'
   id:
     | '__root__'
     | '/_authenticated'
@@ -262,10 +308,14 @@ export interface FileRouteTypes {
     | '/_authenticated/_onboarded/manage/household-members'
     | '/_authenticated/_onboarded/manage/settings'
     | '/_authenticated/_onboarded/family/kids/$profileId'
+    | '/_authenticated/_onboarded/family/pets/$profileId'
     | '/_authenticated/_onboarded/family/kids/'
+    | '/_authenticated/_onboarded/family/pets/'
     | '/_authenticated/_onboarded/family/kids/$profileId/dictionary'
     | '/_authenticated/_onboarded/family/kids/$profileId/general'
+    | '/_authenticated/_onboarded/family/pets/$profileId/general'
     | '/_authenticated/_onboarded/family/kids/$profileId/'
+    | '/_authenticated/_onboarded/family/pets/$profileId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -396,6 +446,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOnboardedFamilyKidsProfileIdRouteRouteImport
       parentRoute: typeof AuthenticatedOnboardedRoute
     }
+    '/_authenticated/_onboarded/family/pets/': {
+      id: '/_authenticated/_onboarded/family/pets/'
+      path: '/family/pets'
+      fullPath: '/family/pets/'
+      preLoaderRoute: typeof AuthenticatedOnboardedFamilyPetsIndexRouteImport
+      parentRoute: typeof AuthenticatedOnboardedRoute
+    }
+    '/_authenticated/_onboarded/family/pets/$profileId': {
+      id: '/_authenticated/_onboarded/family/pets/$profileId'
+      path: '/family/pets/$profileId'
+      fullPath: '/family/pets/$profileId'
+      preLoaderRoute: typeof AuthenticatedOnboardedFamilyPetsProfileIdRouteRouteImport
+      parentRoute: typeof AuthenticatedOnboardedRoute
+    }
     '/_authenticated/_onboarded/family/kids/$profileId/': {
       id: '/_authenticated/_onboarded/family/kids/$profileId/'
       path: '/'
@@ -416,6 +480,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/family/kids/$profileId/general'
       preLoaderRoute: typeof AuthenticatedOnboardedFamilyKidsProfileIdGeneralRouteImport
       parentRoute: typeof AuthenticatedOnboardedFamilyKidsProfileIdRouteRoute
+    }
+    '/_authenticated/_onboarded/family/pets/$profileId/': {
+      id: '/_authenticated/_onboarded/family/pets/$profileId/'
+      path: '/'
+      fullPath: '/family/pets/$profileId/'
+      preLoaderRoute: typeof AuthenticatedOnboardedFamilyPetsProfileIdIndexRouteImport
+      parentRoute: typeof AuthenticatedOnboardedFamilyPetsProfileIdRouteRoute
+    }
+    '/_authenticated/_onboarded/family/pets/$profileId/general': {
+      id: '/_authenticated/_onboarded/family/pets/$profileId/general'
+      path: '/general'
+      fullPath: '/family/pets/$profileId/general'
+      preLoaderRoute: typeof AuthenticatedOnboardedFamilyPetsProfileIdGeneralRouteImport
+      parentRoute: typeof AuthenticatedOnboardedFamilyPetsProfileIdRouteRoute
     }
   }
 }
@@ -461,6 +539,24 @@ const AuthenticatedOnboardedFamilyKidsProfileIdRouteRouteWithChildren =
     AuthenticatedOnboardedFamilyKidsProfileIdRouteRouteChildren,
   )
 
+interface AuthenticatedOnboardedFamilyPetsProfileIdRouteRouteChildren {
+  AuthenticatedOnboardedFamilyPetsProfileIdGeneralRoute: typeof AuthenticatedOnboardedFamilyPetsProfileIdGeneralRoute
+  AuthenticatedOnboardedFamilyPetsProfileIdIndexRoute: typeof AuthenticatedOnboardedFamilyPetsProfileIdIndexRoute
+}
+
+const AuthenticatedOnboardedFamilyPetsProfileIdRouteRouteChildren: AuthenticatedOnboardedFamilyPetsProfileIdRouteRouteChildren =
+  {
+    AuthenticatedOnboardedFamilyPetsProfileIdGeneralRoute:
+      AuthenticatedOnboardedFamilyPetsProfileIdGeneralRoute,
+    AuthenticatedOnboardedFamilyPetsProfileIdIndexRoute:
+      AuthenticatedOnboardedFamilyPetsProfileIdIndexRoute,
+  }
+
+const AuthenticatedOnboardedFamilyPetsProfileIdRouteRouteWithChildren =
+  AuthenticatedOnboardedFamilyPetsProfileIdRouteRoute._addFileChildren(
+    AuthenticatedOnboardedFamilyPetsProfileIdRouteRouteChildren,
+  )
+
 interface AuthenticatedOnboardedRouteChildren {
   AuthenticatedOnboardedUserProfileRoute: typeof AuthenticatedOnboardedUserProfileRoute
   AuthenticatedOnboardedIndexRoute: typeof AuthenticatedOnboardedIndexRoute
@@ -468,7 +564,9 @@ interface AuthenticatedOnboardedRouteChildren {
   AuthenticatedOnboardedManageHouseholdMembersRoute: typeof AuthenticatedOnboardedManageHouseholdMembersRoute
   AuthenticatedOnboardedManageSettingsRoute: typeof AuthenticatedOnboardedManageSettingsRoute
   AuthenticatedOnboardedFamilyKidsProfileIdRouteRoute: typeof AuthenticatedOnboardedFamilyKidsProfileIdRouteRouteWithChildren
+  AuthenticatedOnboardedFamilyPetsProfileIdRouteRoute: typeof AuthenticatedOnboardedFamilyPetsProfileIdRouteRouteWithChildren
   AuthenticatedOnboardedFamilyKidsIndexRoute: typeof AuthenticatedOnboardedFamilyKidsIndexRoute
+  AuthenticatedOnboardedFamilyPetsIndexRoute: typeof AuthenticatedOnboardedFamilyPetsIndexRoute
 }
 
 const AuthenticatedOnboardedRouteChildren: AuthenticatedOnboardedRouteChildren =
@@ -484,8 +582,12 @@ const AuthenticatedOnboardedRouteChildren: AuthenticatedOnboardedRouteChildren =
       AuthenticatedOnboardedManageSettingsRoute,
     AuthenticatedOnboardedFamilyKidsProfileIdRouteRoute:
       AuthenticatedOnboardedFamilyKidsProfileIdRouteRouteWithChildren,
+    AuthenticatedOnboardedFamilyPetsProfileIdRouteRoute:
+      AuthenticatedOnboardedFamilyPetsProfileIdRouteRouteWithChildren,
     AuthenticatedOnboardedFamilyKidsIndexRoute:
       AuthenticatedOnboardedFamilyKidsIndexRoute,
+    AuthenticatedOnboardedFamilyPetsIndexRoute:
+      AuthenticatedOnboardedFamilyPetsIndexRoute,
   }
 
 const AuthenticatedOnboardedRouteWithChildren =

@@ -9,6 +9,7 @@ import {
   LogOutIcon,
   MapPinIcon,
   PackageOpenIcon,
+  PawPrintIcon,
   PiggyBankIcon,
   ScrollTextIcon,
   UserIcon,
@@ -89,6 +90,16 @@ export function AppSidebar() {
                   <SidebarMenuButton isActive={isActive} tooltip="Kids">
                     <BabyIcon className="size-4" />
                     <span>Kids</span>
+                  </SidebarMenuButton>
+                )}
+              </Link>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <Link to="/family/pets">
+                {({ isActive }) => (
+                  <SidebarMenuButton isActive={isActive} tooltip="Pets">
+                    <PawPrintIcon className="size-4" />
+                    <span>Pets</span>
                   </SidebarMenuButton>
                 )}
               </Link>
