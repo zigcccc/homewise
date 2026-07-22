@@ -2,7 +2,8 @@ import { relations } from 'drizzle-orm';
 import { boolean, date, integer, pgTable, text, unique } from 'drizzle-orm/pg-core';
 
 import { baseDbEntityFields } from './__shared/base';
-import { household, householdMember } from './household';
+import { childProfile } from './child-profile';
+import { household } from './household';
 import { user } from './user';
 
 export const childDictionary = pgTable(
@@ -12,11 +13,11 @@ export const childDictionary = pgTable(
     householdId: integer('household_id')
       .notNull()
       .references(() => household.id, { onDelete: 'cascade' }),
-    memberId: integer('member_id')
+    profileId: integer('profile_id')
       .notNull()
-      .references(() => householdMember.id, { onDelete: 'cascade' }),
+      .references(() => childProfile.id, { onDelete: 'cascade' }),
   },
-  (table) => [unique('child_dictionary_member_unique').on(table.householdId, table.memberId)]
+  (table) => [unique('child_dictionary_profile_unique').on(table.profileId)]
 );
 
 export const childDictionaryEntry = pgTable('child_dictionary_entry', {
@@ -33,8 +34,8 @@ export const childDictionaryEntry = pgTable('child_dictionary_entry', {
 });
 
 export const childDictionaryRelations = relations(childDictionary, ({ many, one }) => ({
-  /** The household member (role `child`) this dictionary belongs to. */
-  child: one(householdMember, { fields: [childDictionary.memberId], references: [householdMember.id] }),
+  /** The child profile this dictionary belongs to. */
+  profile: one(childProfile, { fields: [childDictionary.profileId], references: [childProfile.id] }),
   entries: many(childDictionaryEntry),
   household: one(household, { fields: [childDictionary.householdId], references: [household.id] }),
 }));
