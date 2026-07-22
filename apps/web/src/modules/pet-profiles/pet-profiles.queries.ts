@@ -16,8 +16,13 @@ export function getPetProfileQueryOptions(id: number) {
   });
 }
 
+/** Refreshes just the profile list (cards) — e.g. after creating a profile and navigating away. */
+export function invalidatePetProfilesList(queryClient: QueryClient) {
+  void queryClient.invalidateQueries({ queryKey: ['pet-profiles', 'list'], exact: true });
+}
+
 /** Refreshes the profile list (cards) and a single profile's detail. */
 export function invalidatePetProfile(queryClient: QueryClient, id: number) {
-  void queryClient.invalidateQueries({ queryKey: ['pet-profiles', 'list'], exact: true });
+  invalidatePetProfilesList(queryClient);
   void queryClient.invalidateQueries({ queryKey: ['pet-profiles', id] });
 }

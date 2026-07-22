@@ -1,4 +1,4 @@
-import { format, isValid, parse, parseISO } from 'date-fns';
+import { format, isFuture, isValid, parse, parseISO } from 'date-fns';
 import { CalendarIcon } from 'lucide-react';
 import { useState } from 'react';
 
@@ -25,14 +25,17 @@ const DATE_INPUT_FORMATS = [
   'd MMM yyyy',
 ];
 
-/** Parses day-first input. Returns undefined for anything unparseable or out of range (31. 02.). */
+/**
+ * Parses day-first input. Returns undefined for anything unparseable, out of range (31. 02.), or in
+ * the future — these dates are past-only, matching the calendar's `disabled={{ after: today }}`.
+ */
 function parseDayFirst(input: string) {
   const trimmed = input.trim();
 
   for (const dateFormat of DATE_INPUT_FORMATS) {
     const parsed = parse(trimmed, dateFormat, new Date());
 
-    if (isValid(parsed)) {
+    if (isValid(parsed) && !isFuture(parsed)) {
       return parsed;
     }
   }

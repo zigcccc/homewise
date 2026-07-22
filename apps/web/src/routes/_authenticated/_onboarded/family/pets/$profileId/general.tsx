@@ -29,7 +29,7 @@ import {
 } from '@homewise/ui/core';
 
 import { client, parseResponse } from '@/api/client';
-import { getPetProfileQueryOptions, invalidatePetProfile } from '@/modules/pet-profiles';
+import { getPetProfileQueryOptions, invalidatePetProfile, petTypeLabels } from '@/modules/pet-profiles';
 import { DateField, sexLabels } from '@/modules/shared';
 
 import { ProfilePictureField } from './-components/profile-picture-field';
@@ -47,16 +47,6 @@ type PetProfile = InferResponseType<typeof $getProfile, 200>;
 
 const $patchProfile = client['pet-profiles'][':id'].$patch;
 type PatchProfileForm = InferRequestType<typeof $patchProfile>['form'];
-
-const typeLabels: Record<z.infer<typeof petType>, string> = {
-  dog: 'Dog',
-  cat: 'Cat',
-  turtle: 'Turtle',
-  hamster: 'Hamster',
-  horse: 'Horse',
-  parrot: 'Parrot',
-  other: 'Other',
-};
 
 /**
  * Editable basics: name comes from the household member; date of birth, arrival, type, breed, sex,
@@ -182,13 +172,13 @@ function GeneralTab() {
                     <Select onValueChange={field.onChange} value={field.value ?? ''}>
                       <FormControl>
                         <SelectTrigger className="w-full">
-                          <span>{field.value ? typeLabels[field.value] : 'Not set'}</span>
+                          <span>{field.value ? petTypeLabels[field.value] : 'Not set'}</span>
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         {petType.options.map((option) => (
                           <SelectItem key={option} value={option}>
-                            {typeLabels[option]}
+                            {petTypeLabels[option]}
                           </SelectItem>
                         ))}
                       </SelectContent>

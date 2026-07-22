@@ -32,7 +32,7 @@ import {
 
 import { client, parseResponse } from '@/api/client';
 import { getMyHouseholdQueryOptions } from '@/modules/households';
-import { listPetProfilesQueryOptions } from '@/modules/pet-profiles';
+import { invalidatePetProfilesList, listPetProfilesQueryOptions, petTypeLabels } from '@/modules/pet-profiles';
 import { Actionbar } from '@/modules/shared';
 
 export const Route = createFileRoute('/_authenticated/_onboarded/family/pets/')({
@@ -46,16 +46,6 @@ export const Route = createFileRoute('/_authenticated/_onboarded/family/pets/')(
   pendingComponent: () => <Spinner />,
 });
 
-const typeLabels: Record<PetType, string> = {
-  dog: 'Dog',
-  cat: 'Cat',
-  turtle: 'Turtle',
-  hamster: 'Hamster',
-  horse: 'Horse',
-  parrot: 'Parrot',
-  other: 'Other',
-};
-
 /** Whole years since the date of birth, or null when no date is set. */
 function ageInYears(dateOfBirth: string | null) {
   if (!dateOfBirth) {
@@ -67,7 +57,7 @@ function ageInYears(dateOfBirth: string | null) {
 
 /** A "Dog · Golden Retriever" line — type, breed, or both. Null when neither is set. */
 function typeAndBreed(type: PetType | null, breed: string | null) {
-  const label = type ? typeLabels[type] : null;
+  const label = type ? petTypeLabels[type] : null;
   return [label, breed].filter(Boolean).join(' · ') || null;
 }
 
@@ -94,7 +84,7 @@ function PetsRoute() {
       // button that was just clicked) while we're still on the page.
       toast.success(`Profile created for ${displayName}.`);
       await navigate({ to: '/family/pets/$profileId', params: { profileId: profile.id.toString() } });
-      void queryClient.invalidateQueries({ queryKey: ['pet-profiles', 'list'], exact: true });
+      invalidatePetProfilesList(queryClient);
     } catch {
       toast.error('Something went wrong.');
     }
