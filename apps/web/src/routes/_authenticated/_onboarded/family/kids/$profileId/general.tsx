@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { type InferRequestType, type InferResponseType } from 'hono';
+import { useState } from 'react';
 import { type SubmitHandler, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import z from 'zod';
@@ -20,6 +21,7 @@ import {
   FormLabel,
   FormMessage,
   Label,
+  MaskedInput,
   Select,
   SelectContent,
   SelectItem,
@@ -53,16 +55,20 @@ type PatchProfileForm = InferRequestType<typeof $patchProfile>['form'];
  * `image` is just the preview src; `imageFile` is an uploaded photo, `avatarFile` a picked avatar
  * (the client sends its bytes, the server deduplicates the blob by the file's name).
  */
-const generalFormModel = patchChildProfileModel.pick({ dateOfBirth: true, sex: true }).extend({
-  image: z.string().nullish(),
-  imageFile: z.instanceof(File).nullish(),
-  avatarFile: z.instanceof(File).nullish(),
-});
+const generalFormModel = patchChildProfileModel
+  .pick({ dateOfBirth: true, sex: true, nationalId: true, taxId: true })
+  .extend({
+    image: z.string().nullish(),
+    imageFile: z.instanceof(File).nullish(),
+    avatarFile: z.instanceof(File).nullish(),
+  });
 
 function defaults(profile: ChildProfile): z.infer<typeof generalFormModel> {
   return {
     dateOfBirth: profile.dateOfBirth ?? '',
     sex: profile.sex ?? '',
+    nationalId: profile.nationalId ?? '',
+    taxId: profile.taxId ?? '',
     image: profile.profilePicture ?? undefined,
     imageFile: undefined,
     avatarFile: undefined,
@@ -73,6 +79,9 @@ function GeneralTab() {
   const { profileId } = Route.useParams();
   const queryClient = useQueryClient();
   const { data: profile } = useSuspenseQuery(getChildProfileQueryOptions(Number(profileId)));
+
+  // View-only state: which identifier fields are unmasked/editable. Re-masked after a successful save.
+  const [revealed, setRevealed] = useState({ nationalId: false, taxId: false });
 
   const form = useForm<z.infer<typeof generalFormModel>>({
     resolver: zodResolver(generalFormModel),
@@ -85,7 +94,12 @@ function GeneralTab() {
   });
 
   const onSubmit: SubmitHandler<z.infer<typeof generalFormModel>> = async (data) => {
-    const payload: PatchProfileForm = { dateOfBirth: data.dateOfBirth ?? '', sex: data.sex ?? '' };
+    const payload: PatchProfileForm = {
+      dateOfBirth: data.dateOfBirth ?? '',
+      sex: data.sex ?? '',
+      nationalId: data.nationalId ?? '',
+      taxId: data.taxId ?? '',
+    };
 
     // Picture resolves photo → avatar → clear, matching the server.
     if (data.imageFile instanceof File) {
@@ -100,6 +114,7 @@ function GeneralTab() {
       const updated = await mutateAsync(payload);
       invalidateChildProfile(queryClient, profile.id);
       form.reset(defaults(updated));
+      setRevealed({ nationalId: false, taxId: false });
       toast.success('Profile updated.');
     } catch {
       toast.error('Something went wrong.');
@@ -185,6 +200,53 @@ function GeneralTab() {
                           ))}
                         </SelectContent>
                       </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid gap-6 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="nationalId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel htmlFor="nationalId">National ID</FormLabel>
+                      <FormControl>
+                        <MaskedInput
+                          id="nationalId"
+                          onChange={field.onChange}
+                          onCopy={() => toast.success('Copied to clipboard')}
+                          onHide={() => setRevealed((current) => ({ ...current, nationalId: false }))}
+                          onReveal={() => setRevealed((current) => ({ ...current, nationalId: true }))}
+                          placeholder="Not set"
+                          revealed={revealed.nationalId}
+                          value={field.value ?? ''}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="taxId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel htmlFor="taxId">Tax ID</FormLabel>
+                      <FormControl>
+                        <MaskedInput
+                          id="taxId"
+                          onChange={field.onChange}
+                          onCopy={() => toast.success('Copied to clipboard')}
+                          onHide={() => setRevealed((current) => ({ ...current, taxId: false }))}
+                          onReveal={() => setRevealed((current) => ({ ...current, taxId: true }))}
+                          placeholder="Not set"
+                          revealed={revealed.taxId}
+                          value={field.value ?? ''}
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
