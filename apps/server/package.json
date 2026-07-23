@@ -22,6 +22,14 @@
     "./pet-profiles": {
       "import": "./src/modules/pet-profiles/models/index.ts",
       "type": "./src/modules/pet-profiles/models/index.ts"
+    },
+    "./contacts": {
+      "import": "./src/modules/contacts/models/index.ts",
+      "type": "./src/modules/contacts/models/index.ts"
+    },
+    "./medical": {
+      "import": "./src/modules/medical/models/index.ts",
+      "type": "./src/modules/medical/models/index.ts"
     }
   },
   "scripts": {

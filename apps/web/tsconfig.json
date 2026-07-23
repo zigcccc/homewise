@@ -6,6 +6,10 @@
     "moduleResolution": "Bundler",
     "lib": ["DOM", "DOM.Iterable", "ES2022"],
     "noEmit": true,
+    // This is a leaf app (noEmit, nothing consumes its .d.ts). Turning off declaration emit that the
+    // shared base enables avoids serializing the enormous inferred Hono RPC `client` type (TS7056).
+    "declaration": false,
+    "declarationMap": false,
     "jsx": "react-jsx",
     "types": ["vite/client"],
     "rootDir": ".",

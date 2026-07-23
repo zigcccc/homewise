@@ -3,6 +3,7 @@ import { date, integer, pgEnum, pgTable, text, unique } from 'drizzle-orm/pg-cor
 
 import { baseDbEntityFields } from './__shared/base';
 import { household, householdMember } from './household';
+import { medicalInfo } from './medical-info';
 
 export const petTypeEnum = pgEnum('petType', ['dog', 'cat', 'turtle', 'hamster', 'horse', 'parrot', 'other']);
 export const petSexEnum = pgEnum('petSex', ['male', 'female']);
@@ -31,4 +32,6 @@ export const petProfileRelations = relations(petProfile, ({ one }) => ({
   /** The household member (role `pet`) this profile describes. Surfaced as `pet` in responses. */
   member: one(householdMember, { fields: [petProfile.memberId], references: [householdMember.id] }),
   household: one(household, { fields: [petProfile.householdId], references: [household.id] }),
+  /** The pet's medical record — created alongside the profile, one per profile. */
+  medicalInfo: one(medicalInfo),
 }));

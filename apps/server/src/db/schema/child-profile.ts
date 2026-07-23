@@ -4,6 +4,7 @@ import { date, integer, pgEnum, pgTable, text, unique } from 'drizzle-orm/pg-cor
 import { baseDbEntityFields } from './__shared/base';
 import { childDictionary } from './child-dictionary';
 import { household, householdMember } from './household';
+import { medicalInfo } from './medical-info';
 
 export const childSexEnum = pgEnum('childSex', ['male', 'female']);
 
@@ -30,4 +31,6 @@ export const childProfileRelations = relations(childProfile, ({ one }) => ({
   household: one(household, { fields: [childProfile.householdId], references: [household.id] }),
   /** The child's dictionary — the first sub-feature hanging off the profile. */
   dictionary: one(childDictionary),
+  /** The child's medical record — created alongside the profile, one per profile. */
+  medicalInfo: one(medicalInfo),
 }));

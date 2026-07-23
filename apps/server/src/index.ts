@@ -7,7 +7,9 @@ import { env } from './config/env';
 import { auth } from './lib/auth';
 import childDictionariesApp from './modules/child-dictionaries';
 import childProfilesApp from './modules/child-profiles';
+import contactsApp from './modules/contacts';
 import householdsApp from './modules/households';
+import medicalApp from './modules/medical';
 import petProfilesApp from './modules/pet-profiles';
 import usersApp from './modules/users';
 import { type AppContext } from './types/app.type';
@@ -39,7 +41,9 @@ const app = new Hono<AppContext>()
   .route('/households', householdsApp)
   .route('/child-profiles', childProfilesApp)
   .route('/child-dictionaries', childDictionariesApp)
-  .route('/pet-profiles', petProfilesApp);
+  .route('/pet-profiles', petProfilesApp)
+  .route('/contacts', contactsApp)
+  .route('/medical-info', medicalApp);
 
 if (env.NODE_ENV === 'development') {
   console.log('Serving app on port 5173...');
