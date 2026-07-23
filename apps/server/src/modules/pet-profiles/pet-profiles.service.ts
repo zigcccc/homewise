@@ -5,6 +5,7 @@ import { db, schema } from '@/db';
 
 import { HouseholdsService } from '../households/households.service';
 import { ImagesService } from '../images/images.service';
+import { MedicalService, medicalInfoWith } from '../medical/medical.service';
 import { type CreatePetProfile, type PatchPetProfile } from './models';
 
 /** The `pet` join: a household member, shaped like the households module returns them. */
@@ -56,14 +57,23 @@ export class PetProfilesService {
   public static async read(householdId: number, profileId: number, ownerId: string) {
     const profile = await db.query.petProfile.findFirst({
       where: (fields, { and, eq }) => and(eq(fields.householdId, householdId), eq(fields.id, profileId)),
-      with: { member: memberWith },
+      with: { member: memberWith, medicalInfo: medicalInfoWith },
     });
 
     if (!profile) {
       throw new HTTPException(404, { message: 'Profile not found' });
     }
 
-    return PetProfilesService.toResponse(profile, ownerId);
+    // The medical record is eager-created with the profile (and backfilled), so it's always present.
+    const { medicalInfo, ...rest } = profile;
+    if (!medicalInfo) {
+      throw new HTTPException(500, { message: 'Medical info missing for profile' });
+    }
+
+    return {
+      ...PetProfilesService.toResponse(rest, ownerId),
+      medicalInfo: MedicalService.toMedicalInfoResponse(medicalInfo),
+    };
   }
 
   public static async create(householdId: number, data: CreatePetProfile, ownerId: string) {
@@ -74,19 +84,26 @@ export class PetProfilesService {
       throw new HTTPException(400, { message: 'Only members with the "pet" role can have a profile.' });
     }
 
-    // `onConflictDoNothing` lets the (householdId, memberId) unique constraint be the single source of
-    // truth — a pre-read plus insert would race two concurrent creates into a raw DB error instead of a 409.
-    const [profile] = await db
-      .insert(schema.petProfile)
-      .values({ householdId, memberId: member.id })
-      .onConflictDoNothing({ target: [schema.petProfile.householdId, schema.petProfile.memberId] })
-      .returning();
+    const created = await db.transaction(async (tx) => {
+      // `onConflictDoNothing` lets the (householdId, memberId) unique constraint be the single source of
+      // truth — a pre-read plus insert would race two concurrent creates into a raw DB error instead of a 409.
+      const [profile] = await tx
+        .insert(schema.petProfile)
+        .values({ householdId, memberId: member.id })
+        .onConflictDoNothing({ target: [schema.petProfile.householdId, schema.petProfile.memberId] })
+        .returning();
 
-    if (!profile) {
-      throw new HTTPException(409, { message: 'This pet already has a profile.' });
-    }
+      if (!profile) {
+        throw new HTTPException(409, { message: 'This pet already has a profile.' });
+      }
 
-    return PetProfilesService.read(householdId, profile.id, ownerId);
+      // The medical record is created with the profile, one per profile.
+      await tx.insert(schema.medicalInfo).values({ householdId, petProfileId: profile.id });
+
+      return profile;
+    });
+
+    return PetProfilesService.read(householdId, created.id, ownerId);
   }
 
   public static async patch(householdId: number, profileId: number, data: PatchPetProfile, ownerId: string) {

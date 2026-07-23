@@ -5,6 +5,7 @@ import { db, schema } from '@/db';
 
 import { HouseholdsService } from '../households/households.service';
 import { ImagesService } from '../images/images.service';
+import { MedicalService, medicalInfoWith } from '../medical/medical.service';
 import { type CreateChildProfile, type PatchChildProfile } from './models';
 
 /** The `child` join: a household member, shaped like the households module returns them. */
@@ -77,7 +78,7 @@ export class ChildProfilesService {
   public static async read(householdId: number, profileId: number, ownerId: string) {
     const profile = await db.query.childProfile.findFirst({
       where: (fields, { and, eq }) => and(eq(fields.householdId, householdId), eq(fields.id, profileId)),
-      with: { member: memberWith, dictionary: { columns: { id: true } } },
+      with: { member: memberWith, dictionary: { columns: { id: true } }, medicalInfo: medicalInfoWith },
     });
 
     if (!profile) {
@@ -93,7 +94,16 @@ export class ChildProfilesService {
         )[0]?.count ?? 0)
       : 0;
 
-    return ChildProfilesService.toResponse(profile, ownerId, entryCount);
+    // The medical record is eager-created with the profile (and backfilled), so it's always present.
+    const { medicalInfo, ...rest } = profile;
+    if (!medicalInfo) {
+      throw new HTTPException(500, { message: 'Medical info missing for profile' });
+    }
+
+    return {
+      ...ChildProfilesService.toResponse(rest, ownerId, entryCount),
+      medicalInfo: MedicalService.toMedicalInfoResponse(medicalInfo),
+    };
   }
 
   public static async create(householdId: number, data: CreateChildProfile, ownerId: string) {
@@ -119,6 +129,8 @@ export class ChildProfilesService {
 
       // The dictionary is the profile's first sub-feature — created alongside it, one per profile.
       await tx.insert(schema.childDictionary).values({ householdId, profileId: profile.id });
+      // The medical record is created with the profile too, one per profile.
+      await tx.insert(schema.medicalInfo).values({ householdId, childProfileId: profile.id });
 
       return profile;
     });

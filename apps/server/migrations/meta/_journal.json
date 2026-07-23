@@ -50,6 +50,20 @@
       "when": 1784719650063,
       "tag": "0006_sharp_mercury",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1784778604950,
+      "tag": "0007_lowly_blindfold",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1784792656276,
+      "tag": "0008_keen_gambit",
+      "breakpoints": true
     }
   ]
 }
