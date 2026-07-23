@@ -16,6 +16,7 @@ export * from './image-input';
 export * from './input';
 export * from './input-group';
 export * from './label';
+export * from './masked-input';
 export * from './popover';
 export * from './select';
 export * from './separator';

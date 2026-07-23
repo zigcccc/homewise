@@ -20,6 +20,8 @@ export const childProfile = pgTable(
       .references(() => householdMember.id, { onDelete: 'cascade' }),
     dateOfBirth: date('date_of_birth'),
     sex: childSexEnum(),
+    nationalId: text('national_id'),
+    taxId: text('tax_id'),
     profilePicture: text('profile_picture'),
   },
   (table) => [unique('child_profile_member_unique').on(table.householdId, table.memberId)]
