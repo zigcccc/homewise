@@ -43,6 +43,7 @@
     "@vitejs/plugin-react": "catalog:",
     "tailwindcss": "catalog:",
     "tw-animate-css": "catalog:",
+    "typescript": "catalog:",
     "vite": "catalog:"
   }
 }
