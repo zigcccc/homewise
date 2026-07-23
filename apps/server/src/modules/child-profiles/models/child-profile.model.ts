@@ -21,6 +21,8 @@ export type CreateChildProfile = z.infer<typeof createChildProfileModel>;
 export const patchChildProfileModel = z.object({
   dateOfBirth: z.iso.date({ error: 'Use a valid date' }).or(z.literal('')).optional(),
   sex: childSex.or(z.literal('')).optional(),
+  nationalId: z.string().max(64).optional(),
+  taxId: z.string().max(64).optional(),
   image: z.union([z.file(), z.string()]).optional(),
   avatar: z
     .file()

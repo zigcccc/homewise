@@ -144,6 +144,8 @@ export class ChildProfilesService {
     const patch: Partial<typeof schema.childProfile.$inferInsert> = {
       dateOfBirth: emptyToNull(data.dateOfBirth),
       sex: data.sex === '' ? null : data.sex,
+      nationalId: emptyToNull(data.nationalId),
+      taxId: emptyToNull(data.taxId),
     };
 
     // Picture resolves photo → avatar → clear (all become portable blob URLs). ImagesService uploads

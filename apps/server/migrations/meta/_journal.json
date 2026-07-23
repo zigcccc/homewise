@@ -64,6 +64,13 @@
       "when": 1784792656276,
       "tag": "0008_keen_gambit",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1784805716635,
+      "tag": "0009_bizarre_silk_fever",
+      "breakpoints": true
     }
   ]
 }
