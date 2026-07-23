@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Link, useNavigate, useRouteContext } from '@tanstack/react-router';
+import { Link, useNavigate, useRouteContext, useRouterState } from '@tanstack/react-router';
 import {
   BabyIcon,
   CogIcon,
@@ -15,6 +15,7 @@ import {
   UserIcon,
   UsersIcon,
 } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 
 import {
   Avatar,
@@ -33,11 +34,26 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from '@homewise/ui/core';
 
 import { authClient } from '@/auth/client';
 import { getSessionQueryOptions } from '@/auth/queries';
 import { getMyHouseholdQueryOptions } from '@/modules/households';
+
+function SidebarAutocloseOnMobile() {
+  const { setOpenMobile } = useSidebar();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const previousPathnameRef = useRef(pathname);
+
+  useEffect(() => {
+    if (previousPathnameRef.current === pathname) return;
+    previousPathnameRef.current = pathname;
+    setOpenMobile(false);
+  }, [pathname, setOpenMobile]);
+
+  return null;
+}
 
 export function AppSidebar() {
   const { queryClient } = useRouteContext({ strict: false });
@@ -55,6 +71,7 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" variant="inset">
+      <SidebarAutocloseOnMobile />
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
