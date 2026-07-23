@@ -202,6 +202,7 @@ function GeneralTab() {
       </Form>
 
       <MedicalInfoCard
+        key={profile.medicalInfo.id}
         medicalInfo={profile.medicalInfo}
         onChanged={() => invalidateChildProfile(queryClient, profile.id)}
       />

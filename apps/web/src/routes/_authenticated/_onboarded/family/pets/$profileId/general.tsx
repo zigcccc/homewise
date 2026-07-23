@@ -265,6 +265,7 @@ function GeneralTab() {
       </Form>
 
       <MedicalInfoCard
+        key={profile.medicalInfo.id}
         medicalInfo={profile.medicalInfo}
         onChanged={() => invalidatePetProfile(queryClient, profile.id)}
         petLabels

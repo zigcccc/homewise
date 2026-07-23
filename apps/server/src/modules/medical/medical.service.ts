@@ -50,9 +50,9 @@ export class MedicalService {
   }
 
   /** Re-reads the record with its contacts, so mutations return the same shape as the profile nests. */
-  private static async read(medicalInfoId: number) {
+  private static async read(householdId: number, medicalInfoId: number) {
     const info = await db.query.medicalInfo.findFirst({
-      where: (fields, { eq }) => eq(fields.id, medicalInfoId),
+      where: (fields, { and, eq }) => and(eq(fields.householdId, householdId), eq(fields.id, medicalInfoId)),
       ...medicalInfoWith,
     });
 
@@ -74,7 +74,7 @@ export class MedicalService {
       throw new HTTPException(404, { message: 'Medical info not found' });
     }
 
-    return MedicalService.read(medicalInfoId);
+    return MedicalService.read(householdId, medicalInfoId);
   }
 
   /** Creates a contact and links it to the medical info in one transaction. */
@@ -93,9 +93,11 @@ export class MedicalService {
   public static async linkContact(householdId: number, medicalInfoId: number, contactId: number) {
     await MedicalService.readMedicalInfoRow(householdId, medicalInfoId);
 
-    // Scopes the contact to the household so a foreign id can't be linked in.
+    // Scopes the contact to the household so a foreign id can't be linked in. Loads it with its links so
+    // the mutation returns the same joined shape as profile reads and the other contact mutations.
     const contact = await db.query.contact.findFirst({
       where: (fields, { and, eq }) => and(eq(fields.householdId, householdId), eq(fields.id, contactId)),
+      with: { links: { orderBy: (fields, { asc }) => [asc(fields.createdAt)] } },
     });
 
     if (!contact) {

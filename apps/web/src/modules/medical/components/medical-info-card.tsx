@@ -105,13 +105,17 @@ export function MedicalInfoCard({
   };
 
   const submitContact = async (values: ContactFormValues) => {
-    if (editing) {
-      await parseResponse($patchContact({ param: { id: editing.id.toString() }, json: values }));
-      toast.success('Contact updated.');
-    } else {
-      await parseResponse($postContact({ param: { id: medicalInfo.id.toString() }, json: values }));
-      toast.success('Contact added.');
+    try {
+      if (editing) {
+        await parseResponse($patchContact({ param: { id: editing.id.toString() }, json: values }));
+      } else {
+        await parseResponse($postContact({ param: { id: medicalInfo.id.toString() }, json: values }));
+      }
+    } catch (error) {
+      toast.error(editing ? 'Could not update contact.' : 'Could not add contact.');
+      throw error; // Keep the dialog open so the user can retry.
     }
+    toast.success(editing ? 'Contact updated.' : 'Contact added.');
     onChanged();
     invalidateContacts(queryClient);
   };
@@ -135,9 +139,14 @@ export function MedicalInfoCard({
     if (!removing) {
       return;
     }
-    await parseResponse(
-      $deleteContact({ param: { id: medicalInfo.id.toString(), contactId: removing.id.toString() } })
-    );
+    try {
+      await parseResponse(
+        $deleteContact({ param: { id: medicalInfo.id.toString(), contactId: removing.id.toString() } })
+      );
+    } catch (error) {
+      toast.error('Could not remove contact.');
+      throw error; // Keep the confirm dialog open so the user can retry.
+    }
     onChanged();
     toast.success('Contact removed.');
   };
