@@ -22,6 +22,8 @@ type MaskedInputProps = Omit<ComponentProps<typeof InputGroupInput>, 'onChange' 
   onHide: () => void;
   /** Fired after the value is copied to the clipboard — wire it to a toast for feedback. */
   onCopy?: () => void;
+  /** Fired when the clipboard write fails (insecure context, denied permission) — wire it to a toast. */
+  onCopyError?: () => void;
 };
 
 /**
@@ -29,10 +31,14 @@ type MaskedInputProps = Omit<ComponentProps<typeof InputGroupInput>, 'onChange' 
  * (last 4 characters shown), with Copy and Edit actions. Edit reveals a real editable input; copy
  * writes the unmasked value to the clipboard. Nothing is masked server-side — this is UI only.
  */
-function MaskedInput({ value, onChange, revealed, onReveal, onHide, onCopy, ...props }: MaskedInputProps) {
+function MaskedInput({ value, onChange, revealed, onReveal, onHide, onCopy, onCopyError, ...props }: MaskedInputProps) {
   const copy = async () => {
-    await navigator.clipboard.writeText(value);
-    onCopy?.();
+    try {
+      await navigator.clipboard.writeText(value);
+      onCopy?.();
+    } catch {
+      onCopyError?.();
+    }
   };
 
   return (

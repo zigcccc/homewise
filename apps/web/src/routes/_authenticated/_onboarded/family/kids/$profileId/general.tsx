@@ -218,6 +218,7 @@ function GeneralTab() {
                           id="nationalId"
                           onChange={field.onChange}
                           onCopy={() => toast.success('Copied to clipboard')}
+                          onCopyError={() => toast.error('Could not copy to clipboard')}
                           onHide={() => setRevealed((current) => ({ ...current, nationalId: false }))}
                           onReveal={() => setRevealed((current) => ({ ...current, nationalId: true }))}
                           placeholder="Not set"
@@ -240,6 +241,7 @@ function GeneralTab() {
                           id="taxId"
                           onChange={field.onChange}
                           onCopy={() => toast.success('Copied to clipboard')}
+                          onCopyError={() => toast.error('Could not copy to clipboard')}
                           onHide={() => setRevealed((current) => ({ ...current, taxId: false }))}
                           onReveal={() => setRevealed((current) => ({ ...current, taxId: true }))}
                           placeholder="Not set"
