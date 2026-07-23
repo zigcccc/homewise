@@ -34,7 +34,7 @@ import {
   listContactsQueryOptions,
   petContactTypeLabels,
 } from '@/modules/contacts';
-import { ConfirmDeleteDialog } from '@/modules/shared';
+import { ConfirmDeleteDialog, UnsavedChangesDialog } from '@/modules/shared';
 
 const $patchInfo = client['medical-info'][':id'].$patch;
 const $postContact = client['medical-info'][':id'].contacts.$post;
@@ -172,11 +172,13 @@ export function MedicalInfoCard({
                 </FormItem>
               )}
             />
-            <div className="flex justify-end">
-              <Button disabled={!form.formState.isDirty} loading={isSavingInfo} type="submit">
-                Save changes
-              </Button>
-            </div>
+            {form.formState.isDirty && (
+              <div className="flex justify-end">
+                <Button loading={isSavingInfo} type="submit">
+                  Save changes
+                </Button>
+              </div>
+            )}
           </form>
         </Form>
 
@@ -299,6 +301,8 @@ export function MedicalInfoCard({
         open={Boolean(removing)}
         title="Remove contact"
       />
+
+      <UnsavedChangesDialog when={form.formState.isDirty} />
     </Card>
   );
 }

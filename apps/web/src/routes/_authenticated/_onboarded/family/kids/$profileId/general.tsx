@@ -32,7 +32,7 @@ import {
 import { client, parseResponse } from '@/api/client';
 import { getChildProfileQueryOptions, invalidateChildProfile } from '@/modules/child-profiles';
 import { MedicalInfoCard } from '@/modules/medical';
-import { DateField, sexLabels } from '@/modules/shared';
+import { DateField, sexLabels, UnsavedChangesDialog } from '@/modules/shared';
 
 import { ProfilePictureField } from './-components/profile-picture-field';
 
@@ -255,11 +255,13 @@ function GeneralTab() {
                 />
               </div>
 
-              <div className="flex justify-end">
-                <Button disabled={!form.formState.isDirty} loading={isPending} type="submit">
-                  Save changes
-                </Button>
-              </div>
+              {form.formState.isDirty && (
+                <div className="flex justify-end">
+                  <Button loading={isPending} type="submit">
+                    Save changes
+                  </Button>
+                </div>
+              )}
             </form>
           </CardContent>
         </Card>
@@ -270,6 +272,8 @@ function GeneralTab() {
         medicalInfo={profile.medicalInfo}
         onChanged={() => invalidateChildProfile(queryClient, profile.id)}
       />
+
+      <UnsavedChangesDialog when={form.formState.isDirty} />
     </div>
   );
 }

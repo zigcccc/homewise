@@ -37,7 +37,7 @@ import {
 
 import { client, parseResponse } from '@/api/client';
 import { getSessionQueryOptions } from '@/auth/queries';
-import { Actionbar } from '@/modules/shared';
+import { Actionbar, UnsavedChangesDialog } from '@/modules/shared';
 
 const userProfileFormModel = z.object({
   id: z.string(),
@@ -169,11 +169,13 @@ function UserProfileRoute() {
                 )}
               />
             </CardContent>
-            <CardFooter className="flex flex-row justify-end gap-3">
-              <Button disabled={!isDirty} loading={isSubmitting} onClick={handleSubmit(onSubmitValid)}>
-                <SaveIcon /> Save changes
-              </Button>
-            </CardFooter>
+            {isDirty && (
+              <CardFooter className="flex flex-row justify-end gap-3">
+                <Button loading={isSubmitting} onClick={handleSubmit(onSubmitValid)}>
+                  <SaveIcon /> Save changes
+                </Button>
+              </CardFooter>
+            )}
           </Card>
           <Card className="lg:max-w-1/2">
             <CardHeader>
@@ -246,6 +248,8 @@ function UserProfileRoute() {
             </CardFooter>
           </Card>
         </Form>
+
+        <UnsavedChangesDialog when={isDirty} />
       </main>
     </>
   );
