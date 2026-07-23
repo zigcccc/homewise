@@ -31,7 +31,7 @@ import {
 import { client, parseResponse } from '@/api/client';
 import { MedicalInfoCard } from '@/modules/medical';
 import { getPetProfileQueryOptions, invalidatePetProfile, petTypeLabels } from '@/modules/pet-profiles';
-import { DateField, sexLabels } from '@/modules/shared';
+import { DateField, sexLabels, UnsavedChangesDialog } from '@/modules/shared';
 
 import { ProfilePictureField } from './-components/profile-picture-field';
 
@@ -254,11 +254,13 @@ function GeneralTab() {
                 />
               </div>
 
-              <div className="flex justify-end">
-                <Button disabled={!form.formState.isDirty} loading={isPending} type="submit">
-                  Save changes
-                </Button>
-              </div>
+              {form.formState.isDirty && (
+                <div className="flex justify-end">
+                  <Button loading={isPending} type="submit">
+                    Save changes
+                  </Button>
+                </div>
+              )}
             </form>
           </CardContent>
         </Card>
@@ -270,6 +272,8 @@ function GeneralTab() {
         onChanged={() => invalidatePetProfile(queryClient, profile.id)}
         petLabels
       />
+
+      <UnsavedChangesDialog when={form.formState.isDirty} />
     </div>
   );
 }
