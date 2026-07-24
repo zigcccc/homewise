@@ -19,7 +19,11 @@ export function isAllowedOrigin(origin: string | null | undefined): origin is st
 
 export const corsConfig = cors({
   origin: (origin) => (isAllowedOrigin(origin) ? origin : null),
-  allowHeaders: ['Content-Type', 'Authorization'],
+  // `x-e2e-bypass` is added by the e2e run (its value matches a custom Vercel
+  // Firewall rule that Bypasses Bot Protection on the web preview) and rides along
+  // on the cross-origin API calls too, so allow it through CORS preflight. Harmless
+  // elsewhere — nothing else sends it.
+  allowHeaders: ['Content-Type', 'Authorization', 'x-e2e-bypass'],
   allowMethods: ['POST', 'GET', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   exposeHeaders: ['Content-Length', 'Access-Control-Allow-Credentials'],
   maxAge: 600,

@@ -6,29 +6,23 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 
 import * as schema from './schema';
+import { SEED_CHILD_MEMBER, SEED_HOUSEHOLD_NAME, SEED_USER } from './seed-fixtures';
 
 /**
- * Idempotent seed for preview databases.
+ * Idempotent seed for preview and local test databases.
  *
- * Each Vercel preview deploy runs against its own fresh Neon branch, so this
- * script establishes a known, deterministic starting state (a verified user
- * that can log in, one household, a couple of members). It is safe to re-run:
- * every step checks for existing data first, and each fixture is created inside
- * a transaction, so redeploys never duplicate rows, leave partial state, or
- * error out. This is also the fixture future e2e tests will rely on.
+ * Each Vercel preview deploy runs against its own fresh Neon branch, and the
+ * e2e suite runs against a dedicated local test DB, so this script establishes a
+ * known, deterministic starting state (a verified user that can log in, one
+ * household, a couple of members). It is safe to re-run: every step checks for
+ * existing data first, and each fixture is created inside a transaction, so
+ * reruns never duplicate rows, leave partial state, or error out. The fixture
+ * values live in `seed-fixtures.ts` and are shared with the e2e tests.
  *
  * Run via `pnpm db:seed`. DATABASE_URL is provided by the caller (the guarded
- * preview build points it at the unpooled/direct Neon endpoint).
+ * preview build points it at the unpooled/direct Neon endpoint; the e2e local
+ * setup points it at the test Postgres).
  */
-
-const SEED_USER = {
-  email: 'preview@home-wise.app',
-  name: 'Preview User',
-  // Deterministic dev credential — previews are throwaway, isolated branches.
-  password: 'PreviewPassword123!',
-} as const;
-
-const SEED_HOUSEHOLD_NAME = 'Preview Household';
 
 async function seed() {
   const connectionString = process.env.DATABASE_URL;
@@ -40,22 +34,27 @@ async function seed() {
   const db = drizzle(pool, { schema, casing: 'snake_case' });
 
   try {
-    // 0. Optional reset (previews only). Neon branches previews off production,
-    // so the branch starts as a copy-on-write clone of prod data. When SEED_RESET
-    // is set (the guarded preview build sets it), wipe all data first so the
-    // preview DB is empty-then-seeded and deterministic. Allowed ONLY in Vercel's
-    // preview environment — an unset/other VERCEL_ENV is rejected so a prod (or
-    // local) DATABASE_URL can never be truncated. The schema and drizzle migration
-    // journal are left intact (the journal lives in the `drizzle` schema).
+    // 0. Optional reset. Wipe all data first so the DB is empty-then-seeded and
+    // deterministic. Two callers set SEED_RESET:
+    //   - the guarded Vercel preview build (Neon branches previews off prod, so
+    //     the branch starts as a copy-on-write clone of prod data), and
+    //   - the local e2e setup, which runs against a dedicated throwaway test DB.
+    // The schema and drizzle migration journal are left intact (the journal lives
+    // in the `drizzle` schema).
     if (process.env.SEED_RESET === 'true') {
-      // Destructive. Require BOTH that we're actually executing inside a Vercel
-      // build (VERCEL=1, which a local shell never has) AND VERCEL_ENV=preview.
-      // VERCEL_ENV alone is caller-controlled and not tied to which DB
-      // DATABASE_URL points at; demanding VERCEL=1 blocks the realistic footgun
-      // of running SEED_RESET locally against a prod/staging URL.
-      if (process.env.VERCEL !== '1' || process.env.VERCEL_ENV !== 'preview') {
+      // Destructive — allowed only where the target DB is guaranteed disposable:
+      //   (a) a Vercel preview build: BOTH VERCEL=1 (a local shell never has it)
+      //       AND VERCEL_ENV=preview. VERCEL_ENV alone is caller-controlled and
+      //       not tied to which DB DATABASE_URL points at, so demanding VERCEL=1
+      //       blocks running SEED_RESET locally against a prod/staging URL; or
+      //   (b) NODE_ENV=test: the e2e suite's isolated local test Postgres.
+      // Anything else (dev/prod) is rejected so a real DATABASE_URL can never be
+      // truncated.
+      const isPreviewBuild = process.env.VERCEL === '1' && process.env.VERCEL_ENV === 'preview';
+      const isTestEnv = process.env.NODE_ENV === 'test';
+      if (!isPreviewBuild && !isTestEnv) {
         throw new Error(
-          'refusing to reset: SEED_RESET requires a Vercel preview build (VERCEL=1 and VERCEL_ENV=preview)'
+          'refusing to reset: SEED_RESET requires a Vercel preview build (VERCEL=1 and VERCEL_ENV=preview) or NODE_ENV=test'
         );
       }
       console.log('▸ SEED_RESET=true — truncating all public tables (empty DB before seed)');
@@ -129,7 +128,12 @@ async function seed() {
 
         await tx.insert(schema.householdMember).values([
           { householdId: created.id, userId: ownerId, name: SEED_USER.name, role: 'adult' },
-          { householdId: created.id, name: 'Robin', nickname: 'Robbie', role: 'child' },
+          {
+            householdId: created.id,
+            name: SEED_CHILD_MEMBER.name,
+            nickname: SEED_CHILD_MEMBER.nickname,
+            role: 'child',
+          },
         ]);
 
         return created;

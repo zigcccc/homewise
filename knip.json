@@ -5,6 +5,9 @@
       "entry": ["drizzle.config.ts", "src/db/schema/**/*.ts"],
       "drizzle": false
     },
+    "apps/e2e": {
+      "entry": ["tests/**/*.ts"]
+    },
     "packages/ui": {
       "includeEntryExports": true,
       "ignore": ["src/core/**"]

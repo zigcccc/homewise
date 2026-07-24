@@ -42,13 +42,16 @@ pnpm db:studio                  # Open Drizzle Studio GUI
 # Email previews
 cd apps/server && pnpm emails:preview   # Preview React Email templates on :4000
 
-# Testing (web only)
-pnpm test                       # Run Vitest once
-pnpm test:ui                    # Interactive Vitest UI with coverage
-pnpm test:coverage              # Coverage report
+# E2E testing (Playwright — apps/e2e)
+pnpm test:e2e                              # Full suite. Local: boots server + web + an isolated test Postgres (:8766), migrates + reset-seeds it, removes it after.
+pnpm --filter @homewise/e2e test:ui        # Interactive Playwright UI (watch/debug)
+pnpm --filter @homewise/e2e test:report    # Open the last HTML report
+pnpm --filter @homewise/e2e db:test:up     # Start only the test Postgres (:8766)
+pnpm --filter @homewise/e2e db:test:down   # Remove the test Postgres
+# No unit-test runner is configured yet — Playwright E2E is the only test layer.
 ```
 
-Requires Node.js >=24 and Docker (for local Postgres on port 8765).
+Requires Node.js >=24 and Docker (local dev Postgres on 8765; the E2E suite spins up its own throwaway Postgres on 8766).
 
 ## Architecture
 
@@ -135,6 +138,20 @@ Drizzle ORM + PostgreSQL. Schema files are in `apps/server/src/db/schema/`. Afte
 
 Better Auth manages its own tables (`user`, `session`, `account`). Domain tables live in separate schema files (e.g., `household.ts`).
 
+### End-to-end testing (`apps/e2e`)
+
+Playwright drives the **real** app (web + server) end-to-end. Tests live in the dedicated `@homewise/e2e` workspace — **not** inside `apps/web`. E2E is the only test layer right now (no unit runner).
+
+- **Structure**: `tests/*.spec.ts` are the specs; `tests/auth.setup.ts` is a `setup` project that logs the seed user in once and saves `storageState`, so specs start already authenticated (the `chromium` project depends on it). `pages/*.page.ts` are **Page Object Models** — selectors and actions live there so specs read as intent; `support/` holds config + `global-setup`/`global-teardown`.
+- **Fixtures are one source of truth**: the seeded user/household/member come from `apps/server/src/db/seed-fixtures.ts`, imported by both the seed and the tests via `@homewise/server/seed-fixtures`. Never hard-code seeded creds/names in a spec.
+- **Selectors**: prefer role/label queries; add a `data-testid` only when semantics aren't enough. Make CRUD specs **self-contained** — create a uniquely-named row (e.g. `` `Thing ${Date.now()}` ``), assert, then remove it — so they're idempotent across reruns and never mutate the shared seed fixture.
+- **Local run** (`pnpm test:e2e`): `globalSetup` stands up an isolated test Postgres (docker `postgres-test`, **:8766** — the dev DB on :8765 is never touched), migrates + reset-seeds it under `NODE_ENV=test`, and `webServer` boots server + web; `globalTeardown` removes the container after. Needs Docker.
+- **CI**: an `e2e` job in `.github/workflows/preview.yml` (`needs: deploy-web`) runs the suite against the **deployed** PR preview — it neither boots nor seeds anything (the Neon preview branch is already seeded). It keys off `PLAYWRIGHT_BASE_URL`; when that's set, the config skips `globalSetup`/`webServer`.
+- **Not a turbo task** — run it directly (`pnpm test:e2e` = `pnpm --filter @homewise/e2e test`). Turbo adds nothing here (uncacheable, single package) and its strict env mode would drop `PLAYWRIGHT_BASE_URL`. Only `check-types` for the package goes through turbo.
+- **When a deliberate change makes a spec fail**, update the spec (or its Page Object) to the new intended behavior — never delete it or `.skip` it just to go green. A red E2E on a PR is a required signal, not noise. Locally, `test:report` opens the HTML report; on CI the report + traces upload as an artifact on failure.
+
+See the **`new-feature-module`** skill for how a new feature's E2E flow gets added.
+
 ## Key Conventions
 
 - **Linting & formatting** are handled by [Biome](https://biomejs.dev/) via the root `biome.json` (single config, no per-package overrides). **Drive the diagnostic count to zero, not just the exit code** — warnings count as much as errors. For rules marked FIXABLE-but-unsafe (e.g. `nursery/useSortedClasses`), run `biome check --write --unsafe <files>` scoped to the files you touched, then diff the result. Tailwind class reordering is behaviourally inert because precedence comes from the generated stylesheet order, not the class attribute order.
@@ -148,6 +165,8 @@ Better Auth manages its own tables (`user`, `session`, `account`). Domain tables
 - **Destructive actions always confirm.** Use `ConfirmDeleteDialog` from `@/modules/shared`; name the specific thing being deleted and mention the softer alternative (archive) when one exists.
 - **Dependencies use `catalog:`** — add the version to `pnpm-workspace.yaml`'s catalog and reference `catalog:` from each `package.json`. Never pin a raw version in a workspace package.
 - **A `TooltipTrigger asChild` around an enabled `DropdownMenuItem` swallows its `onClick`.** The household-members table gets away with the pattern only because its items are disabled whenever the tooltip content renders. For an always-enabled menu item, drop the tooltip.
-- **Verify against the running app, not just the type-checker.** Boot the server and exercise the endpoints (including the negative cases: wrong role, cross-household id, duplicate, malformed input), then drive the actual UI. Type-checking passing is not evidence a feature works — a swallowed `onClick` and a US-vs-European date parse both type-check fine. Clean up any test data you create.
+- **Verify against the running app, not just the type-checker.** Boot the server and exercise the endpoints (including the negative cases: wrong role, cross-household id, duplicate, malformed input). Cover UI behavior with an **E2E flow**, not by hand-driving the browser — don't manually verify in the browser unless the user explicitly asks (it's slow; the tests are fast and repeatable). Type-checking passing is not evidence a feature works — a swallowed `onClick` and a US-vs-European date parse both type-check fine. Clean up any test data you create.
 - **Before finishing, run all three**: `pnpm check-types`, `pnpm lint` (zero diagnostics), and `pnpm knip`. Each catches a category the others miss — knip is the only one that flags a dependency declared in a `package.json` that nothing in that package actually imports.
+- **Every user-facing feature ships with an E2E flow.** When you add or materially change a feature, add or extend a Playwright spec in `apps/e2e` that drives its happy path through the real UI (see the E2E testing section and the `new-feature-module` skill). The feature isn't done until it has one.
+- **Run the full E2E suite as the final gate — once, not continuously.** After `check-types`/`lint`/`knip` are green, run `pnpm test:e2e` as the last step before telling the user you're done. The E2E flow **is** how you confirm the feature works and nothing regressed — don't hand-drive the browser to verify (it's slow and error-prone; that's exactly what these tests replace). Do **not** run the suite repeatedly while developing — it's slow and needs Docker; it's a final verification, not an inner-loop tool. Report the result honestly: if it fails, say so with the output rather than declaring done.
 - **Always use react-hook-form for forms and form fields** — never track field values with `useState`. Use `useForm` with `zodResolver(<server model>)`, explicit `defaultValues`, and the shared `Form`/`FormField`/`FormItem`/`FormControl`/`FormLabel`/`FormMessage` components from `@homewise/ui/core/form`. Reuse the exported Zod model that matches the endpoint (e.g. `patchHouseholdMemberModel`) as the resolver so validation and the request payload stay aligned. This applies even to single-field dialogs.

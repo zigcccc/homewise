@@ -11,6 +11,7 @@
     "format": "biome check --write .",
     "knip": "knip",
     "check-types": "turbo run check-types",
+    "test:e2e": "pnpm --filter @homewise/e2e test",
     "db:migrations:create": "turbo run db:migrations:create",
     "db:migrations:apply": "turbo run db:migrations:apply",
     "db:studio": "turbo run db:studio",

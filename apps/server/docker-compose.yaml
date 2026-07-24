@@ -9,3 +9,27 @@ services:
       - POSTGRES_PASSWORD=password
       - POSTGRES_USER=user
       - POSTGRES_DB=homewise_db
+
+  # Isolated database for the e2e suite (@homewise/e2e). Kept behind the `test`
+  # profile so `docker compose up` (dev / `pnpm db:up`) never starts it — only the
+  # e2e scripts do, via `docker compose --profile test up`. On its own port so an
+  # e2e run never touches the dev DB on 8765.
+  postgres-test:
+    image: postgres:17.6
+    restart: unless-stopped
+    container_name: homewise-test-db
+    profiles:
+      - test
+    ports:
+      - "8766:5432"
+    environment:
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_USER=user
+      - POSTGRES_DB=homewise_test
+    # Lets `docker compose up --wait` (used by the e2e global-setup) block until
+    # Postgres actually accepts connections, not just until the container starts.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d homewise_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
