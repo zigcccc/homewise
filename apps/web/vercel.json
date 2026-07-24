@@ -4,6 +4,7 @@
       "main": false
     }
   },
+  "buildCommand": "pnpm run build:vercel",
   "rewrites": [
     {
       "source": "/:path*",

@@ -3,7 +3,7 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { oneTimeToken, openAPI } from 'better-auth/plugins';
 import { render } from 'react-email';
 
-import { allowedOrigins } from '@/config/cors';
+import { allowedOrigins, isAllowedOrigin } from '@/config/cors';
 import { env } from '@/config/env';
 import { db, schema } from '@/db';
 import { VerifyEmail } from '@/emails/VerifyEmail';
@@ -18,7 +18,10 @@ export const auth = betterAuth({
     env.NODE_ENV !== 'production'
       ? [openAPI(), oneTimeToken({ expiresIn: 60 * 24 })]
       : [oneTimeToken({ expiresIn: 60 * 24 })],
-  trustedOrigins: allowedOrigins,
+  trustedOrigins: (request) => {
+    const origin = request?.headers.get('origin');
+    return isAllowedOrigin(origin) ? [...allowedOrigins, origin] : [...allowedOrigins];
+  },
   secret: env.BETTER_AUTH_SECRET,
   user: {
     additionalFields: {

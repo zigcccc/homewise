@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build && tsc --noEmit",
+    "build:vercel": "bash ./scripts/vercel-build.sh",
     "start": "vite preview",
     "check-types": "tsc --noEmit"
   },
