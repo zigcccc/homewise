@@ -177,10 +177,13 @@ jobs:
       # Set => playwright.config.ts skips the local webServer/DB and points the
       # suite at this PR's deployed web preview.
       PLAYWRIGHT_BASE_URL: ${{ needs.deploy-web.outputs.web_url }}
-      # Lets the headless browser through the preview's Vercel Security Checkpoint
-      # (Protection Bypass for Automation). Generated in the homewise-web project's
-      # Deployment Protection settings and stored as a repo secret.
-      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+      # Lets the headless browser past the preview's Bot Protection (Security
+      # Checkpoint). A custom Vercel Firewall rule on homewise-web matches this
+      # secret in the `x-e2e-bypass` request header and Bypasses the bot challenge;
+      # playwright.config.ts sends the header. Stored as a repo secret; the same
+      # value must be set in that Firewall rule. (This is NOT the reserved
+      # VERCEL_AUTOMATION_BYPASS_SECRET — that one needs Deployment Protection on.)
+      E2E_BYPASS_SECRET: ${{ secrets.E2E_BYPASS_SECRET }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
