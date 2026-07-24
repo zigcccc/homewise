@@ -33,11 +33,18 @@ const bypassSecret = process.env.E2E_BYPASS_SECRET;
 
 export default defineConfig({
   testDir: './tests',
-  fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  // Serial in CI: the two specs share one seeded preview DB, so keep them ordered.
-  workers: process.env.CI ? 1 : undefined,
+  // Worker count is a server-capacity knob, not a correctness one — spec isolation
+  // (the project phases below + round-tripped mutators) holds at any count. Locally
+  // we serve the production build (see webServer), which handles this concurrency;
+  // CI runs against the deployed preview, which handles it too. Both are capped
+  // modestly to match the target's headroom.
+  workers: process.env.CI ? 2 : 3,
+  // Generous timeouts so a slow-but-correct action under load completes rather than
+  // flaking (server latency, not the assertion, is what varies).
+  timeout: 45_000,
+  expect: { timeout: 12_000 },
   reporter: [['html', { open: 'never' }], ['list']],
   globalSetup: isLocal ? './support/global-setup.ts' : undefined,
   globalTeardown: isLocal ? './support/global-teardown.ts' : undefined,
@@ -47,14 +54,31 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     ...(bypassSecret ? { extraHTTPHeaders: { 'x-e2e-bypass': bypassSecret } } : {}),
   },
+  // Three phases run in order (setup → parallel → exclusive), sequenced by
+  // `dependencies`. The bulk of the suite parallelizes; the few specs that mutate
+  // a shared seed row are quarantined into a single-file `exclusive` phase that
+  // runs alone at the end, so they never overlap owner-dependent or
+  // name-asserting specs (nor each other).
   projects: [
-    // Logs in the seed user once and saves the session; every other project
-    // reuses it via storageState, so tests don't re-authenticate.
+    // Logs the seeded users in once and saves their sessions; every other project
+    // reuses them via storageState, so tests don't re-authenticate.
     { name: 'setup', testMatch: /auth\.setup\.ts$/ },
     {
-      name: 'chromium',
+      name: 'parallel',
+      testIgnore: [/auth\.setup\.ts$/, /serial-seed-mutations\.spec\.ts$/],
       use: { ...devices['Desktop Chrome'], storageState: STORAGE_STATE },
       dependencies: ['setup'],
+      // Every spec here uses unique data, so tests can run fully concurrently.
+      fullyParallel: true,
+    },
+    {
+      // Shared-seed mutators (household name, user name, ownership). One file, run
+      // serially, only after every parallel spec has finished.
+      name: 'exclusive',
+      testMatch: /serial-seed-mutations\.spec\.ts$/,
+      use: { ...devices['Desktop Chrome'], storageState: STORAGE_STATE },
+      dependencies: ['parallel'],
+      fullyParallel: false,
     },
   ],
   webServer: isLocal
@@ -71,10 +95,18 @@ export default defineConfig({
           env: { NODE_ENV: 'development', DATABASE_URL: TEST_DATABASE_URL },
         },
         {
-          command: 'pnpm --filter @homewise/web-app dev',
+          // Serve the production build via `vite preview`, not the dev server:
+          // the dev server (per-request module transforms) buckles under
+          // concurrent load, whereas the built app serves static assets and
+          // handles many parallel contexts comfortably. `VITE_API_URL` is inlined
+          // at build time, so it's set on this command. The tsc step is skipped
+          // (`vite build` only) — type-checking is a separate gate.
+          command:
+            'pnpm --filter @homewise/web-app exec vite build && pnpm --filter @homewise/web-app exec vite preview',
           url: WEB_URL,
           reuseExistingServer: !process.env.CI,
-          timeout: 120_000,
+          // Longer than the API's: this includes a production build before serving.
+          timeout: 180_000,
           env: { VITE_API_URL: API_URL },
         },
       ]

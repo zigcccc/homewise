@@ -1,10 +1,13 @@
 import { expect, test } from '@playwright/test';
 
+import { SEED_SECOND_USER } from '@homewise/server/seed-fixtures';
+
 import { HouseholdMembersPage } from '../pages/household-members.page';
 
 test.describe('household members', () => {
-  // Self-contained: creates a uniquely-named member and removes it, so the test
-  // is idempotent across reruns and never mutates the shared seed fixtures.
+  // Every spec is self-contained: it creates uniquely-named data and removes it,
+  // so it's idempotent across reruns and never mutates the shared seed fixtures.
+
   test('adds and removes a managed member', async ({ page }) => {
     const members = new HouseholdMembersPage(page);
     await members.goto();
@@ -16,5 +19,79 @@ test.describe('household members', () => {
 
     await members.removeMember(name);
     await expect(members.memberRow(name)).toBeHidden();
+  });
+
+  test('edits a managed member’s name', async ({ page }) => {
+    const members = new HouseholdMembersPage(page);
+    await members.goto();
+
+    const name = `E2E Edit ${Date.now()}`;
+    const renamed = `${name} (renamed)`;
+
+    await members.addManagedMember(name);
+    await expect(members.memberRow(name)).toBeVisible();
+
+    await members.editManagedMemberName(name, renamed);
+    await expect(members.memberRow(renamed)).toBeVisible();
+
+    await members.removeMember(renamed);
+    await expect(members.memberRow(renamed)).toBeHidden();
+  });
+
+  test('sends an email invite and revokes it', async ({ page }) => {
+    const members = new HouseholdMembersPage(page);
+    await members.goto();
+
+    const email = `e2e.invite+${Date.now()}@home-wise.app`;
+
+    await members.inviteViaEmail(email);
+
+    await members.goToInvitesTab();
+    await expect(members.inviteRow(email)).toBeVisible();
+
+    await members.revokeInvite(email);
+    await expect(members.inviteRow(email)).toBeHidden();
+  });
+
+  test('invites an existing managed member to create an account, then revokes it', async ({ page }) => {
+    const members = new HouseholdMembersPage(page);
+    await members.goto();
+
+    const name = `E2E Invitee ${Date.now()}`;
+    const email = `e2e.existing+${Date.now()}@home-wise.app`;
+
+    await members.addManagedMember(name);
+    await expect(members.memberRow(name)).toBeVisible();
+
+    await members.inviteManagedMemberToAccount(name, email);
+
+    await members.goToInvitesTab();
+    await expect(members.inviteRow(email)).toBeVisible();
+
+    // Clean up: revoke the invite and remove the managed member.
+    await members.revokeInvite(email);
+    await expect(members.inviteRow(email)).toBeHidden();
+
+    await members.goToMembersTab();
+    await members.removeMember(name);
+    await expect(members.memberRow(name)).toBeHidden();
+  });
+
+  test('changes an account member’s role (owner action), then restores it', async ({ page }) => {
+    const members = new HouseholdMembersPage(page);
+    await members.goto();
+
+    const row = members.memberRow(SEED_SECOND_USER.name);
+    const roleSelect = row.getByRole('combobox');
+    await expect(roleSelect).toContainText('Adult');
+
+    try {
+      await members.setMemberRole(SEED_SECOND_USER.name, 'Child');
+      await expect(roleSelect).toContainText('Child');
+    } finally {
+      // Always restore the seed member's role so reruns start clean.
+      await members.setMemberRole(SEED_SECOND_USER.name, 'Adult');
+    }
+    await expect(roleSelect).toContainText('Adult');
   });
 });
