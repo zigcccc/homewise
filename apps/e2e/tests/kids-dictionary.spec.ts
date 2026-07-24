@@ -5,6 +5,13 @@ import { createChildProfile, removeManagedMember } from '../support/profiles';
 
 test.describe('child dictionary', () => {
   test('adds, edits, searches, archives, restores, and deletes words', async ({ page }) => {
+    // The longest journey in the suite: profile setup + ~15 dictionary round-trips +
+    // member teardown. It fits the default budget locally (production build served by
+    // vite preview), but against the deployed Vercel+Neon preview each op is slower and
+    // the total runs past 45s. Triple the budget for this one spec rather than split it
+    // (splitting would re-run the expensive profile setup per part and cost more).
+    test.slow();
+
     const kidName = `E2E Dict Kid ${Date.now()}`;
     await createChildProfile(page, kidName);
 
