@@ -17,4 +17,8 @@ else
   echo "▸ ${VERCEL_ENV:-non-preview} build: using configured VITE_API_URL"
 fi
 
-pnpm build
+# Build through Turbo (not `pnpm build`) so workspace deps are built first:
+# `build` dependsOn `^build`, which compiles the server and emits the .d.ts that
+# the web's type-check consumes via the RPC client. Turbo lists VITE_API_URL in
+# build.env, so the value above flows through and busts the cache per branch.
+pnpm turbo run build --filter @homewise/web-app

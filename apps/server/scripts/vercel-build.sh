@@ -19,4 +19,7 @@ else
   echo "▸ ${VERCEL_ENV:-non-preview} build: skipping migrate/seed (owned by CI)"
 fi
 
-pnpm build
+# Build through Turbo so it owns the build pipeline (dependency ordering + caching)
+# consistently across both apps — even though the server currently has no workspace
+# build deps of its own.
+pnpm turbo run build --filter @homewise/server
