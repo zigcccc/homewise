@@ -1,14 +1,18 @@
 name: CI
 
+# Quality gate for pull requests. Previews themselves are built natively by
+# Vercel; production deployment lives in deploy-production.yml.
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
+# Read-only: this workflow only checks out and lints/type-checks the code.
+permissions:
+  contents: read
 
 jobs:
   verify:
@@ -19,6 +23,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6

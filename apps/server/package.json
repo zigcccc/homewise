@@ -39,6 +39,8 @@
     "db:migrations:apply": "drizzle-kit migrate",
     "dev": "tsx watch ./src/index.ts",
     "build": "tsc && tsc-alias -f",
+    "build:vercel": "bash ./scripts/vercel-build.sh",
+    "db:seed": "tsx ./src/db/seed.ts",
     "check-types": "tsc --noEmit",
     "emails:preview": "email dev --port 4000"
   },
