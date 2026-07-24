@@ -10,7 +10,12 @@
 #   - Production: VITE_API_URL is the dashboard value (e.g. https://api.home-wise.app).
 set -euo pipefail
 
-echo "▸ ${VERCEL_ENV:-non-preview} build: VITE_API_URL=${VITE_API_URL:-<unset>}"
+# Hard-fail if the API URL is missing: a preview passes it via --build-env and
+# production sets it in the dashboard, so an unset value here means the app would
+# ship pointing at nothing. Better to fail the build than deploy a broken preview.
+: "${VITE_API_URL:?VITE_API_URL must be set for Vercel builds}"
+
+echo "▸ ${VERCEL_ENV:-non-preview} build: VITE_API_URL=${VITE_API_URL}"
 
 # Build through Turbo (not `pnpm build`) so workspace deps are built first:
 # `build` dependsOn `^build`, which compiles the server and emits the .d.ts that

@@ -23,9 +23,10 @@ concurrency:
   group: preview-pr-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
+# Least privilege: only the `comment` job writes PR data (it holds its own
+# pull-requests: write below). Deploy/cleanup jobs get read-only.
 permissions:
   contents: read
-  pull-requests: write
 
 env:
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -71,7 +72,10 @@ jobs:
           # the build as "redundant" when a deployment for the same commit SHA
           # already exists (e.g. a reopened PR, a re-run, or a rebase onto the
           # same tree), which reads as a failed job here.
-          url="$(vercel deploy --force --token="$VERCEL_TOKEN")"
+          # Inject the exact paired web origin so the server's CORS/auth trusts
+          # only this PR's web preview (not any *.vercel.app). Runtime env (--env,
+          # not --build-env) because CORS is evaluated per request.
+          url="$(vercel deploy --force --env PREVIEW_WEB_ORIGIN="https://homewise-web-pr-${PR}.vercel.app" --token="$VERCEL_TOKEN")"
           alias="homewise-api-pr-${PR}.vercel.app"
           vercel alias set "$url" "$alias" --token="$VERCEL_TOKEN"
           echo "api_url=https://${alias}" >> "$GITHUB_OUTPUT"
@@ -120,6 +124,8 @@ jobs:
     if: github.event.action != 'closed'
     needs: deploy-web
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
     steps:
       - name: Upsert sticky PR comment
         uses: actions/github-script@v7

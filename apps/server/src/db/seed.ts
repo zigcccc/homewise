@@ -48,8 +48,15 @@ async function seed() {
     // local) DATABASE_URL can never be truncated. The schema and drizzle migration
     // journal are left intact (the journal lives in the `drizzle` schema).
     if (process.env.SEED_RESET === 'true') {
-      if (process.env.VERCEL_ENV !== 'preview') {
-        throw new Error('refusing to reset: SEED_RESET is allowed only in Vercel preview');
+      // Destructive. Require BOTH that we're actually executing inside a Vercel
+      // build (VERCEL=1, which a local shell never has) AND VERCEL_ENV=preview.
+      // VERCEL_ENV alone is caller-controlled and not tied to which DB
+      // DATABASE_URL points at; demanding VERCEL=1 blocks the realistic footgun
+      // of running SEED_RESET locally against a prod/staging URL.
+      if (process.env.VERCEL !== '1' || process.env.VERCEL_ENV !== 'preview') {
+        throw new Error(
+          'refusing to reset: SEED_RESET requires a Vercel preview build (VERCEL=1 and VERCEL_ENV=preview)'
+        );
       }
       console.log('▸ SEED_RESET=true — truncating all public tables (empty DB before seed)');
       await pool.query(`
