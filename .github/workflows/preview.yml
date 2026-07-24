@@ -134,7 +134,11 @@ jobs:
         with:
           script: |
             const marker = '<!-- homewise-preview -->';
-            const body = `${marker}\n### 🔎 Preview deployment\n\nYour changes are live at ${process.env.WEB_URL}\n\n_Updated for commit ${context.sha.slice(0, 7)}._`;
+            // Use the PR head SHA, not context.sha: on a pull_request event
+            // context.sha is the ephemeral merge commit (refs/pull/N/merge),
+            // which never matches the commit the author actually pushed.
+            const headSha = context.payload.pull_request.head.sha;
+            const body = `${marker}\n### 🔎 Preview deployment\n\nYour changes are live at ${process.env.WEB_URL}\n\n_Updated for commit ${headSha.slice(0, 7)}._`;
             const { owner, repo } = context.repo;
             const issue_number = context.payload.pull_request.number;
             const { data: comments } = await github.rest.issues.listComments({ owner, repo, issue_number });
