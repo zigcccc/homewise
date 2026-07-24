@@ -94,13 +94,31 @@ and point at the action that fixes it.
 **9. Sidebar** — add a `SidebarGroup` in `routes/_authenticated/-components/AppSidebar.tsx`, replacing
 the stubbed `<Link to="/">` placeholder if one exists.
 
-**10. Verify in the browser**
+**10. Static checks**
 
-`pnpm check-types`, then `pnpm lint` to **zero diagnostics**. Then drive the real UI: create, edit,
-search, sort, archive (when supported), delete, and the validation failure path. Type-checking green is not evidence
-the feature works. Clean up test data; never touch rows the user created.
+`pnpm check-types`, then `pnpm lint` to **zero diagnostics**. Type-checking green is not evidence the
+feature works — that's what the E2E flow below is for.
+
+**11. E2E flow** — `apps/e2e/`
+
+This is how the feature is verified — **do not hand-drive the browser** (it's slow and error-prone;
+that's what these tests replace). Add a Playwright spec covering the feature through the **real UI**:
+create → appears in list → edit → search/sort → archive (when supported) → delete, plus the validation
+failure path. Put selectors/actions in a Page Object (`apps/e2e/pages/<feature>.page.ts`) and the
+assertions in `apps/e2e/tests/<feature>.spec.ts`, mirroring `household-members.page.ts` /
+`household-members.spec.ts`. Keep it self-contained — create a uniquely-named row
+(`` `... ${Date.now()}` ``) and remove it — so it's idempotent and never mutates the shared seed
+fixture. Reuse seeded data from `@homewise/server/seed-fixtures`; never hard-code creds/names.
+See CLAUDE.md → End-to-end testing. Every feature ships with one.
+
+**12. Final gate** — run the full suite
+
+`pnpm test:e2e` (needs Docker; boots server + web against an isolated test DB on :8766). It must pass
+before you report the web work done. Run it **once** here as the final check — not while iterating.
 
 ## Working agreement
 
 Never run `git commit`. Stop at each checkpoint — after the server module, after the web UI — report
-what's done and what you verified, and ask the user to commit before continuing.
+what's done and what you verified, and ask the user to commit before continuing. The full E2E suite
+(`pnpm test:e2e`) is the final gate before the "web done" report — run it once at the end, not
+continuously.
