@@ -1,0 +1,22 @@
+{
+  "name": "@homewise/e2e",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:report": "playwright show-report",
+    "check-types": "tsc --noEmit",
+    "db:test:up": "docker compose -f ../server/docker-compose.yaml --profile test up -d --wait postgres-test",
+    "db:test:down": "docker compose -f ../server/docker-compose.yaml rm -sf postgres-test"
+  },
+  "devDependencies": {
+    "@homewise/server": "workspace:*",
+    "@homewise/typescript-config": "workspace:*",
+    "@playwright/test": "catalog:",
+    "@types/node": "catalog:",
+    "dotenv": "catalog:",
+    "typescript": "catalog:"
+  }
+}
