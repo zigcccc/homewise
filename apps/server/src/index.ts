@@ -4,6 +4,7 @@ import { logger } from 'hono/logger';
 
 import { corsConfig } from './config/cors';
 import { env } from './config/env';
+import { closeDb } from './db';
 import { auth } from './lib/auth';
 import childDictionariesApp from './modules/child-dictionaries';
 import childProfilesApp from './modules/child-profiles';
@@ -49,19 +50,16 @@ if (env.NODE_ENV === 'development') {
   console.log('Serving app on port 5173...');
   const server = serve({ ...app, port: 5173 });
 
-  process.on('SIGINT', () => {
-    server.close();
-    process.exit(0);
-  });
-  process.on('SIGTERM', () => {
-    server.close((err) => {
-      if (err) {
-        console.error(err);
-        process.exit(1);
-      }
-      process.exit(0);
+  // Stop accepting connections, then close the DB pool cleanly so idle clients
+  // don't error on an abrupt socket close (which otherwise crash-dumps on the
+  // SIGTERM Playwright/`pnpm dev` sends). Both signals share one graceful path.
+  const shutdown = () => {
+    server.close(() => {
+      void closeDb().finally(() => process.exit(0));
     });
-  });
+  };
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
 }
 
 export type AppType = typeof app;
