@@ -152,9 +152,12 @@ function SettingsRoute() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Household name</FormLabel>
-                    <FormControl>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
+                    {/* Tooltip wraps FormControl (not the reverse): FormControl is the Slot that
+                        injects the field id onto the Input, so it must be the Input's direct parent
+                        or the label's htmlFor association is lost. */}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <FormControl>
                           <Input
                             {...field}
                             className="max-w-72"
@@ -162,12 +165,12 @@ function SettingsRoute() {
                             onBlur={handleSubmit(onSubmitValid)}
                             placeholder="The Doe Family"
                           />
-                        </TooltipTrigger>
-                        {household.ownerId !== user.id && (
-                          <TooltipContent>Only the household owner can change its name</TooltipContent>
-                        )}
-                      </Tooltip>
-                    </FormControl>
+                        </FormControl>
+                      </TooltipTrigger>
+                      {household.ownerId !== user.id && (
+                        <TooltipContent>Only the household owner can change its name</TooltipContent>
+                      )}
+                    </Tooltip>
                     <FormMessage />
                   </FormItem>
                 )}
