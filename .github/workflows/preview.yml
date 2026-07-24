@@ -130,6 +130,63 @@ jobs:
           vercel alias set "$url" "$alias" --token="$VERCEL_TOKEN"
           echo "web_url=https://${alias}" >> "$GITHUB_OUTPUT"
 
+  e2e:
+    name: E2E tests (Playwright)
+    # Runs only once both previews are live: `needs: deploy-web` guarantees the
+    # server preview (deploy-web's own dependency) and the web preview are
+    # deployed, and the per-PR Neon branch is already migrated+seeded by the
+    # server's Vercel build — so this job neither deploys nor seeds, it just drives
+    # the deployed app. Independent of the `comment` job (also needs deploy-web).
+    if: github.event.action != 'closed'
+    needs: deploy-web
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      HUSKY: 0
+      # Set => playwright.config.ts skips the local webServer/DB and points the
+      # suite at this PR's deployed web preview.
+      PLAYWRIGHT_BASE_URL: ${{ needs.deploy-web.outputs.web_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.head_ref }}
+          persist-credentials: false
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Install Playwright browser (chromium)
+        run: pnpm --filter @homewise/e2e exec playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        run: pnpm --filter @homewise/e2e test
+
+      # Report + traces for debugging a failed run (traces captured on first retry).
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-pr-${{ env.PR }}
+          path: apps/e2e/playwright-report
+          retention-days: 7
+
   comment:
     name: Comment preview URL
     if: github.event.action != 'closed'
