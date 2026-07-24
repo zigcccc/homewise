@@ -40,6 +40,13 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       api_url: ${{ steps.deploy.outputs.api_url }}
+    # Per-PR GitHub Deployment for the API preview, so this PR's server release
+    # shows in the repo's Environments/Deployments UI. The cleanup job retires it
+    # on close (GITHUB_TOKEN can inactivate/delete the deployment; deleting the
+    # empty environment shell itself would need a repo-admin PAT).
+    environment:
+      name: preview-api-pr-${{ github.event.pull_request.number }}
+      url: ${{ steps.deploy.outputs.api_url }}
     env:
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_SERVER }}
     steps:
@@ -87,6 +94,10 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       web_url: ${{ steps.deploy.outputs.web_url }}
+    # Per-PR GitHub Deployment for the web preview — the clickable URL people use.
+    environment:
+      name: preview-pr-${{ github.event.pull_request.number }}
+      url: ${{ steps.deploy.outputs.web_url }}
     env:
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_WEB }}
       API_URL: ${{ needs.deploy-server.outputs.api_url }}
@@ -153,6 +164,10 @@ jobs:
     name: Tear down preview aliases
     if: github.event.action == 'closed'
     runs-on: ubuntu-latest
+    # deployments: write lets us inactivate/delete this PR's GitHub deployments
+    # (clears the "Active" preview badge on the closed PR).
+    permissions:
+      deployments: write
     env:
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_WEB }}
     steps:
@@ -173,3 +188,19 @@ jobs:
           vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
           vercel alias rm "homewise-web-pr-${PR}.vercel.app" --yes --token="$VERCEL_TOKEN" || true
           vercel alias rm "homewise-api-pr-${PR}.vercel.app" --yes --token="$VERCEL_TOKEN" || true
+
+      # Retire the PR's GitHub deployments so a closed PR no longer shows an
+      # "Active" preview. GITHUB_TOKEN can inactivate then delete deployments
+      # (deleting requires inactive first); it cannot delete the empty environment
+      # shell — that needs a repo-admin PAT. Best-effort (`|| true`).
+      - name: Retire preview deployments
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          for name in "preview-pr-${PR}" "preview-api-pr-${PR}"; do
+            ids="$(gh api "/repos/${GITHUB_REPOSITORY}/deployments?environment=${name}" --jq '.[].id' || true)"
+            for id in $ids; do
+              gh api --method POST "/repos/${GITHUB_REPOSITORY}/deployments/${id}/statuses" -f state=inactive >/dev/null || true
+              gh api --method DELETE "/repos/${GITHUB_REPOSITORY}/deployments/${id}" >/dev/null || true
+            done
+          done

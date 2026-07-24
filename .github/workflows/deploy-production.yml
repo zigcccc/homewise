@@ -105,6 +105,11 @@ jobs:
     name: Deploy server
     needs: migrate
     runs-on: ubuntu-latest
+    # Records a GitHub Deployment so the API release shows in the repo's
+    # Environments/Deployments timeline with an "Active"/"Inactive" marker.
+    environment:
+      name: production-api
+      url: https://api.home-wise.app
     env:
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_SERVER }}
     steps:
@@ -129,6 +134,9 @@ jobs:
     name: Deploy web
     needs: deploy-server
     runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://home-wise.app
     env:
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_WEB }}
     steps:
