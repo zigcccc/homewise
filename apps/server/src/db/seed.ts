@@ -13,8 +13,9 @@ import * as schema from './schema';
  * Each Vercel preview deploy runs against its own fresh Neon branch, so this
  * script establishes a known, deterministic starting state (a verified user
  * that can log in, one household, a couple of members). It is safe to re-run:
- * every step checks for existing data first, so redeploys never duplicate rows
- * or error out. This is also the fixture future e2e tests will rely on.
+ * every step checks for existing data first, and each fixture is created inside
+ * a transaction, so redeploys never duplicate rows, leave partial state, or
+ * error out. This is also the fixture future e2e tests will rely on.
  *
  * Run via `pnpm db:seed`. DATABASE_URL is provided by the caller (the guarded
  * preview build points it at the unpooled/direct Neon endpoint).
@@ -42,13 +43,13 @@ async function seed() {
     // 0. Optional reset (previews only). Neon branches previews off production,
     // so the branch starts as a copy-on-write clone of prod data. When SEED_RESET
     // is set (the guarded preview build sets it), wipe all data first so the
-    // preview DB is empty-then-seeded and deterministic. Only ever operates on
-    // an isolated preview branch — never production (guarded below), and prod is
-    // never seeded anyway. The schema and drizzle migration journal are left
-    // intact (the journal lives in the `drizzle` schema, not `public`).
+    // preview DB is empty-then-seeded and deterministic. Allowed ONLY in Vercel's
+    // preview environment — an unset/other VERCEL_ENV is rejected so a prod (or
+    // local) DATABASE_URL can never be truncated. The schema and drizzle migration
+    // journal are left intact (the journal lives in the `drizzle` schema).
     if (process.env.SEED_RESET === 'true') {
-      if (process.env.VERCEL_ENV === 'production') {
-        throw new Error('refusing to reset: SEED_RESET must never run against production');
+      if (process.env.VERCEL_ENV !== 'preview') {
+        throw new Error('refusing to reset: SEED_RESET is allowed only in Vercel preview');
       }
       console.log('▸ SEED_RESET=true — truncating all public tables (empty DB before seed)');
       await pool.query(`
@@ -65,63 +66,71 @@ async function seed() {
       `);
     }
 
-    // 1. User + credential account (idempotent by unique email).
+    // 1. User + credential account, created atomically (idempotent by unique email).
     let [user] = await db.select().from(schema.user).where(eq(schema.user.email, SEED_USER.email));
 
     if (!user) {
       const userId = randomUUID();
-      [user] = await db
-        .insert(schema.user)
-        .values({
-          id: userId,
-          name: SEED_USER.name,
-          email: SEED_USER.email,
-          emailVerified: true,
-          role: 'user',
-        })
-        .returning();
-
       // Hash with better-auth's own hasher so the seeded user can actually log in.
       const hashedPassword = await hashPassword(SEED_USER.password);
 
-      await db.insert(schema.account).values({
-        id: randomUUID(),
-        accountId: userId,
-        providerId: 'credential',
-        userId,
-        password: hashedPassword,
+      // Wrap in a transaction so a failure can't leave a user without its
+      // credential account (which a later rerun would then skip over).
+      user = await db.transaction(async (tx) => {
+        const [created] = await tx
+          .insert(schema.user)
+          .values({
+            id: userId,
+            name: SEED_USER.name,
+            email: SEED_USER.email,
+            emailVerified: true,
+            role: 'user',
+          })
+          .returning();
+
+        await tx.insert(schema.account).values({
+          id: randomUUID(),
+          accountId: userId,
+          providerId: 'credential',
+          userId,
+          password: hashedPassword,
+        });
+
+        return created;
       });
 
-      console.log(`▸ seeded user ${SEED_USER.email}`);
+      console.log('▸ seeded preview user');
     } else {
-      console.log(`▸ user ${SEED_USER.email} already present — skipping`);
+      console.log('▸ preview user already present — skipping');
     }
 
     if (!user) {
       throw new Error('failed to resolve seed user');
     }
+    const ownerId = user.id;
 
-    // 2. Household owned by the seed user, with members (idempotent by owner).
-    let [household] = await db.select().from(schema.household).where(eq(schema.household.ownerId, user.id));
+    // 2. Household + members, created atomically (idempotent by owner).
+    let [household] = await db.select().from(schema.household).where(eq(schema.household.ownerId, ownerId));
 
     if (!household) {
-      [household] = await db
-        .insert(schema.household)
-        .values({ name: SEED_HOUSEHOLD_NAME, ownerId: user.id })
-        .returning();
+      household = await db.transaction(async (tx) => {
+        const [created] = await tx.insert(schema.household).values({ name: SEED_HOUSEHOLD_NAME, ownerId }).returning();
 
-      if (!household) {
-        throw new Error('failed to create seed household');
-      }
+        if (!created) {
+          throw new Error('failed to create seed household');
+        }
 
-      await db.insert(schema.householdMember).values([
-        { householdId: household.id, userId: user.id, name: SEED_USER.name, role: 'adult' },
-        { householdId: household.id, name: 'Robin', nickname: 'Robbie', role: 'child' },
-      ]);
+        await tx.insert(schema.householdMember).values([
+          { householdId: created.id, userId: ownerId, name: SEED_USER.name, role: 'adult' },
+          { householdId: created.id, name: 'Robin', nickname: 'Robbie', role: 'child' },
+        ]);
 
-      console.log(`▸ seeded household "${SEED_HOUSEHOLD_NAME}" with members`);
+        return created;
+      });
+
+      console.log('▸ seeded preview household with members');
     } else {
-      console.log(`▸ household for ${SEED_USER.email} already present — skipping`);
+      console.log('▸ preview household already present — skipping');
     }
 
     console.log('✓ seed complete');
