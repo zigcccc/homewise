@@ -1,0 +1,158 @@
+name: Deploy (preview)
+
+# Preview deployments for pull requests, driven entirely by GitHub Actions (both
+# Vercel projects have git.deploymentEnabled=false, so Vercel never deploys on
+# its own). Running in one CI job per PR gives us what native previews can't:
+#   1. deterministic order — server (with migrate+seed) before web, and
+#   2. a shared handle — the server's URL is aliased to a short, stable name and
+#      handed straight to the web build, so we never guess a hostname or hit
+#      Vercel's 63-char DNS-label truncation.
+#
+# Flow (on open/sync/reopen):  deploy-server -> deploy-web -> comment
+# Flow (on close):             cleanup (removes the PR's aliases)
+#
+# The per-preview database is still provisioned by the Neon <-> Vercel Previews
+# integration and migrated/seeded inside the server's Vercel build
+# (apps/server/scripts/vercel-build.sh, guarded to VERCEL_ENV=preview).
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+
+concurrency:
+  # One in-flight run per PR; a new push cancels the previous preview deploy.
+  group: preview-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+  PR: ${{ github.event.pull_request.number }}
+
+jobs:
+  deploy-server:
+    name: Deploy server preview
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    outputs:
+      api_url: ${{ steps.deploy.outputs.api_url }}
+    env:
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_SERVER }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          # Check out the PR branch (not the detached merge ref) so the Vercel
+          # CLI reads real git metadata and the Neon integration keys the preview
+          # database off the branch.
+          ref: ${{ github.head_ref }}
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      # `vercel deploy` (no --prebuilt) uploads the source and builds remotely,
+      # so the build runs with VERCEL_ENV=preview and the Neon-injected DATABASE_URL
+      # (migrate+seed happen there). It blocks until the deployment is READY, so
+      # by the time this step finishes the server is live — deploy-web can rely on it.
+      - name: Deploy & alias
+        id: deploy
+        run: |
+          vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
+          url="$(vercel deploy --token="$VERCEL_TOKEN")"
+          alias="homewise-api-pr-${PR}.vercel.app"
+          vercel alias set "$url" "$alias" --token="$VERCEL_TOKEN"
+          echo "api_url=https://${alias}" >> "$GITHUB_OUTPUT"
+
+  deploy-web:
+    name: Deploy web preview
+    if: github.event.action != 'closed'
+    needs: deploy-server
+    runs-on: ubuntu-latest
+    outputs:
+      web_url: ${{ steps.deploy.outputs.web_url }}
+    env:
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_WEB }}
+      API_URL: ${{ needs.deploy-server.outputs.api_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.head_ref }}
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      # Hand the server's alias to the web build via --build-env; Vite bakes it
+      # into VITE_API_URL. No hostname derivation, no token in the build.
+      - name: Deploy & alias
+        id: deploy
+        run: |
+          vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
+          url="$(vercel deploy --build-env VITE_API_URL="$API_URL" --token="$VERCEL_TOKEN")"
+          alias="homewise-web-pr-${PR}.vercel.app"
+          vercel alias set "$url" "$alias" --token="$VERCEL_TOKEN"
+          echo "web_url=https://${alias}" >> "$GITHUB_OUTPUT"
+
+  comment:
+    name: Comment preview URL
+    if: github.event.action != 'closed'
+    needs: deploy-web
+    runs-on: ubuntu-latest
+    steps:
+      - name: Upsert sticky PR comment
+        uses: actions/github-script@v7
+        env:
+          WEB_URL: ${{ needs.deploy-web.outputs.web_url }}
+        with:
+          script: |
+            const marker = '<!-- homewise-preview -->';
+            const body = `${marker}\n### 🔎 Preview deployment\n\nYour changes are live at ${process.env.WEB_URL}\n\n_Updated for commit ${context.sha.slice(0, 7)}._`;
+            const { owner, repo } = context.repo;
+            const issue_number = context.payload.pull_request.number;
+            const { data: comments } = await github.rest.issues.listComments({ owner, repo, issue_number });
+            const existing = comments.find((c) => c.body?.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }
+
+  cleanup:
+    name: Tear down preview aliases
+    if: github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_WEB }}
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      # Remove the PR's stable aliases. The underlying preview deployments are
+      # harmless and expire on their own; the Neon branch is cleaned up by the
+      # integration when the git branch is deleted. `|| true` so a missing alias
+      # (e.g. the PR never deployed) doesn't fail the job.
+      - name: Remove aliases
+        run: |
+          vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
+          vercel alias rm "homewise-web-pr-${PR}.vercel.app" --yes --token="$VERCEL_TOKEN" || true
+          vercel alias rm "homewise-api-pr-${PR}.vercel.app" --yes --token="$VERCEL_TOKEN" || true

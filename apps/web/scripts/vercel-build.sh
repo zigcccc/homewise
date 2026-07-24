@@ -1,24 +1,19 @@
 #!/usr/bin/env bash
 # Web build entrypoint for Vercel.
 #
-# In preview deployments, point the app at the matching *server* preview instead
-# of production. The web and server projects deploy previews for the same git
-# branch, so they share the same branch + team slug — the server's branch URL
-# differs from this web deployment's VERCEL_BRANCH_URL only by the project-name
-# prefix. Deriving it from VERCEL_BRANCH_URL avoids hand-rolling Vercel's branch
-# slugification. Production is untouched (VITE_API_URL stays the dashboard value,
-# e.g. https://api.home-wise.app). Vite bakes VITE_API_URL in at build time.
+# VITE_API_URL is supplied by the caller and baked in at build time by Vite:
+#   - Preview: the GitHub Actions preview pipeline passes the matching server
+#     preview alias via `vercel deploy --build-env VITE_API_URL=…`, so the web
+#     app talks to its own PR's server. We never derive the server hostname here
+#     (Vercel's 63-char DNS-label truncation makes that unreliable) — the CI run
+#     deploys the server first and hands us the alias directly.
+#   - Production: VITE_API_URL is the dashboard value (e.g. https://api.home-wise.app).
 set -euo pipefail
 
-if [ "${VERCEL_ENV:-}" = "preview" ] && [ -n "${VERCEL_BRANCH_URL:-}" ]; then
-  export VITE_API_URL="https://${VERCEL_BRANCH_URL/homewise-web/homewise-server}"
-  echo "▸ preview build: VITE_API_URL=$VITE_API_URL"
-else
-  echo "▸ ${VERCEL_ENV:-non-preview} build: using configured VITE_API_URL"
-fi
+echo "▸ ${VERCEL_ENV:-non-preview} build: VITE_API_URL=${VITE_API_URL:-<unset>}"
 
 # Build through Turbo (not `pnpm build`) so workspace deps are built first:
 # `build` dependsOn `^build`, which compiles the server and emits the .d.ts that
 # the web's type-check consumes via the RPC client. Turbo lists VITE_API_URL in
-# build.env, so the value above flows through and busts the cache per branch.
+# build.env, so the value flows through and busts the cache per branch.
 pnpm turbo run build --filter @homewise/web-app
