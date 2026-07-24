@@ -82,7 +82,24 @@ jobs:
           # Inject the exact paired web origin so the server's CORS/auth trusts
           # only this PR's web preview (not any *.vercel.app). Runtime env (--env,
           # not --build-env) because CORS is evaluated per request.
-          url="$(vercel deploy --force --env PREVIEW_WEB_ORIGIN="https://homewise-web-pr-${PR}.vercel.app" --token="$VERCEL_TOKEN")"
+          #
+          # Retry: on a fresh PR the `opened` webhook makes Vercel's git integration
+          # race our CLI deploy, and Vercel cancels one of them ("The deployment has
+          # been canceled") ~5s into the build. The race is gone by the next attempt,
+          # so retry a couple of times before failing the job.
+          url=""
+          for attempt in 1 2 3; do
+            if url="$(vercel deploy --force --env PREVIEW_WEB_ORIGIN="https://homewise-web-pr-${PR}.vercel.app" --token="$VERCEL_TOKEN")"; then
+              break
+            fi
+            echo "::warning::server deploy attempt ${attempt} failed (transient cancellation race?); retrying in 15s"
+            url=""
+            sleep 15
+          done
+          if [ -z "$url" ]; then
+            echo "::error::server preview deploy failed after 3 attempts"
+            exit 1
+          fi
           alias="homewise-api-pr-${PR}.vercel.app"
           vercel alias set "$url" "$alias" --token="$VERCEL_TOKEN"
           echo "api_url=https://${alias}" >> "$GITHUB_OUTPUT"
@@ -125,7 +142,20 @@ jobs:
           # --force so the web is always built fresh with the VITE_API_URL we hand
           # it. If Vercel dedup'd to a prior build, the app could ship pointing at a
           # different PR's server (VITE_API_URL is baked in at build time).
-          url="$(vercel deploy --force --build-env VITE_API_URL="$API_URL" --token="$VERCEL_TOKEN")"
+          # Retry on the same transient cancellation race as the server deploy.
+          url=""
+          for attempt in 1 2 3; do
+            if url="$(vercel deploy --force --build-env VITE_API_URL="$API_URL" --token="$VERCEL_TOKEN")"; then
+              break
+            fi
+            echo "::warning::web deploy attempt ${attempt} failed (transient cancellation race?); retrying in 15s"
+            url=""
+            sleep 15
+          done
+          if [ -z "$url" ]; then
+            echo "::error::web preview deploy failed after 3 attempts"
+            exit 1
+          fi
           alias="homewise-web-pr-${PR}.vercel.app"
           vercel alias set "$url" "$alias" --token="$VERCEL_TOKEN"
           echo "web_url=https://${alias}" >> "$GITHUB_OUTPUT"
@@ -147,6 +177,10 @@ jobs:
       # Set => playwright.config.ts skips the local webServer/DB and points the
       # suite at this PR's deployed web preview.
       PLAYWRIGHT_BASE_URL: ${{ needs.deploy-web.outputs.web_url }}
+      # Lets the headless browser through the preview's Vercel Security Checkpoint
+      # (Protection Bypass for Automation). Generated in the homewise-web project's
+      # Deployment Protection settings and stored as a repo secret.
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
