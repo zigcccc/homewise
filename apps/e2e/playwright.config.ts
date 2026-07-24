@@ -22,6 +22,14 @@ const WEB_URL = remoteBaseURL ?? 'http://localhost:3000';
 const API_URL = process.env.PLAYWRIGHT_API_URL ?? 'http://localhost:5173';
 const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL ?? 'postgres://user:password@localhost:8766/homewise_test';
 
+// Vercel preview deployments sit behind a Security Checkpoint that blocks headless
+// browsers ("Failed to verify your browser"). When a Protection Bypass for
+// Automation secret is provided (CI sets it from a GitHub secret), send it on every
+// request so Vercel lets the run through. Absent locally, so local runs are
+// unaffected. The server's CORS allow-list includes this header so the cross-origin
+// API calls that carry it don't fail preflight (see apps/server/src/config/cors.ts).
+const bypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
+
 export default defineConfig({
   testDir: './tests',
   fullyParallel: true,
@@ -36,6 +44,7 @@ export default defineConfig({
     baseURL: WEB_URL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
+    ...(bypassSecret ? { extraHTTPHeaders: { 'x-vercel-protection-bypass': bypassSecret } } : {}),
   },
   projects: [
     // Logs in the seed user once and saves the session; every other project
