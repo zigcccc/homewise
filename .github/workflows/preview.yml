@@ -67,7 +67,11 @@ jobs:
         id: deploy
         run: |
           vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
-          url="$(vercel deploy --token="$VERCEL_TOKEN")"
+          # --force: always build a fresh deployment. Without it Vercel cancels
+          # the build as "redundant" when a deployment for the same commit SHA
+          # already exists (e.g. a reopened PR, a re-run, or a rebase onto the
+          # same tree), which reads as a failed job here.
+          url="$(vercel deploy --force --token="$VERCEL_TOKEN")"
           alias="homewise-api-pr-${PR}.vercel.app"
           vercel alias set "$url" "$alias" --token="$VERCEL_TOKEN"
           echo "api_url=https://${alias}" >> "$GITHUB_OUTPUT"
@@ -103,7 +107,10 @@ jobs:
         id: deploy
         run: |
           vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
-          url="$(vercel deploy --build-env VITE_API_URL="$API_URL" --token="$VERCEL_TOKEN")"
+          # --force so the web is always built fresh with the VITE_API_URL we hand
+          # it. If Vercel dedup'd to a prior build, the app could ship pointing at a
+          # different PR's server (VITE_API_URL is baked in at build time).
+          url="$(vercel deploy --force --build-env VITE_API_URL="$API_URL" --token="$VERCEL_TOKEN")"
           alias="homewise-web-pr-${PR}.vercel.app"
           vercel alias set "$url" "$alias" --token="$VERCEL_TOKEN"
           echo "web_url=https://${alias}" >> "$GITHUB_OUTPUT"
