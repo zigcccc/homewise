@@ -1,8 +1,8 @@
 name: CI
 
+# Quality gate for pull requests. Previews themselves are built natively by
+# Vercel; production deployment lives in deploy-production.yml.
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
 

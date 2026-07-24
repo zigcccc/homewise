@@ -1,0 +1,135 @@
+name: Deploy (production)
+
+# Production deployment for main. Vercel's own git auto-deploy is disabled for
+# main (git.deploymentEnabled in each vercel.json), so this workflow is the
+# single source of production deployments. Runs strictly in order:
+#   verify -> migrate -> deploy-server -> deploy-web
+# so migrations land before the server, and the web app never goes live before
+# the server it depends on (`vercel deploy --prod` blocks until READY).
+#
+# Preview deployments are handled natively by Vercel and are not part of this
+# workflow (see ci.yml for the pull-request quality gate).
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-production
+  # Never cancel an in-progress production deploy/migration.
+  cancel-in-progress: false
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+jobs:
+  # Re-run the quality gate so a direct push to main can't deploy unchecked code
+  # (PRs are covered by ci.yml).
+  verify:
+    name: Lint & typecheck
+    runs-on: ubuntu-latest
+    env:
+      HUSKY: 0
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint & format check (Biome)
+        run: pnpm lint:ci
+
+      - name: Type check
+        run: pnpm check-types
+
+      - name: Unused code & dependencies (Knip)
+        run: pnpm knip
+
+  migrate:
+    name: Apply DB migrations
+    needs: verify
+    runs-on: ubuntu-latest
+    env:
+      HUSKY: 0
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_SERVER }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Pull the server project's production env (single source of truth: the
+      # Vercel dashboard) rather than duplicating DB credentials into GH secrets.
+      - name: Pull production env
+        run: npx vercel@latest env pull .vercel/.env.prod --environment=production --yes --token="$VERCEL_TOKEN"
+
+      # Apply migrations against the unpooled/direct Neon endpoint (DDL over the
+      # PgBouncer pooler is not recommended).
+      - name: Apply migrations
+        run: |
+          set -a
+          . .vercel/.env.prod
+          set +a
+          DATABASE_URL="$DATABASE_URL_UNPOOLED" pnpm --filter @homewise/server db:migrations:apply
+
+  deploy-server:
+    name: Deploy server
+    needs: migrate
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_SERVER }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      # `vercel deploy` blocks until the deployment is READY, so the web deploy
+      # (which needs this job) cannot start until the server is live.
+      - name: Deploy
+        run: |
+          npx vercel@latest pull --yes --environment=production --token="$VERCEL_TOKEN"
+          npx vercel@latest deploy --prod --token="$VERCEL_TOKEN"
+
+  deploy-web:
+    name: Deploy web
+    needs: deploy-server
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_WEB }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Deploy
+        run: |
+          npx vercel@latest pull --yes --environment=production --token="$VERCEL_TOKEN"
+          npx vercel@latest deploy --prod --token="$VERCEL_TOKEN"
