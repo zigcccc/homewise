@@ -7,6 +7,10 @@
       "import": "./src/index.ts",
       "type": "./src/index.ts"
     },
+    "./seed-fixtures": {
+      "import": "./src/db/seed-fixtures.ts",
+      "type": "./src/db/seed-fixtures.ts"
+    },
     "./households": {
       "import": "./src/modules/households/models/index.ts",
       "type": "./src/modules/households/models/index.ts"
