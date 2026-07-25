@@ -53,11 +53,11 @@ jobs:
     # Runs the full app locally on the runner — server + web + an isolated test
     # Postgres — exactly as `pnpm test:e2e` does on a dev machine. This is faster
     # and far more deterministic than driving the deployed Vercel preview: no
-    # serverless cold starts, no Neon round-trip latency, no bot-protection bypass.
-    # Because PLAYWRIGHT_BASE_URL is unset, playwright.config.ts takes its local
-    # branch: globalSetup stands up the test DB (docker compose, :8766 — Docker is
-    # preinstalled on ubuntu-latest) and seeds it, and webServer boots the Hono
-    # server plus the web app served as a production build (vite build && preview).
+    # serverless cold starts, no Neon round-trip latency. playwright.config.ts
+    # always runs locally: globalSetup stands up the test DB (docker compose, :8766
+    # — Docker is preinstalled on ubuntu-latest) and seeds it, and webServer boots
+    # the Hono server plus the web app served as a production build (vite build &&
+    # preview).
     env:
       HUSKY: 0
       # The server validates these at boot (src/config/env.ts); the blob token must
