@@ -26,16 +26,29 @@ export class UserProfilePage {
     return this.page.getByText(`${name}'s profile`);
   }
 
-  /** Sets the full name and saves. */
+  /** Sets the full name and saves, waiting for the write to persist. */
   async setName(name: string) {
     await this.nameInput.fill(name);
     await this.saveButton.click();
+    await this.expectSaved();
   }
 
-  /** Uploads a profile picture from disk and saves. */
+  /** Uploads a profile picture from disk and saves, waiting for the write to persist. */
   async uploadPicture(filePath: string) {
     await this.fileInput.setInputFiles(filePath);
     await this.saveButton.click();
+    await this.expectSaved();
+  }
+
+  /**
+   * Waits for a successful save. The Save button renders only while the form is
+   * dirty and unmounts once the mutation resolves and the form resets — so its
+   * disappearance is a deterministic "persisted" signal. Without this, the preview
+   * shows optimistically from the picked file, so a following removePicture() could
+   * fire its DELETE while the upload PATCH is still in flight.
+   */
+  private async expectSaved() {
+    await expect(this.saveButton).toBeHidden();
   }
 
   /** Removes the current profile picture (immediate — no separate save). */

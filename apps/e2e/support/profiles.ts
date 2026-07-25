@@ -17,9 +17,17 @@ export async function createChildProfile(page: Page, name: string) {
   await members.goto();
   await members.addManagedMember(name); // defaults to the Child role
 
-  const kids = new KidsPage(page);
-  await kids.goto();
-  await kids.createProfileFor(name);
+  // The member now exists. If profile creation fails before the caller can enter
+  // its own try/finally, remove the member here so nothing is left behind.
+  try {
+    const kids = new KidsPage(page);
+    await kids.goto();
+    await kids.createProfileFor(name);
+  } catch (error) {
+    await members.goto();
+    await members.removeMember(name);
+    throw error;
+  }
 }
 
 /** Adds a managed pet member and creates its profile; leaves you on the General tab. */
@@ -28,9 +36,15 @@ export async function createPetProfile(page: Page, name: string) {
   await members.goto();
   await members.addManagedMemberWithRole(name, 'Pet');
 
-  const pets = new PetsPage(page);
-  await pets.goto();
-  await pets.createProfileFor(name);
+  try {
+    const pets = new PetsPage(page);
+    await pets.goto();
+    await pets.createProfileFor(name);
+  } catch (error) {
+    await members.goto();
+    await members.removeMember(name);
+    throw error;
+  }
 }
 
 /** Removes a managed member (cascade-deletes any profile), used as teardown. */

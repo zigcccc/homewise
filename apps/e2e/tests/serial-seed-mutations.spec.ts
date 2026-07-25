@@ -73,9 +73,33 @@ test('transfers household ownership to a member and back', async ({ page, browse
     await secondMembers.transferOwnershipTo(SEED_USER.name);
     await expect(secondMembers.memberRow(SEED_USER.name)).toContainText('(owner)');
   } finally {
-    await restoreSeedOwner(secondMembers);
-    await secondContext.close();
+    // Restore ownership, but always close the second context even if that throws.
+    try {
+      await restoreSeedOwner(secondMembers);
+    } finally {
+      await secondContext.close();
+    }
   }
+});
+
+test('changes an account member’s role (owner action), then restores it', async ({ page }) => {
+  // Mutates SEED_SECOND_USER (a shared seed member), so it lives here in the
+  // exclusive project rather than the parallel one.
+  const members = new HouseholdMembersPage(page);
+  await members.goto();
+
+  const row = members.memberRow(SEED_SECOND_USER.name);
+  const roleSelect = row.getByRole('combobox');
+  await expect(roleSelect).toContainText('Adult');
+
+  try {
+    await members.setMemberRole(SEED_SECOND_USER.name, 'Child');
+    await expect(roleSelect).toContainText('Child');
+  } finally {
+    // Always restore the seed member's role so reruns start clean.
+    await members.setMemberRole(SEED_SECOND_USER.name, 'Adult');
+  }
+  await expect(roleSelect).toContainText('Adult');
 });
 
 /**
@@ -85,11 +109,10 @@ test('transfers household ownership to a member and back', async ({ page, browse
  */
 async function restoreSeedOwner(secondMembers: HouseholdMembersPage) {
   await secondMembers.goto();
-  const secondIsOwner = await secondMembers
-    .memberRow(SEED_SECOND_USER.name)
-    .getByText('(owner)')
-    .isVisible()
-    .catch(() => false);
+  // isVisible() returns false for an absent "(owner)" marker without throwing, so
+  // no catch is needed here — a genuine navigation/UI error should propagate rather
+  // than be silently swallowed into "not owner" (which would skip the restore).
+  const secondIsOwner = await secondMembers.memberRow(SEED_SECOND_USER.name).getByText('(owner)').isVisible();
 
   if (secondIsOwner) {
     await secondMembers.transferOwnershipTo(SEED_USER.name);

@@ -1,7 +1,5 @@
 import { expect, test } from '@playwright/test';
 
-import { SEED_SECOND_USER } from '@homewise/server/seed-fixtures';
-
 import { HouseholdMembersPage } from '../pages/household-members.page';
 
 test.describe('household members', () => {
@@ -77,21 +75,7 @@ test.describe('household members', () => {
     await expect(members.memberRow(name)).toBeHidden();
   });
 
-  test('changes an account member’s role (owner action), then restores it', async ({ page }) => {
-    const members = new HouseholdMembersPage(page);
-    await members.goto();
-
-    const row = members.memberRow(SEED_SECOND_USER.name);
-    const roleSelect = row.getByRole('combobox');
-    await expect(roleSelect).toContainText('Adult');
-
-    try {
-      await members.setMemberRole(SEED_SECOND_USER.name, 'Child');
-      await expect(roleSelect).toContainText('Child');
-    } finally {
-      // Always restore the seed member's role so reruns start clean.
-      await members.setMemberRole(SEED_SECOND_USER.name, 'Adult');
-    }
-    await expect(roleSelect).toContainText('Adult');
-  });
+  // The account-member role change mutates a shared seed member, so it lives in
+  // serial-seed-mutations.spec.ts (the exclusive project) alongside the other
+  // shared-seed mutators, not here in the fully-parallel project.
 });

@@ -8,9 +8,9 @@ import { ONBOARDING_STORAGE_STATE, SECOND_USER_STORAGE_STATE, STORAGE_STATE } fr
 
 /**
  * Authenticates each seeded user once and persists its session to a per-user
- * storageState. The `chromium` project depends on this `setup` project; most
- * specs reuse the seed-user session (`STORAGE_STATE`), while a few opt into the
- * second-member or onboarding sessions via `test.use({ storageState })`.
+ * storageState. The `parallel` and `exclusive` projects depend on this `setup`
+ * project; most specs reuse the seed-user session (`STORAGE_STATE`), while a few
+ * opt into the second-member or onboarding sessions via `test.use({ storageState })`.
  */
 
 setup('authenticate seed user', async ({ page }) => {
