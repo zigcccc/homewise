@@ -1,12 +1,62 @@
 import { randomUUID } from 'node:crypto';
 
 import { hashPassword } from 'better-auth/crypto';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 
 import * as schema from './schema';
-import { SEED_CHILD_MEMBER, SEED_HOUSEHOLD_NAME, SEED_USER } from './seed-fixtures';
+import {
+  SEED_CHILD_MEMBER,
+  SEED_HOUSEHOLD_NAME,
+  SEED_ONBOARDING_USER,
+  SEED_SECOND_USER,
+  SEED_USER,
+} from './seed-fixtures';
+
+type SeededUser = typeof schema.user.$inferSelect;
+type SeedDb = ReturnType<typeof drizzle<typeof schema>>;
+
+/**
+ * Idempotent by unique email: returns the existing user, or creates one with a
+ * credential account so it can actually log in. Wrapped in a transaction so a
+ * failure can't leave a user without its account (which a later rerun would then
+ * skip over). Shared by every seeded account (owner, second member, onboarding).
+ */
+async function ensureUser(db: SeedDb, fixture: { email: string; name: string; password: string }): Promise<SeededUser> {
+  const [existing] = await db.select().from(schema.user).where(eq(schema.user.email, fixture.email));
+  if (existing) {
+    console.log(`▸ user ${fixture.email} already present — skipping`);
+    return existing;
+  }
+
+  const userId = randomUUID();
+  // Hash with better-auth's own hasher so the seeded user can actually log in.
+  const hashedPassword = await hashPassword(fixture.password);
+
+  const created = await db.transaction(async (tx) => {
+    const [inserted] = await tx
+      .insert(schema.user)
+      .values({ id: userId, name: fixture.name, email: fixture.email, emailVerified: true, role: 'user' })
+      .returning();
+
+    await tx.insert(schema.account).values({
+      id: randomUUID(),
+      accountId: userId,
+      providerId: 'credential',
+      userId,
+      password: hashedPassword,
+    });
+
+    return inserted;
+  });
+
+  if (!created) {
+    throw new Error(`failed to create seed user ${fixture.email}`);
+  }
+  console.log(`▸ seeded user ${fixture.email}`);
+  return created;
+}
 
 /**
  * Idempotent seed for preview and local test databases.
@@ -73,46 +123,7 @@ async function seed() {
     }
 
     // 1. User + credential account, created atomically (idempotent by unique email).
-    let [user] = await db.select().from(schema.user).where(eq(schema.user.email, SEED_USER.email));
-
-    if (!user) {
-      const userId = randomUUID();
-      // Hash with better-auth's own hasher so the seeded user can actually log in.
-      const hashedPassword = await hashPassword(SEED_USER.password);
-
-      // Wrap in a transaction so a failure can't leave a user without its
-      // credential account (which a later rerun would then skip over).
-      user = await db.transaction(async (tx) => {
-        const [created] = await tx
-          .insert(schema.user)
-          .values({
-            id: userId,
-            name: SEED_USER.name,
-            email: SEED_USER.email,
-            emailVerified: true,
-            role: 'user',
-          })
-          .returning();
-
-        await tx.insert(schema.account).values({
-          id: randomUUID(),
-          accountId: userId,
-          providerId: 'credential',
-          userId,
-          password: hashedPassword,
-        });
-
-        return created;
-      });
-
-      console.log('▸ seeded preview user');
-    } else {
-      console.log('▸ preview user already present — skipping');
-    }
-
-    if (!user) {
-      throw new Error('failed to resolve seed user');
-    }
+    const user = await ensureUser(db, SEED_USER);
     const ownerId = user.id;
 
     // 2. Household + members, created atomically (idempotent by owner).
@@ -143,6 +154,36 @@ async function seed() {
     } else {
       console.log('▸ preview household already present — skipping');
     }
+
+    if (!household) {
+      throw new Error('failed to resolve seed household');
+    }
+
+    // 3. Second account user, seeded as a non-owner adult member (idempotent by
+    // userId + householdId). Gives the e2e suite a second account-linked member
+    // for the owner-only flows (transfer ownership, change a member's role).
+    const secondUser = await ensureUser(db, SEED_SECOND_USER);
+    const [secondMembership] = await db
+      .select()
+      .from(schema.householdMember)
+      .where(
+        and(eq(schema.householdMember.householdId, household.id), eq(schema.householdMember.userId, secondUser.id))
+      );
+    if (!secondMembership) {
+      await db.insert(schema.householdMember).values({
+        householdId: household.id,
+        userId: secondUser.id,
+        name: SEED_SECOND_USER.name,
+        role: 'adult',
+      });
+      console.log('▸ seeded second household member');
+    } else {
+      console.log('▸ second household member already present — skipping');
+    }
+
+    // 4. Onboarding user — a real account with NO household/membership, so the
+    // e2e onboarding spec can create one from a clean slate.
+    await ensureUser(db, SEED_ONBOARDING_USER);
 
     console.log('✓ seed complete');
   } finally {

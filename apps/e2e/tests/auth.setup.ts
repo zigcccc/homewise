@@ -1,16 +1,18 @@
 import { test as setup } from '@playwright/test';
 
-import { SEED_USER } from '@homewise/server/seed-fixtures';
+import { SEED_ONBOARDING_USER, SEED_SECOND_USER, SEED_USER } from '@homewise/server/seed-fixtures';
 
 import { DashboardPage } from '../pages/dashboard.page';
 import { LoginPage } from '../pages/login.page';
-import { STORAGE_STATE } from '../support/paths';
+import { ONBOARDING_STORAGE_STATE, SECOND_USER_STORAGE_STATE, STORAGE_STATE } from '../support/paths';
 
 /**
- * Authenticates the seeded user once and persists the session to STORAGE_STATE.
- * The `chromium` project depends on this and loads that state, so individual
- * tests start already signed in (no per-test login).
+ * Authenticates each seeded user once and persists its session to a per-user
+ * storageState. The `parallel` and `exclusive` projects depend on this `setup`
+ * project; most specs reuse the seed-user session (`STORAGE_STATE`), while a few
+ * opt into the second-member or onboarding sessions via `test.use({ storageState })`.
  */
+
 setup('authenticate seed user', async ({ page }) => {
   const login = new LoginPage(page);
   await login.goto();
@@ -20,4 +22,24 @@ setup('authenticate seed user', async ({ page }) => {
   await new DashboardPage(page).expectLoaded();
 
   await page.context().storageState({ path: STORAGE_STATE });
+});
+
+setup('authenticate second member', async ({ page }) => {
+  const login = new LoginPage(page);
+  await login.goto();
+  // A member of the seed household, so they also land on the dashboard (`/`).
+  await login.login(SEED_SECOND_USER.email, SEED_SECOND_USER.password);
+
+  await page.context().storageState({ path: SECOND_USER_STORAGE_STATE });
+});
+
+setup('authenticate onboarding user', async ({ page }) => {
+  const login = new LoginPage(page);
+  await login.goto();
+  // No household yet, so the onboarded guard redirects into the onboarding flow
+  // rather than the dashboard.
+  await login.fillCredentials(SEED_ONBOARDING_USER.email, SEED_ONBOARDING_USER.password);
+  await page.waitForURL(/\/onboarding/, { timeout: 15_000 });
+
+  await page.context().storageState({ path: ONBOARDING_STORAGE_STATE });
 });
