@@ -28,11 +28,17 @@ import { Route as AuthenticatedOnboardedFamilyKidsIndexRouteImport } from './rou
 import { Route as AuthenticatedOnboardedFamilyKidsProfileIdRouteRouteImport } from './routes/_authenticated/_onboarded/family/kids/$profileId/route'
 import { Route as AuthenticatedOnboardedFamilyPetsIndexRouteImport } from './routes/_authenticated/_onboarded/family/pets/index'
 import { Route as AuthenticatedOnboardedFamilyPetsProfileIdRouteRouteImport } from './routes/_authenticated/_onboarded/family/pets/$profileId/route'
+import { Route as AuthenticatedOnboardedFoodIngredientsIndexRouteImport } from './routes/_authenticated/_onboarded/food/ingredients/index'
+import { Route as AuthenticatedOnboardedFoodRecipesIndexRouteImport } from './routes/_authenticated/_onboarded/food/recipes/index'
+import { Route as AuthenticatedOnboardedFoodRecipesRecipeIdRouteRouteImport } from './routes/_authenticated/_onboarded/food/recipes/$recipeId/route'
+import { Route as AuthenticatedOnboardedFoodRecipesNewRouteImport } from './routes/_authenticated/_onboarded/food/recipes/new'
 import { Route as AuthenticatedOnboardedFamilyKidsProfileIdIndexRouteImport } from './routes/_authenticated/_onboarded/family/kids/$profileId/index'
 import { Route as AuthenticatedOnboardedFamilyKidsProfileIdDictionaryRouteImport } from './routes/_authenticated/_onboarded/family/kids/$profileId/dictionary'
 import { Route as AuthenticatedOnboardedFamilyKidsProfileIdGeneralRouteImport } from './routes/_authenticated/_onboarded/family/kids/$profileId/general'
 import { Route as AuthenticatedOnboardedFamilyPetsProfileIdIndexRouteImport } from './routes/_authenticated/_onboarded/family/pets/$profileId/index'
 import { Route as AuthenticatedOnboardedFamilyPetsProfileIdGeneralRouteImport } from './routes/_authenticated/_onboarded/family/pets/$profileId/general'
+import { Route as AuthenticatedOnboardedFoodRecipesRecipeIdIndexRouteImport } from './routes/_authenticated/_onboarded/food/recipes/$recipeId/index'
+import { Route as AuthenticatedOnboardedFoodRecipesRecipeIdEditRouteImport } from './routes/_authenticated/_onboarded/food/recipes/$recipeId/edit'
 
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
@@ -141,6 +147,30 @@ const AuthenticatedOnboardedFamilyPetsProfileIdRouteRoute =
     path: '/family/pets/$profileId',
     getParentRoute: () => AuthenticatedOnboardedRoute,
   } as any)
+const AuthenticatedOnboardedFoodIngredientsIndexRoute =
+  AuthenticatedOnboardedFoodIngredientsIndexRouteImport.update({
+    id: '/food/ingredients/',
+    path: '/food/ingredients/',
+    getParentRoute: () => AuthenticatedOnboardedRoute,
+  } as any)
+const AuthenticatedOnboardedFoodRecipesIndexRoute =
+  AuthenticatedOnboardedFoodRecipesIndexRouteImport.update({
+    id: '/food/recipes/',
+    path: '/food/recipes/',
+    getParentRoute: () => AuthenticatedOnboardedRoute,
+  } as any)
+const AuthenticatedOnboardedFoodRecipesRecipeIdRouteRoute =
+  AuthenticatedOnboardedFoodRecipesRecipeIdRouteRouteImport.update({
+    id: '/food/recipes/$recipeId',
+    path: '/food/recipes/$recipeId',
+    getParentRoute: () => AuthenticatedOnboardedRoute,
+  } as any)
+const AuthenticatedOnboardedFoodRecipesNewRoute =
+  AuthenticatedOnboardedFoodRecipesNewRouteImport.update({
+    id: '/food/recipes/new',
+    path: '/food/recipes/new',
+    getParentRoute: () => AuthenticatedOnboardedRoute,
+  } as any)
 const AuthenticatedOnboardedFamilyKidsProfileIdIndexRoute =
   AuthenticatedOnboardedFamilyKidsProfileIdIndexRouteImport.update({
     id: '/',
@@ -171,6 +201,18 @@ const AuthenticatedOnboardedFamilyPetsProfileIdGeneralRoute =
     path: '/general',
     getParentRoute: () => AuthenticatedOnboardedFamilyPetsProfileIdRouteRoute,
   } as any)
+const AuthenticatedOnboardedFoodRecipesRecipeIdIndexRoute =
+  AuthenticatedOnboardedFoodRecipesRecipeIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedOnboardedFoodRecipesRecipeIdRouteRoute,
+  } as any)
+const AuthenticatedOnboardedFoodRecipesRecipeIdEditRoute =
+  AuthenticatedOnboardedFoodRecipesRecipeIdEditRouteImport.update({
+    id: '/edit',
+    path: '/edit',
+    getParentRoute: () => AuthenticatedOnboardedFoodRecipesRecipeIdRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedOnboardedIndexRoute
@@ -188,13 +230,19 @@ export interface FileRoutesByFullPath {
   '/manage/settings': typeof AuthenticatedOnboardedManageSettingsRoute
   '/family/kids/$profileId': typeof AuthenticatedOnboardedFamilyKidsProfileIdRouteRouteWithChildren
   '/family/pets/$profileId': typeof AuthenticatedOnboardedFamilyPetsProfileIdRouteRouteWithChildren
+  '/food/recipes/$recipeId': typeof AuthenticatedOnboardedFoodRecipesRecipeIdRouteRouteWithChildren
+  '/food/recipes/new': typeof AuthenticatedOnboardedFoodRecipesNewRoute
   '/family/kids/': typeof AuthenticatedOnboardedFamilyKidsIndexRoute
   '/family/pets/': typeof AuthenticatedOnboardedFamilyPetsIndexRoute
+  '/food/ingredients/': typeof AuthenticatedOnboardedFoodIngredientsIndexRoute
+  '/food/recipes/': typeof AuthenticatedOnboardedFoodRecipesIndexRoute
   '/family/kids/$profileId/dictionary': typeof AuthenticatedOnboardedFamilyKidsProfileIdDictionaryRoute
   '/family/kids/$profileId/general': typeof AuthenticatedOnboardedFamilyKidsProfileIdGeneralRoute
   '/family/pets/$profileId/general': typeof AuthenticatedOnboardedFamilyPetsProfileIdGeneralRoute
+  '/food/recipes/$recipeId/edit': typeof AuthenticatedOnboardedFoodRecipesRecipeIdEditRoute
   '/family/kids/$profileId/': typeof AuthenticatedOnboardedFamilyKidsProfileIdIndexRoute
   '/family/pets/$profileId/': typeof AuthenticatedOnboardedFamilyPetsProfileIdIndexRoute
+  '/food/recipes/$recipeId/': typeof AuthenticatedOnboardedFoodRecipesRecipeIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof AuthenticatedOnboardedIndexRoute
@@ -209,13 +257,18 @@ export interface FileRoutesByTo {
   '/expenses/monthly-expenses': typeof AuthenticatedOnboardedExpensesMonthlyExpensesRoute
   '/manage/household-members': typeof AuthenticatedOnboardedManageHouseholdMembersRoute
   '/manage/settings': typeof AuthenticatedOnboardedManageSettingsRoute
+  '/food/recipes/new': typeof AuthenticatedOnboardedFoodRecipesNewRoute
   '/family/kids': typeof AuthenticatedOnboardedFamilyKidsIndexRoute
   '/family/pets': typeof AuthenticatedOnboardedFamilyPetsIndexRoute
+  '/food/ingredients': typeof AuthenticatedOnboardedFoodIngredientsIndexRoute
+  '/food/recipes': typeof AuthenticatedOnboardedFoodRecipesIndexRoute
   '/family/kids/$profileId/dictionary': typeof AuthenticatedOnboardedFamilyKidsProfileIdDictionaryRoute
   '/family/kids/$profileId/general': typeof AuthenticatedOnboardedFamilyKidsProfileIdGeneralRoute
   '/family/pets/$profileId/general': typeof AuthenticatedOnboardedFamilyPetsProfileIdGeneralRoute
+  '/food/recipes/$recipeId/edit': typeof AuthenticatedOnboardedFoodRecipesRecipeIdEditRoute
   '/family/kids/$profileId': typeof AuthenticatedOnboardedFamilyKidsProfileIdIndexRoute
   '/family/pets/$profileId': typeof AuthenticatedOnboardedFamilyPetsProfileIdIndexRoute
+  '/food/recipes/$recipeId': typeof AuthenticatedOnboardedFoodRecipesRecipeIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -236,13 +289,19 @@ export interface FileRoutesById {
   '/_authenticated/_onboarded/manage/settings': typeof AuthenticatedOnboardedManageSettingsRoute
   '/_authenticated/_onboarded/family/kids/$profileId': typeof AuthenticatedOnboardedFamilyKidsProfileIdRouteRouteWithChildren
   '/_authenticated/_onboarded/family/pets/$profileId': typeof AuthenticatedOnboardedFamilyPetsProfileIdRouteRouteWithChildren
+  '/_authenticated/_onboarded/food/recipes/$recipeId': typeof AuthenticatedOnboardedFoodRecipesRecipeIdRouteRouteWithChildren
+  '/_authenticated/_onboarded/food/recipes/new': typeof AuthenticatedOnboardedFoodRecipesNewRoute
   '/_authenticated/_onboarded/family/kids/': typeof AuthenticatedOnboardedFamilyKidsIndexRoute
   '/_authenticated/_onboarded/family/pets/': typeof AuthenticatedOnboardedFamilyPetsIndexRoute
+  '/_authenticated/_onboarded/food/ingredients/': typeof AuthenticatedOnboardedFoodIngredientsIndexRoute
+  '/_authenticated/_onboarded/food/recipes/': typeof AuthenticatedOnboardedFoodRecipesIndexRoute
   '/_authenticated/_onboarded/family/kids/$profileId/dictionary': typeof AuthenticatedOnboardedFamilyKidsProfileIdDictionaryRoute
   '/_authenticated/_onboarded/family/kids/$profileId/general': typeof AuthenticatedOnboardedFamilyKidsProfileIdGeneralRoute
   '/_authenticated/_onboarded/family/pets/$profileId/general': typeof AuthenticatedOnboardedFamilyPetsProfileIdGeneralRoute
+  '/_authenticated/_onboarded/food/recipes/$recipeId/edit': typeof AuthenticatedOnboardedFoodRecipesRecipeIdEditRoute
   '/_authenticated/_onboarded/family/kids/$profileId/': typeof AuthenticatedOnboardedFamilyKidsProfileIdIndexRoute
   '/_authenticated/_onboarded/family/pets/$profileId/': typeof AuthenticatedOnboardedFamilyPetsProfileIdIndexRoute
+  '/_authenticated/_onboarded/food/recipes/$recipeId/': typeof AuthenticatedOnboardedFoodRecipesRecipeIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -262,13 +321,19 @@ export interface FileRouteTypes {
     | '/manage/settings'
     | '/family/kids/$profileId'
     | '/family/pets/$profileId'
+    | '/food/recipes/$recipeId'
+    | '/food/recipes/new'
     | '/family/kids/'
     | '/family/pets/'
+    | '/food/ingredients/'
+    | '/food/recipes/'
     | '/family/kids/$profileId/dictionary'
     | '/family/kids/$profileId/general'
     | '/family/pets/$profileId/general'
+    | '/food/recipes/$recipeId/edit'
     | '/family/kids/$profileId/'
     | '/family/pets/$profileId/'
+    | '/food/recipes/$recipeId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -283,13 +348,18 @@ export interface FileRouteTypes {
     | '/expenses/monthly-expenses'
     | '/manage/household-members'
     | '/manage/settings'
+    | '/food/recipes/new'
     | '/family/kids'
     | '/family/pets'
+    | '/food/ingredients'
+    | '/food/recipes'
     | '/family/kids/$profileId/dictionary'
     | '/family/kids/$profileId/general'
     | '/family/pets/$profileId/general'
+    | '/food/recipes/$recipeId/edit'
     | '/family/kids/$profileId'
     | '/family/pets/$profileId'
+    | '/food/recipes/$recipeId'
   id:
     | '__root__'
     | '/_authenticated'
@@ -309,13 +379,19 @@ export interface FileRouteTypes {
     | '/_authenticated/_onboarded/manage/settings'
     | '/_authenticated/_onboarded/family/kids/$profileId'
     | '/_authenticated/_onboarded/family/pets/$profileId'
+    | '/_authenticated/_onboarded/food/recipes/$recipeId'
+    | '/_authenticated/_onboarded/food/recipes/new'
     | '/_authenticated/_onboarded/family/kids/'
     | '/_authenticated/_onboarded/family/pets/'
+    | '/_authenticated/_onboarded/food/ingredients/'
+    | '/_authenticated/_onboarded/food/recipes/'
     | '/_authenticated/_onboarded/family/kids/$profileId/dictionary'
     | '/_authenticated/_onboarded/family/kids/$profileId/general'
     | '/_authenticated/_onboarded/family/pets/$profileId/general'
+    | '/_authenticated/_onboarded/food/recipes/$recipeId/edit'
     | '/_authenticated/_onboarded/family/kids/$profileId/'
     | '/_authenticated/_onboarded/family/pets/$profileId/'
+    | '/_authenticated/_onboarded/food/recipes/$recipeId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -460,6 +536,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOnboardedFamilyPetsProfileIdRouteRouteImport
       parentRoute: typeof AuthenticatedOnboardedRoute
     }
+    '/_authenticated/_onboarded/food/ingredients/': {
+      id: '/_authenticated/_onboarded/food/ingredients/'
+      path: '/food/ingredients'
+      fullPath: '/food/ingredients/'
+      preLoaderRoute: typeof AuthenticatedOnboardedFoodIngredientsIndexRouteImport
+      parentRoute: typeof AuthenticatedOnboardedRoute
+    }
+    '/_authenticated/_onboarded/food/recipes/': {
+      id: '/_authenticated/_onboarded/food/recipes/'
+      path: '/food/recipes'
+      fullPath: '/food/recipes/'
+      preLoaderRoute: typeof AuthenticatedOnboardedFoodRecipesIndexRouteImport
+      parentRoute: typeof AuthenticatedOnboardedRoute
+    }
+    '/_authenticated/_onboarded/food/recipes/$recipeId': {
+      id: '/_authenticated/_onboarded/food/recipes/$recipeId'
+      path: '/food/recipes/$recipeId'
+      fullPath: '/food/recipes/$recipeId'
+      preLoaderRoute: typeof AuthenticatedOnboardedFoodRecipesRecipeIdRouteRouteImport
+      parentRoute: typeof AuthenticatedOnboardedRoute
+    }
+    '/_authenticated/_onboarded/food/recipes/new': {
+      id: '/_authenticated/_onboarded/food/recipes/new'
+      path: '/food/recipes/new'
+      fullPath: '/food/recipes/new'
+      preLoaderRoute: typeof AuthenticatedOnboardedFoodRecipesNewRouteImport
+      parentRoute: typeof AuthenticatedOnboardedRoute
+    }
     '/_authenticated/_onboarded/family/kids/$profileId/': {
       id: '/_authenticated/_onboarded/family/kids/$profileId/'
       path: '/'
@@ -494,6 +598,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/family/pets/$profileId/general'
       preLoaderRoute: typeof AuthenticatedOnboardedFamilyPetsProfileIdGeneralRouteImport
       parentRoute: typeof AuthenticatedOnboardedFamilyPetsProfileIdRouteRoute
+    }
+    '/_authenticated/_onboarded/food/recipes/$recipeId/': {
+      id: '/_authenticated/_onboarded/food/recipes/$recipeId/'
+      path: '/'
+      fullPath: '/food/recipes/$recipeId/'
+      preLoaderRoute: typeof AuthenticatedOnboardedFoodRecipesRecipeIdIndexRouteImport
+      parentRoute: typeof AuthenticatedOnboardedFoodRecipesRecipeIdRouteRoute
+    }
+    '/_authenticated/_onboarded/food/recipes/$recipeId/edit': {
+      id: '/_authenticated/_onboarded/food/recipes/$recipeId/edit'
+      path: '/edit'
+      fullPath: '/food/recipes/$recipeId/edit'
+      preLoaderRoute: typeof AuthenticatedOnboardedFoodRecipesRecipeIdEditRouteImport
+      parentRoute: typeof AuthenticatedOnboardedFoodRecipesRecipeIdRouteRoute
     }
   }
 }
@@ -557,6 +675,24 @@ const AuthenticatedOnboardedFamilyPetsProfileIdRouteRouteWithChildren =
     AuthenticatedOnboardedFamilyPetsProfileIdRouteRouteChildren,
   )
 
+interface AuthenticatedOnboardedFoodRecipesRecipeIdRouteRouteChildren {
+  AuthenticatedOnboardedFoodRecipesRecipeIdEditRoute: typeof AuthenticatedOnboardedFoodRecipesRecipeIdEditRoute
+  AuthenticatedOnboardedFoodRecipesRecipeIdIndexRoute: typeof AuthenticatedOnboardedFoodRecipesRecipeIdIndexRoute
+}
+
+const AuthenticatedOnboardedFoodRecipesRecipeIdRouteRouteChildren: AuthenticatedOnboardedFoodRecipesRecipeIdRouteRouteChildren =
+  {
+    AuthenticatedOnboardedFoodRecipesRecipeIdEditRoute:
+      AuthenticatedOnboardedFoodRecipesRecipeIdEditRoute,
+    AuthenticatedOnboardedFoodRecipesRecipeIdIndexRoute:
+      AuthenticatedOnboardedFoodRecipesRecipeIdIndexRoute,
+  }
+
+const AuthenticatedOnboardedFoodRecipesRecipeIdRouteRouteWithChildren =
+  AuthenticatedOnboardedFoodRecipesRecipeIdRouteRoute._addFileChildren(
+    AuthenticatedOnboardedFoodRecipesRecipeIdRouteRouteChildren,
+  )
+
 interface AuthenticatedOnboardedRouteChildren {
   AuthenticatedOnboardedUserProfileRoute: typeof AuthenticatedOnboardedUserProfileRoute
   AuthenticatedOnboardedIndexRoute: typeof AuthenticatedOnboardedIndexRoute
@@ -565,8 +701,12 @@ interface AuthenticatedOnboardedRouteChildren {
   AuthenticatedOnboardedManageSettingsRoute: typeof AuthenticatedOnboardedManageSettingsRoute
   AuthenticatedOnboardedFamilyKidsProfileIdRouteRoute: typeof AuthenticatedOnboardedFamilyKidsProfileIdRouteRouteWithChildren
   AuthenticatedOnboardedFamilyPetsProfileIdRouteRoute: typeof AuthenticatedOnboardedFamilyPetsProfileIdRouteRouteWithChildren
+  AuthenticatedOnboardedFoodRecipesRecipeIdRouteRoute: typeof AuthenticatedOnboardedFoodRecipesRecipeIdRouteRouteWithChildren
+  AuthenticatedOnboardedFoodRecipesNewRoute: typeof AuthenticatedOnboardedFoodRecipesNewRoute
   AuthenticatedOnboardedFamilyKidsIndexRoute: typeof AuthenticatedOnboardedFamilyKidsIndexRoute
   AuthenticatedOnboardedFamilyPetsIndexRoute: typeof AuthenticatedOnboardedFamilyPetsIndexRoute
+  AuthenticatedOnboardedFoodIngredientsIndexRoute: typeof AuthenticatedOnboardedFoodIngredientsIndexRoute
+  AuthenticatedOnboardedFoodRecipesIndexRoute: typeof AuthenticatedOnboardedFoodRecipesIndexRoute
 }
 
 const AuthenticatedOnboardedRouteChildren: AuthenticatedOnboardedRouteChildren =
@@ -584,10 +724,18 @@ const AuthenticatedOnboardedRouteChildren: AuthenticatedOnboardedRouteChildren =
       AuthenticatedOnboardedFamilyKidsProfileIdRouteRouteWithChildren,
     AuthenticatedOnboardedFamilyPetsProfileIdRouteRoute:
       AuthenticatedOnboardedFamilyPetsProfileIdRouteRouteWithChildren,
+    AuthenticatedOnboardedFoodRecipesRecipeIdRouteRoute:
+      AuthenticatedOnboardedFoodRecipesRecipeIdRouteRouteWithChildren,
+    AuthenticatedOnboardedFoodRecipesNewRoute:
+      AuthenticatedOnboardedFoodRecipesNewRoute,
     AuthenticatedOnboardedFamilyKidsIndexRoute:
       AuthenticatedOnboardedFamilyKidsIndexRoute,
     AuthenticatedOnboardedFamilyPetsIndexRoute:
       AuthenticatedOnboardedFamilyPetsIndexRoute,
+    AuthenticatedOnboardedFoodIngredientsIndexRoute:
+      AuthenticatedOnboardedFoodIngredientsIndexRoute,
+    AuthenticatedOnboardedFoodRecipesIndexRoute:
+      AuthenticatedOnboardedFoodRecipesIndexRoute,
   }
 
 const AuthenticatedOnboardedRouteWithChildren =

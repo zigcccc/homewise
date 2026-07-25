@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate, useRouteContext, useRouterState } from '@tanstack/react-router';
 import {
   BabyIcon,
+  CarrotIcon,
   CogIcon,
   CookingPotIcon,
   LayoutDashboardIcon,
@@ -179,11 +180,23 @@ export function AppSidebar() {
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <Link to="/">
-                <SidebarMenuButton tooltip="Recipes">
-                  <ScrollTextIcon className="size-4" />
-                  <span>Recipes</span>
-                </SidebarMenuButton>
+              <Link to="/food/recipes">
+                {({ isActive }) => (
+                  <SidebarMenuButton isActive={isActive} tooltip="Recipes">
+                    <ScrollTextIcon className="size-4" />
+                    <span>Recipes</span>
+                  </SidebarMenuButton>
+                )}
+              </Link>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <Link to="/food/ingredients">
+                {({ isActive }) => (
+                  <SidebarMenuButton isActive={isActive} tooltip="Ingredients">
+                    <CarrotIcon className="size-4" />
+                    <span>Ingredients</span>
+                  </SidebarMenuButton>
+                )}
               </Link>
             </SidebarMenuItem>
           </SidebarMenu>
