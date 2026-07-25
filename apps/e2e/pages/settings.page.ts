@@ -24,10 +24,15 @@ export class SettingsPage {
    * Renames the household and saves. The field auto-saves on blur, so blurring
    * is the deterministic path — clicking "Save changes" instead races the
    * blur-triggered save, which disables the button before the click lands.
+   *
+   * The heading is driven by the household query, so it only reflects the new name
+   * once the save has persisted and the query refetched — waiting on it makes this
+   * return after the write completes, not merely after the blur.
    */
   async setHouseholdName(name: string) {
     await this.nameInput.fill(name);
     await this.nameInput.blur();
+    await expect(this.heading(name)).toBeVisible();
   }
 
   /** Opens the danger-zone delete dialog. */

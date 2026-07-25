@@ -96,10 +96,11 @@ test('changes an account member’s role (owner action), then restores it', asyn
     await members.setMemberRole(SEED_SECOND_USER.name, 'Child');
     await expect(roleSelect).toContainText('Child');
   } finally {
-    // Always restore the seed member's role so reruns start clean.
+    // Restore the seed member's role AND assert it inside finally, so a restore
+    // that fails or only partially applies is detected even when the try block threw.
     await members.setMemberRole(SEED_SECOND_USER.name, 'Adult');
+    await expect(roleSelect).toContainText('Adult');
   }
-  await expect(roleSelect).toContainText('Adult');
 });
 
 /**
@@ -109,10 +110,16 @@ test('changes an account member’s role (owner action), then restores it', asyn
  */
 async function restoreSeedOwner(secondMembers: HouseholdMembersPage) {
   await secondMembers.goto();
+  // goto() only waits for the page chrome (the "Add member" button), not the
+  // members list — so wait for the second member's row to load before the
+  // point-in-time ownership check, or a still-loading row yields a false "not
+  // owner" and skips the restore.
+  const secondRow = secondMembers.memberRow(SEED_SECOND_USER.name);
+  await expect(secondRow).toBeVisible();
   // isVisible() returns false for an absent "(owner)" marker without throwing, so
   // no catch is needed here — a genuine navigation/UI error should propagate rather
   // than be silently swallowed into "not owner" (which would skip the restore).
-  const secondIsOwner = await secondMembers.memberRow(SEED_SECOND_USER.name).getByText('(owner)').isVisible();
+  const secondIsOwner = await secondRow.getByText('(owner)').isVisible();
 
   if (secondIsOwner) {
     await secondMembers.transferOwnershipTo(SEED_USER.name);
