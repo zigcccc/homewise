@@ -46,3 +46,48 @@ export const SEED_CHILD_MEMBER = {
   name: 'Robin',
   nickname: 'Robbie',
 } as const;
+
+/**
+ * Pantry staples seeded into the household's ingredient library. A brand-new household would
+ * otherwise open the recipe form to an empty ingredient picker, which reads as broken; the e2e suite
+ * also needs known ingredients it can attach to a recipe without creating any first.
+ */
+export const SEED_INGREDIENTS = [
+  { name: 'Onion', category: 'produce', defaultUnit: 'piece' },
+  { name: 'Garlic', category: 'produce', defaultUnit: 'clove' },
+  { name: 'Olive oil', category: 'pantry', defaultUnit: 'tbsp' },
+  { name: 'Flour', category: 'pantry', defaultUnit: 'g' },
+  { name: 'Eggs', category: 'dairy_eggs', defaultUnit: 'piece' },
+  { name: 'Butter', category: 'dairy_eggs', defaultUnit: 'g' },
+  { name: 'Salt', category: 'spices', defaultUnit: 'tsp' },
+  { name: 'Black pepper', category: 'spices', defaultUnit: 'tsp' },
+] as const;
+
+/**
+ * One complete recipe, so the list, the detail read view and search-by-ingredient all have known
+ * data to assert against. The e2e suite only ever *reads* this one — specs that mutate create their
+ * own uniquely-named recipe.
+ */
+export const SEED_RECIPE = {
+  title: 'Garlic Butter Pasta',
+  description: 'The weeknight fallback — on the table in fifteen minutes.',
+  mealType: 'dinner',
+  cuisine: 'Italian',
+  servings: 4,
+  prepTimeMinutes: 5,
+  cookTimeMinutes: 10,
+  sourceName: 'Family notebook',
+  /** Ingredient names, resolved against SEED_INGREDIENTS when seeding. */
+  ingredients: [
+    { name: 'Garlic', quantity: 4, unit: 'clove', note: 'thinly sliced' },
+    { name: 'Butter', quantity: 60, unit: 'g', note: null },
+    { name: 'Olive oil', quantity: 2, unit: 'tbsp', note: null },
+    { name: 'Salt', quantity: null, unit: null, note: 'to taste' },
+  ],
+  steps: [
+    'Boil the pasta in well-salted water until al dente.',
+    'Melt the butter with the olive oil over low heat and add the garlic.',
+    'Toss the drained pasta through the garlic butter and season.',
+  ],
+  tags: ['quick', 'weeknight'],
+} as const;

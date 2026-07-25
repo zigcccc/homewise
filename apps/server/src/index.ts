@@ -10,8 +10,10 @@ import childDictionariesApp from './modules/child-dictionaries';
 import childProfilesApp from './modules/child-profiles';
 import contactsApp from './modules/contacts';
 import householdsApp from './modules/households';
+import ingredientsApp from './modules/ingredients';
 import medicalApp from './modules/medical';
 import petProfilesApp from './modules/pet-profiles';
+import recipesApp from './modules/recipes';
 import usersApp from './modules/users';
 import { type AppContext } from './types/app.type';
 
@@ -44,7 +46,9 @@ const app = new Hono<AppContext>()
   .route('/child-dictionaries', childDictionariesApp)
   .route('/pet-profiles', petProfilesApp)
   .route('/contacts', contactsApp)
-  .route('/medical-info', medicalApp);
+  .route('/medical-info', medicalApp)
+  .route('/recipes', recipesApp)
+  .route('/ingredients', ingredientsApp);
 
 if (env.NODE_ENV === 'development') {
   console.log('Serving app on port 5173...');

@@ -34,6 +34,14 @@
     "./medical": {
       "import": "./src/modules/medical/models/index.ts",
       "type": "./src/modules/medical/models/index.ts"
+    },
+    "./recipes": {
+      "import": "./src/modules/recipes/models/index.ts",
+      "type": "./src/modules/recipes/models/index.ts"
+    },
+    "./ingredients": {
+      "import": "./src/modules/ingredients/models/index.ts",
+      "type": "./src/modules/ingredients/models/index.ts"
     }
   },
   "scripts": {
