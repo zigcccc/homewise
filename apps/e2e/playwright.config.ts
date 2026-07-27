@@ -81,7 +81,14 @@ export default defineConfig({
       // never resets. Refusing to start when :5173 is busy is the loud, correct alternative.
       reuseExistingServer: false,
       timeout: 120_000,
-      env: { NODE_ENV: 'development', DATABASE_URL: TEST_DATABASE_URL },
+      // HOMEWISE_DISABLE_EMAILS: the invite specs would otherwise make real Resend calls on every
+      // run — rate-limited across three workers, so a flake source, and quota spent on throwaway
+      // addresses. Suppressing them tests our own invite rows, which is what the specs assert on.
+      env: {
+        NODE_ENV: 'development',
+        DATABASE_URL: TEST_DATABASE_URL,
+        HOMEWISE_DISABLE_EMAILS: 'true',
+      },
     },
     {
       // Serve the production build via `vite preview`, not the dev server: the dev

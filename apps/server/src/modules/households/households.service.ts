@@ -5,7 +5,7 @@ import { render } from 'react-email';
 import { db, schema } from '@/db';
 import { JoinHousehold } from '@/emails/JoinHousehold';
 import { auth } from '@/lib/auth';
-import { resend } from '@/lib/resend';
+import { sendEmail } from '@/lib/resend';
 
 import {
   type CreateHouseholdMember,
@@ -215,11 +215,15 @@ export class HouseholdsService {
     callbackUrl: string,
     headers: Headers
   ) {
+    // Persist every invite first, then send. Mailing inside the transaction meant a provider blip
+    // rolled the rows back, so the user saw a successful submit and got no invite at all.
+    const pending: { email: string; token: string }[] = [];
+
     await db.transaction(async (tx) => {
       for (const member of payload.members) {
         const { token } = await auth.api.generateOneTimeToken({ headers });
 
-        const [invite] = await db
+        const [invite] = await tx
           .insert(schema.householdInvite)
           .values({ email: member.email, role: member.role, householdId: household.id, token })
           .returning();
@@ -229,21 +233,39 @@ export class HouseholdsService {
           throw new HTTPException(400, { message: 'Something went wrong' });
         }
 
-        const html = await render(
-          JoinHousehold({
-            url: `${callbackUrl}/join-household?token=${token}`,
-            inviteeEmailAddress: member.email,
-            householdName: household.name,
-          })
-        );
-        await resend.emails.send({
-          from: 'Homewise 🏡 <no-reply@home-wise.app>',
-          to: member.email,
-          subject: `Join "${household.name}" household`,
-          html,
-        });
+        pending.push({ email: member.email, token });
       }
     });
+
+    for (const { email, token } of pending) {
+      await HouseholdsService.sendInviteEmail(household.name, email, token, callbackUrl);
+    }
+  }
+
+  /**
+   * Renders and sends one invite email. Deliberately does not throw: by the time this runs the
+   * invite row is committed, and dropping it because the mail provider hiccuped is worse than an
+   * email the owner has to re-send. The failure is logged so it stays visible.
+   */
+  private static async sendInviteEmail(householdName: string, email: string, token: string, callbackUrl: string) {
+    const html = await render(
+      JoinHousehold({
+        url: `${callbackUrl}/join-household?token=${token}`,
+        inviteeEmailAddress: email,
+        householdName,
+      })
+    );
+
+    try {
+      await sendEmail({
+        from: 'Homewise 🏡 <no-reply@home-wise.app>',
+        to: email,
+        subject: `Join "${householdName}" household`,
+        html,
+      });
+    } catch (error) {
+      console.error(`✗ invite email to ${email} failed; the invite is saved and can be re-sent`, error);
+    }
   }
 
   public static async inviteExistingMember(
@@ -270,19 +292,8 @@ export class HouseholdsService {
       throw new HTTPException(400, { message: 'Something went wrong' });
     }
 
-    const html = await render(
-      JoinHousehold({
-        url: `${callbackUrl}/join-household?token=${token}`,
-        inviteeEmailAddress: email,
-        householdName: household.name,
-      })
-    );
-    await resend.emails.send({
-      from: 'Homewise 🏡 <no-reply@home-wise.app>',
-      to: email,
-      subject: `Join "${household.name}" household`,
-      html,
-    });
+    // Sent after the row is committed, for the same reason as the bulk path above.
+    await HouseholdsService.sendInviteEmail(household.name, email, token, callbackUrl);
 
     return invite;
   }
