@@ -11,6 +11,15 @@ type Executor = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 /** Optional text fields come in as '' when a user clears them; store that as NULL. */
 const emptyToNull = (value: string | undefined) => (value === '' ? null : value);
 
+/** Postgres unique-violation. Raised by `ingredient_household_name_unique` on a duplicate name. */
+const UNIQUE_VIOLATION = '23505';
+
+const isUniqueViolation = (error: unknown) =>
+  typeof error === 'object' && error !== null && 'code' in error && error.code === UNIQUE_VIOLATION;
+
+const duplicateNameError = (name: string) =>
+  new HTTPException(409, { message: `"${name}" is already in your ingredient library` });
+
 /**
  * The household's reusable ingredient vocabulary. Recipes reference these rows; shopping lists and
  * meal plans will too, which is why names are deduplicated case-insensitively.
@@ -73,7 +82,7 @@ export class IngredientsService {
       .limit(1);
 
     if (existing) {
-      throw new HTTPException(409, { message: `"${name}" is already in your ingredient library` });
+      throw duplicateNameError(name);
     }
   }
 
@@ -110,6 +119,8 @@ export class IngredientsService {
   public static async create(householdId: number, data: CreateIngredient, executor: Executor = db) {
     await IngredientsService.assertNameAvailable(householdId, data.name, executor);
 
+    // The check above is a TOCTOU window: two concurrent creates of the same name both pass it, and
+    // the loser hits the unique index. Translate that into the same 409 rather than a 500.
     const [created] = await executor
       .insert(schema.ingredient)
       .values({
@@ -119,7 +130,13 @@ export class IngredientsService {
         defaultUnit: data.defaultUnit ?? null,
         notes: emptyToNull(data.notes),
       })
-      .returning();
+      .returning()
+      .catch((error: unknown) => {
+        if (isUniqueViolation(error)) {
+          throw duplicateNameError(data.name);
+        }
+        throw error;
+      });
 
     if (!created) {
       throw new HTTPException(400, { message: 'Something went wrong.' });
@@ -135,17 +152,34 @@ export class IngredientsService {
       await IngredientsService.assertNameAvailable(householdId, data.name, db, ingredientId);
     }
 
+    const set = {
+      name: data.name,
+      category: data.category,
+      // `null` clears the unit; `undefined` leaves it alone.
+      defaultUnit: data.defaultUnit,
+      notes: emptyToNull(data.notes),
+    };
+
+    // Every field is optional, so `PATCH {}` reaches here with nothing to write — and drizzle throws
+    // "No values to set" rather than no-opping, which would surface as a 500. Return the row as-is.
+    if (Object.values(set).every((value) => value === undefined)) {
+      const current = await IngredientsService.readIngredientRow(householdId, ingredientId);
+      const usage = await IngredientsService.countRecipeUsage([ingredientId]);
+
+      return { ...current, recipeCount: usage.get(ingredientId) ?? 0 };
+    }
+
     const [updated] = await db
       .update(schema.ingredient)
-      .set({
-        name: data.name,
-        category: data.category,
-        // `null` clears the unit; `undefined` leaves it alone.
-        defaultUnit: data.defaultUnit,
-        notes: emptyToNull(data.notes),
-      })
+      .set(set)
       .where(and(eq(schema.ingredient.householdId, householdId), eq(schema.ingredient.id, ingredientId)))
-      .returning();
+      .returning()
+      .catch((error: unknown) => {
+        if (data.name !== undefined && isUniqueViolation(error)) {
+          throw duplicateNameError(data.name);
+        }
+        throw error;
+      });
 
     if (!updated) {
       throw new HTTPException(404, { message: 'Ingredient not found' });

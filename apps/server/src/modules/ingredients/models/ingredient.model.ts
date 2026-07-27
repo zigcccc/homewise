@@ -85,7 +85,8 @@ export const listIngredientsQueryParamsModel = z.object({
     .string()
     .trim()
     .transform((value) => (value === '' ? undefined : value))
-    .optional(),
+    .optional()
+    .catch(undefined),
   category: ingredientCategory.optional().catch(undefined),
   sortKey: ingredientSortKey.default('name').catch('name'),
   sortDirection: ingredientSortDirection.default('asc').catch('asc'),

@@ -101,8 +101,15 @@ export class RecipesPage {
     await this.page.getByRole('button', { name: label }).click();
   }
 
+  /**
+   * The input debounces before navigating, so acting immediately after `fill()` can hit the table
+   * mid-rerender. Wait for the URL to carry the term, matching dictionary/ingredients.
+   */
   async search(term: string) {
     await this.page.getByPlaceholder('Search recipes or ingredients').fill(term);
+    await this.page.waitForURL((url) =>
+      term === '' ? !url.searchParams.has('search') : url.searchParams.get('search') === term
+    );
   }
 
   async filterByMealType(mealType: string) {

@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
 import { hashPassword } from 'better-auth/crypto';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 
@@ -272,11 +272,19 @@ async function seed() {
             SEED_RECIPE.steps.map((instruction, index) => ({ recipeId: created.id, position: index, instruction }))
           );
 
-        const tags = await tx
+        await tx
           .insert(schema.recipeTag)
           .values(SEED_RECIPE.tags.map((name) => ({ householdId: household.id, name })))
-          .onConflictDoNothing()
-          .returning();
+          .onConflictDoNothing();
+
+        // Re-read rather than using the insert's `returning()`: onConflictDoNothing omits rows that
+        // already existed, so a tag left over from an earlier seed would never get linked.
+        const tags = await tx
+          .select({ id: schema.recipeTag.id })
+          .from(schema.recipeTag)
+          .where(
+            and(eq(schema.recipeTag.householdId, household.id), inArray(schema.recipeTag.name, [...SEED_RECIPE.tags]))
+          );
 
         if (tags.length > 0) {
           await tx.insert(schema.recipeTagLink).values(tags.map((tag) => ({ recipeId: created.id, tagId: tag.id })));

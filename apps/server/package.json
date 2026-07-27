@@ -4,44 +4,44 @@
   "types": "./src/index.ts",
   "exports": {
     ".": {
-      "import": "./src/index.ts",
-      "type": "./src/index.ts"
+      "types": "./src/index.ts",
+      "import": "./src/index.ts"
     },
     "./seed-fixtures": {
-      "import": "./src/db/seed-fixtures.ts",
-      "type": "./src/db/seed-fixtures.ts"
+      "types": "./src/db/seed-fixtures.ts",
+      "import": "./src/db/seed-fixtures.ts"
     },
     "./households": {
-      "import": "./src/modules/households/models/index.ts",
-      "type": "./src/modules/households/models/index.ts"
+      "types": "./src/modules/households/models/index.ts",
+      "import": "./src/modules/households/models/index.ts"
     },
     "./child-dictionaries": {
-      "import": "./src/modules/child-dictionaries/models/index.ts",
-      "type": "./src/modules/child-dictionaries/models/index.ts"
+      "types": "./src/modules/child-dictionaries/models/index.ts",
+      "import": "./src/modules/child-dictionaries/models/index.ts"
     },
     "./child-profiles": {
-      "import": "./src/modules/child-profiles/models/index.ts",
-      "type": "./src/modules/child-profiles/models/index.ts"
+      "types": "./src/modules/child-profiles/models/index.ts",
+      "import": "./src/modules/child-profiles/models/index.ts"
     },
     "./pet-profiles": {
-      "import": "./src/modules/pet-profiles/models/index.ts",
-      "type": "./src/modules/pet-profiles/models/index.ts"
+      "types": "./src/modules/pet-profiles/models/index.ts",
+      "import": "./src/modules/pet-profiles/models/index.ts"
     },
     "./contacts": {
-      "import": "./src/modules/contacts/models/index.ts",
-      "type": "./src/modules/contacts/models/index.ts"
+      "types": "./src/modules/contacts/models/index.ts",
+      "import": "./src/modules/contacts/models/index.ts"
     },
     "./medical": {
-      "import": "./src/modules/medical/models/index.ts",
-      "type": "./src/modules/medical/models/index.ts"
+      "types": "./src/modules/medical/models/index.ts",
+      "import": "./src/modules/medical/models/index.ts"
     },
     "./recipes": {
-      "import": "./src/modules/recipes/models/index.ts",
-      "type": "./src/modules/recipes/models/index.ts"
+      "types": "./src/modules/recipes/models/index.ts",
+      "import": "./src/modules/recipes/models/index.ts"
     },
     "./ingredients": {
-      "import": "./src/modules/ingredients/models/index.ts",
-      "type": "./src/modules/ingredients/models/index.ts"
+      "types": "./src/modules/ingredients/models/index.ts",
+      "import": "./src/modules/ingredients/models/index.ts"
     }
   },
   "scripts": {

@@ -126,7 +126,17 @@ export class RecipesService {
     const refreshed = await readTags();
     const refreshedByLower = new Map(refreshed.map((tag) => [tag.name.toLowerCase(), tag.id]));
 
-    return [...wanted.keys()].map((key) => refreshedByLower.get(key)!).filter((id) => id !== undefined);
+    // Every wanted key must resolve now: it either existed or was just inserted. If one doesn't,
+    // something is wrong with the insert — fail rather than quietly saving the recipe minus a tag.
+    return [...wanted.keys()].map((key) => {
+      const id = refreshedByLower.get(key);
+
+      if (id === undefined) {
+        throw new HTTPException(500, { message: `Could not resolve tag "${wanted.get(key)}"` });
+      }
+
+      return id;
+    });
   }
 
   /** Replace-all: the submitted list becomes the recipe's full ingredient list, in array order. */

@@ -1,7 +1,14 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowDownIcon, ArrowUpIcon, GripVerticalIcon, TrashIcon, XIcon } from 'lucide-react';
 import { useState } from 'react';
-import { type SubmitHandler, useFieldArray, useForm } from 'react-hook-form';
+import {
+  type Control,
+  type FieldPath,
+  type FieldPathValue,
+  type SubmitHandler,
+  useFieldArray,
+  useForm,
+} from 'react-hook-form';
 import type z from 'zod';
 
 import { measurementUnit } from '@homewise/server/ingredients';
@@ -97,7 +104,9 @@ export function RecipeForm({
     await onSubmit(values);
   };
 
-  const ingredientsById = new Map(ingredients.map((item) => [item.id, item]));
+  // Ingredients picked in this session, so a row can label itself before the library query catches up.
+  const [justCreated, setJustCreated] = useState<Ingredient[]>([]);
+  const ingredientsById = new Map([...justCreated, ...ingredients].map((item) => [item.id, item]));
 
   return (
     <Form {...form}>
@@ -181,11 +190,7 @@ export function RecipeForm({
               <NumberField control={form.control} label="Prep time (min)" name="prepTimeMinutes" placeholder="15" />
               <NumberField control={form.control} label="Cook time (min)" name="cookTimeMinutes" placeholder="30" />
             </div>
-            <TagField
-              onChange={(next) => form.setValue('tags', next, { shouldDirty: true })}
-              suggestions={tagSuggestions}
-              value={form.watch('tags') ?? []}
-            />
+            <TagField control={form.control} suggestions={tagSuggestions} />
           </CardContent>
         </Card>
 
@@ -291,7 +296,12 @@ export function RecipeForm({
             <IngredientCombobox
               ingredients={ingredients}
               onCreated={onIngredientCreated}
-              onSelect={(ingredient) =>
+              onSelect={(ingredient) => {
+                // Remember it locally as well: for a just-created ingredient the library refetch is
+                // in flight, so without this the new row would read "Unknown ingredient" until it lands.
+                setJustCreated((current) =>
+                  current.some((item) => item.id === ingredient.id) ? current : [...current, ingredient]
+                );
                 ingredientLines.append({
                   ingredientId: ingredient.id,
                   quantity: null,
@@ -299,8 +309,8 @@ export function RecipeForm({
                   unit: ingredient.defaultUnit,
                   note: '',
                   section: '',
-                })
-              }
+                });
+              }}
             />
           </CardContent>
         </Card>
@@ -421,6 +431,15 @@ export function RecipeForm({
 }
 
 /**
+ * Every path in the form whose value is numeric — `servings`, `prepTimeMinutes`,
+ * `ingredients.${number}.quantity` and friends. Narrowing `NumberField`'s `name` to these means a
+ * typo'd or non-numeric path is a compile error rather than a field that silently binds nothing.
+ */
+type NumericFieldPath = {
+  [K in FieldPath<RecipeFormValues>]: FieldPathValue<RecipeFormValues, K> extends number | null | undefined ? K : never;
+}[FieldPath<RecipeFormValues>];
+
+/**
  * A numeric form field. Native number inputs hand back strings, and the schema wants a number or
  * null, so the conversion lives here rather than being repeated at seven call sites.
  */
@@ -431,10 +450,9 @@ function NumberField({
   placeholder,
   step,
 }: {
-  // biome-ignore lint/suspicious/noExplicitAny: react-hook-form's Control is invariant in its path union.
-  control: any;
+  control: Control<RecipeFormValues>;
   label: string;
-  name: string;
+  name: NumericFieldPath;
   placeholder?: string;
   step?: string;
 }) {
@@ -455,7 +473,9 @@ function NumberField({
               ref={field.ref}
               step={step}
               type="number"
-              value={field.value ?? ''}
+              // Safe by construction: NumericFieldPath admits only numeric paths, but RHF widens
+              // `field.value` to the union of every field's type across the form.
+              value={(field.value as number | null | undefined) ?? ''}
             />
           </FormControl>
           <FormMessage />
@@ -469,84 +489,98 @@ function NumberField({
  * Free-form tags. Tags travel as names — the server finds-or-creates them per household — so this is
  * a chip list over strings, with the household's existing vocabulary offered underneath.
  */
-function TagField({
-  onChange,
-  suggestions,
-  value,
-}: {
-  onChange: (next: string[]) => void;
-  suggestions: string[];
-  value: string[];
-}) {
+function TagField({ control, suggestions }: { control: Control<RecipeFormValues>; suggestions: string[] }) {
   const [draft, setDraft] = useState('');
 
-  const add = (name: string) => {
-    const trimmed = name.trim();
-    // Match the server's case-insensitive dedup, so the chip list can't show "Quick" and "quick".
-    if (!trimmed || value.some((tag) => tag.toLowerCase() === trimmed.toLowerCase())) {
-      setDraft('');
-      return;
-    }
-
-    onChange([...value, trimmed]);
-    setDraft('');
-  };
-
-  const unused = suggestions.filter((tag) => !value.some((selected) => selected.toLowerCase() === tag.toLowerCase()));
-
   return (
-    <div className="space-y-2">
-      <FormLabel>Tags</FormLabel>
-      {value.length > 0 && (
-        <ul className="flex flex-wrap gap-2">
-          {value.map((tag) => (
-            <li className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-sm" key={tag.toLowerCase()}>
-              {tag}
-              <button
-                aria-label={`Remove tag ${tag}`}
-                className="cursor-pointer text-muted-foreground hover:text-foreground"
-                onClick={() => onChange(value.filter((item) => item !== tag))}
-                type="button"
-              >
-                <XIcon className="size-3" />
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-      <div className="flex gap-2">
-        <Input
-          aria-label="Add tag"
-          onChange={(evt) => setDraft(evt.target.value)}
-          onKeyDown={(evt) => {
-            // Enter would otherwise submit the whole recipe instead of committing the tag.
-            if (evt.key === 'Enter') {
-              evt.preventDefault();
-              add(draft);
-            }
-          }}
-          placeholder="e.g. weeknight"
-          value={draft}
-        />
-        <Button onClick={() => add(draft)} type="button" variant="outline">
-          Add tag
-        </Button>
-      </div>
-      {unused.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-muted-foreground text-xs">Existing:</span>
-          {unused.map((tag) => (
-            <button
-              className="cursor-pointer rounded-full border px-2 py-0.5 text-sm hover:bg-accent"
-              key={tag}
-              onClick={() => add(tag)}
-              type="button"
-            >
-              {tag}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
+    <FormField
+      control={control}
+      name="tags"
+      render={({ field }) => {
+        const value = field.value ?? [];
+
+        const add = (name: string) => {
+          const trimmed = name.trim();
+          // Match the server's case-insensitive dedup, so the chip list can't show "Quick" and "quick".
+          if (!trimmed || value.some((tag) => tag.toLowerCase() === trimmed.toLowerCase())) {
+            setDraft('');
+            return;
+          }
+
+          field.onChange([...value, trimmed]);
+          setDraft('');
+        };
+
+        const unused = suggestions.filter(
+          (tag) => !value.some((selected) => selected.toLowerCase() === tag.toLowerCase())
+        );
+
+        return (
+          <FormItem>
+            <FormLabel>Tags</FormLabel>
+            {value.length > 0 && (
+              <ul className="flex flex-wrap gap-2">
+                {value.map((tag) => (
+                  <li
+                    className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-sm"
+                    key={tag.toLowerCase()}
+                  >
+                    {tag}
+                    <button
+                      aria-label={`Remove tag ${tag}`}
+                      className="cursor-pointer text-muted-foreground hover:text-foreground"
+                      onClick={() => field.onChange(value.filter((item) => item !== tag))}
+                      type="button"
+                    >
+                      <XIcon className="size-3" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="flex gap-2">
+              <FormControl>
+                <Input
+                  aria-label="Add tag"
+                  // Mirrors the server's per-tag limit, so an over-long tag can't be entered at all —
+                  // a per-item zod error has no FormMessage of its own to render into.
+                  maxLength={32}
+                  onBlur={field.onBlur}
+                  onChange={(evt) => setDraft(evt.target.value)}
+                  onKeyDown={(evt) => {
+                    // Enter would otherwise submit the whole recipe instead of committing the tag.
+                    if (evt.key === 'Enter') {
+                      evt.preventDefault();
+                      add(draft);
+                    }
+                  }}
+                  placeholder="e.g. weeknight"
+                  value={draft}
+                />
+              </FormControl>
+              <Button onClick={() => add(draft)} type="button" variant="outline">
+                Add tag
+              </Button>
+            </div>
+            {unused.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-muted-foreground text-xs">Existing:</span>
+                {unused.map((tag) => (
+                  <button
+                    className="cursor-pointer rounded-full border px-2 py-0.5 text-sm hover:bg-accent"
+                    key={tag}
+                    onClick={() => add(tag)}
+                    type="button"
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            )}
+            <FormMessage />
+          </FormItem>
+        );
+      }}
+    />
   );
 }

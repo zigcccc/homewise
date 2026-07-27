@@ -18,7 +18,9 @@ const client = new Resend(env.HOMEWISE_RESEND_API_KEY);
  */
 export async function sendEmail(payload: CreateEmailOptions) {
   if (env.HOMEWISE_DISABLE_EMAILS) {
-    console.log(`✉︎ email suppressed (HOMEWISE_DISABLE_EMAILS): "${payload.subject}" → ${String(payload.to)}`);
+    // No recipient here: addresses are PII and this fires on every send in E2E. The subject is
+    // enough to tell which template was suppressed.
+    console.log(`✉︎ email suppressed (HOMEWISE_DISABLE_EMAILS): "${payload.subject}"`);
     return;
   }
 

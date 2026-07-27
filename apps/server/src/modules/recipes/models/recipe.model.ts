@@ -144,7 +144,8 @@ export const listRecipesQueryParamsModel = z.object({
     .string()
     .trim()
     .transform((value) => (value === '' ? undefined : value))
-    .optional(),
+    .optional()
+    .catch(undefined),
   mealType: mealType.optional().catch(undefined),
   tagId: z.coerce.number<number>().int().positive().optional().catch(undefined),
   favoritesOnly: z.stringbool().default(false).catch(false),

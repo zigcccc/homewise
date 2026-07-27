@@ -107,8 +107,10 @@ function RecipeDetailRoute() {
               <p className="text-muted-foreground text-sm">No ingredients listed yet.</p>
             ) : (
               <div className="space-y-4">
-                {groups.map((group) => (
-                  <div key={group.section ?? '__none'}>
+                {/* Keyed by index too: groupBySection only merges *adjacent* lines, so "For the
+                    dough / For the sauce / For the dough" legitimately yields two same-named groups. */}
+                {groups.map((group, groupIndex) => (
+                  <div key={`${groupIndex}-${group.section ?? '__none'}`}>
                     {group.section && <h3 className="mb-1 font-medium text-sm">{group.section}</h3>}
                     <ul className="space-y-1">
                       {group.lines.map((line) => (

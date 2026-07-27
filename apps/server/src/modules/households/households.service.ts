@@ -217,7 +217,7 @@ export class HouseholdsService {
   ) {
     // Persist every invite first, then send. Mailing inside the transaction meant a provider blip
     // rolled the rows back, so the user saw a successful submit and got no invite at all.
-    const pending: { email: string; token: string }[] = [];
+    const pending: { id: number; email: string; token: string }[] = [];
 
     await db.transaction(async (tx) => {
       for (const member of payload.members) {
@@ -233,12 +233,12 @@ export class HouseholdsService {
           throw new HTTPException(400, { message: 'Something went wrong' });
         }
 
-        pending.push({ email: member.email, token });
+        pending.push({ id: invite.id, email: member.email, token });
       }
     });
 
-    for (const { email, token } of pending) {
-      await HouseholdsService.sendInviteEmail(household.name, email, token, callbackUrl);
+    for (const { id, email, token } of pending) {
+      await HouseholdsService.sendInviteEmail(id, household.name, email, token, callbackUrl);
     }
   }
 
@@ -247,7 +247,13 @@ export class HouseholdsService {
    * invite row is committed, and dropping it because the mail provider hiccuped is worse than an
    * email the owner has to re-send. The failure is logged so it stays visible.
    */
-  private static async sendInviteEmail(householdName: string, email: string, token: string, callbackUrl: string) {
+  private static async sendInviteEmail(
+    inviteId: number,
+    householdName: string,
+    email: string,
+    token: string,
+    callbackUrl: string
+  ) {
     const html = await render(
       JoinHousehold({
         url: `${callbackUrl}/join-household?token=${token}`,
@@ -264,7 +270,8 @@ export class HouseholdsService {
         html,
       });
     } catch (error) {
-      console.error(`✗ invite email to ${email} failed; the invite is saved and can be re-sent`, error);
+      // Correlate by invite id, not email address, so logs carry no recipient PII.
+      console.error(`✗ invite email failed for invite ${inviteId}; the invite is saved and can be re-sent`, error);
     }
   }
 
@@ -293,7 +300,7 @@ export class HouseholdsService {
     }
 
     // Sent after the row is committed, for the same reason as the bulk path above.
-    await HouseholdsService.sendInviteEmail(household.name, email, token, callbackUrl);
+    await HouseholdsService.sendInviteEmail(invite.id, household.name, email, token, callbackUrl);
 
     return invite;
   }

@@ -65,7 +65,8 @@ export const auth = betterAuth({
       } catch (error) {
         // Preserves the previous behaviour — a provider failure must not fail the sign-up itself —
         // but logs it instead of discarding it silently. The user can request a new link.
-        console.error(`✗ verification email to ${user.email} failed; sign-up itself succeeded`, error);
+        // Correlate by user id, not email address, so logs carry no recipient PII.
+        console.error(`✗ verification email failed for user ${user.id}; sign-up itself succeeded`, error);
       }
     },
   },
