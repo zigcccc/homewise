@@ -68,11 +68,21 @@ export class IngredientsPage {
     return dialog;
   }
 
+  /**
+   * Types into the search box and waits for the URL to catch up. The input debounces for 400ms
+   * before navigating, so without this the next action can fire while the table is re-rendering and
+   * click a row that is about to detach.
+   */
   async search(term: string) {
     await this.page.getByPlaceholder('Search ingredients').fill(term);
+    await this.page.waitForURL((url) =>
+      term === '' ? !url.searchParams.has('search') : url.searchParams.get('search') === term
+    );
   }
 
   private async openRowMenu(name: string) {
+    // Settle on the row before reaching into it, so the click can't land mid-rerender.
+    await expect(this.row(name)).toBeVisible();
     await this.row(name).getByRole('button', { name: 'Open menu' }).click();
   }
 }

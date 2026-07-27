@@ -75,7 +75,11 @@ export default defineConfig({
       // env (CI).
       command: 'pnpm --filter @homewise/server dev',
       url: `${API_URL}/auth/ok`,
-      reuseExistingServer: !process.env.CI,
+      // Never reuse. `env` below only applies to a process Playwright spawns itself, so adopting a
+      // running `pnpm dev` would silently point the whole suite at the DEV database (:8765) instead
+      // of the isolated test one — polluting real data and inventing failures from state the seed
+      // never resets. Refusing to start when :5173 is busy is the loud, correct alternative.
+      reuseExistingServer: false,
       timeout: 120_000,
       env: { NODE_ENV: 'development', DATABASE_URL: TEST_DATABASE_URL },
     },
@@ -88,7 +92,9 @@ export default defineConfig({
       // type-checking is a separate gate.
       command: 'pnpm --filter @homewise/web-app exec vite build && pnpm --filter @homewise/web-app exec vite preview',
       url: WEB_URL,
-      reuseExistingServer: !process.env.CI,
+      // Same reasoning as the API server: a running `vite dev` on :3000 would be adopted, and it
+      // was built against whatever VITE_API_URL that session used.
+      reuseExistingServer: false,
       // Longer than the API's: this includes a production build before serving.
       timeout: 180_000,
       env: { VITE_API_URL: API_URL },
