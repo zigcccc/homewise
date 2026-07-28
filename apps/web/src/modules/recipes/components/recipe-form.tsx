@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowDownIcon, ArrowUpIcon, GripVerticalIcon, TrashIcon, XIcon } from 'lucide-react';
-import { useState } from 'react';
+import { useRef } from 'react';
 import {
   type Control,
   type FieldPath,
@@ -9,6 +9,7 @@ import {
   useFieldArray,
   useForm,
 } from 'react-hook-form';
+import { toast } from 'sonner';
 import type z from 'zod';
 
 import { measurementUnit } from '@homewise/server/ingredients';
@@ -502,12 +503,19 @@ function NumberField({
   );
 }
 
+/** The server's per-tag length cap, mirrored so an over-long tag is rejected before it's submitted. */
+const MAX_TAG_LENGTH = 32;
+
 /**
  * Free-form tags. Tags travel as names — the server finds-or-creates them per household — so this is
  * a chip list over strings, with the household's existing vocabulary offered underneath.
+ *
+ * A tag commits on Enter, on a comma, or on blur, so a run of tags can be typed without reaching for
+ * the mouse and `quick, dinner, easy` can be pasted in one go. The in-progress text is held by the
+ * input itself rather than React state — the committed tags are the only thing worth re-rendering on.
  */
 function TagField({ control, suggestions }: { control: Control<RecipeFormValues>; suggestions: string[] }) {
-  const [draft, setDraft] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
 
   return (
     <FormField
@@ -516,16 +524,45 @@ function TagField({ control, suggestions }: { control: Control<RecipeFormValues>
       render={({ field }) => {
         const value = field.value ?? [];
 
-        const add = (name: string) => {
-          const trimmed = name.trim();
-          // Match the server's case-insensitive dedup, so the chip list can't show "Quick" and "quick".
-          if (!trimmed || value.some((tag) => tag.toLowerCase() === trimmed.toLowerCase())) {
-            setDraft('');
-            return;
+        const commit = (raw: string) => {
+          const added: string[] = [];
+          const tooLong: string[] = [];
+
+          for (const candidate of raw.split(',')) {
+            const trimmed = candidate.trim();
+
+            if (!trimmed) {
+              continue;
+            }
+
+            if (trimmed.length > MAX_TAG_LENGTH) {
+              tooLong.push(trimmed);
+              continue;
+            }
+
+            // Match the server's case-insensitive dedup — against the committed tags and against the
+            // rest of this batch — so the chip list can't show both "Quick" and "quick".
+            const isDuplicate = [...value, ...added].some((tag) => tag.toLowerCase() === trimmed.toLowerCase());
+            if (!isDuplicate) {
+              added.push(trimmed);
+            }
           }
 
-          field.onChange([...value, trimmed]);
-          setDraft('');
+          if (inputRef.current) {
+            inputRef.current.value = '';
+          }
+
+          if (tooLong.length > 0) {
+            // Say so rather than dropping them silently — the array-item zod error has no
+            // FormMessage of its own to surface in.
+            toast.error(
+              `${tooLong.length === 1 ? 'This tag is' : 'These tags are'} over ${MAX_TAG_LENGTH} characters: ${tooLong.join(', ')}`
+            );
+          }
+
+          if (added.length > 0) {
+            field.onChange([...value, ...added]);
+          }
         };
 
         const unused = suggestions.filter(
@@ -555,30 +592,37 @@ function TagField({ control, suggestions }: { control: Control<RecipeFormValues>
                 ))}
               </ul>
             )}
-            <div className="flex gap-2">
-              <FormControl>
-                <Input
-                  aria-label="Add tag"
-                  // Mirrors the server's per-tag limit, so an over-long tag can't be entered at all —
-                  // a per-item zod error has no FormMessage of its own to render into.
-                  maxLength={32}
-                  onBlur={field.onBlur}
-                  onChange={(evt) => setDraft(evt.target.value)}
-                  onKeyDown={(evt) => {
-                    // Enter would otherwise submit the whole recipe instead of committing the tag.
-                    if (evt.key === 'Enter') {
-                      evt.preventDefault();
-                      add(draft);
-                    }
-                  }}
-                  placeholder="e.g. weeknight"
-                  value={draft}
-                />
-              </FormControl>
-              <Button onClick={() => add(draft)} type="button" variant="outline">
-                Add tag
-              </Button>
-            </div>
+            <FormControl>
+              <Input
+                onBlur={(evt) => {
+                  commit(evt.target.value);
+                  field.onBlur();
+                }}
+                onChange={(evt) => {
+                  // A typed comma never lands — the keydown handler eats it — so this is the paste path.
+                  if (evt.target.value.includes(',')) {
+                    commit(evt.target.value);
+                  }
+                }}
+                onKeyDown={(evt) => {
+                  // Enter would otherwise submit the whole recipe instead of committing the tag.
+                  if (evt.key === 'Enter' || evt.key === ',') {
+                    evt.preventDefault();
+                    commit(evt.currentTarget.value);
+                    return;
+                  }
+
+                  // Backspace on an empty input takes back the tag you just committed.
+                  if (evt.key === 'Backspace' && evt.currentTarget.value === '' && value.length > 0) {
+                    evt.preventDefault();
+                    field.onChange(value.slice(0, -1));
+                  }
+                }}
+                placeholder="e.g. weeknight"
+                ref={inputRef}
+              />
+            </FormControl>
+            <p className="text-muted-foreground text-xs">Press Enter or type a comma to add</p>
             {unused.length > 0 && (
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-muted-foreground text-xs">Existing:</span>
@@ -586,7 +630,7 @@ function TagField({ control, suggestions }: { control: Control<RecipeFormValues>
                   <button
                     className="cursor-pointer rounded-full border px-2 py-0.5 text-sm hover:bg-accent"
                     key={tag}
-                    onClick={() => add(tag)}
+                    onClick={() => commit(tag)}
                     type="button"
                   >
                     {tag}

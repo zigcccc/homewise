@@ -44,7 +44,10 @@ test.describe('recipes', () => {
       await recipes.addStep('Second step.');
       await recipes.addStep('Third step.');
 
-      await recipes.addTag(`e2e-${stamp}`);
+      // A comma splits the input into separate tags, so a run of them needs no extra clicks.
+      await recipes.addTags(`e2e-${stamp}, e2e-second-${stamp}`);
+      await expect(recipes.tagChip(`e2e-${stamp}`)).toBeVisible();
+      await expect(recipes.tagChip(`e2e-second-${stamp}`)).toBeVisible();
 
       await recipes.save('Save recipe');
 

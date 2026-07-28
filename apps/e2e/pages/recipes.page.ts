@@ -106,9 +106,20 @@ export class RecipesPage {
     await steps.last().fill(instruction);
   }
 
-  async addTag(name: string) {
-    await this.page.getByLabel('Add tag').fill(name);
-    await this.page.getByRole('button', { name: 'Add tag' }).click();
+  /**
+   * Commits one or more tags. `fill()` fires an input event, so a comma-separated string is split
+   * and committed on the spot; Enter covers the single-tag case, where no comma ever arrives.
+   */
+  async addTags(input: string) {
+    await this.page.getByLabel('Tags').fill(input);
+    await this.page.getByLabel('Tags').press('Enter');
+  }
+
+  /** A committed tag chip, identified by its remove button. */
+  tagChip(name: string): Locator {
+    return this.page
+      .getByRole('listitem')
+      .filter({ has: this.page.getByRole('button', { name: `Remove tag ${name}` }) });
   }
 
   async save(label: string) {
