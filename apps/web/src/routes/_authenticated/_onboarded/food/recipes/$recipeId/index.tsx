@@ -6,7 +6,13 @@ import { useState } from 'react';
 import { Button, Card, CardContent, CardHeader, CardTitle, Spinner } from '@homewise/ui/core';
 
 import { formatQuantity } from '@/modules/ingredients';
-import { formatMinutes, getRecipeQueryOptions, mealTypeLabels, type RecipeDetail } from '@/modules/recipes';
+import {
+  formatMinutes,
+  formatSource,
+  getRecipeQueryOptions,
+  mealTypeLabels,
+  type RecipeDetail,
+} from '@/modules/recipes';
 
 export const Route = createFileRoute('/_authenticated/_onboarded/food/recipes/$recipeId/')({
   async loader({ context, params }) {
@@ -42,6 +48,7 @@ function RecipeDetailRoute() {
 
   const scale = recipe.servings && servings ? servings / recipe.servings : 1;
   const totalTime = formatMinutes((recipe.prepTimeMinutes ?? 0) + (recipe.cookTimeMinutes ?? 0));
+  const source = formatSource(recipe.sourceName, recipe.sourceUrl);
   const groups = groupBySection(recipe.ingredients);
 
   return (
@@ -57,6 +64,22 @@ function RecipeDetailRoute() {
             {totalTime} total
           </span>
         )}
+        {/* Where it came from is attribution, not a section of the recipe — it belongs on this line
+            with the rest of the metadata rather than in a card of its own below the method. */}
+        {source &&
+          (recipe.sourceUrl ? (
+            <a
+              className="flex items-center gap-1 hover:text-foreground hover:underline"
+              href={recipe.sourceUrl}
+              rel="noreferrer"
+              target="_blank"
+            >
+              {source}
+              <ExternalLinkIcon className="size-3.5" />
+            </a>
+          ) : (
+            <span>{source}</span>
+          ))}
       </div>
 
       {recipe.tags.length > 0 && (
@@ -134,7 +157,7 @@ function RecipeDetailRoute() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Method</CardTitle>
+            <CardTitle>Instructions</CardTitle>
           </CardHeader>
           <CardContent data-testid="recipe-steps">
             {recipe.steps.length === 0 ? (
@@ -154,28 +177,6 @@ function RecipeDetailRoute() {
           </CardContent>
         </Card>
       </div>
-
-      {(recipe.sourceName || recipe.sourceUrl) && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Where it came from</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm">
-            {recipe.sourceName && <p>{recipe.sourceName}</p>}
-            {recipe.sourceUrl && (
-              <a
-                className="inline-flex items-center gap-1 text-primary hover:underline"
-                href={recipe.sourceUrl}
-                rel="noreferrer"
-                target="_blank"
-              >
-                {recipe.sourceUrl}
-                <ExternalLinkIcon className="size-3.5" />
-              </a>
-            )}
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }

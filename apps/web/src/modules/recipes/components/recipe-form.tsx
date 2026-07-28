@@ -335,7 +335,7 @@ export function RecipeForm({
 
         <Card>
           <CardHeader>
-            <CardTitle>Method</CardTitle>
+            <CardTitle>Instructions</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {steps.fields.length === 0 ? (
