@@ -166,6 +166,24 @@ test.describe('recipes', () => {
     await expect(recipes.card(SEED_RECIPE.title)).toBeHidden();
   });
 
+  test('sorts the list in both directions', async ({ page }) => {
+    const recipes = new RecipesPage(page);
+    await recipes.goto();
+
+    // Ascending by title is the default.
+    await expect(recipes.sortDirectionButton()).toHaveText('A → Z');
+
+    await recipes.toggleSortDirection();
+    await expect(recipes.sortDirectionButton()).toHaveText('Z → A');
+    // The toggle drives the search param the loader forwards to the server, not just the label.
+    await page.waitForURL((url) => url.searchParams.get('sortDirection') === 'desc');
+    await expect(recipes.card(SEED_RECIPE.title)).toBeVisible();
+
+    // The label follows the column: "descending" on a date reads as newest-first, not Z → A.
+    await recipes.selectSortKey('Date added');
+    await expect(recipes.sortDirectionButton()).toHaveText('Newest first');
+  });
+
   test('rejects a recipe with no title', async ({ page }) => {
     const recipes = new RecipesPage(page);
     await recipes.goto();

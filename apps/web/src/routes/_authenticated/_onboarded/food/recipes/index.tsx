@@ -62,6 +62,16 @@ const sortKeyLabels: Record<z.infer<typeof recipeSortKey>, string> = {
   updatedAt: 'Last updated',
 };
 
+/** Ascending reads differently per column: A → Z for a title, oldest-first for a date. */
+const sortDirectionLabels: Record<
+  z.infer<typeof recipeSortKey>,
+  Record<z.infer<typeof recipeSortDirection>, string>
+> = {
+  title: { asc: 'A → Z', desc: 'Z → A' },
+  createdAt: { asc: 'Oldest first', desc: 'Newest first' },
+  updatedAt: { asc: 'Oldest first', desc: 'Newest first' },
+};
+
 /** Search params are typed; the RPC query string wants strings. */
 function toQuery(search: SearchParams) {
   return {
@@ -203,6 +213,13 @@ function RecipesRoute() {
               ))}
             </SelectContent>
           </Select>
+
+          <Button
+            onClick={() => setSearchParam('sortDirection', searchParams.sortDirection === 'asc' ? 'desc' : 'asc')}
+            variant="outline"
+          >
+            {sortDirectionLabels[searchParams.sortKey][searchParams.sortDirection]}
+          </Button>
 
           <Label className="flex items-center gap-2 text-sm">
             <Checkbox

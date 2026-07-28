@@ -146,6 +146,20 @@ export class RecipesPage {
     await this.page.getByRole('option', { name: mealType, exact: true }).click();
   }
 
+  /** The sort-direction toggle. Its label follows the sort column, so match any of the four. */
+  sortDirectionButton(): Locator {
+    return this.page.getByRole('button', { name: /A → Z|Z → A|Oldest first|Newest first/ });
+  }
+
+  async toggleSortDirection() {
+    await this.sortDirectionButton().click();
+  }
+
+  async selectSortKey(label: string) {
+    await this.page.getByRole('combobox').filter({ hasText: 'Sort by:' }).click();
+    await this.page.getByRole('option', { name: label, exact: true }).click();
+  }
+
   async openActionsMenu() {
     await this.page.getByRole('button', { name: 'Recipe actions' }).click();
   }
