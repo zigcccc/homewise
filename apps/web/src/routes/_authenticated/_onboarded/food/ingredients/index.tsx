@@ -59,7 +59,7 @@ import {
   Textarea,
 } from '@homewise/ui/core';
 
-import { client, DetailedError, parseResponse } from '@/api/client';
+import { client, parseResponse } from '@/api/client';
 import {
   type Ingredient,
   ingredientCategoryLabels,
@@ -67,20 +67,10 @@ import {
   listIngredientsQueryOptions,
   measurementUnitLabels,
 } from '@/modules/ingredients';
-import { Actionbar, ConfirmDeleteDialog } from '@/modules/shared';
+import { Actionbar, ConfirmDeleteDialog, serverMessage } from '@/modules/shared';
 
 const ALL = 'all';
 const NONE = 'none';
-
-/**
- * The server's own message (the duplicate-name and in-use 409s both carry one). A plain
- * `error.message` would surface "409 Conflict" — the body is on `DetailedError.detail.data`.
- */
-function serverMessage(error: unknown, fallback: string) {
-  const data = error instanceof DetailedError ? error.detail?.data : undefined;
-
-  return typeof data === 'string' && data.length > 0 ? data : fallback;
-}
 
 const $createIngredient = client.ingredients.$post;
 const $patchIngredient = client.ingredients[':id'].$patch;

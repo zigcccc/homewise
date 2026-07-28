@@ -13,6 +13,7 @@ import {
   RecipeForm,
   type RecipeFormValues,
 } from '@/modules/recipes';
+import { serverMessage } from '@/modules/shared';
 
 const $patchRecipe = client.recipes[':id'].$patch;
 
@@ -47,13 +48,16 @@ function EditRecipeRoute() {
       await patchRecipe(values);
       toast.success('Recipe updated.');
       invalidateRecipe(queryClient, id);
-      await navigate({ to: '/food/recipes/$recipeId', params: { recipeId } });
       // Saving is also when any ingredient named on the form gets created, so the library is stale.
       invalidateIngredients(queryClient);
-    } catch {
-      toast.error('Something went wrong.');
-      // Rethrow so the form stays put with the user's edits intact.
-      throw new Error('save failed');
+      await navigate({ to: '/food/recipes/$recipeId', params: { recipeId } });
+    } catch (error) {
+      // Prefer the server's own reason — a duplicate ingredient name or a rejected field says far
+      // more than "Something went wrong."
+      toast.error(serverMessage(error, 'Something went wrong.'));
+      // Rethrow the original so the form stays put with the user's edits intact, and so anything
+      // upstream still sees the real cause.
+      throw error;
     }
   };
 
