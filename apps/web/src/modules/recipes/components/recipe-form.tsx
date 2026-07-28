@@ -78,7 +78,6 @@ function toDefaults(recipe?: RecipeDetail): RecipeFormValues {
 export function RecipeForm({
   cancelTo,
   ingredients,
-  onIngredientCreated,
   onSubmit,
   recipe,
   submitLabel,
@@ -86,7 +85,6 @@ export function RecipeForm({
 }: {
   cancelTo: React.ReactNode;
   ingredients: Ingredient[];
-  onIngredientCreated: () => void;
   onSubmit: (values: RecipeFormValues) => Promise<void>;
   recipe?: RecipeDetail;
   submitLabel: string;
@@ -104,9 +102,7 @@ export function RecipeForm({
     await onSubmit(values);
   };
 
-  // Ingredients picked in this session, so a row can label itself before the library query catches up.
-  const [justCreated, setJustCreated] = useState<Ingredient[]>([]);
-  const ingredientsById = new Map([...justCreated, ...ingredients].map((item) => [item.id, item]));
+  const ingredientsById = new Map(ingredients.map((item) => [item.id, item]));
 
   return (
     <Form {...form}>
@@ -207,15 +203,39 @@ export function RecipeForm({
               <ul className="space-y-3">
                 {ingredientLines.fields.map((item, index) => {
                   const ingredientId = form.watch(`ingredients.${index}.ingredientId`);
-                  const ingredient = ingredientId === undefined ? undefined : ingredientsById.get(ingredientId);
+                  // A line points at the library either by id (already there) or by name (created
+                  // when the recipe is saved). Only the latter is still editable here.
+                  const typedName = form.watch(`ingredients.${index}.ingredientName`);
+                  const name = ingredientId === undefined ? typedName : ingredientsById.get(ingredientId)?.name;
 
                   return (
                     <li className="rounded-md border p-3" key={item.id}>
                       <div className="mb-2 flex items-center gap-2">
                         <GripVerticalIcon className="size-4 shrink-0 text-muted-foreground" />
-                        <span className="font-medium text-sm">{ingredient?.name ?? 'Unknown ingredient'}</span>
+                        {ingredientId === undefined ? (
+                          <FormField
+                            control={form.control}
+                            name={`ingredients.${index}.ingredientName`}
+                            render={({ field }) => (
+                              <FormItem className="flex-1">
+                                <FormLabel className="sr-only">Ingredient name</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    {...field}
+                                    className="h-8 font-medium"
+                                    placeholder="Name this ingredient"
+                                    value={field.value ?? ''}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        ) : (
+                          <span className="flex-1 font-medium text-sm">{name ?? 'Unknown ingredient'}</span>
+                        )}
                         <Button
-                          aria-label={`Remove ${ingredient?.name ?? 'ingredient'}`}
+                          aria-label={`Remove ${name || 'ingredient'}`}
                           className="ml-auto shrink-0"
                           onClick={() => ingredientLines.remove(index)}
                           size="icon"
@@ -295,18 +315,15 @@ export function RecipeForm({
             )}
             <IngredientCombobox
               ingredients={ingredients}
-              onCreated={onIngredientCreated}
-              onSelect={(ingredient) => {
-                // Remember it locally as well: for a just-created ingredient the library refetch is
-                // in flight, so without this the new row would read "Unknown ingredient" until it lands.
-                setJustCreated((current) =>
-                  current.some((item) => item.id === ingredient.id) ? current : [...current, ingredient]
-                );
+              onSelect={(choice) => {
                 ingredientLines.append({
-                  ingredientId: ingredient.id,
+                  // A brand-new ingredient carries its name instead of an id — the server creates it
+                  // as part of saving the recipe, so nothing is persisted if this draft is abandoned.
+                  ...(choice.kind === 'existing'
+                    ? // Pre-fill the unit from the library so the common case needs no extra click.
+                      { ingredientId: choice.ingredient.id, unit: choice.ingredient.defaultUnit }
+                    : { ingredientName: choice.name, unit: null }),
                   quantity: null,
-                  // Pre-fill from the library so the common case needs no extra click.
-                  unit: ingredient.defaultUnit,
                   note: '',
                   section: '',
                 });

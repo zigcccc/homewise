@@ -48,6 +48,8 @@ function EditRecipeRoute() {
       toast.success('Recipe updated.');
       invalidateRecipe(queryClient, id);
       await navigate({ to: '/food/recipes/$recipeId', params: { recipeId } });
+      // Saving is also when any ingredient named on the form gets created, so the library is stale.
+      invalidateIngredients(queryClient);
     } catch {
       toast.error('Something went wrong.');
       // Rethrow so the form stays put with the user's edits intact.
@@ -66,7 +68,6 @@ function EditRecipeRoute() {
           </Button>
         }
         ingredients={ingredients}
-        onIngredientCreated={() => invalidateIngredients(queryClient)}
         onSubmit={handleSubmit}
         recipe={recipe}
         submitLabel="Save changes"

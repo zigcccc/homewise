@@ -50,6 +50,17 @@ export class IngredientsPage {
     await expect(dialog).toBeHidden();
   }
 
+  /** Best-effort cleanup: removes the ingredient when it's in the library, and says so. */
+  async deleteIfPresent(name: string): Promise<boolean> {
+    if ((await this.row(name).count()) === 0) {
+      return false;
+    }
+
+    await this.delete(name);
+
+    return true;
+  }
+
   async delete(name: string) {
     await this.openRowMenu(name);
     await this.page.getByRole('menuitem', { name: 'Delete ingredient' }).click();

@@ -1,7 +1,5 @@
-import { useMutation } from '@tanstack/react-query';
 import { PlusIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { toast } from 'sonner';
 
 import {
   Button,
@@ -16,15 +14,18 @@ import {
   ComboboxTrigger,
 } from '@homewise/ui/core';
 
-import { client, parseResponse } from '@/api/client';
-
 import { ingredientCategoryLabels } from '../helpers';
 import { type Ingredient } from '../ingredients.queries';
 
-const $createIngredient = client.ingredients.$post;
+/** What the picker hands back: an existing library row, or a name that doesn't exist yet. */
+export type IngredientChoice = { kind: 'existing'; ingredient: Ingredient } | { kind: 'new'; name: string };
 
 /**
- * Picks an ingredient out of the household library, or mints a new one from whatever the user typed.
+ * Picks an ingredient out of the household library, or names a new one.
+ *
+ * A new name is *not* created here — it travels with the recipe payload and is found-or-created when
+ * the recipe is saved, so abandoning a draft leaves nothing behind. That makes this a pure picker
+ * with no mutation of its own.
  *
  * Unlike the contact picker, ingredients already on the recipe stay selectable — butter legitimately
  * appears in both the dough and the sauce section, so disabling used ones would block a real case.
@@ -35,21 +36,14 @@ const $createIngredient = client.ingredients.$post;
 export function IngredientCombobox({
   ingredients,
   label = 'Add ingredient',
-  onCreated,
   onSelect,
 }: {
   ingredients: Ingredient[];
   label?: string;
-  /** Fired after a new ingredient is created, so the caller can refresh its library query. */
-  onCreated?: () => void;
-  onSelect: (ingredient: Ingredient) => void;
+  onSelect: (choice: IngredientChoice) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
-
-  const { mutateAsync: createIngredient, isPending } = useMutation({
-    mutationFn: async (name: string) => parseResponse($createIngredient({ json: { name, category: 'other' } })),
-  });
 
   const query = search.trim().toLowerCase();
   const filtered = useMemo(
@@ -66,22 +60,13 @@ export function IngredientCombobox({
   };
 
   const handleSelect = (ingredient: Ingredient) => {
-    onSelect(ingredient);
+    onSelect({ kind: 'existing', ingredient });
     close();
   };
 
-  const handleCreate = async () => {
-    const name = search.trim();
-
-    try {
-      const created = await createIngredient(name);
-      onCreated?.();
-      onSelect({ ...created, recipeCount: 0 });
-      toast.success(`"${created.name}" added to your ingredients.`);
-      close();
-    } catch {
-      toast.error(`Could not create "${name}".`);
-    }
+  const handleCreate = () => {
+    onSelect({ kind: 'new', name: search.trim() });
+    close();
   };
 
   return (
@@ -126,7 +111,7 @@ export function IngredientCombobox({
           {query && !hasExactMatch && (
             <>
               <ComboboxSeparator />
-              <ComboboxAction disabled={isPending} onClick={() => void handleCreate()}>
+              <ComboboxAction onClick={handleCreate}>
                 <PlusIcon />
                 Create "{search.trim()}"
               </ComboboxAction>

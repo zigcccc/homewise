@@ -15,9 +15,11 @@ test.describe('recipes', () => {
     test.slow();
 
     const recipes = new RecipesPage(page);
+    const ingredients = new IngredientsPage(page);
     const stamp = Date.now();
     const title = `E2E Recipe ${stamp}`;
     // Uniquely named so the create-on-the-fly path can't collide with the seeded library.
+    const typoIngredient = `E2E Spice ${stamp} typo`;
     const newIngredient = `E2E Spice ${stamp}`;
 
     await recipes.goto();
@@ -28,10 +30,14 @@ test.describe('recipes', () => {
       await recipes.fillNumber('Servings', '2');
       await recipes.selectMealType('Dinner');
 
-      // One ingredient picked from the library, one minted through the combobox's create action.
+      // One ingredient picked from the library, one named through the combobox's create action.
       await recipes.addExistingIngredient(SEED_INGREDIENTS[0].name);
       await recipes.setIngredientQuantity(SEED_INGREDIENTS[0].name, '2');
-      await recipes.createAndAddIngredient(newIngredient);
+      await recipes.createAndAddIngredient(typoIngredient);
+
+      // A named ingredient isn't persisted until the recipe is saved, so a typo is still fixable —
+      // that's the whole point of deferring creation, and the regression most worth pinning.
+      await recipes.renameNewIngredient(typoIngredient, newIngredient);
       await recipes.setIngredientQuantity(newIngredient, '1');
 
       await recipes.addStep('First step.');
@@ -75,19 +81,24 @@ test.describe('recipes', () => {
 
       await recipes.goto();
       await expect(recipes.card(title)).toBeVisible();
+
+      // Saving is the only thing that touched the library: the corrected name is there, and the
+      // typo it was renamed from never was — nothing is persisted while the form is still open.
+      await ingredients.goto();
+      await expect(ingredients.row(newIngredient)).toBeVisible();
+      await expect(ingredients.row(typoIngredient)).toBeHidden();
     } finally {
+      // Best-effort throughout: a failure above must not be masked by cleanup throwing over a row
+      // that was never created.
       await recipes.goto();
-      await recipes.open(title);
-      await recipes.delete();
-      await expect(page.getByRole('heading', { level: 1, name: 'Recipes' })).toBeVisible();
+      await recipes.deleteIfPresent(title);
       await expect(recipes.card(title)).toBeHidden();
 
-      // The create-on-the-fly ingredient outlives the recipe — clean it up too. Deleted straight
-      // from the unfiltered list: searching first re-renders the table on a 400ms debounce, which
-      // detaches the row mid-click.
-      const ingredients = new IngredientsPage(page);
+      // The ingredient the recipe minted outlives it — clean that up too. Deleted straight from the
+      // unfiltered list: searching first re-renders the table on a 400ms debounce, which detaches
+      // the row mid-click.
       await ingredients.goto();
-      await ingredients.delete(newIngredient);
+      await ingredients.deleteIfPresent(newIngredient);
     }
   });
 

@@ -69,12 +69,26 @@ export class RecipesPage {
     await expect(this.ingredientRow(name)).toBeVisible();
   }
 
-  /** Types a name the library doesn't have and mints it through the combobox's create action. */
+  /**
+   * Types a name the library doesn't have and adds it through the combobox's create action. The
+   * ingredient is *not* persisted here — it travels with the recipe and is created on save.
+   */
   async createAndAddIngredient(name: string) {
     await this.page.getByRole('button', { name: 'Add ingredient' }).click();
     await this.page.getByPlaceholder('Search ingredients…').fill(name);
     await this.page.getByRole('button', { name: `Create "${name}"` }).click();
     await expect(this.ingredientRow(name)).toBeVisible();
+  }
+
+  /** The editable name input on a not-yet-created ingredient line. */
+  newIngredientNameInput(name: string): Locator {
+    return this.ingredientRow(name).getByLabel('Ingredient name');
+  }
+
+  /** Renames a line that hasn't been persisted yet — only possible before the recipe is saved. */
+  async renameNewIngredient(from: string, to: string) {
+    await this.newIngredientNameInput(from).fill(to);
+    await expect(this.ingredientRow(to)).toBeVisible();
   }
 
   /** An ingredient line inside the form, identified by its remove button's accessible name. */

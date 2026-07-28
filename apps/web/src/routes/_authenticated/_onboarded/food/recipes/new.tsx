@@ -48,6 +48,8 @@ function NewRecipeRoute() {
       toast.success(`"${recipe.title}" saved.`);
       await navigate({ to: '/food/recipes/$recipeId', params: { recipeId: recipe.id.toString() } });
       invalidateRecipes(queryClient);
+      // Saving is also when any ingredient named on the form gets created, so the library is stale.
+      invalidateIngredients(queryClient);
     } catch {
       toast.error('Something went wrong.');
       // Rethrow so the form stays put with the user's input intact.
@@ -92,7 +94,6 @@ function NewRecipeRoute() {
             </Button>
           }
           ingredients={ingredients}
-          onIngredientCreated={() => invalidateIngredients(queryClient)}
           onSubmit={handleSubmit}
           submitLabel="Save recipe"
           tagSuggestions={tags.map((tag) => tag.name)}
