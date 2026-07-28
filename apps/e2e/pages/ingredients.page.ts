@@ -69,14 +69,15 @@ export class IngredientsPage {
     await expect(dialog).toBeHidden();
   }
 
-  /** Confirms a delete the server will refuse, leaving the dialog open. Returns it for assertions. */
-  async deleteExpectingRefusal(name: string) {
+  /**
+   * Opens the delete dialog for an ingredient a recipe still uses. The confirm is blocked up front
+   * rather than round-tripping to a 409, so this returns the dialog without clicking it.
+   */
+  async openDeleteExpectingRefusal(name: string) {
     await this.openRowMenu(name);
     await this.page.getByRole('menuitem', { name: 'Delete ingredient' }).click();
-    const dialog = this.page.getByRole('dialog');
-    await dialog.getByRole('button', { name: 'Delete ingredient' }).click();
 
-    return dialog;
+    return this.page.getByRole('dialog');
   }
 
   /**

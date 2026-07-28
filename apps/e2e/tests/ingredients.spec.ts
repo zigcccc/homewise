@@ -58,8 +58,13 @@ test.describe('ingredient library', () => {
 
     await expect(ingredients.row(inUse)).toContainText('1 recipe');
 
-    const dialog = await ingredients.deleteExpectingRefusal(inUse);
+    const dialog = await ingredients.openDeleteExpectingRefusal(inUse);
     await expect(dialog).toBeVisible();
+
+    // Blocked before it's attempted: the server would refuse anyway, so the dialog says why and
+    // disables the confirm instead of round-tripping to a 409 toast.
+    await expect(dialog).toContainText('Remove it from them before deleting it');
+    await expect(dialog.getByRole('button', { name: 'Delete ingredient' })).toBeDisabled();
 
     // Dismiss the dialog and confirm the row survived.
     await page.keyboard.press('Escape');

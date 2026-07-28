@@ -16,6 +16,7 @@ import {
  * loading state while it runs — callers only supply the copy and the action.
  */
 export function ConfirmDeleteDialog({
+  confirmDisabled = false,
   confirmLabel = 'Delete',
   description,
   onConfirm,
@@ -23,6 +24,11 @@ export function ConfirmDeleteDialog({
   open,
   title,
 }: {
+  /**
+   * Blocks the confirm when the caller already knows the server will refuse — say so in
+   * `description`, so the dialog explains the blocker instead of round-tripping to a failure toast.
+   */
+  confirmDisabled?: boolean;
   confirmLabel?: string;
   description: ReactNode;
   onConfirm: () => Promise<void> | void;
@@ -53,7 +59,7 @@ export function ConfirmDeleteDialog({
           <DialogClose asChild>
             <Button variant="outline">Cancel</Button>
           </DialogClose>
-          <Button loading={isDeleting} onClick={handleConfirm} variant="destructive">
+          <Button disabled={confirmDisabled} loading={isDeleting} onClick={handleConfirm} variant="destructive">
             {confirmLabel}
           </Button>
         </DialogFooter>

@@ -294,6 +294,9 @@ function IngredientRowActions({ ingredient }: { ingredient: Ingredient }) {
       <IngredientFormDialog ingredient={ingredient} onOpenChange={setEditOpen} open={editOpen} />
 
       <ConfirmDeleteDialog
+        // The server refuses while any recipe still uses it, so confirming could only ever produce a
+        // 409 — block it here and let the description say why.
+        confirmDisabled={ingredient.recipeCount > 0}
         confirmLabel="Delete ingredient"
         description={
           ingredient.recipeCount > 0 ? (
