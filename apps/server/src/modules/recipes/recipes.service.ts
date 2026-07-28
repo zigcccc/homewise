@@ -2,6 +2,7 @@ import { and, asc, count, desc, eq, ilike, inArray, or } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 
 import { db, schema } from '@/db';
+import { IngredientsService } from '@/modules/ingredients/ingredients.service';
 
 import {
   type CreateRecipe,
@@ -13,6 +14,9 @@ import {
 
 /** A `db` handle or an open transaction. */
 type Executor = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/** An ingredient line once its `ingredientName`, if any, has been turned into a real library id. */
+type ResolvedRecipeIngredient = Omit<RecipeIngredient, 'ingredientId' | 'ingredientName'> & { ingredientId: number };
 
 /** Optional text fields come in as '' when a user clears them; store that as NULL. */
 const emptyToNull = (value: string | undefined) => (value === '' ? null : value);
@@ -66,13 +70,7 @@ export class RecipesService {
    * Rejects ingredient ids that don't belong to this household — without this a caller could
    * reference another household's ingredient rows through their own recipe.
    */
-  private static async assertIngredientsInHousehold(
-    executor: Executor,
-    householdId: number,
-    lines: RecipeIngredient[]
-  ) {
-    const ids = [...new Set(lines.map((line) => line.ingredientId))];
-
+  private static async assertIngredientsInHousehold(executor: Executor, householdId: number, ids: number[]) {
     if (ids.length === 0) {
       return;
     }
@@ -85,6 +83,35 @@ export class RecipesService {
     if (found.length !== ids.length) {
       throw new HTTPException(404, { message: 'Ingredient not found' });
     }
+  }
+
+  /**
+   * Turns every ingredient line into one carrying a concrete library id: existing ids are checked
+   * for household membership, and names are found-or-created. Both run inside the caller's
+   * transaction, so a recipe that fails to save leaves no new ingredients behind.
+   */
+  private static async resolveLineIngredients(
+    executor: Executor,
+    householdId: number,
+    lines: RecipeIngredient[]
+  ): Promise<ResolvedRecipeIngredient[]> {
+    const ids = lines.map((line) => line.ingredientId).filter((id) => id !== undefined);
+    const names = lines.map((line) => line.ingredientName).filter((name) => name !== undefined);
+
+    await RecipesService.assertIngredientsInHousehold(executor, householdId, [...new Set(ids)]);
+    const idByName = await IngredientsService.resolveByName(executor, householdId, names);
+
+    return lines.map(({ ingredientId, ingredientName, ...rest }) => {
+      const resolved = ingredientId ?? idByName.get(ingredientName!.toLowerCase());
+
+      // The model refines that exactly one of the two is set, and `resolveByName` throws on anything
+      // it can't resolve — so this is unreachable unless one of those guarantees breaks.
+      if (resolved === undefined) {
+        throw new HTTPException(500, { message: 'Could not resolve a recipe ingredient' });
+      }
+
+      return { ...rest, ingredientId: resolved };
+    });
   }
 
   /**
@@ -140,7 +167,7 @@ export class RecipesService {
   }
 
   /** Replace-all: the submitted list becomes the recipe's full ingredient list, in array order. */
-  private static async replaceIngredients(executor: Executor, recipeId: number, lines: RecipeIngredient[]) {
+  private static async replaceIngredients(executor: Executor, recipeId: number, lines: ResolvedRecipeIngredient[]) {
     await executor.delete(schema.recipeIngredient).where(eq(schema.recipeIngredient.recipeId, recipeId));
 
     if (lines.length === 0) {
@@ -278,7 +305,8 @@ export class RecipesService {
 
   public static async create(householdId: number, data: CreateRecipe, userId: string) {
     const recipeId = await db.transaction(async (tx) => {
-      await RecipesService.assertIngredientsInHousehold(tx, householdId, data.ingredients ?? []);
+      // Resolved first: a bad id or an unresolvable name must abort before the recipe row exists.
+      const lines = await RecipesService.resolveLineIngredients(tx, householdId, data.ingredients ?? []);
 
       const [created] = await tx
         .insert(schema.recipe)
@@ -301,7 +329,7 @@ export class RecipesService {
         throw new HTTPException(400, { message: 'Something went wrong.' });
       }
 
-      await RecipesService.replaceIngredients(tx, created.id, data.ingredients ?? []);
+      await RecipesService.replaceIngredients(tx, created.id, lines);
       await RecipesService.replaceSteps(tx, created.id, data.steps ?? []);
       await RecipesService.replaceTags(tx, householdId, created.id, data.tags ?? []);
 
@@ -329,9 +357,11 @@ export class RecipesService {
     };
 
     await db.transaction(async (tx) => {
-      if (data.ingredients !== undefined) {
-        await RecipesService.assertIngredientsInHousehold(tx, householdId, data.ingredients);
-      }
+      // Resolved up front, so a bad id or an unresolvable name aborts before anything is written.
+      const lines =
+        data.ingredients === undefined
+          ? undefined
+          : await RecipesService.resolveLineIngredients(tx, householdId, data.ingredients);
 
       // Skip the update when only children changed — an all-undefined `set` has nothing to write.
       if (Object.values(set).some((value) => value !== undefined)) {
@@ -341,8 +371,8 @@ export class RecipesService {
           .where(and(eq(schema.recipe.householdId, householdId), eq(schema.recipe.id, recipeId)));
       }
 
-      if (data.ingredients !== undefined) {
-        await RecipesService.replaceIngredients(tx, recipeId, data.ingredients);
+      if (lines !== undefined) {
+        await RecipesService.replaceIngredients(tx, recipeId, lines);
       }
 
       if (data.steps !== undefined) {

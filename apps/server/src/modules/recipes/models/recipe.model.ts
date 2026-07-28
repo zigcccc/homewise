@@ -1,6 +1,6 @@
 import z from 'zod';
 
-import { measurementUnit } from '@/modules/ingredients/models';
+import { ingredientName, measurementUnit } from '@/modules/ingredients/models';
 
 /** Meal types, mirrored from the DB enum. Reused by the web for labels and selects. */
 export const mealType = z.enum(['breakfast', 'lunch', 'dinner', 'dessert', 'snack', 'drink', 'side', 'baking']);
@@ -50,19 +50,31 @@ const minutes = (label: string) =>
 /**
  * One line of the ingredient list. `position` is derived from the array order on the server — the
  * client never sends it, so reordering is just reordering the array.
+ *
+ * A line points at the library either by id or by name. The name form is how an ingredient typed
+ * into the recipe form gets created: it is found-or-created inside the save transaction, exactly
+ * like `tags`, so nothing lands in the library until the recipe itself is saved.
  */
-export const recipeIngredientModel = z.object({
-  ingredientId: z.number().int().positive(),
-  /** `null` means "to taste". */
-  quantity: z
-    .number()
-    .positive({ error: 'Quantity must be greater than 0' })
-    .max(100_000, { error: 'Quantity must be at most 100000' })
-    .nullish(),
-  unit: measurementUnit.nullish(),
-  note: optionalText(128, 'Note'),
-  section: optionalText(64, 'Section'),
-});
+export const recipeIngredientModel = z
+  .object({
+    /** An existing row in the household's ingredient library. */
+    ingredientId: z.number().int().positive().optional(),
+    /** A name to find-or-create at save time. Mutually exclusive with `ingredientId`. */
+    ingredientName: ingredientName.optional(),
+    /** `null` means "to taste". */
+    quantity: z
+      .number()
+      .positive({ error: 'Quantity must be greater than 0' })
+      .max(100_000, { error: 'Quantity must be at most 100000' })
+      .nullish(),
+    unit: measurementUnit.nullish(),
+    note: optionalText(128, 'Note'),
+    section: optionalText(64, 'Section'),
+  })
+  .refine((line) => (line.ingredientId === undefined) !== (line.ingredientName === undefined), {
+    error: 'Pick an ingredient or give it a name',
+    path: ['ingredientName'],
+  });
 export type RecipeIngredient = z.infer<typeof recipeIngredientModel>;
 
 export const recipeStepModel = z.object({

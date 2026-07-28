@@ -44,6 +44,12 @@ const name = (model: z.ZodString) =>
     .min(1, { error: 'Name must contain at least 1 character' })
     .max(96, { error: 'Name must contain at most 96 characters' });
 
+/**
+ * The name bounds on their own, exported so a recipe line can carry a not-yet-created ingredient by
+ * name and still be validated identically to one created through `POST /ingredients`.
+ */
+export const ingredientName = name(z.string());
+
 /** Free-text optional field: trims, caps length, and treats an empty string as "cleared". */
 const notes = z
   .string()

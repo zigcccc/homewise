@@ -86,6 +86,67 @@ export class IngredientsService {
     }
   }
 
+  /**
+   * Maps ingredient names onto household library rows, creating the ones that don't exist yet, and
+   * returns them keyed by lowercased name. Matching is case-insensitive, so "Onion" and "onion"
+   * resolve to the same row — a fragmented library would silently break shopping-list aggregation.
+   *
+   * This is the find-or-create half of "an ingredient typed into the recipe form isn't persisted
+   * until the recipe is saved": a name that collides with an existing row resolves to it rather
+   * than 409ing, since the user's intent is "use this ingredient", not "add a new one".
+   */
+  public static async resolveByName(executor: Executor, householdId: number, names: string[]) {
+    // Dedupe case-insensitively, keeping the first spelling the user typed.
+    const wanted = new Map<string, string>();
+    for (const name of names) {
+      const key = name.toLowerCase();
+      if (!wanted.has(key)) {
+        wanted.set(key, name);
+      }
+    }
+
+    if (wanted.size === 0) {
+      return new Map<string, number>();
+    }
+
+    const readMatching = async () =>
+      executor
+        .select({ id: schema.ingredient.id, name: schema.ingredient.name })
+        .from(schema.ingredient)
+        .where(
+          and(
+            eq(schema.ingredient.householdId, householdId),
+            inArray(sql`lower(${schema.ingredient.name})`, [...wanted.keys()])
+          )
+        );
+
+    const existing = await readMatching();
+    const byLower = new Map(existing.map((row) => [row.name.toLowerCase(), row.id]));
+    const missing = [...wanted]
+      .filter(([key]) => !byLower.has(key))
+      .map(([, name]) => ({ householdId, name, category: 'other' as const }));
+
+    if (missing.length === 0) {
+      return byLower;
+    }
+
+    // onConflictDoNothing covers a concurrent save creating the same name; the re-read picks it up.
+    await executor.insert(schema.ingredient).values(missing).onConflictDoNothing();
+
+    const refreshed = await readMatching();
+    const refreshedByLower = new Map(refreshed.map((row) => [row.name.toLowerCase(), row.id]));
+
+    // Every wanted key must resolve now: it either existed or was just inserted. If one doesn't,
+    // something is wrong with the insert — fail rather than quietly saving the recipe minus a line.
+    for (const [key, name] of wanted) {
+      if (!refreshedByLower.has(key)) {
+        throw new HTTPException(500, { message: `Could not resolve ingredient "${name}"` });
+      }
+    }
+
+    return refreshedByLower;
+  }
+
   /** The household's ingredient library, with how many recipes each one is used in. */
   public static async list(
     householdId: number,
