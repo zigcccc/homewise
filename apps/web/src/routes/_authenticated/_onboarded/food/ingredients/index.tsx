@@ -67,10 +67,7 @@ import {
   listIngredientsQueryOptions,
   measurementUnitLabels,
 } from '@/modules/ingredients';
-import { Actionbar, ConfirmDeleteDialog, serverMessage } from '@/modules/shared';
-
-const ALL = 'all';
-const NONE = 'none';
+import { Actionbar, ConfirmDeleteDialog, SELECT_ALL, SELECT_NONE, serverMessage } from '@/modules/shared';
 
 const $createIngredient = client.ingredients.$post;
 const $patchIngredient = client.ingredients[':id'].$patch;
@@ -162,14 +159,14 @@ function IngredientsRoute() {
           </InputGroup>
 
           <Select
-            onValueChange={(value) => setSearchParam('category', value === ALL ? undefined : (value as never))}
-            value={searchParams.category ?? ALL}
+            onValueChange={(value) => setSearchParam('category', value === SELECT_ALL ? undefined : (value as never))}
+            value={searchParams.category ?? SELECT_ALL}
           >
             <SelectTrigger className="w-48">
               <span>{searchParams.category ? ingredientCategoryLabels[searchParams.category] : 'Any category'}</span>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={ALL}>Any category</SelectItem>
+              <SelectItem value={SELECT_ALL}>Any category</SelectItem>
               {ingredientCategory.options.map((option) => (
                 <SelectItem key={option} value={option}>
                   {ingredientCategoryLabels[option]}
@@ -436,8 +433,8 @@ function IngredientForm({ ingredient, onDone }: { ingredient?: Ingredient; onDon
               <FormItem>
                 <FormLabel>Default unit</FormLabel>
                 <Select
-                  onValueChange={(value) => field.onChange(value === NONE ? null : value)}
-                  value={field.value ?? NONE}
+                  onValueChange={(value) => field.onChange(value === SELECT_NONE ? null : value)}
+                  value={field.value ?? SELECT_NONE}
                 >
                   <FormControl>
                     <SelectTrigger className="w-full">
@@ -445,7 +442,7 @@ function IngredientForm({ ingredient, onDone }: { ingredient?: Ingredient; onDon
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value={NONE}>None</SelectItem>
+                    <SelectItem value={SELECT_NONE}>None</SelectItem>
                     {measurementUnit.options.map((option) => (
                       <SelectItem key={option} value={option}>
                         {measurementUnitLabels[option]}

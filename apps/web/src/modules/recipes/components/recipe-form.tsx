@@ -35,14 +35,12 @@ import {
 } from '@homewise/ui/core';
 
 import { type Ingredient, IngredientCombobox, measurementUnitLabels } from '@/modules/ingredients';
+import { SELECT_NONE } from '@/modules/shared';
 
 import { mealTypeLabels } from '../helpers';
 import { type RecipeDetail } from '../recipes.queries';
 
 export type RecipeFormValues = z.infer<typeof createRecipeModel>;
-
-/** Radix Select can't hold an empty value, so "no choice" travels as this sentinel. */
-const NONE = 'none';
 
 function toDefaults(recipe?: RecipeDetail): RecipeFormValues {
   return {
@@ -147,8 +145,8 @@ export function RecipeForm({
                   <FormItem>
                     <FormLabel>Meal type</FormLabel>
                     <Select
-                      onValueChange={(value) => field.onChange(value === NONE ? null : value)}
-                      value={field.value ?? NONE}
+                      onValueChange={(value) => field.onChange(value === SELECT_NONE ? null : value)}
+                      value={field.value ?? SELECT_NONE}
                     >
                       <FormControl>
                         <SelectTrigger className="w-full">
@@ -156,7 +154,7 @@ export function RecipeForm({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value={NONE}>Not set</SelectItem>
+                        <SelectItem value={SELECT_NONE}>Not set</SelectItem>
                         {mealType.options.map((option) => (
                           <SelectItem key={option} value={option}>
                             {mealTypeLabels[option]}
@@ -261,8 +259,8 @@ export function RecipeForm({
                             <FormItem>
                               <FormLabel>Unit</FormLabel>
                               <Select
-                                onValueChange={(value) => field.onChange(value === NONE ? null : value)}
-                                value={field.value ?? NONE}
+                                onValueChange={(value) => field.onChange(value === SELECT_NONE ? null : value)}
+                                value={field.value ?? SELECT_NONE}
                               >
                                 <FormControl>
                                   <SelectTrigger className="w-full">
@@ -270,7 +268,7 @@ export function RecipeForm({
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  <SelectItem value={NONE}>—</SelectItem>
+                                  <SelectItem value={SELECT_NONE}>—</SelectItem>
                                   {measurementUnit.options.map((option) => (
                                     <SelectItem key={option} value={option}>
                                       {measurementUnitLabels[option]}

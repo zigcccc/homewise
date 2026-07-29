@@ -36,10 +36,8 @@ import {
   Spinner,
 } from '@homewise/ui/core';
 
-import { formatMinutes, listRecipesQueryOptions, listRecipeTagsQueryOptions, mealTypeLabels } from '@/modules/recipes';
-import { Actionbar } from '@/modules/shared';
-
-const ALL = 'all';
+import { listRecipesQueryOptions, listRecipeTagsQueryOptions, mealTypeLabels } from '@/modules/recipes';
+import { Actionbar, formatMinutes, SELECT_ALL } from '@/modules/shared';
 
 const searchParamsModel = z.object({
   search: z
@@ -164,14 +162,14 @@ function RecipesRoute() {
           </InputGroup>
 
           <Select
-            onValueChange={(value) => setSearchParam('mealType', value === ALL ? undefined : (value as never))}
-            value={searchParams.mealType ?? ALL}
+            onValueChange={(value) => setSearchParam('mealType', value === SELECT_ALL ? undefined : (value as never))}
+            value={searchParams.mealType ?? SELECT_ALL}
           >
             <SelectTrigger className="w-44">
               <span>{searchParams.mealType ? mealTypeLabels[searchParams.mealType] : 'Any meal'}</span>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={ALL}>Any meal</SelectItem>
+              <SelectItem value={SELECT_ALL}>Any meal</SelectItem>
               {mealType.options.map((option) => (
                 <SelectItem key={option} value={option}>
                   {mealTypeLabels[option]}
@@ -182,14 +180,14 @@ function RecipesRoute() {
 
           {tags.length > 0 && (
             <Select
-              onValueChange={(value) => setSearchParam('tagId', value === ALL ? undefined : Number(value))}
-              value={searchParams.tagId?.toString() ?? ALL}
+              onValueChange={(value) => setSearchParam('tagId', value === SELECT_ALL ? undefined : Number(value))}
+              value={searchParams.tagId?.toString() ?? SELECT_ALL}
             >
               <SelectTrigger className="w-44">
                 <span>{tags.find((tag) => tag.id === searchParams.tagId)?.name ?? 'Any tag'}</span>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={ALL}>Any tag</SelectItem>
+                <SelectItem value={SELECT_ALL}>Any tag</SelectItem>
                 {tags.map((tag) => (
                   <SelectItem key={tag.id} value={tag.id.toString()}>
                     {tag.name}

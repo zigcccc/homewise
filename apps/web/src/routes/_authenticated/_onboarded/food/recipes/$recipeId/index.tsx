@@ -1,18 +1,13 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 import { ClockIcon, ExternalLinkIcon, MinusIcon, PlusIcon, UsersIcon } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import { Button, Card, CardContent, CardHeader, CardTitle, Spinner } from '@homewise/ui/core';
 
 import { formatQuantity } from '@/modules/ingredients';
-import {
-  formatMinutes,
-  formatSource,
-  getRecipeQueryOptions,
-  mealTypeLabels,
-  type RecipeDetail,
-} from '@/modules/recipes';
+import { getRecipeQueryOptions, groupBySection, mealTypeLabels } from '@/modules/recipes';
+import { ExternalLink, formatMinutes, formatSource } from '@/modules/shared';
 
 export const Route = createFileRoute('/_authenticated/_onboarded/food/recipes/$recipeId/')({
   async loader({ context, params }) {
@@ -21,23 +16,6 @@ export const Route = createFileRoute('/_authenticated/_onboarded/food/recipes/$r
   component: RecipeDetailRoute,
   pendingComponent: () => <Spinner />,
 });
-
-/** Groups the ingredient lines under their section heading, preserving the saved order. */
-function groupBySection(ingredients: RecipeDetail['ingredients']) {
-  const groups: { section: string | null; lines: RecipeDetail['ingredients'] }[] = [];
-
-  for (const line of ingredients) {
-    const last = groups.at(-1);
-
-    if (last && last.section === line.section) {
-      last.lines.push(line);
-    } else {
-      groups.push({ section: line.section, lines: [line] });
-    }
-  }
-
-  return groups;
-}
 
 function RecipeDetailRoute() {
   const { recipeId } = Route.useParams();
@@ -49,7 +27,7 @@ function RecipeDetailRoute() {
   const scale = recipe.servings && servings ? servings / recipe.servings : 1;
   const totalTime = formatMinutes((recipe.prepTimeMinutes ?? 0) + (recipe.cookTimeMinutes ?? 0));
   const source = formatSource(recipe.sourceName, recipe.sourceUrl);
-  const groups = groupBySection(recipe.ingredients);
+  const groups = useMemo(() => groupBySection(recipe.ingredients), [recipe.ingredients]);
 
   return (
     <div className="space-y-4">
@@ -68,15 +46,13 @@ function RecipeDetailRoute() {
             with the rest of the metadata rather than in a card of its own below the method. */}
         {source &&
           (recipe.sourceUrl ? (
-            <a
+            <ExternalLink
               className="flex items-center gap-1 hover:text-foreground hover:underline"
               href={recipe.sourceUrl}
-              rel="noreferrer"
-              target="_blank"
             >
               {source}
               <ExternalLinkIcon className="size-3.5" />
-            </a>
+            </ExternalLink>
           ) : (
             <span>{source}</span>
           ))}
