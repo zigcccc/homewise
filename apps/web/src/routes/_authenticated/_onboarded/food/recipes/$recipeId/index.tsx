@@ -1,7 +1,8 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 import { ClockIcon, ExternalLinkIcon, MinusIcon, PlusIcon, UsersIcon } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
+import z from 'zod';
 
 import { Button, Card, CardContent, CardHeader, CardTitle, Spinner } from '@homewise/ui/core';
 
@@ -9,7 +10,21 @@ import { formatQuantity } from '@/modules/ingredients';
 import { getRecipeQueryOptions, groupBySection, mealTypeLabels } from '@/modules/recipes';
 import { ExternalLink, formatMinutes, formatSource } from '@/modules/shared';
 
+/** The cap the stepper enforces, so a hand-edited URL can't scale a recipe past what the UI allows. */
+const MAX_SERVINGS = 100;
+
+const searchParamsModel = z.object({
+  /**
+   * How many people you're cooking for right now — a view of the recipe, not a property of it. It
+   * lives in the URL so the scaled amounts survive a refresh and can be sent to whoever is cooking.
+   * Absent means "as written", which is why there's no default: the recipe's own serving count is
+   * the fallback, and it isn't known until the loader has run.
+   */
+  servings: z.number().int().positive().max(MAX_SERVINGS).optional().catch(undefined),
+});
+
 export const Route = createFileRoute('/_authenticated/_onboarded/food/recipes/$recipeId/')({
+  validateSearch: searchParamsModel,
   async loader({ context, params }) {
     await context.queryClient.ensureQueryData(getRecipeQueryOptions(Number(params.recipeId)));
   },
@@ -19,10 +34,13 @@ export const Route = createFileRoute('/_authenticated/_onboarded/food/recipes/$r
 
 function RecipeDetailRoute() {
   const { recipeId } = Route.useParams();
+  const searchParams = Route.useSearch();
+  const navigate = Route.useNavigate();
   const { data: recipe } = useSuspenseQuery(getRecipeQueryOptions(Number(recipeId)));
 
-  // Transient view state — how many people you're cooking for right now, not a property of the recipe.
-  const [servings, setServings] = useState(recipe.servings);
+  const servings = searchParams.servings ?? recipe.servings;
+  // `replace` on purpose: stepping from 2 to 8 is one adjustment, not six pages to walk back through.
+  const setServings = (value: number) => navigate({ replace: true, search: { servings: value }, to: '.' });
 
   const scale = recipe.servings && servings ? servings / recipe.servings : 1;
   const totalTime = formatMinutes((recipe.prepTimeMinutes ?? 0) + (recipe.cookTimeMinutes ?? 0));
@@ -90,7 +108,7 @@ function RecipeDetailRoute() {
                   </span>
                   <Button
                     aria-label="More servings"
-                    disabled={servings >= 100}
+                    disabled={servings >= MAX_SERVINGS}
                     onClick={() => setServings(servings + 1)}
                     size="icon"
                     variant="outline"

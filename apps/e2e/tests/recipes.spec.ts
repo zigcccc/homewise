@@ -63,6 +63,11 @@ test.describe('recipes', () => {
       await recipes.setServings('more');
       await expect(recipes.servings()).toHaveText('3');
 
+      // The count you're cooking for lives in the URL, so it survives a reload instead of snapping
+      // back to what the recipe says — the reason it isn't component state.
+      await page.reload();
+      await expect(recipes.servings()).toHaveText('3');
+
       // Favoriting surfaces it under the favorites filter.
       await recipes.toggleFavorite();
       await recipes.goto();
