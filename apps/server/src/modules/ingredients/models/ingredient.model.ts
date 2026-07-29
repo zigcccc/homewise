@@ -1,5 +1,7 @@
 import z from 'zod';
 
+import { optionalText } from '@/lib/models';
+
 /** Aisle categories, mirrored from the DB enum. Reused by the web for labels and selects. */
 export const ingredientCategory = z.enum([
   'produce',
@@ -50,14 +52,7 @@ const name = (model: z.ZodString) =>
  */
 export const ingredientName = name(z.string());
 
-/** Free-text optional field: trims, caps length, and treats an empty string as "cleared". */
-const notes = z
-  .string()
-  .trim()
-  .max(500, { error: 'Notes must contain at most 500 characters' })
-  .or(z.literal(''))
-  .optional();
-
+const notes = optionalText(500, 'Notes');
 /** `null` clears the default unit; omitting the key leaves it untouched. */
 const defaultUnit = measurementUnit.nullish();
 

@@ -1,5 +1,6 @@
 import z from 'zod';
 
+import { optionalText } from '@/lib/models';
 import { ingredientName, measurementUnit } from '@/modules/ingredients/models';
 
 /** Meal types, mirrored from the DB enum. Reused by the web for labels and selects. */
@@ -11,15 +12,6 @@ const title = (model: z.ZodString) =>
     .trim()
     .min(1, { error: 'Title must contain at least 1 character' })
     .max(160, { error: 'Title must contain at most 160 characters' });
-
-/** Free-text optional field: trims, caps length, and treats an empty string as "cleared". */
-const optionalText = (max: number, label: string) =>
-  z
-    .string()
-    .trim()
-    .max(max, { error: `${label} must contain at most ${max} characters` })
-    .or(z.literal(''))
-    .optional();
 
 /** Friendly URL: trims, prepends `https://` when no scheme is given, then validates. Empty clears. */
 const sourceUrl = z
