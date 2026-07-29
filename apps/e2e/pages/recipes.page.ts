@@ -1,8 +1,14 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 
+import { SearchBox } from './search-box';
+
 /** The recipes list, the create/edit form, and the detail read view. */
 export class RecipesPage {
-  constructor(private readonly page: Page) {}
+  private readonly searchBox: SearchBox;
+
+  constructor(private readonly page: Page) {
+    this.searchBox = new SearchBox(page, 'Search recipes or ingredients');
+  }
 
   async goto() {
     await this.page.goto('/food/recipes');
@@ -126,15 +132,9 @@ export class RecipesPage {
     await this.page.getByRole('button', { name: label }).click();
   }
 
-  /**
-   * The input debounces before navigating, so acting immediately after `fill()` can hit the table
-   * mid-rerender. Wait for the URL to carry the term, matching dictionary/ingredients.
-   */
+  /** Searches the list; the SearchBox waits out the debounce so the next step can't race it. */
   async search(term: string) {
-    await this.page.getByPlaceholder('Search recipes or ingredients').fill(term);
-    await this.page.waitForURL((url) =>
-      term === '' ? !url.searchParams.has('search') : url.searchParams.get('search') === term
-    );
+    await this.searchBox.fill(term);
   }
 
   async filterByMealType(mealType: string) {

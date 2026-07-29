@@ -1,8 +1,14 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 
+import { SearchBox } from './search-box';
+
 /** The household ingredient library (`/food/ingredients`). */
 export class IngredientsPage {
-  constructor(private readonly page: Page) {}
+  private readonly searchBox: SearchBox;
+
+  constructor(private readonly page: Page) {
+    this.searchBox = new SearchBox(page, 'Search ingredients');
+  }
 
   async goto() {
     await this.page.goto('/food/ingredients');
@@ -80,16 +86,9 @@ export class IngredientsPage {
     return this.page.getByRole('dialog');
   }
 
-  /**
-   * Types into the search box and waits for the URL to catch up. The input debounces for 400ms
-   * before navigating, so without this the next action can fire while the table is re-rendering and
-   * click a row that is about to detach.
-   */
+  /** Searches the list; the SearchBox waits out the debounce so the next step can't race it. */
   async search(term: string) {
-    await this.page.getByPlaceholder('Search ingredients').fill(term);
-    await this.page.waitForURL((url) =>
-      term === '' ? !url.searchParams.has('search') : url.searchParams.get('search') === term
-    );
+    await this.searchBox.fill(term);
   }
 
   private async openRowMenu(name: string) {

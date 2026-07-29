@@ -1,8 +1,14 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 
+import { SearchBox } from './search-box';
+
 /** A child profile's Dictionary tab (`/family/kids/$id/dictionary`). */
 export class DictionaryPage {
-  constructor(private readonly page: Page) {}
+  private readonly searchBox: SearchBox;
+
+  constructor(private readonly page: Page) {
+    this.searchBox = new SearchBox(page, 'Search words or translations');
+  }
 
   /** Switches to the Dictionary tab (from anywhere on the profile). */
   async open() {
@@ -51,16 +57,9 @@ export class DictionaryPage {
     await expect(dialog).toBeHidden();
   }
 
-  /**
-   * Types into the search box and waits for the URL to catch up. The input debounces for 400ms
-   * before navigating, so without this the next action can fire while the table is re-rendering and
-   * click a row that is about to detach.
-   */
+  /** Searches the list; the SearchBox waits out the debounce so the next step can't race it. */
   async search(term: string) {
-    await this.page.getByPlaceholder('Search words or translations').fill(term);
-    await this.page.waitForURL((url) =>
-      term === '' ? !url.searchParams.has('search') : url.searchParams.get('search') === term
-    );
+    await this.searchBox.fill(term);
   }
 
   async toggleShowArchived() {
