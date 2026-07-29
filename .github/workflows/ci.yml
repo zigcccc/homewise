@@ -94,6 +94,19 @@ jobs:
       - name: Install Playwright browser (chromium)
         run: pnpm --filter @homewise/e2e exec playwright install --with-deps chromium
 
+      # Docker Hub intermittently resets anonymous pulls from the shared runner
+      # IPs, and a failed pull inside globalSetup's `docker compose up` aborts the
+      # whole suite before a single test runs. Pre-pull with retries so the image
+      # is already local by then (naming the service enables its `test` profile).
+      - name: Pull test Postgres image
+        run: |
+          for attempt in 1 2 3; do
+            docker compose -f apps/server/docker-compose.yaml pull postgres-test && exit 0
+            echo "::warning::docker pull failed (attempt $attempt/3), retrying…"
+            sleep $((attempt * 15))
+          done
+          exit 1
+
       - name: Run E2E tests
         run: pnpm --filter @homewise/e2e test
 
