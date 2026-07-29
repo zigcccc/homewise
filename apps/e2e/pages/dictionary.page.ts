@@ -1,8 +1,14 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 
+import { SearchBox } from './search-box';
+
 /** A child profile's Dictionary tab (`/family/kids/$id/dictionary`). */
 export class DictionaryPage {
-  constructor(private readonly page: Page) {}
+  private readonly searchBox: SearchBox;
+
+  constructor(private readonly page: Page) {
+    this.searchBox = new SearchBox(page, 'Search words or translations');
+  }
 
   /** Switches to the Dictionary tab (from anywhere on the profile). */
   async open() {
@@ -51,8 +57,9 @@ export class DictionaryPage {
     await expect(dialog).toBeHidden();
   }
 
+  /** Searches the list; the SearchBox waits out the debounce so the next step can't race it. */
   async search(term: string) {
-    await this.page.getByPlaceholder('Search words or translations').fill(term);
+    await this.searchBox.fill(term);
   }
 
   async toggleShowArchived() {
@@ -64,6 +71,8 @@ export class DictionaryPage {
   }
 
   private async openRowMenu(phrase: string) {
+    // Settle on the row before reaching into it, so the click can't land mid-rerender.
+    await expect(this.row(phrase)).toBeVisible();
     await this.row(phrase).getByRole('button', { name: 'Open menu' }).click();
   }
 }

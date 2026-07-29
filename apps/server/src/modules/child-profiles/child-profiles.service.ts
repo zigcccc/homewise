@@ -2,6 +2,7 @@ import { and, count, eq, inArray } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 
 import { db, schema } from '@/db';
+import { emptyToNull } from '@/db/utils';
 
 import { HouseholdsService } from '../households/households.service';
 import { ImagesService } from '../images/images.service';
@@ -13,9 +14,6 @@ const memberWith = {
   columns: { id: true, name: true, nickname: true, role: true, userId: true },
   with: { user: { columns: { id: true, email: true, name: true } } },
 } as const;
-
-/** Optional text fields come in as '' when a user clears them; store that as NULL. */
-const emptyToNull = (value: string | undefined) => (value === '' ? null : value);
 
 type ProfileRow = {
   member: Parameters<typeof HouseholdsService.toMemberResponse>[0];

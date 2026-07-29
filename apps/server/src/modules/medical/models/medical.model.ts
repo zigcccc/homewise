@@ -1,13 +1,10 @@
 import z from 'zod';
 
+import { optionalText } from '@/lib/models';
+
 /** Empty string clears the value. Stored on the medical record itself. */
 export const patchMedicalInfoModel = z.object({
-  medicalIdNumber: z
-    .string()
-    .trim()
-    .max(64, { error: 'Medical ID number must contain at most 64 characters' })
-    .or(z.literal(''))
-    .optional(),
+  medicalIdNumber: optionalText(64, 'Medical ID number'),
 });
 export type PatchMedicalInfo = z.infer<typeof patchMedicalInfoModel>;
 

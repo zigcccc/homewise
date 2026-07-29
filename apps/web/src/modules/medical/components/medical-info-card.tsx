@@ -34,7 +34,7 @@ import {
   listContactsQueryOptions,
   petContactTypeLabels,
 } from '@/modules/contacts';
-import { ConfirmDeleteDialog, UnsavedChangesDialog } from '@/modules/shared';
+import { ConfirmDeleteDialog, ExternalLink, UnsavedChangesDialog } from '@/modules/shared';
 
 const $patchInfo = client['medical-info'][':id'].$patch;
 const $postContact = client['medical-info'][':id'].contacts.$post;
@@ -237,16 +237,14 @@ export function MedicalInfoCard({
                         {contact.links.map((link) => {
                           const Icon = linkIcons[link.type];
                           return (
-                            <a
+                            <ExternalLink
                               className="flex items-center gap-1 rounded-full border px-2 py-0.5 text-muted-foreground text-xs hover:bg-accent hover:text-accent-foreground"
                               href={link.url}
                               key={link.id}
-                              rel="noopener noreferrer"
-                              target="_blank"
                             >
                               <Icon className="size-3" />
                               {link.name}
-                            </a>
+                            </ExternalLink>
                           );
                         })}
                       </div>

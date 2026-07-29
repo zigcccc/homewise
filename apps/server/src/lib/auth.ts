@@ -8,7 +8,7 @@ import { env } from '@/config/env';
 import { db, schema } from '@/db';
 import { VerifyEmail } from '@/emails/VerifyEmail';
 
-import { resend } from './resend';
+import { sendEmail } from './resend';
 
 // In a Vercel preview, the web and the API live on two *different* sites:
 // `vercel.app` is on the Public Suffix List, so homewise-web-pr-<n>.vercel.app
@@ -54,12 +54,20 @@ export const auth = betterAuth({
     autoSignInAfterVerification: true,
     async sendVerificationEmail({ user, url }) {
       const html = await render(VerifyEmail({ url, userName: user.name }));
-      await resend.emails.send({
-        from: 'Homewise 🏡 <no-reply@home-wise.app>',
-        to: user.email,
-        subject: 'Verify your email address',
-        html,
-      });
+
+      try {
+        await sendEmail({
+          from: 'Homewise 🏡 <no-reply@home-wise.app>',
+          to: user.email,
+          subject: 'Verify your email address',
+          html,
+        });
+      } catch (error) {
+        // Preserves the previous behaviour — a provider failure must not fail the sign-up itself —
+        // but logs it instead of discarding it silently. The user can request a new link.
+        // Correlate by user id, not email address, so logs carry no recipient PII.
+        console.error(`✗ verification email failed for user ${user.id}; sign-up itself succeeded`, error);
+      }
     },
   },
 });

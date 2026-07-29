@@ -2,14 +2,9 @@ import { and, eq } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 
 import { db, schema } from '@/db';
+import { type Executor, emptyToNull } from '@/db/utils';
 
 import { type ContactLink, type CreateContact, type PatchContact } from './models';
-
-/** A `db` handle or an open transaction — lets `create` run inside a caller's transaction (e.g. add-and-link). */
-type Executor = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
-
-/** Optional text fields come in as '' when a user clears them; store that as NULL. */
-const emptyToNull = (value: string | undefined) => (value === '' ? null : value);
 
 /** Standalone household contacts (address-book entries). Owner features attach them via join tables. */
 export class ContactsService {

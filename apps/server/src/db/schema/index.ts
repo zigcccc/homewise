@@ -4,4 +4,5 @@ export * from './contact';
 export * from './household';
 export * from './medical-info';
 export * from './pet-profile';
+export * from './recipe';
 export * from './user';

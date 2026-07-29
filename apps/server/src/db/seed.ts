@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
 import { hashPassword } from 'better-auth/crypto';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 
@@ -9,7 +9,9 @@ import * as schema from './schema';
 import {
   SEED_CHILD_MEMBER,
   SEED_HOUSEHOLD_NAME,
+  SEED_INGREDIENTS,
   SEED_ONBOARDING_USER,
+  SEED_RECIPE,
   SEED_SECOND_USER,
   SEED_USER,
 } from './seed-fixtures';
@@ -184,6 +186,115 @@ async function seed() {
     // 4. Onboarding user — a real account with NO household/membership, so the
     // e2e onboarding spec can create one from a clean slate.
     await ensureUser(db, SEED_ONBOARDING_USER);
+
+    // 5. Ingredient library — pantry staples, so the recipe form's picker is never
+    // empty (idempotent by household + lower(name), matching the unique index).
+    const existingIngredients = await db
+      .select()
+      .from(schema.ingredient)
+      .where(eq(schema.ingredient.householdId, household.id));
+    const ingredientIdByName = new Map(existingIngredients.map((row) => [row.name.toLowerCase(), row.id]));
+    const missingIngredients = SEED_INGREDIENTS.filter(
+      (fixture) => !ingredientIdByName.has(fixture.name.toLowerCase())
+    );
+
+    if (missingIngredients.length > 0) {
+      const inserted = await db
+        .insert(schema.ingredient)
+        .values(
+          missingIngredients.map((fixture) => ({
+            householdId: household.id,
+            name: fixture.name,
+            category: fixture.category,
+            defaultUnit: fixture.defaultUnit,
+          }))
+        )
+        .returning();
+
+      for (const row of inserted) {
+        ingredientIdByName.set(row.name.toLowerCase(), row.id);
+      }
+      console.log(`▸ seeded ${inserted.length} ingredients`);
+    } else {
+      console.log('▸ ingredients already present — skipping');
+    }
+
+    // 6. One complete recipe (idempotent by household + title), so the list, the
+    // detail view and search-by-ingredient all have known data to read.
+    const [existingRecipe] = await db
+      .select()
+      .from(schema.recipe)
+      .where(and(eq(schema.recipe.householdId, household.id), eq(schema.recipe.title, SEED_RECIPE.title)));
+
+    if (!existingRecipe) {
+      await db.transaction(async (tx) => {
+        const [created] = await tx
+          .insert(schema.recipe)
+          .values({
+            householdId: household.id,
+            title: SEED_RECIPE.title,
+            description: SEED_RECIPE.description,
+            mealType: SEED_RECIPE.mealType,
+            cuisine: SEED_RECIPE.cuisine,
+            servings: SEED_RECIPE.servings,
+            prepTimeMinutes: SEED_RECIPE.prepTimeMinutes,
+            cookTimeMinutes: SEED_RECIPE.cookTimeMinutes,
+            sourceName: SEED_RECIPE.sourceName,
+            createdBy: ownerId,
+          })
+          .returning();
+
+        if (!created) {
+          throw new Error('failed to create seed recipe');
+        }
+
+        await tx.insert(schema.recipeIngredient).values(
+          SEED_RECIPE.ingredients.map((line, index) => {
+            const ingredientId = ingredientIdByName.get(line.name.toLowerCase());
+            if (ingredientId === undefined) {
+              throw new Error(`seed recipe references unknown ingredient "${line.name}"`);
+            }
+
+            return {
+              recipeId: created.id,
+              ingredientId,
+              quantity: line.quantity,
+              unit: line.unit,
+              note: line.note ?? null,
+              position: index,
+            };
+          })
+        );
+
+        await tx
+          .insert(schema.recipeStep)
+          .values(
+            SEED_RECIPE.steps.map((instruction, index) => ({ recipeId: created.id, position: index, instruction }))
+          );
+
+        await tx
+          .insert(schema.recipeTag)
+          .values(SEED_RECIPE.tags.map((name) => ({ householdId: household.id, name })))
+          .onConflictDoNothing();
+
+        // Re-read rather than using the insert's `returning()`: onConflictDoNothing omits rows that
+        // already existed, so a tag left over from an earlier seed would never get linked.
+        const tags = await tx
+          .select({ id: schema.recipeTag.id })
+          .from(schema.recipeTag)
+          .where(
+            and(eq(schema.recipeTag.householdId, household.id), inArray(schema.recipeTag.name, [...SEED_RECIPE.tags]))
+          );
+
+        if (tags.length > 0) {
+          await tx.insert(schema.recipeTagLink).values(tags.map((tag) => ({ recipeId: created.id, tagId: tag.id })));
+        }
+      });
+
+      console.log('▸ seeded preview recipe');
+    } else {
+      console.log('▸ preview recipe already present — skipping');
+    }
 
     console.log('✓ seed complete');
   } finally {
