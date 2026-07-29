@@ -2,9 +2,8 @@ import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 
 /**
- * Local-only teardown (skipped in CI, which runs against a deployed preview and
- * never starts a container). Removes the isolated test Postgres that
- * global-setup started, so `docker ps` stays clean after a run.
+ * Runs everywhere (dev machine and CI alike). Removes the isolated test Postgres
+ * that global-setup started, so `docker ps` stays clean after a run.
  *
  * Scoped to the `postgres-test` service by name — never touches the dev
  * `postgres` service in the same compose file. Best-effort: a failure here must

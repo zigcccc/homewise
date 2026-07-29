@@ -2,7 +2,8 @@ import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 
 /**
- * Local-only setup (skipped in CI, where we run against an already-seeded preview).
+ * Runs everywhere (dev machine and CI alike — CI runs the whole app on the runner,
+ * never a deployed preview).
  *
  * Brings the app to a known state before any test runs:
  *   1. start the isolated test Postgres (docker compose `test` profile, :8766),
