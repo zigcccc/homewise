@@ -2,6 +2,7 @@ import { and, asc, count, desc, eq, ilike, inArray, or } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 
 import { db, schema } from '@/db';
+import { type Executor, emptyToNull } from '@/db/utils';
 import { IngredientsService } from '@/modules/ingredients/ingredients.service';
 
 import {
@@ -12,14 +13,8 @@ import {
   type RecipeStep,
 } from './models';
 
-/** A `db` handle or an open transaction. */
-type Executor = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
-
 /** An ingredient line once its `ingredientName`, if any, has been turned into a real library id. */
 type ResolvedRecipeIngredient = Omit<RecipeIngredient, 'ingredientId' | 'ingredientName'> & { ingredientId: number };
-
-/** Optional text fields come in as '' when a user clears them; store that as NULL. */
-const emptyToNull = (value: string | undefined) => (value === '' ? null : value);
 
 const creatorWith = { columns: { id: true, name: true, image: true } } as const;
 

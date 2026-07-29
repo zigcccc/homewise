@@ -2,20 +2,9 @@ import { and, asc, count, desc, eq, ilike, inArray, ne, or, sql } from 'drizzle-
 import { HTTPException } from 'hono/http-exception';
 
 import { db, schema } from '@/db';
+import { type Executor, emptyToNull, isUniqueViolation } from '@/db/utils';
 
 import { type CreateIngredient, type ListIngredientsQueryParams, type PatchIngredient } from './models';
-
-/** A `db` handle or an open transaction — lets `create` run inside a caller's transaction (e.g. save-recipe). */
-type Executor = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
-
-/** Optional text fields come in as '' when a user clears them; store that as NULL. */
-const emptyToNull = (value: string | undefined) => (value === '' ? null : value);
-
-/** Postgres unique-violation. Raised by `ingredient_household_name_unique` on a duplicate name. */
-const UNIQUE_VIOLATION = '23505';
-
-const isUniqueViolation = (error: unknown) =>
-  typeof error === 'object' && error !== null && 'code' in error && error.code === UNIQUE_VIOLATION;
 
 const duplicateNameError = (name: string) =>
   new HTTPException(409, { message: `"${name}" is already in your ingredient library` });

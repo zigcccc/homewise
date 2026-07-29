@@ -2,6 +2,7 @@ import { and, asc, desc, eq, ilike, or } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 
 import { db, schema } from '@/db';
+import { emptyToNull } from '@/db/utils';
 
 import {
   type CreateChildDictionaryEntry,
@@ -11,9 +12,6 @@ import {
 
 /** The `creator` join: the user account that added an entry. Null once that account is deleted. */
 const creatorWith = { columns: { id: true, name: true, image: true } } as const;
-
-/** Optional text fields come in as '' when a user clears them; store that as NULL. */
-const emptyToNull = (value: string | undefined) => (value === '' ? null : value);
 
 export class ChildDictionariesService {
   /** Existence + household-scoping check, without the joins the full detail response needs. */

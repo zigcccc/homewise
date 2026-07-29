@@ -2,6 +2,7 @@ import { and, eq } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 
 import { db, schema } from '@/db';
+import { emptyToNull } from '@/db/utils';
 
 import { ContactsService } from '../contacts/contacts.service';
 import { type CreateContact } from '../contacts/models';
@@ -23,9 +24,6 @@ type MedicalInfoRow = {
   medicalIdNumber: string | null;
   links: { contact: typeof schema.contact.$inferSelect & { links: (typeof schema.contactLink.$inferSelect)[] } }[];
 };
-
-/** Optional text fields come in as '' when a user clears them; store that as NULL. */
-const emptyToNull = (value: string | undefined) => (value === '' ? null : value);
 
 /** Medical records + the medical-info↔contact link. A record's lifecycle belongs to its profile. */
 export class MedicalService {
