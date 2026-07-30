@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
-import { createFileRoute, Link, Outlet } from '@tanstack/react-router';
+import { createFileRoute, Link, Outlet, useMatchRoute } from '@tanstack/react-router';
 import { ArchiveIcon, ArchiveRestoreIcon, MoreHorizontal, PencilIcon, StarIcon, TrashIcon } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -38,7 +38,12 @@ function RecipeLayout() {
   const { recipeId } = Route.useParams();
   const navigate = Route.useNavigate();
   const queryClient = useQueryClient();
+  const matchRoute = useMatchRoute();
   const id = Number(recipeId);
+
+  // This header belongs to the layout, so it also renders over the edit form — where an "Edit"
+  // button links to the page you're already on. The form owns its own save/cancel footer.
+  const isEditing = Boolean(matchRoute({ to: '/food/recipes/$recipeId/edit' }));
 
   const [deleteOpen, setDeleteOpen] = useState(false);
 
@@ -77,7 +82,10 @@ function RecipeLayout() {
     try {
       await deleteRecipe();
       toast.success(`"${recipe.title}" deleted.`);
-      await navigate({ to: '/food/recipes' });
+      // `ignoreBlocker` because this header sits above the edit form, whose unsaved-changes guard
+      // would otherwise block *this* navigation — leaving "Stay" to strand the user on a form for a
+      // recipe that no longer exists. Confirming a permanent delete already answers "discard my edits".
+      await navigate({ ignoreBlocker: true, to: '/food/recipes' });
       // After navigating away, so the removed recipe's detail query can't refetch into a 404.
       invalidateRecipes(queryClient);
     } catch {
@@ -102,9 +110,23 @@ function RecipeLayout() {
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>{recipe.title}</BreadcrumbPage>
-            </BreadcrumbItem>
+            {isEditing ? (
+              <>
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Link to="..">{recipe.title}</Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbPage>Edit recipe</BreadcrumbPage>
+                </BreadcrumbItem>
+              </>
+            ) : (
+              <BreadcrumbItem>
+                <BreadcrumbPage>{recipe.title}</BreadcrumbPage>
+              </BreadcrumbItem>
+            )}
           </BreadcrumbList>
         </Breadcrumb>
       </Actionbar.Content>
@@ -121,12 +143,14 @@ function RecipeLayout() {
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            <Button asChild variant="outline">
-              <Link params={{ recipeId }} to="/food/recipes/$recipeId/edit">
-                <PencilIcon />
-                Edit
-              </Link>
-            </Button>
+            {!isEditing && (
+              <Button asChild variant="outline">
+                <Link params={{ recipeId }} to="/food/recipes/$recipeId/edit">
+                  <PencilIcon />
+                  Edit
+                </Link>
+              </Button>
+            )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button className="h-9 w-9 p-0" variant="outline">

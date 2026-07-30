@@ -14,6 +14,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@dnd-kit/helpers": "catalog:",
+    "@dnd-kit/react": "catalog:",
     "@homewise/server": "workspace:*",
     "@homewise/ui": "workspace:*",
     "@hookform/resolvers": "catalog:",
@@ -31,6 +33,7 @@
     "react": "catalog:",
     "react-dom": "catalog:",
     "react-hook-form": "catalog:",
+    "react-intersection-observer": "catalog:",
     "sonner": "catalog:",
     "usehooks-ts": "catalog:",
     "zod": "catalog:"

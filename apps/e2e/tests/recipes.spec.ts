@@ -141,6 +141,248 @@ test.describe('recipes', () => {
     }
   });
 
+  test('reorders ingredients with the keyboard, and drops the header Edit button while editing', async ({ page }) => {
+    const recipes = new RecipesPage(page);
+    const stamp = Date.now();
+    const title = `E2E Reorder ${stamp}`;
+    // Three seeded library ingredients, added in a known order.
+    const [first, second, third] = [SEED_INGREDIENTS[0].name, SEED_INGREDIENTS[1].name, SEED_INGREDIENTS[2].name];
+
+    await recipes.goto();
+    await recipes.openNewForm();
+    await recipes.fillTitle(title);
+    await recipes.addExistingIngredient(first);
+    await recipes.addExistingIngredient(second);
+    await recipes.addExistingIngredient(third);
+    await recipes.save('Save recipe');
+    await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
+
+    try {
+      await expect(recipes.detailIngredientRows()).toHaveText([
+        new RegExp(first),
+        new RegExp(second),
+        new RegExp(third),
+      ]);
+
+      await recipes.openEditForm();
+
+      // The page header belongs to the recipe layout, so it renders over the form too — but an
+      // "Edit" button on the edit page is a link to where you already are. The form has its own
+      // Save changes / Cancel footer.
+      await expect(page.getByRole('link', { name: 'Edit', exact: true })).toBeHidden();
+
+      // Moving the first line down one slot swaps it with the second — in the form immediately…
+      await recipes.moveIngredient(first, 'down');
+      await expect(recipes.ingredientRows()).toHaveText([new RegExp(second), new RegExp(first), new RegExp(third)]);
+
+      // …and in the recipe once saved: the server derives each line's position from array order.
+      await recipes.save('Save changes');
+      await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
+      await expect(recipes.detailIngredientRows()).toHaveText([
+        new RegExp(second),
+        new RegExp(first),
+        new RegExp(third),
+      ]);
+
+      // Reloading proves the order came back from the database, not from a stale cache entry.
+      await page.reload();
+      await expect(recipes.detailIngredientRows()).toHaveText([
+        new RegExp(second),
+        new RegExp(first),
+        new RegExp(third),
+      ]);
+    } finally {
+      await recipes.goto();
+      await recipes.deleteIfPresent(title);
+    }
+  });
+
+  test('reorders ingredients with a pointer drag', async ({ page }) => {
+    const recipes = new RecipesPage(page);
+    const title = `E2E Drag ${Date.now()}`;
+    const [first, second, third] = [SEED_INGREDIENTS[0].name, SEED_INGREDIENTS[1].name, SEED_INGREDIENTS[2].name];
+
+    await recipes.goto();
+    await recipes.openNewForm();
+    await recipes.fillTitle(title);
+    await recipes.addExistingIngredient(first);
+    await recipes.addExistingIngredient(second);
+    await recipes.addExistingIngredient(third);
+
+    // The add form, deliberately: dragging has to work on lines that aren't persisted yet. Dragging
+    // the last line up onto the second swaps the two.
+    await recipes.dragIngredient(third, second);
+    await expect(recipes.ingredientRows()).toHaveText([new RegExp(first), new RegExp(third), new RegExp(second)]);
+
+    try {
+      await recipes.save('Save recipe');
+      await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
+
+      // The dragged order is what the server stored, not just what the form showed.
+      await expect(recipes.detailIngredientRows()).toHaveText([
+        new RegExp(first),
+        new RegExp(third),
+        new RegExp(second),
+      ]);
+    } finally {
+      await recipes.goto();
+      await recipes.deleteIfPresent(title);
+    }
+  });
+
+  test('warns before leaving the add form with unsaved changes', async ({ page }) => {
+    const recipes = new RecipesPage(page);
+    const title = `E2E Unsaved ${Date.now()}`;
+
+    await recipes.goto();
+
+    // An untouched form has nothing to lose, so leaving it must not nag. A form that reports itself
+    // dirty on mount would make the warning meaningless, which is why this is asserted first.
+    await recipes.openNewForm();
+    await recipes.cancelForm();
+    await expect(page.getByRole('heading', { level: 1, name: 'Recipes' })).toBeVisible();
+
+    await recipes.openNewForm();
+    await recipes.fillTitle(title);
+
+    // Cancel is a navigation like any other, so the guard catches it.
+    await recipes.cancelForm();
+    await expect(recipes.unsavedChangesDialog()).toBeVisible();
+
+    // "Stay" cancels the navigation and leaves the work exactly as it was.
+    await recipes.stayOnForm();
+    await expect(page.getByRole('heading', { level: 1, name: 'Add a recipe' })).toBeVisible();
+    await expect(page.getByLabel('Title')).toHaveValue(title);
+
+    // "Leave without saving" lets it through, and nothing was ever created.
+    await recipes.cancelForm();
+    await recipes.leaveWithoutSaving();
+    await expect(page.getByRole('heading', { level: 1, name: 'Recipes' })).toBeVisible();
+    await expect(recipes.card(title)).toBeHidden();
+  });
+
+  test('warns before leaving the edit form with unsaved changes', async ({ page }) => {
+    const recipes = new RecipesPage(page);
+    const stamp = Date.now();
+    const title = `E2E Unsaved Edit ${stamp}`;
+    const draft = `${title} draft`;
+
+    await recipes.goto();
+    await recipes.openNewForm();
+    await recipes.fillTitle(title);
+    await recipes.addExistingIngredient(SEED_INGREDIENTS[0].name);
+    await recipes.addStep('Only step.');
+    await recipes.save('Save recipe');
+    await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
+
+    try {
+      // Seeded from a saved recipe — ingredient lines, steps and all — the form must still come up
+      // clean. Nothing was touched, so Cancel goes straight back.
+      await recipes.openEditForm();
+      await recipes.cancelForm();
+      await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
+
+      await recipes.openEditForm();
+      await recipes.fillTitle(draft);
+
+      await recipes.cancelForm();
+      await expect(recipes.unsavedChangesDialog()).toBeVisible();
+      await recipes.stayOnForm();
+      await expect(page.getByLabel('Title')).toHaveValue(draft);
+
+      // Leaving discards the edit: the recipe still has the name it was saved under.
+      await recipes.cancelForm();
+      await recipes.leaveWithoutSaving();
+      await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
+      await expect(page.getByRole('heading', { level: 1, name: draft })).toBeHidden();
+    } finally {
+      await recipes.goto();
+      await recipes.deleteIfPresent(title);
+    }
+  });
+
+  test('deletes a recipe from a dirty edit form without stalling on the unsaved-changes guard', async ({ page }) => {
+    const recipes = new RecipesPage(page);
+    const title = `E2E Delete While Editing ${Date.now()}`;
+
+    await recipes.goto();
+    await recipes.openNewForm();
+    await recipes.fillTitle(title);
+
+    try {
+      await recipes.save('Save recipe');
+      await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
+
+      await recipes.openEditForm();
+      // Arm the guard, then delete from the header menu that sits above the form.
+      await recipes.fillTitle(`${title} draft`);
+      await recipes.delete();
+
+      // Confirming a permanent delete already answers "discard my edits", so the guard must not
+      // intercept this navigation — "Stay" would strand the user on a form for a deleted recipe.
+      await expect(recipes.unsavedChangesDialog()).toBeHidden();
+      await expect(page.getByRole('heading', { level: 1, name: 'Recipes' })).toBeVisible();
+      await expect(recipes.card(title)).toHaveCount(0);
+    } finally {
+      // Only reachable if the delete above never went through.
+      await recipes.goto();
+      await recipes.deleteIfPresent(title);
+    }
+  });
+
+  test('offers a save button in the actionbar once the form footer scrolls away', async ({ page }) => {
+    const recipes = new RecipesPage(page);
+    const stamp = Date.now();
+    const title = `E2E Actionbar ${stamp}`;
+    const renamed = `${title} renamed`;
+
+    await recipes.goto();
+    await recipes.openNewForm();
+    await recipes.fillTitle(title);
+    // Enough content that the form is comfortably taller than the viewport.
+    await recipes.addExistingIngredient(SEED_INGREDIENTS[0].name);
+    await recipes.addExistingIngredient(SEED_INGREDIENTS[1].name);
+    await recipes.addStep('First step.');
+    await recipes.addStep('Second step.');
+    await recipes.save('Save recipe');
+    await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
+
+    try {
+      await recipes.openEditForm();
+
+      // Two conditions, and it takes both. A clean form has nothing to save, however far down the
+      // page the footer is — so scrolled to the top of an untouched form, the actionbar stays bare.
+      await recipes.scrollToFormTop();
+      await expect(recipes.actionbarSave()).toBeHidden();
+
+      // Dirty *and* the footer out of view: now the actionbar carries the save.
+      await recipes.fillTitle(renamed);
+      await expect(recipes.actionbarSave()).toBeVisible();
+
+      // On the right of the actionbar, clear of the breadcrumb — the portals mount in whatever order
+      // the tree commits, so this pins the layout rather than the DOM order it happens to produce.
+      const saveBox = await recipes.actionbarSave().boundingBox();
+      const breadcrumbBox = await page.getByRole('navigation', { name: 'breadcrumb' }).boundingBox();
+      expect(saveBox && breadcrumbBox && saveBox.x > breadcrumbBox.x + breadcrumbBox.width).toBe(true);
+
+      // Scrolling the real button back into view retires the stand-in — never two of the same action.
+      await recipes.scrollToFormFooter();
+      await expect(recipes.actionbarSave()).toBeHidden();
+
+      await recipes.scrollToFormTop();
+      await expect(recipes.actionbarSave()).toBeVisible();
+
+      // And it really saves: same submit, same navigation as the footer button.
+      await recipes.actionbarSave().click();
+      await expect(page.getByRole('heading', { level: 1, name: renamed })).toBeVisible();
+      await expect(recipes.actionbarSave()).toBeHidden();
+    } finally {
+      await recipes.goto();
+      await recipes.deleteIfPresent(renamed);
+      await recipes.deleteIfPresent(title);
+    }
+  });
+
   test('finds a recipe by an ingredient it contains', async ({ page }) => {
     const recipes = new RecipesPage(page);
     await recipes.goto();

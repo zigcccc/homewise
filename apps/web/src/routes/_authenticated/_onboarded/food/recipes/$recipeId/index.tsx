@@ -89,7 +89,9 @@ function RecipeDetailRoute() {
       <div className="grid gap-4 lg:grid-cols-[1fr_1.5fr]">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center justify-between gap-2">
+            {/* `min-h-9` on both card titles — the servings stepper makes this header a 36px row,
+                so the Instructions title needs the same floor to line up with it. */}
+            <CardTitle className="flex min-h-9 items-center justify-between gap-2">
               Ingredients
               {recipe.servings !== null && servings !== null && (
                 <span className="flex items-center gap-1">
@@ -151,7 +153,7 @@ function RecipeDetailRoute() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Instructions</CardTitle>
+            <CardTitle className="flex min-h-9 items-center">Instructions</CardTitle>
           </CardHeader>
           <CardContent data-testid="recipe-steps">
             {recipe.steps.length === 0 ? (

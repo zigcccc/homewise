@@ -124,8 +124,6 @@ function RecipesRoute() {
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
-            <BreadcrumbItem>Food & Groceries</BreadcrumbItem>
-            <BreadcrumbSeparator />
             <BreadcrumbItem>
               <BreadcrumbPage>Recipes</BreadcrumbPage>
             </BreadcrumbItem>

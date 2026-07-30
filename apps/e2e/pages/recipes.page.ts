@@ -38,7 +38,15 @@ export class RecipesPage {
     // `exact` matters: the breadcrumb renders the recipe title as a role=link, so a substring
     // match would collide with any title containing the word "Edit".
     await this.page.getByRole('link', { name: 'Edit', exact: true }).click();
-    await expect(this.page.getByRole('button', { name: 'Save changes' })).toBeVisible();
+    await expect(this.formButton('Save changes')).toBeVisible();
+  }
+
+  /**
+   * A button inside the form element. Scoped on purpose: a dirty form whose footer has scrolled out
+   * of view also portals a save button into the actionbar, which is outside the <form>.
+   */
+  private formButton(label: string): Locator {
+    return this.page.locator('form').getByRole('button', { name: label });
   }
 
   async fillTitle(title: string) {
@@ -102,6 +110,90 @@ export class RecipesPage {
     return this.page.getByRole('listitem').filter({ has: this.page.getByRole('button', { name: `Remove ${name}` }) });
   }
 
+  /**
+   * Every ingredient line in the form, in DOM order — for asserting the order itself. Scoped by
+   * testid: tag chips and step rows are list items with "Remove …" buttons too.
+   */
+  ingredientRows(): Locator {
+    return this.page.getByTestId('ingredient-lines').getByRole('listitem');
+  }
+
+  /** Every ingredient line on the detail view, in DOM order. */
+  detailIngredientRows(): Locator {
+    return this.page.getByTestId('recipe-ingredients').getByRole('listitem');
+  }
+
+  /** An ingredient line's drag handle. */
+  private ingredientDragHandle(name: string): Locator {
+    return this.ingredientRow(name).getByRole('button', { name: `Reorder ${name}` });
+  }
+
+  /**
+   * Scrolls `locator` into view and returns its box once it has stopped moving — two identical reads
+   * in a row. Needed because `scrollIntoViewIfNeeded` resolves before the scroll has settled, so a
+   * box read straight afterwards can be stale by the time it's used.
+   */
+  private async stableBox(locator: Locator) {
+    await locator.scrollIntoViewIfNeeded();
+
+    let previous = await locator.boundingBox();
+
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      await this.page.waitForTimeout(50);
+      const current = await locator.boundingBox();
+
+      if (previous && current && previous.x === current.x && previous.y === current.y) {
+        return current;
+      }
+
+      previous = current;
+    }
+
+    throw new Error('Bounding box never settled.');
+  }
+
+  /**
+   * Moves an ingredient line one slot up or down with the keyboard: space lifts it, an arrow moves
+   * it a full slot (dnd-kit's sortable keyboard plugin), space drops it. This is the accessible
+   * path — if it passes, the list is operable without a pointer.
+   */
+  async moveIngredient(name: string, direction: 'down' | 'up') {
+    await this.ingredientDragHandle(name).focus();
+    await this.page.keyboard.press('Space');
+    await this.page.keyboard.press(direction === 'down' ? 'ArrowDown' : 'ArrowUp');
+    await this.page.keyboard.press('Space');
+  }
+
+  /**
+   * Drags an ingredient line with the pointer until it lands in the slot `onto` currently occupies.
+   * Worth having next to `moveIngredient` because the two go through different dnd-kit sensors, so a
+   * broken pointer drag would otherwise sail past a keyboard-only test.
+   */
+  async dragIngredient(name: string, onto: string) {
+    // Scroll first and settle before measuring anything. The raw `mouse` API works in absolute
+    // viewport coordinates and does no scrolling of its own, so on a form this tall every coordinate
+    // here depends on the scroll having finished: measure mid-scroll and `mouse.down()` lands next to
+    // the handle rather than on it, and the drag then never starts at all — silently, in either
+    // direction. This was the whole reason the first version of this helper "worked" downwards and
+    // not upwards; it was never about direction.
+    const handle = await this.stableBox(this.ingredientDragHandle(name));
+    const source = await this.stableBox(this.ingredientRow(name));
+    const target = await this.stableBox(this.ingredientRow(onto));
+
+    const x = handle.x + handle.width / 2;
+    const y = handle.y + handle.height / 2;
+    // Exactly one row pitch, which lands the pointer at the same offset *within* the target row.
+    const distance = target.y - source.y;
+
+    await this.page.mouse.move(x, y);
+    await this.page.mouse.down();
+    // dnd-kit activates on measured pointer travel, so the pointer has to move in steps, not teleport.
+    for (const fraction of [0.1, 0.3, 0.5, 0.7, 0.9, 1]) {
+      await this.page.mouse.move(x, y + distance * fraction);
+    }
+    await this.page.mouse.up();
+  }
+
   async setIngredientQuantity(name: string, quantity: string) {
     await this.ingredientRow(name).getByLabel('Quantity').fill(quantity);
   }
@@ -128,8 +220,43 @@ export class RecipesPage {
       .filter({ has: this.page.getByRole('button', { name: `Remove tag ${name}` }) });
   }
 
+  /** Saves from the form's own footer button. */
   async save(label: string) {
-    await this.page.getByRole('button', { name: label }).click();
+    await this.formButton(label).click();
+  }
+
+  /** The stand-in save button the form portals into the actionbar. */
+  actionbarSave(): Locator {
+    return this.page.getByTestId('actionbar-save');
+  }
+
+  /** Brings the form footer on screen — the condition that retires the actionbar's save button. */
+  async scrollToFormFooter() {
+    await this.page.getByRole('link', { name: 'Cancel' }).scrollIntoViewIfNeeded();
+  }
+
+  async scrollToFormTop() {
+    await this.page.getByLabel('Title').scrollIntoViewIfNeeded();
+  }
+
+  /** The form's Cancel link — a navigation, so it trips the unsaved-changes guard when dirty. */
+  async cancelForm() {
+    await this.page.getByRole('link', { name: 'Cancel' }).click();
+  }
+
+  /** The guard shown when leaving a dirty form. Its title is the dialog's accessible name. */
+  unsavedChangesDialog(): Locator {
+    return this.page.getByRole('dialog', { name: 'Unsaved changes' });
+  }
+
+  async stayOnForm() {
+    await this.unsavedChangesDialog().getByRole('button', { name: 'Stay' }).click();
+    await expect(this.unsavedChangesDialog()).toBeHidden();
+  }
+
+  async leaveWithoutSaving() {
+    await this.unsavedChangesDialog().getByRole('button', { name: 'Leave without saving' }).click();
+    await expect(this.unsavedChangesDialog()).toBeHidden();
   }
 
   /** Searches the list; the SearchBox waits out the debounce so the next step can't race it. */
