@@ -435,9 +435,12 @@ function IngredientLineRow({
     <li className={clsx('rounded-md border bg-card p-3', isDragging && 'shadow-md')} ref={ref}>
       <div className="mb-2 flex items-center gap-2">
         {/* A real button, not a decorative icon: it's what gives the row keyboard dragging (space to
-            lift, arrows to move, space to drop). `touch-none` keeps a touch drag from scrolling. */}
+            lift, arrows to move, space to drop). `touch-none` keeps a touch drag from scrolling.
+            This and the remove button both carry the row's position, because the same library
+            ingredient may legitimately appear twice in one recipe — two identical "Remove Butter"
+            buttons leave a screen-reader user no way to tell which one they're about to press. */}
         <button
-          aria-label={`Reorder ${name || 'ingredient'}`}
+          aria-label={`Reorder ${name || 'ingredient'}, position ${index + 1}`}
           className="shrink-0 cursor-grab touch-none text-muted-foreground"
           ref={handleRef}
           type="button"
@@ -467,7 +470,7 @@ function IngredientLineRow({
           <span className="flex-1 font-medium text-sm">{name ?? 'Unknown ingredient'}</span>
         )}
         <Button
-          aria-label={`Remove ${name || 'ingredient'}`}
+          aria-label={`Remove ${name || 'ingredient'}, position ${index + 1}`}
           className="ml-auto shrink-0"
           onClick={onRemove}
           size="icon"
