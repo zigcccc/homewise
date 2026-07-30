@@ -214,10 +214,10 @@ test.describe('recipes', () => {
     await recipes.dragIngredient(third, second);
     await expect(recipes.ingredientRows()).toHaveText([new RegExp(first), new RegExp(third), new RegExp(second)]);
 
-    await recipes.save('Save recipe');
-    await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
-
     try {
+      await recipes.save('Save recipe');
+      await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
+
       // The dragged order is what the server stored, not just what the form showed.
       await expect(recipes.detailIngredientRows()).toHaveText([
         new RegExp(first),
@@ -308,10 +308,11 @@ test.describe('recipes', () => {
     await recipes.goto();
     await recipes.openNewForm();
     await recipes.fillTitle(title);
-    await recipes.save('Save recipe');
-    await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
 
     try {
+      await recipes.save('Save recipe');
+      await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
+
       await recipes.openEditForm();
       // Arm the guard, then delete from the header menu that sits above the form.
       await recipes.fillTitle(`${title} draft`);
