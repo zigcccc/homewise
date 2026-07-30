@@ -39,6 +39,7 @@ test.describe('recipes', () => {
       // that's the whole point of deferring creation, and the regression most worth pinning.
       await recipes.renameNewIngredient(typoIngredient, newIngredient);
       await recipes.setIngredientQuantity(newIngredient, '1');
+      await recipes.setIngredientUnit(newIngredient, 'tbsp');
 
       await recipes.addStep('First step.');
       await recipes.addStep('Second step.');
@@ -95,6 +96,10 @@ test.describe('recipes', () => {
       await ingredients.goto();
       await expect(ingredients.row(newIngredient)).toBeVisible();
       await expect(ingredients.row(typoIngredient)).toBeHidden();
+
+      // The unit the recipe used it with becomes its library default. Nearly always the right guess,
+      // and always better than the "—" it used to land with.
+      await expect(ingredients.row(newIngredient)).toContainText('tbsp');
     } finally {
       // Best-effort throughout: a failure above must not be masked by cleanup throwing over a row
       // that was never created.

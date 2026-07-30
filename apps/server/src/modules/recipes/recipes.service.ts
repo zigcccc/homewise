@@ -91,10 +91,14 @@ export class RecipesService {
     lines: RecipeIngredient[]
   ): Promise<ResolvedRecipeIngredient[]> {
     const ids = lines.map((line) => line.ingredientId).filter((id) => id !== undefined);
-    const names = lines.map((line) => line.ingredientName).filter((name) => name !== undefined);
+    // A named line carries the unit it's used with, which seeds the library row's default unit when
+    // this is the save that creates it.
+    const named = lines.flatMap((line) =>
+      line.ingredientName === undefined ? [] : [{ defaultUnit: line.unit, name: line.ingredientName }]
+    );
 
     await RecipesService.assertIngredientsInHousehold(executor, householdId, [...new Set(ids)]);
-    const idByName = await IngredientsService.resolveByName(executor, householdId, names);
+    const idByName = await IngredientsService.resolveByName(executor, householdId, named);
 
     return lines.map(({ ingredientId, ingredientName, ...rest }) => {
       const resolved = ingredientId ?? idByName.get(ingredientName!.toLowerCase());
