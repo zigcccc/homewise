@@ -141,7 +141,7 @@ test.describe('recipes', () => {
     }
   });
 
-  test('reorders ingredients by dragging, and drops the header Edit button while editing', async ({ page }) => {
+  test('reorders ingredients with the keyboard, and drops the header Edit button while editing', async ({ page }) => {
     const recipes = new RecipesPage(page);
     const stamp = Date.now();
     const title = `E2E Reorder ${stamp}`;
@@ -171,7 +171,7 @@ test.describe('recipes', () => {
       // Save changes / Cancel footer.
       await expect(page.getByRole('link', { name: 'Edit', exact: true })).toBeHidden();
 
-      // Dragging the first line down one slot swaps it with the second — in the form immediately…
+      // Moving the first line down one slot swaps it with the second — in the form immediately…
       await recipes.moveIngredient(first, 'down');
       await expect(recipes.ingredientRows()).toHaveText([new RegExp(second), new RegExp(first), new RegExp(third)]);
 
@@ -190,6 +190,39 @@ test.describe('recipes', () => {
         new RegExp(second),
         new RegExp(first),
         new RegExp(third),
+      ]);
+    } finally {
+      await recipes.goto();
+      await recipes.deleteIfPresent(title);
+    }
+  });
+
+  test('reorders ingredients with a pointer drag', async ({ page }) => {
+    const recipes = new RecipesPage(page);
+    const title = `E2E Drag ${Date.now()}`;
+    const [first, second, third] = [SEED_INGREDIENTS[0].name, SEED_INGREDIENTS[1].name, SEED_INGREDIENTS[2].name];
+
+    await recipes.goto();
+    await recipes.openNewForm();
+    await recipes.fillTitle(title);
+    await recipes.addExistingIngredient(first);
+    await recipes.addExistingIngredient(second);
+    await recipes.addExistingIngredient(third);
+
+    // The add form, deliberately: dragging has to work on lines that aren't persisted yet. Dragging
+    // the last line up onto the second swaps the two.
+    await recipes.dragIngredient(third, second);
+    await expect(recipes.ingredientRows()).toHaveText([new RegExp(first), new RegExp(third), new RegExp(second)]);
+
+    await recipes.save('Save recipe');
+    await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
+
+    try {
+      // The dragged order is what the server stored, not just what the form showed.
+      await expect(recipes.detailIngredientRows()).toHaveText([
+        new RegExp(first),
+        new RegExp(third),
+        new RegExp(second),
       ]);
     } finally {
       await recipes.goto();
