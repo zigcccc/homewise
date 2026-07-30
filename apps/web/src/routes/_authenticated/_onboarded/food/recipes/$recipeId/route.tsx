@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
-import { createFileRoute, Link, Outlet } from '@tanstack/react-router';
+import { createFileRoute, Link, Outlet, useMatchRoute } from '@tanstack/react-router';
 import { ArchiveIcon, ArchiveRestoreIcon, MoreHorizontal, PencilIcon, StarIcon, TrashIcon } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -38,7 +38,12 @@ function RecipeLayout() {
   const { recipeId } = Route.useParams();
   const navigate = Route.useNavigate();
   const queryClient = useQueryClient();
+  const matchRoute = useMatchRoute();
   const id = Number(recipeId);
+
+  // This header belongs to the layout, so it also renders over the edit form — where an "Edit"
+  // button links to the page you're already on. The form owns its own save/cancel footer.
+  const isEditing = Boolean(matchRoute({ to: '/food/recipes/$recipeId/edit' }));
 
   const [deleteOpen, setDeleteOpen] = useState(false);
 
@@ -121,12 +126,14 @@ function RecipeLayout() {
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            <Button asChild variant="outline">
-              <Link params={{ recipeId }} to="/food/recipes/$recipeId/edit">
-                <PencilIcon />
-                Edit
-              </Link>
-            </Button>
+            {!isEditing && (
+              <Button asChild variant="outline">
+                <Link params={{ recipeId }} to="/food/recipes/$recipeId/edit">
+                  <PencilIcon />
+                  Edit
+                </Link>
+              </Button>
+            )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button className="h-9 w-9 p-0" variant="outline">
