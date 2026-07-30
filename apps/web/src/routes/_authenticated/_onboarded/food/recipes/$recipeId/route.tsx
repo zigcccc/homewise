@@ -107,9 +107,23 @@ function RecipeLayout() {
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>{recipe.title}</BreadcrumbPage>
-            </BreadcrumbItem>
+            {isEditing ? (
+              <>
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Link to="..">{recipe.title}</Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbPage>Edit recipe</BreadcrumbPage>
+                </BreadcrumbItem>
+              </>
+            ) : (
+              <BreadcrumbItem>
+                <BreadcrumbPage>{recipe.title}</BreadcrumbPage>
+              </BreadcrumbItem>
+            )}
           </BreadcrumbList>
         </Breadcrumb>
       </Actionbar.Content>
