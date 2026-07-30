@@ -55,7 +55,9 @@ function ProfileLayout() {
     try {
       await deleteProfile();
       toast.success(`${profile.pet.displayName}'s profile deleted.`);
-      await navigate({ to: '/family/pets' });
+      // `ignoreBlocker` because the General tab's unsaved-changes guard would otherwise block *this*
+      // navigation, stranding the user on a form for a profile that no longer exists.
+      await navigate({ ignoreBlocker: true, to: '/family/pets' });
       // After navigating away, so the removed profile's detail query can't refetch into a 404.
       invalidatePetProfile(queryClient, id);
     } catch {

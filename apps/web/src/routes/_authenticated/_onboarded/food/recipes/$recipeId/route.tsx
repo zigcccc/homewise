@@ -82,7 +82,10 @@ function RecipeLayout() {
     try {
       await deleteRecipe();
       toast.success(`"${recipe.title}" deleted.`);
-      await navigate({ to: '/food/recipes' });
+      // `ignoreBlocker` because this header sits above the edit form, whose unsaved-changes guard
+      // would otherwise block *this* navigation — leaving "Stay" to strand the user on a form for a
+      // recipe that no longer exists. Confirming a permanent delete already answers "discard my edits".
+      await navigate({ ignoreBlocker: true, to: '/food/recipes' });
       // After navigating away, so the removed recipe's detail query can't refetch into a 404.
       invalidateRecipes(queryClient);
     } catch {

@@ -268,6 +268,34 @@ test.describe('recipes', () => {
     }
   });
 
+  test('deletes a recipe from a dirty edit form without stalling on the unsaved-changes guard', async ({ page }) => {
+    const recipes = new RecipesPage(page);
+    const title = `E2E Delete While Editing ${Date.now()}`;
+
+    await recipes.goto();
+    await recipes.openNewForm();
+    await recipes.fillTitle(title);
+    await recipes.save('Save recipe');
+    await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
+
+    try {
+      await recipes.openEditForm();
+      // Arm the guard, then delete from the header menu that sits above the form.
+      await recipes.fillTitle(`${title} draft`);
+      await recipes.delete();
+
+      // Confirming a permanent delete already answers "discard my edits", so the guard must not
+      // intercept this navigation — "Stay" would strand the user on a form for a deleted recipe.
+      await expect(recipes.unsavedChangesDialog()).toBeHidden();
+      await expect(page.getByRole('heading', { level: 1, name: 'Recipes' })).toBeVisible();
+      await expect(recipes.card(title)).toHaveCount(0);
+    } finally {
+      // Only reachable if the delete above never went through.
+      await recipes.goto();
+      await recipes.deleteIfPresent(title);
+    }
+  });
+
   test('offers a save button in the actionbar once the form footer scrolls away', async ({ page }) => {
     const recipes = new RecipesPage(page);
     const stamp = Date.now();
