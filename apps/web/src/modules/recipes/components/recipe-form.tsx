@@ -14,6 +14,7 @@ import {
   useForm,
   useWatch,
 } from 'react-hook-form';
+import { useInView } from 'react-intersection-observer';
 import { toast } from 'sonner';
 import type z from 'zod';
 
@@ -40,7 +41,7 @@ import {
 } from '@homewise/ui/core';
 
 import { type Ingredient, IngredientCombobox, measurementUnitLabels } from '@/modules/ingredients';
-import { SELECT_NONE, UnsavedChangesDialog } from '@/modules/shared';
+import { Actionbar, SELECT_NONE, UnsavedChangesDialog } from '@/modules/shared';
 
 import { mealTypeLabels } from '../helpers';
 import { type RecipeDetail } from '../recipes.queries';
@@ -101,6 +102,11 @@ export function RecipeForm({
 
   const ingredientLines = useFieldArray({ control: form.control, name: 'ingredients' });
   const steps = useFieldArray({ control: form.control, name: 'steps' });
+
+  // A recipe with a dozen ingredients and as many steps is far taller than the viewport, so the
+  // footer's save button spends most of the visit off-screen. Watching it is what lets the actionbar
+  // stand in for it — and only then, so the two are never both on screen offering the same action.
+  const { ref: footerRef, inView: footerInView } = useInView();
 
   const submit: SubmitHandler<RecipeFormValues> = async (values) => {
     await onSubmit(values);
@@ -364,13 +370,29 @@ export function RecipeForm({
           </CardContent>
         </Card>
 
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-end gap-2" ref={footerRef}>
           {cancelTo}
           <Button loading={form.formState.isSubmitting} type="submit">
             {submitLabel}
           </Button>
         </div>
       </form>
+
+      {/* The same save, kept reachable while the footer is scrolled away. `order-last ml-auto` pins
+          it to the right of the actionbar whichever order the portals happen to mount in. It's a
+          plain button calling `handleSubmit` because the portal lands it outside the <form>. */}
+      {form.formState.isDirty && !footerInView && (
+        <Actionbar.Content className="order-last ml-auto">
+          <Button
+            data-testid="actionbar-save"
+            loading={form.formState.isSubmitting}
+            onClick={form.handleSubmit(submit)}
+            type="button"
+          >
+            {submitLabel}
+          </Button>
+        </Actionbar.Content>
+      )}
 
       {/* A recipe is a long form to lose — Cancel, the breadcrumb and the sidebar all warn first.
           The `isSubmitting` half matters: both routes navigate away *inside* their submit handler,

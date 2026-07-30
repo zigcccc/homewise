@@ -268,6 +268,59 @@ test.describe('recipes', () => {
     }
   });
 
+  test('offers a save button in the actionbar once the form footer scrolls away', async ({ page }) => {
+    const recipes = new RecipesPage(page);
+    const stamp = Date.now();
+    const title = `E2E Actionbar ${stamp}`;
+    const renamed = `${title} renamed`;
+
+    await recipes.goto();
+    await recipes.openNewForm();
+    await recipes.fillTitle(title);
+    // Enough content that the form is comfortably taller than the viewport.
+    await recipes.addExistingIngredient(SEED_INGREDIENTS[0].name);
+    await recipes.addExistingIngredient(SEED_INGREDIENTS[1].name);
+    await recipes.addStep('First step.');
+    await recipes.addStep('Second step.');
+    await recipes.save('Save recipe');
+    await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
+
+    try {
+      await recipes.openEditForm();
+
+      // Two conditions, and it takes both. A clean form has nothing to save, however far down the
+      // page the footer is — so scrolled to the top of an untouched form, the actionbar stays bare.
+      await recipes.scrollToFormTop();
+      await expect(recipes.actionbarSave()).toBeHidden();
+
+      // Dirty *and* the footer out of view: now the actionbar carries the save.
+      await recipes.fillTitle(renamed);
+      await expect(recipes.actionbarSave()).toBeVisible();
+
+      // On the right of the actionbar, clear of the breadcrumb — the portals mount in whatever order
+      // the tree commits, so this pins the layout rather than the DOM order it happens to produce.
+      const saveBox = await recipes.actionbarSave().boundingBox();
+      const breadcrumbBox = await page.getByRole('navigation', { name: 'breadcrumb' }).boundingBox();
+      expect(saveBox && breadcrumbBox && saveBox.x > breadcrumbBox.x + breadcrumbBox.width).toBe(true);
+
+      // Scrolling the real button back into view retires the stand-in — never two of the same action.
+      await recipes.scrollToFormFooter();
+      await expect(recipes.actionbarSave()).toBeHidden();
+
+      await recipes.scrollToFormTop();
+      await expect(recipes.actionbarSave()).toBeVisible();
+
+      // And it really saves: same submit, same navigation as the footer button.
+      await recipes.actionbarSave().click();
+      await expect(page.getByRole('heading', { level: 1, name: renamed })).toBeVisible();
+      await expect(recipes.actionbarSave()).toBeHidden();
+    } finally {
+      await recipes.goto();
+      await recipes.deleteIfPresent(renamed);
+      await recipes.deleteIfPresent(title);
+    }
+  });
+
   test('finds a recipe by an ingredient it contains', async ({ page }) => {
     const recipes = new RecipesPage(page);
     await recipes.goto();

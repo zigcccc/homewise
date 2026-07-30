@@ -38,7 +38,15 @@ export class RecipesPage {
     // `exact` matters: the breadcrumb renders the recipe title as a role=link, so a substring
     // match would collide with any title containing the word "Edit".
     await this.page.getByRole('link', { name: 'Edit', exact: true }).click();
-    await expect(this.page.getByRole('button', { name: 'Save changes' })).toBeVisible();
+    await expect(this.formButton('Save changes')).toBeVisible();
+  }
+
+  /**
+   * A button inside the form element. Scoped on purpose: a dirty form whose footer has scrolled out
+   * of view also portals a save button into the actionbar, which is outside the <form>.
+   */
+  private formButton(label: string): Locator {
+    return this.page.locator('form').getByRole('button', { name: label });
   }
 
   async fillTitle(title: string) {
@@ -156,8 +164,23 @@ export class RecipesPage {
       .filter({ has: this.page.getByRole('button', { name: `Remove tag ${name}` }) });
   }
 
+  /** Saves from the form's own footer button. */
   async save(label: string) {
-    await this.page.getByRole('button', { name: label }).click();
+    await this.formButton(label).click();
+  }
+
+  /** The stand-in save button the form portals into the actionbar. */
+  actionbarSave(): Locator {
+    return this.page.getByTestId('actionbar-save');
+  }
+
+  /** Brings the form footer on screen — the condition that retires the actionbar's save button. */
+  async scrollToFormFooter() {
+    await this.page.getByRole('link', { name: 'Cancel' }).scrollIntoViewIfNeeded();
+  }
+
+  async scrollToFormTop() {
+    await this.page.getByLabel('Title').scrollIntoViewIfNeeded();
   }
 
   /** The form's Cancel link — a navigation, so it trips the unsaved-changes guard when dirty. */
