@@ -28,3 +28,15 @@ export function listIngredientsQueryOptions(query: ListIngredientsQuery = {}) {
 export function invalidateIngredients(queryClient: QueryClient) {
   void queryClient.invalidateQueries({ queryKey: ['ingredients'] });
 }
+
+/**
+ * Swaps an updated row into every cached list variant. A PATCH returns the row it wrote, so an
+ * inline edit can show its new value immediately instead of holding the old one for a full round
+ * trip — which is the entire point of editing in the table. Pair it with `invalidateIngredients`:
+ * this fixes the cell, the refetch fixes ordering and filtering.
+ */
+export function applyIngredientUpdate(queryClient: QueryClient, updated: Ingredient) {
+  queryClient.setQueriesData<Ingredient[]>({ queryKey: ['ingredients', 'list'] }, (ingredients) =>
+    ingredients?.map((ingredient) => (ingredient.id === updated.id ? updated : ingredient))
+  );
+}

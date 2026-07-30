@@ -198,6 +198,11 @@ export class RecipesPage {
     await this.ingredientRow(name).getByLabel('Quantity').fill(quantity);
   }
 
+  async setIngredientUnit(name: string, unit: string) {
+    await this.ingredientRow(name).getByLabel('Unit').click();
+    await this.page.getByRole('option', { name: unit, exact: true }).click();
+  }
+
   async addStep(instruction: string) {
     await this.page.getByRole('button', { name: 'Add step' }).click();
     const steps = this.page.getByPlaceholder('What happens in this step?');

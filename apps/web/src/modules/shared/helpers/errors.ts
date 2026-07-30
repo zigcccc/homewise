@@ -13,3 +13,14 @@ export function serverMessage(error: unknown, fallback: string) {
 
   return typeof data === 'string' && data.length > 0 ? data : fallback;
 }
+
+/**
+ * Whether a failed request came back with a given status.
+ *
+ * Reach for this when one status has a home in the UI that the others don't: a 409 duplicate name is
+ * a problem with what was typed and belongs on that field, while a 500 or a dropped connection says
+ * nothing about the value and would misattribute the failure if it landed there.
+ */
+export function isServerStatus(error: unknown, status: number) {
+  return error instanceof DetailedError && error.statusCode === status;
+}

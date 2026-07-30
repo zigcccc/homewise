@@ -37,6 +37,65 @@ test.describe('ingredient library', () => {
     }
   });
 
+  test('edits category, default unit and name inline', async ({ page }) => {
+    const ingredients = new IngredientsPage(page);
+    await ingredients.goto();
+
+    const name = `E2E Inline ${Date.now()}`;
+    const renamed = `${name} renamed`;
+
+    try {
+      await ingredients.add(name, 'Produce');
+
+      // The whole point of editing in the table: no dialog round-trip per field.
+      await ingredients.setCategoryInline(name, 'Spices');
+      await expect(ingredients.row(name)).toContainText('Spices');
+
+      // A recipe-born ingredient lands with no default unit, and this is where that gets fixed.
+      await ingredients.setDefaultUnitInline(name, 'tbsp');
+      await expect(ingredients.row(name)).toContainText('tbsp');
+
+      await ingredients.renameInline(name, renamed);
+      await expect(ingredients.row(renamed)).toBeVisible();
+
+      // Both inline edits survived the rename's refetch rather than being read back off a stale row.
+      await expect(ingredients.row(renamed)).toContainText('Spices');
+      await expect(ingredients.row(renamed)).toContainText('tbsp');
+    } finally {
+      await ingredients.goto();
+      await ingredients.deleteIfPresent(renamed);
+      await ingredients.deleteIfPresent(name);
+    }
+  });
+
+  test('refuses an inline rename onto a name already in the library', async ({ page }) => {
+    const ingredients = new IngredientsPage(page);
+    await ingredients.goto();
+
+    const name = `E2E Inline Clash ${Date.now()}`;
+
+    try {
+      await ingredients.add(name);
+
+      // Escaping abandons a rename rather than committing it — the row keeps its own name.
+      await ingredients.openInlineRename(name, `${name} escaped`);
+      await ingredients.cancelInlineRename();
+      await expect(ingredients.row(`${name} escaped`)).toBeHidden();
+
+      // The 409 toasts instead of closing the editor, so the typed value isn't lost.
+      const toasts = await ingredients.renameInlineExpectingError(name, SEED_INGREDIENTS[0].name);
+      await expect(toasts).toContainText('already in your ingredient library');
+
+      // Clicking away from a refused value abandons the edit. It must not re-send it — a rejection
+      // that re-fires on every blur would trap you in the cell.
+      await ingredients.blurInlineRename();
+      await expect(ingredients.row(name)).toBeVisible();
+    } finally {
+      await ingredients.goto();
+      await ingredients.deleteIfPresent(name);
+    }
+  });
+
   test('refuses a duplicate name, case-insensitively', async ({ page }) => {
     const ingredients = new IngredientsPage(page);
     await ingredients.goto();

@@ -18,7 +18,6 @@ import { useInView } from 'react-intersection-observer';
 import { toast } from 'sonner';
 import type z from 'zod';
 
-import { measurementUnit } from '@homewise/server/ingredients';
 import { createRecipeModel, mealType } from '@homewise/server/recipes';
 import {
   Button,
@@ -40,7 +39,12 @@ import {
   Textarea,
 } from '@homewise/ui/core';
 
-import { type Ingredient, IngredientCombobox, measurementUnitLabels } from '@/modules/ingredients';
+import {
+  type Ingredient,
+  IngredientCombobox,
+  MeasurementUnitSelectItems,
+  measurementUnitLabels,
+} from '@/modules/ingredients';
 import { Actionbar, SELECT_NONE, UnsavedChangesDialog } from '@/modules/shared';
 
 import { mealTypeLabels } from '../helpers';
@@ -504,12 +508,7 @@ function IngredientLineRow({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value={SELECT_NONE}>—</SelectItem>
-                  {measurementUnit.options.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {measurementUnitLabels[option]}
-                    </SelectItem>
-                  ))}
+                  <MeasurementUnitSelectItems noneLabel="—" />
                 </SelectContent>
               </Select>
               <FormMessage />

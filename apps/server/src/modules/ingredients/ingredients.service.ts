@@ -4,10 +4,21 @@ import { HTTPException } from 'hono/http-exception';
 import { db, schema } from '@/db';
 import { type Executor, emptyToNull, isUniqueViolation } from '@/db/utils';
 
-import { type CreateIngredient, type ListIngredientsQueryParams, type PatchIngredient } from './models';
+import {
+  type CreateIngredient,
+  type ListIngredientsQueryParams,
+  type MeasurementUnit,
+  type PatchIngredient,
+} from './models';
 
 const duplicateNameError = (name: string) =>
   new HTTPException(409, { message: `"${name}" is already in your ingredient library` });
+
+/**
+ * A name to find-or-create in the library, plus the unit it was used with — a recipe line, in
+ * practice. The unit is only a hint: it seeds `defaultUnit` when the row has to be created.
+ */
+export type ResolvableIngredient = { defaultUnit?: MeasurementUnit | null; name: string };
 
 /**
  * The household's reusable ingredient vocabulary. Recipes reference these rows; shopping lists and
@@ -83,14 +94,25 @@ export class IngredientsService {
    * This is the find-or-create half of "an ingredient typed into the recipe form isn't persisted
    * until the recipe is saved": a name that collides with an existing row resolves to it rather
    * than 409ing, since the user's intent is "use this ingredient", not "add a new one".
+   *
+   * A caller can pass the unit the name was used with, which seeds `defaultUnit` on the rows this
+   * creates — the unit a recipe reaches for is nearly always the one the library should default to,
+   * and it beats leaving every recipe-born ingredient blank. It only ever applies to rows inserted
+   * here: an existing row keeps the default its owner chose, since resolving a name is not consent
+   * to rewrite it.
    */
-  public static async resolveByName(executor: Executor, householdId: number, names: string[]) {
-    // Dedupe case-insensitively, keeping the first spelling the user typed.
-    const wanted = new Map<string, string>();
-    for (const name of names) {
+  public static async resolveByName(executor: Executor, householdId: number, lines: ResolvableIngredient[]) {
+    // Dedupe case-insensitively, keeping the first spelling the user typed and the first unit that
+    // was actually specified — a later line naming a unit shouldn't lose to an earlier blank one.
+    const wanted = new Map<string, { defaultUnit: MeasurementUnit | null; name: string }>();
+    for (const { defaultUnit, name } of lines) {
       const key = name.toLowerCase();
-      if (!wanted.has(key)) {
-        wanted.set(key, name);
+      const existing = wanted.get(key);
+
+      if (existing) {
+        existing.defaultUnit ??= defaultUnit ?? null;
+      } else {
+        wanted.set(key, { defaultUnit: defaultUnit ?? null, name });
       }
     }
 
@@ -113,7 +135,7 @@ export class IngredientsService {
     const byLower = new Map(existing.map((row) => [row.name.toLowerCase(), row.id]));
     const missing = [...wanted]
       .filter(([key]) => !byLower.has(key))
-      .map(([, name]) => ({ householdId, name, category: 'other' as const }));
+      .map(([, { defaultUnit, name }]) => ({ householdId, name, category: 'other' as const, defaultUnit }));
 
     if (missing.length === 0) {
       return byLower;
@@ -127,7 +149,7 @@ export class IngredientsService {
 
     // Every wanted key must resolve now: it either existed or was just inserted. If one doesn't,
     // something is wrong with the insert — fail rather than quietly saving the recipe minus a line.
-    for (const [key, name] of wanted) {
+    for (const [key, { name }] of wanted) {
       if (!refreshedByLower.has(key)) {
         throw new HTTPException(500, { message: `Could not resolve ingredient "${name}"` });
       }
