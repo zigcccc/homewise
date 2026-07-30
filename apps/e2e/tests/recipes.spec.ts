@@ -197,6 +197,77 @@ test.describe('recipes', () => {
     }
   });
 
+  test('warns before leaving the add form with unsaved changes', async ({ page }) => {
+    const recipes = new RecipesPage(page);
+    const title = `E2E Unsaved ${Date.now()}`;
+
+    await recipes.goto();
+
+    // An untouched form has nothing to lose, so leaving it must not nag. A form that reports itself
+    // dirty on mount would make the warning meaningless, which is why this is asserted first.
+    await recipes.openNewForm();
+    await recipes.cancelForm();
+    await expect(page.getByRole('heading', { level: 1, name: 'Recipes' })).toBeVisible();
+
+    await recipes.openNewForm();
+    await recipes.fillTitle(title);
+
+    // Cancel is a navigation like any other, so the guard catches it.
+    await recipes.cancelForm();
+    await expect(recipes.unsavedChangesDialog()).toBeVisible();
+
+    // "Stay" cancels the navigation and leaves the work exactly as it was.
+    await recipes.stayOnForm();
+    await expect(page.getByRole('heading', { level: 1, name: 'Add a recipe' })).toBeVisible();
+    await expect(page.getByLabel('Title')).toHaveValue(title);
+
+    // "Leave without saving" lets it through, and nothing was ever created.
+    await recipes.cancelForm();
+    await recipes.leaveWithoutSaving();
+    await expect(page.getByRole('heading', { level: 1, name: 'Recipes' })).toBeVisible();
+    await expect(recipes.card(title)).toBeHidden();
+  });
+
+  test('warns before leaving the edit form with unsaved changes', async ({ page }) => {
+    const recipes = new RecipesPage(page);
+    const stamp = Date.now();
+    const title = `E2E Unsaved Edit ${stamp}`;
+    const draft = `${title} draft`;
+
+    await recipes.goto();
+    await recipes.openNewForm();
+    await recipes.fillTitle(title);
+    await recipes.addExistingIngredient(SEED_INGREDIENTS[0].name);
+    await recipes.addStep('Only step.');
+    await recipes.save('Save recipe');
+    await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
+
+    try {
+      // Seeded from a saved recipe — ingredient lines, steps and all — the form must still come up
+      // clean. Nothing was touched, so Cancel goes straight back.
+      await recipes.openEditForm();
+      await recipes.cancelForm();
+      await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
+
+      await recipes.openEditForm();
+      await recipes.fillTitle(draft);
+
+      await recipes.cancelForm();
+      await expect(recipes.unsavedChangesDialog()).toBeVisible();
+      await recipes.stayOnForm();
+      await expect(page.getByLabel('Title')).toHaveValue(draft);
+
+      // Leaving discards the edit: the recipe still has the name it was saved under.
+      await recipes.cancelForm();
+      await recipes.leaveWithoutSaving();
+      await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
+      await expect(page.getByRole('heading', { level: 1, name: draft })).toBeHidden();
+    } finally {
+      await recipes.goto();
+      await recipes.deleteIfPresent(title);
+    }
+  });
+
   test('finds a recipe by an ingredient it contains', async ({ page }) => {
     const recipes = new RecipesPage(page);
     await recipes.goto();

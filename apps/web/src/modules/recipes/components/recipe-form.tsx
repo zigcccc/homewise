@@ -40,7 +40,7 @@ import {
 } from '@homewise/ui/core';
 
 import { type Ingredient, IngredientCombobox, measurementUnitLabels } from '@/modules/ingredients';
-import { SELECT_NONE } from '@/modules/shared';
+import { SELECT_NONE, UnsavedChangesDialog } from '@/modules/shared';
 
 import { mealTypeLabels } from '../helpers';
 import { type RecipeDetail } from '../recipes.queries';
@@ -371,6 +371,11 @@ export function RecipeForm({
           </Button>
         </div>
       </form>
+
+      {/* A recipe is a long form to lose — Cancel, the breadcrumb and the sidebar all warn first.
+          The `isSubmitting` half matters: both routes navigate away *inside* their submit handler,
+          while the form is still dirty, so without it a successful save would trip its own warning. */}
+      <UnsavedChangesDialog when={form.formState.isDirty && !form.formState.isSubmitting} />
     </Form>
   );
 }

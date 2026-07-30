@@ -160,6 +160,26 @@ export class RecipesPage {
     await this.page.getByRole('button', { name: label }).click();
   }
 
+  /** The form's Cancel link — a navigation, so it trips the unsaved-changes guard when dirty. */
+  async cancelForm() {
+    await this.page.getByRole('link', { name: 'Cancel' }).click();
+  }
+
+  /** The guard shown when leaving a dirty form. Its title is the dialog's accessible name. */
+  unsavedChangesDialog(): Locator {
+    return this.page.getByRole('dialog', { name: 'Unsaved changes' });
+  }
+
+  async stayOnForm() {
+    await this.unsavedChangesDialog().getByRole('button', { name: 'Stay' }).click();
+    await expect(this.unsavedChangesDialog()).toBeHidden();
+  }
+
+  async leaveWithoutSaving() {
+    await this.unsavedChangesDialog().getByRole('button', { name: 'Leave without saving' }).click();
+    await expect(this.unsavedChangesDialog()).toBeHidden();
+  }
+
   /** Searches the list; the SearchBox waits out the debounce so the next step can't race it. */
   async search(term: string) {
     await this.searchBox.fill(term);
