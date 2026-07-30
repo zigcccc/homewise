@@ -22,6 +22,8 @@ const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL ?? 'postgres://user:pass
 // value per run keeps a local suite and a CI suite (or two local runs) off each other's channels
 // even when they share one Ably app — the same reason preview deploys get `pr-<n>`.
 const REALTIME_NAMESPACE = `test-${randomUUID().slice(0, 8)}`;
+// Opt in with E2E_WEB_MODE=dev — see the web `webServer` entry for when that's worth doing.
+const WEB_DEV_MODE = process.env.E2E_WEB_MODE === 'dev';
 
 export default defineConfig({
   testDir: './tests',
@@ -107,7 +109,16 @@ export default defineConfig({
       // contexts comfortably. `VITE_API_URL` is inlined at build time, so it's set
       // on this command. The tsc step is skipped (`vite build` only) —
       // type-checking is a separate gate.
-      command: 'pnpm --filter @homewise/web-app exec vite build && pnpm --filter @homewise/web-app exec vite preview',
+      //
+      // `E2E_WEB_MODE=dev` runs against the Vite dev server instead. Worth reaching
+      // for when a change touches mount/unmount lifecycles: React StrictMode only
+      // double-invokes effects in development, so a component that tears down what
+      // it just set up passes here and fails on `pnpm dev`. That exact bug shipped
+      // once — an Ably connection closed by its own effect cleanup. Slower and
+      // flakier under load, so it's opt-in rather than the default.
+      command: WEB_DEV_MODE
+        ? 'pnpm --filter @homewise/web-app exec vite dev --port 3000 --strictPort'
+        : 'pnpm --filter @homewise/web-app exec vite build && pnpm --filter @homewise/web-app exec vite preview',
       url: WEB_URL,
       // Same reasoning as the API server: a running `vite dev` on :3000 would be adopted, and it
       // was built against whatever VITE_API_URL that session used.
