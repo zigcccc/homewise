@@ -82,6 +82,9 @@ jobs:
           # Inject the exact paired web origin so the server's CORS/auth trusts
           # only this PR's web preview (not any *.vercel.app). Runtime env (--env,
           # not --build-env) because CORS is evaluated per request.
+          # HOMEWISE_REALTIME_NAMESPACE gets the same per-PR treatment: each preview
+          # has its own Neon branch, so household ids collide across PRs and a shared
+          # prefix would cross-deliver realtime events between them.
           #
           # Retry: on a fresh PR the `opened` webhook makes Vercel's git integration
           # race our CLI deploy, and Vercel cancels one of them ("The deployment has
@@ -89,7 +92,7 @@ jobs:
           # so retry a couple of times before failing the job.
           url=""
           for attempt in 1 2 3; do
-            if url="$(vercel deploy --force --env PREVIEW_WEB_ORIGIN="https://homewise-web-pr-${PR}.vercel.app" --token="$VERCEL_TOKEN")"; then
+            if url="$(vercel deploy --force --env PREVIEW_WEB_ORIGIN="https://homewise-web-pr-${PR}.vercel.app" --env HOMEWISE_REALTIME_NAMESPACE="pr-${PR}" --token="$VERCEL_TOKEN")"; then
               break
             fi
             echo "::warning::server deploy attempt ${attempt} failed (transient cancellation race?); retrying in 15s"
