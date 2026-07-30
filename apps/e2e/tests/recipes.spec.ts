@@ -141,6 +141,62 @@ test.describe('recipes', () => {
     }
   });
 
+  test('reorders ingredients by dragging, and drops the header Edit button while editing', async ({ page }) => {
+    const recipes = new RecipesPage(page);
+    const stamp = Date.now();
+    const title = `E2E Reorder ${stamp}`;
+    // Three seeded library ingredients, added in a known order.
+    const [first, second, third] = [SEED_INGREDIENTS[0].name, SEED_INGREDIENTS[1].name, SEED_INGREDIENTS[2].name];
+
+    await recipes.goto();
+    await recipes.openNewForm();
+    await recipes.fillTitle(title);
+    await recipes.addExistingIngredient(first);
+    await recipes.addExistingIngredient(second);
+    await recipes.addExistingIngredient(third);
+    await recipes.save('Save recipe');
+    await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
+
+    try {
+      await expect(recipes.detailIngredientRows()).toHaveText([
+        new RegExp(first),
+        new RegExp(second),
+        new RegExp(third),
+      ]);
+
+      await recipes.openEditForm();
+
+      // The page header belongs to the recipe layout, so it renders over the form too — but an
+      // "Edit" button on the edit page is a link to where you already are. The form has its own
+      // Save changes / Cancel footer.
+      await expect(page.getByRole('link', { name: 'Edit', exact: true })).toBeHidden();
+
+      // Dragging the first line down one slot swaps it with the second — in the form immediately…
+      await recipes.moveIngredient(first, 'down');
+      await expect(recipes.ingredientRows()).toHaveText([new RegExp(second), new RegExp(first), new RegExp(third)]);
+
+      // …and in the recipe once saved: the server derives each line's position from array order.
+      await recipes.save('Save changes');
+      await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
+      await expect(recipes.detailIngredientRows()).toHaveText([
+        new RegExp(second),
+        new RegExp(first),
+        new RegExp(third),
+      ]);
+
+      // Reloading proves the order came back from the database, not from a stale cache entry.
+      await page.reload();
+      await expect(recipes.detailIngredientRows()).toHaveText([
+        new RegExp(second),
+        new RegExp(first),
+        new RegExp(third),
+      ]);
+    } finally {
+      await recipes.goto();
+      await recipes.deleteIfPresent(title);
+    }
+  });
+
   test('finds a recipe by an ingredient it contains', async ({ page }) => {
     const recipes = new RecipesPage(page);
     await recipes.goto();

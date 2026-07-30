@@ -1,4 +1,8 @@
+import { move } from '@dnd-kit/helpers';
+import { DragDropProvider, type DragEndEvent } from '@dnd-kit/react';
+import { useSortable } from '@dnd-kit/react/sortable';
 import { zodResolver } from '@hookform/resolvers/zod';
+import clsx from 'clsx';
 import { ArrowDownIcon, ArrowUpIcon, GripVerticalIcon, TrashIcon, XIcon } from 'lucide-react';
 import { useRef } from 'react';
 import {
@@ -8,6 +12,7 @@ import {
   type SubmitHandler,
   useFieldArray,
   useForm,
+  useWatch,
 } from 'react-hook-form';
 import { toast } from 'sonner';
 import type z from 'zod';
@@ -99,6 +104,28 @@ export function RecipeForm({
 
   const submit: SubmitHandler<RecipeFormValues> = async (values) => {
     await onSubmit(values);
+  };
+
+  /**
+   * Drag-to-reorder for ingredient lines. The field array's `id` is the sortable id — the only
+   * stable identity a line has, since the same library ingredient may legitimately appear twice in
+   * one recipe. The order is committed on drop rather than on every `dragover`: dnd-kit already
+   * animates the reorder optimistically, and moving the field array mid-drag would thrash the inputs.
+   */
+  const handleIngredientDragEnd = (event: DragEndEvent) => {
+    const draggedId = event.operation.source?.id;
+
+    if (event.canceled || draggedId === undefined) {
+      return;
+    }
+
+    const ids = ingredientLines.fields.map((field) => field.id);
+    const from = ids.indexOf(String(draggedId));
+    const to = move(ids, event).indexOf(String(draggedId));
+
+    if (from !== -1 && to !== -1 && from !== to) {
+      ingredientLines.move(from, to);
+    }
   };
 
   const ingredientsById = new Map(ingredients.map((item) => [item.id, item]));
@@ -199,118 +226,20 @@ export function RecipeForm({
                 No ingredients yet. Add them from your library, or create a new one as you go.
               </p>
             ) : (
-              <ul className="space-y-3">
-                {ingredientLines.fields.map((item, index) => {
-                  const ingredientId = form.watch(`ingredients.${index}.ingredientId`);
-                  // A line points at the library either by id (already there) or by name (created
-                  // when the recipe is saved). Only the latter is still editable here.
-                  const typedName = form.watch(`ingredients.${index}.ingredientName`);
-                  const name = ingredientId === undefined ? typedName : ingredientsById.get(ingredientId)?.name;
-
-                  return (
-                    <li className="rounded-md border p-3" key={item.id}>
-                      <div className="mb-2 flex items-center gap-2">
-                        <GripVerticalIcon className="size-4 shrink-0 text-muted-foreground" />
-                        {ingredientId === undefined ? (
-                          <FormField
-                            control={form.control}
-                            name={`ingredients.${index}.ingredientName`}
-                            render={({ field }) => (
-                              <FormItem className="flex-1">
-                                <FormLabel className="sr-only">Ingredient name</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    {...field}
-                                    className="h-8 font-medium"
-                                    placeholder="Name this ingredient"
-                                    value={field.value ?? ''}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        ) : (
-                          <span className="flex-1 font-medium text-sm">{name ?? 'Unknown ingredient'}</span>
-                        )}
-                        <Button
-                          aria-label={`Remove ${name || 'ingredient'}`}
-                          className="ml-auto shrink-0"
-                          onClick={() => ingredientLines.remove(index)}
-                          size="icon"
-                          type="button"
-                          variant="ghost"
-                        >
-                          <TrashIcon />
-                        </Button>
-                      </div>
-                      <div className="grid gap-2 sm:grid-cols-4">
-                        <NumberField
-                          control={form.control}
-                          label="Quantity"
-                          name={`ingredients.${index}.quantity`}
-                          placeholder="To taste"
-                          step="any"
-                        />
-                        <FormField
-                          control={form.control}
-                          name={`ingredients.${index}.unit`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Unit</FormLabel>
-                              <Select
-                                onValueChange={(value) => field.onChange(value === SELECT_NONE ? null : value)}
-                                value={field.value ?? SELECT_NONE}
-                              >
-                                <FormControl>
-                                  <SelectTrigger className="w-full">
-                                    <span>{field.value ? measurementUnitLabels[field.value] : '—'}</span>
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <SelectItem value={SELECT_NONE}>—</SelectItem>
-                                  {measurementUnit.options.map((option) => (
-                                    <SelectItem key={option} value={option}>
-                                      {measurementUnitLabels[option]}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name={`ingredients.${index}.note`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Note</FormLabel>
-                              <FormControl>
-                                <Input {...field} placeholder="finely chopped" value={field.value ?? ''} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name={`ingredients.${index}.section`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Section</FormLabel>
-                              <FormControl>
-                                <Input {...field} placeholder="For the sauce" value={field.value ?? ''} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
+              <DragDropProvider onDragEnd={handleIngredientDragEnd}>
+                <ul className="space-y-3" data-testid="ingredient-lines">
+                  {ingredientLines.fields.map((item, index) => (
+                    <IngredientLineRow
+                      control={form.control}
+                      id={item.id}
+                      index={index}
+                      ingredientsById={ingredientsById}
+                      key={item.id}
+                      onRemove={() => ingredientLines.remove(index)}
+                    />
+                  ))}
+                </ul>
+              </DragDropProvider>
             )}
             <IngredientCombobox
               ingredients={ingredients}
@@ -443,6 +372,148 @@ export function RecipeForm({
         </div>
       </form>
     </Form>
+  );
+}
+
+/**
+ * One ingredient line of the form. It's a component of its own because `useSortable` is a hook and
+ * so can't be called from the parent's `.map` — which also means the two `useWatch` calls re-render
+ * just this row on a keystroke instead of the entire form.
+ */
+function IngredientLineRow({
+  control,
+  id,
+  index,
+  ingredientsById,
+  onRemove,
+}: {
+  control: Control<RecipeFormValues>;
+  id: string;
+  index: number;
+  ingredientsById: Map<number, Ingredient>;
+  onRemove: () => void;
+}) {
+  const ingredientId = useWatch({ control, name: `ingredients.${index}.ingredientId` });
+  // A line points at the library either by id (already there) or by name (created when the recipe
+  // is saved). Only the latter is still editable here.
+  const typedName = useWatch({ control, name: `ingredients.${index}.ingredientName` });
+  const name = ingredientId === undefined ? typedName : ingredientsById.get(ingredientId)?.name;
+
+  // `index` is what makes the list sortable: dnd-kit reorders optimistically while dragging, and the
+  // field array's order becomes the truth on drop.
+  const { handleRef, isDragging, ref } = useSortable({ id, index });
+
+  return (
+    // `bg-card` so the lifted row isn't see-through over the ones it's passing.
+    <li className={clsx('rounded-md border bg-card p-3', isDragging && 'shadow-md')} ref={ref}>
+      <div className="mb-2 flex items-center gap-2">
+        {/* A real button, not a decorative icon: it's what gives the row keyboard dragging (space to
+            lift, arrows to move, space to drop). `touch-none` keeps a touch drag from scrolling. */}
+        <button
+          aria-label={`Reorder ${name || 'ingredient'}`}
+          className="shrink-0 cursor-grab touch-none text-muted-foreground"
+          ref={handleRef}
+          type="button"
+        >
+          <GripVerticalIcon className="size-4" />
+        </button>
+        {ingredientId === undefined ? (
+          <FormField
+            control={control}
+            name={`ingredients.${index}.ingredientName`}
+            render={({ field }) => (
+              <FormItem className="flex-1">
+                <FormLabel className="sr-only">Ingredient name</FormLabel>
+                <FormControl>
+                  <Input
+                    {...field}
+                    className="h-8 font-medium"
+                    placeholder="Name this ingredient"
+                    value={field.value ?? ''}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        ) : (
+          <span className="flex-1 font-medium text-sm">{name ?? 'Unknown ingredient'}</span>
+        )}
+        <Button
+          aria-label={`Remove ${name || 'ingredient'}`}
+          className="ml-auto shrink-0"
+          onClick={onRemove}
+          size="icon"
+          type="button"
+          variant="ghost"
+        >
+          <TrashIcon />
+        </Button>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-4">
+        <NumberField
+          control={control}
+          label="Quantity"
+          name={`ingredients.${index}.quantity`}
+          placeholder="To taste"
+          step="any"
+        />
+        <FormField
+          control={control}
+          name={`ingredients.${index}.unit`}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Unit</FormLabel>
+              <Select
+                onValueChange={(value) => field.onChange(value === SELECT_NONE ? null : value)}
+                value={field.value ?? SELECT_NONE}
+              >
+                <FormControl>
+                  <SelectTrigger className="w-full">
+                    <span>{field.value ? measurementUnitLabels[field.value] : '—'}</span>
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value={SELECT_NONE}>—</SelectItem>
+                  {measurementUnit.options.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {measurementUnitLabels[option]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={control}
+          name={`ingredients.${index}.note`}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Note</FormLabel>
+              <FormControl>
+                <Input {...field} placeholder="finely chopped" value={field.value ?? ''} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={control}
+          name={`ingredients.${index}.section`}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Section</FormLabel>
+              <FormControl>
+                <Input {...field} placeholder="For the sauce" value={field.value ?? ''} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+    </li>
   );
 }
 

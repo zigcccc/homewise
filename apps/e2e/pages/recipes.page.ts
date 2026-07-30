@@ -102,6 +102,34 @@ export class RecipesPage {
     return this.page.getByRole('listitem').filter({ has: this.page.getByRole('button', { name: `Remove ${name}` }) });
   }
 
+  /**
+   * Every ingredient line in the form, in DOM order — for asserting the order itself. Scoped by
+   * testid: tag chips and step rows are list items with "Remove …" buttons too.
+   */
+  ingredientRows(): Locator {
+    return this.page.getByTestId('ingredient-lines').getByRole('listitem');
+  }
+
+  /** Every ingredient line on the detail view, in DOM order. */
+  detailIngredientRows(): Locator {
+    return this.page.getByTestId('recipe-ingredients').getByRole('listitem');
+  }
+
+  /**
+   * Drags an ingredient line one slot up or down with the keyboard: space lifts it, an arrow moves
+   * it a full slot (dnd-kit's sortable keyboard plugin), space drops it. Driven by keyboard rather
+   * than by a synthetic mouse drag because it's stable under load *and* it's the accessible path —
+   * if this passes, the list is operable without a pointer.
+   */
+  async moveIngredient(name: string, direction: 'down' | 'up') {
+    await this.ingredientRow(name)
+      .getByRole('button', { name: `Reorder ${name}` })
+      .focus();
+    await this.page.keyboard.press('Space');
+    await this.page.keyboard.press(direction === 'down' ? 'ArrowDown' : 'ArrowUp');
+    await this.page.keyboard.press('Space');
+  }
+
   async setIngredientQuantity(name: string, quantity: string) {
     await this.ingredientRow(name).getByLabel('Quantity').fill(quantity);
   }

@@ -14,6 +14,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@dnd-kit/helpers": "catalog:",
+    "@dnd-kit/react": "catalog:",
     "@homewise/server": "workspace:*",
     "@homewise/ui": "workspace:*",
     "@hookform/resolvers": "catalog:",
