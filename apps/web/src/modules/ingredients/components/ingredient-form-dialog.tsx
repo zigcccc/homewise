@@ -27,7 +27,7 @@ import {
 } from '@homewise/ui/core';
 
 import { client, parseResponse } from '@/api/client';
-import { SELECT_NONE, serverMessage } from '@/modules/shared';
+import { isServerStatus, SELECT_NONE, serverMessage } from '@/modules/shared';
 
 import { ingredientCategoryLabels, measurementUnitLabels } from '../helpers';
 import { type Ingredient, invalidateIngredients } from '../ingredients.queries';
@@ -103,8 +103,18 @@ function IngredientForm({ ingredient, onDone }: { ingredient?: Ingredient; onDon
       invalidateIngredients(queryClient);
       onDone();
     } catch (error) {
-      // A duplicate name comes back as a 409 naming the conflict — put it on the field.
-      form.setError('name', { message: serverMessage(error, 'Something went wrong.') });
+      const message = serverMessage(error, 'Something went wrong.');
+
+      // A duplicate name comes back as a 409 naming the conflict — that one is about the value, so it
+      // goes on the field. Anything else (a 500, a dropped connection) has nothing to do with what was
+      // typed and would misattribute the failure sitting under the name input.
+      if (isServerStatus(error, 409)) {
+        form.setError('name', { message });
+
+        return;
+      }
+
+      toast.error(message);
     }
   };
 

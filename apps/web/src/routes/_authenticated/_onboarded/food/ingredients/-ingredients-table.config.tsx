@@ -41,7 +41,7 @@ import {
   measurementUnitLabels,
   useInlineIngredientPatch,
 } from '@/modules/ingredients';
-import { ConfirmDeleteDialog, SELECT_NONE, serverMessage } from '@/modules/shared';
+import { ConfirmDeleteDialog, isServerStatus, SELECT_NONE, serverMessage } from '@/modules/shared';
 
 const $deleteIngredient = client.ingredients[':id'].$delete;
 
@@ -206,14 +206,19 @@ function IngredientNameForm({ id, name, onDone }: { id: number; name: string; on
       await save(values);
       close();
     } catch (error) {
-      // A duplicate name comes back as a 409 naming the conflict. The reason goes in a toast rather
-      // than under the input: a message in the cell is the widest thing in the column, so an
-      // auto-layout table hands it the width it asks for and every other column jumps sideways.
-      // `setError` still runs for the red `aria-invalid` border, and the input stays open carrying
-      // what was typed — dropping the edit would make the user retype it to find out what went wrong.
+      // The reason goes in a toast rather than under the input: a message in the cell is the widest
+      // thing in the column, so an auto-layout table hands it the width it asks for and every other
+      // column jumps sideways. The input stays open carrying what was typed — dropping the edit would
+      // make the user retype it to find out what went wrong.
       const message = serverMessage(error, 'Something went wrong.');
 
-      form.setError('name', { message });
+      // A duplicate name comes back as a 409 naming the conflict, and that one is about the value, so
+      // it also earns the red `aria-invalid` border. A 500 or a dropped connection says nothing about
+      // what was typed.
+      if (isServerStatus(error, 409)) {
+        form.setError('name', { message });
+      }
+
       toast.error(message);
     }
   };
