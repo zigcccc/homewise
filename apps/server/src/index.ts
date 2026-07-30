@@ -13,6 +13,7 @@ import householdsApp from './modules/households';
 import ingredientsApp from './modules/ingredients';
 import medicalApp from './modules/medical';
 import petProfilesApp from './modules/pet-profiles';
+import realtimeApp from './modules/realtime';
 import recipesApp from './modules/recipes';
 import usersApp from './modules/users';
 import { type AppContext } from './types/app.type';
@@ -48,7 +49,8 @@ const app = new Hono<AppContext>()
   .route('/contacts', contactsApp)
   .route('/medical-info', medicalApp)
   .route('/recipes', recipesApp)
-  .route('/ingredients', ingredientsApp);
+  .route('/ingredients', ingredientsApp)
+  .route('/realtime', realtimeApp);
 
 if (env.NODE_ENV === 'development') {
   console.log('Serving app on port 5173...');

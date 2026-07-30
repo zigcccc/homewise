@@ -25,6 +25,7 @@
     "@tanstack/router-plugin": "catalog:",
     "@vercel/analytics": "catalog:",
     "@vercel/speed-insights": "catalog:",
+    "ably": "catalog:",
     "better-auth": "catalog:",
     "clsx": "catalog:",
     "date-fns": "catalog:",
