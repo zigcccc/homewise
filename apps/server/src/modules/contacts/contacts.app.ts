@@ -21,10 +21,15 @@ const contactsApp = new Hono<AppContext>()
   .patch('/:id', zValidator('param', contactPathParamsModel), zValidator('json', patchContactModel), async (c) => {
     const contact = await ContactsService.patch(c.var.household.id, c.req.valid('param').id, c.req.valid('json'));
 
+    c.var.emit({ entity: 'contact', id: contact.id, operation: 'update' });
+
     return c.json(contact, 200);
   })
   .delete('/:id', zValidator('param', contactPathParamsModel), async (c) => {
-    await ContactsService.delete(c.var.household.id, c.req.valid('param').id);
+    const { id } = c.req.valid('param');
+    await ContactsService.delete(c.var.household.id, id);
+
+    c.var.emit({ entity: 'contact', id, operation: 'delete' });
 
     return c.json({ success: true }, 202);
   });

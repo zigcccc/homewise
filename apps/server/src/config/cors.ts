@@ -19,7 +19,9 @@ export function isAllowedOrigin(origin: string | null | undefined): origin is st
 
 export const corsConfig = cors({
   origin: (origin) => (isAllowedOrigin(origin) ? origin : null),
-  allowHeaders: ['Content-Type', 'Authorization'],
+  // X-Homewise-Client-Id identifies the calling tab so realtime can skip echoing a change back to
+  // whoever made it. Every mutating request carries it, so leaving it out fails the preflight.
+  allowHeaders: ['Content-Type', 'Authorization', 'X-Homewise-Client-Id'],
   allowMethods: ['POST', 'GET', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   exposeHeaders: ['Content-Length', 'Access-Control-Allow-Credentials'],
   maxAge: 600,

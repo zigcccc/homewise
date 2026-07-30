@@ -26,6 +26,8 @@ const ingredientsApp = new Hono<AppContext>()
   .post('/', zValidator('json', createIngredientModel), async (c) => {
     const ingredient = await IngredientsService.create(c.var.household.id, c.req.valid('json'));
 
+    c.var.emit({ entity: 'ingredient', id: ingredient.id, operation: 'create' });
+
     return c.json(ingredient, 201);
   })
   .patch(
@@ -39,11 +41,18 @@ const ingredientsApp = new Hono<AppContext>()
         c.req.valid('json')
       );
 
+      // An all-undefined patch is a genuine no-op, but announcing it anyway costs one refetch and
+      // keeps the handler from having to diff. Invalidation is idempotent.
+      c.var.emit({ entity: 'ingredient', id: ingredient.id, operation: 'update' });
+
       return c.json(ingredient, 200);
     }
   )
   .delete('/:id', zValidator('param', ingredientPathParamsModel), async (c) => {
-    await IngredientsService.delete(c.var.household.id, c.req.valid('param').id);
+    const { id } = c.req.valid('param');
+    await IngredientsService.delete(c.var.household.id, id);
+
+    c.var.emit({ entity: 'ingredient', id, operation: 'delete' });
 
     return c.json({ success: true }, 202);
   });
