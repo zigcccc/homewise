@@ -77,12 +77,18 @@ test.describe('ingredient library', () => {
     try {
       await ingredients.add(name);
 
+      // Escaping abandons a rename rather than committing it — the row keeps its own name.
+      await ingredients.openInlineRename(name, `${name} escaped`);
+      await ingredients.cancelInlineRename();
+      await expect(ingredients.row(`${name} escaped`)).toBeHidden();
+
       // The 409 toasts instead of closing the editor, so the typed value isn't lost.
       const toasts = await ingredients.renameInlineExpectingError(name, SEED_INGREDIENTS[0].name);
       await expect(toasts).toContainText('already in your ingredient library');
 
-      // Escaping abandons the rename rather than committing it — the row keeps its own name.
-      await ingredients.cancelInlineRename();
+      // Clicking away from a refused value abandons the edit. It must not re-send it — a rejection
+      // that re-fires on every blur would trap you in the cell.
+      await ingredients.blurInlineRename();
       await expect(ingredients.row(name)).toBeVisible();
     } finally {
       await ingredients.goto();

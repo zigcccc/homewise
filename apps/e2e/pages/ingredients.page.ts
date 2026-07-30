@@ -60,9 +60,14 @@ export class IngredientsPage {
 
   /** Renames a row in place: click the name, type, Enter. */
   async renameInline(from: string, to: string) {
+    await this.openInlineRename(from, to);
+    await this.nameInput().press('Enter');
+  }
+
+  /** Opens a row's inline editor and types a new name into it, without committing. */
+  async openInlineRename(from: string, to: string) {
     await this.openNameEditor(from);
     await this.nameInput().fill(to);
-    await this.nameInput().press('Enter');
   }
 
   /**
@@ -79,6 +84,16 @@ export class IngredientsPage {
   /** Abandons an open inline rename, leaving the row on the name it had. */
   async cancelInlineRename() {
     await this.nameInput().press('Escape');
+    await expect(this.nameInput()).toBeHidden();
+  }
+
+  /**
+   * Clicks out of an open inline rename. After a refused value that has to abandon the edit rather
+   * than re-fire the same doomed request, so this asserts the editor actually closed.
+   */
+  async blurInlineRename() {
+    await this.nameInput().blur();
+    await expect(this.nameInput()).toBeHidden();
   }
 
   /**

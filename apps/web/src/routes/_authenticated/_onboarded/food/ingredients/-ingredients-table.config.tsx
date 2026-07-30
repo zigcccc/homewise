@@ -183,6 +183,11 @@ function IngredientNameForm({ id, name, onDone }: { id: number; name: string; on
   // Escape and a successful save both unmount the input, and the browser fires `blur` on the way
   // out — without this, that blur would re-submit the value just abandoned or already written.
   const closing = useRef(false);
+  // A value the server refused. The failure deliberately leaves the input open, so without this the
+  // blur that follows would fire the same doomed request again — and again on the blur after that,
+  // leaving no way to click out of the cell at all. Editing the name clears the match, so a corrected
+  // value gets its own attempt.
+  const refused = useRef<string | null>(null);
   const { save } = useInlineIngredientPatch(id);
 
   const form = useForm<InlineNameValues>({
@@ -196,8 +201,9 @@ function IngredientNameForm({ id, name, onDone }: { id: number; name: string; on
   };
 
   const submit: SubmitHandler<InlineNameValues> = async (values) => {
-    // Clicking into a name and straight back out shouldn't cost a request.
-    if (values.name === name) {
+    // Clicking into a name and straight back out shouldn't cost a request, and neither should
+    // clicking away from a value the server has already turned down.
+    if (values.name === name || values.name === refused.current) {
       close();
       return;
     }
@@ -206,6 +212,8 @@ function IngredientNameForm({ id, name, onDone }: { id: number; name: string; on
       await save(values);
       close();
     } catch (error) {
+      refused.current = values.name;
+
       // The reason goes in a toast rather than under the input: a message in the cell is the widest
       // thing in the column, so an auto-layout table hands it the width it asks for and every other
       // column jumps sideways. The input stays open carrying what was typed — dropping the edit would
