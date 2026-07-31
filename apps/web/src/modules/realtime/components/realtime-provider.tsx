@@ -1,3 +1,6 @@
+// Imported directly rather than through a shared barrel: this file is deliberately kept out of the
+// main bundle (see `_onboarded.tsx`), and an extra hop risks dragging the Ably client back into it.
+import { captureException } from '@sentry/react';
 import { type QueryClient, useQueryClient } from '@tanstack/react-query';
 import { AblyProvider, ChannelProvider, useAbly, useChannel, useConnectionStateListener } from 'ably/react';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
@@ -103,7 +106,13 @@ function RealtimeSync({ channel }: { channel: string }) {
     // client with no usable credential, so its own reconnect loop asks for another — and the server
     // always mints against the *current* household. Blocking here would turn a transient blip into
     // a permanently deaf tab, which is the failure we're trying to avoid in the first place.
-    ably.auth.authorize().then(settle, settle);
+    //
+    // Reported on the way past, though: continuing is the right behaviour, but a token endpoint that
+    // has started failing degrades every household's live updates and nothing else would say so.
+    ably.auth.authorize().then(settle, (error: unknown) => {
+      captureException(error, { tags: { realtimeChannel: channel } });
+      settle();
+    });
 
     return () => {
       active = false;
@@ -117,8 +126,15 @@ function RealtimeSync({ channel }: { channel: string }) {
     const parsed = householdEventMessageModel.safeParse(message.data);
 
     // Our server is the only publisher this token can hear, so a malformed payload means a version
-    // skew rather than an attack — drop it instead of throwing inside the SDK's listener.
-    if (!parsed.success || parsed.data.origin === CLIENT_ID) {
+    // skew rather than an attack — drop it instead of throwing inside the SDK's listener. It's still
+    // a bug: a deploy that changed the payload shape leaves every open tab dropping events and
+    // showing stale data, with nothing on screen to suggest it.
+    if (!parsed.success) {
+      captureException(parsed.error, { tags: { realtimeChannel: channel } });
+      return;
+    }
+
+    if (parsed.data.origin === CLIENT_ID) {
       return;
     }
 

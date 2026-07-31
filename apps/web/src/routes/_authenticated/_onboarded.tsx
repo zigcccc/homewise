@@ -1,3 +1,4 @@
+import { setTag } from '@sentry/react';
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router';
 
 import { SidebarInset, Spinner } from '@homewise/ui/core';
@@ -31,6 +32,9 @@ export const Route = createFileRoute('/_authenticated/_onboarded')({
     const { name: realtimeChannel } = await context.queryClient.ensureQueryData(
       getRealtimeChannelQueryOptions(household.id)
     );
+
+    // Matches the tag the server sets in `withHousehold`, so both halves of a report filter the same way.
+    setTag('householdId', household.id);
 
     return { ...context, householdId: household.id, realtimeChannel };
   },

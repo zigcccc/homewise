@@ -17,6 +17,12 @@ set -euo pipefail
 
 echo "▸ ${VERCEL_ENV:-non-preview} build: VITE_API_URL=${VITE_API_URL}"
 
+# Vite only inlines VITE_-prefixed variables, so Vercel's own VERCEL_ENV/VERCEL_GIT_COMMIT_SHA have
+# to be re-exported under names the bundle can see. Not hard-failing on either: a missing DSN just
+# disables Sentry, which is the right outcome for a build that was never meant to report.
+export VITE_SENTRY_ENVIRONMENT="${VERCEL_ENV:-development}"
+export VITE_SENTRY_RELEASE="${VERCEL_GIT_COMMIT_SHA:-}"
+
 # Build through Turbo (not `pnpm build`) so workspace deps are built first:
 # `build` dependsOn `^build`, which compiles the server and emits the .d.ts that
 # the web's type-check consumes via the RPC client. Turbo lists VITE_API_URL in

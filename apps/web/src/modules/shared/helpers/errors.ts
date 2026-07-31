@@ -24,3 +24,15 @@ export function serverMessage(error: unknown, fallback: string) {
 export function isServerStatus(error: unknown, status: number) {
   return error instanceof DetailedError && error.statusCode === status;
 }
+
+/**
+ * Whether a failure is one the server produced on purpose — a 404 for an id that isn't there, a 409
+ * duplicate name, a 401 from an expired session, a 400 that failed validation.
+ *
+ * These are the API working as designed and the UI already handles them, so reporting them would
+ * bury the failures that *are* bugs. Anything else — a 5xx, a dropped connection, a thrown
+ * `TypeError` — isn't a `DetailedError` with a 4xx and is worth knowing about.
+ */
+export function isExpectedRequestFailure(error: unknown) {
+  return error instanceof DetailedError && error.statusCode >= 400 && error.statusCode < 500;
+}
