@@ -14,7 +14,12 @@ export default defineConfig({
     // comment — without it a plain `sourcemap: true` publishes our source to anyone who opens
     // devtools on the deployed app. The plugin deletes the files after uploading them anyway; this
     // covers the window where they exist.
-    sourcemap: uploadSourceMaps ? 'hidden' : true,
+    //
+    // The third case is a deployed build with no token: nothing would upload them and nothing would
+    // delete them, so emitting any at all only leaves our source sitting in a public `dist`. Off.
+    // `vercel-build.sh` refuses that build outright — this is the belt to its braces, so the leak
+    // can't come back through some other caller.
+    sourcemap: uploadSourceMaps ? 'hidden' : !process.env.VERCEL,
   },
   plugins: [
     // Must stay first — it generates the route tree the rest of the build compiles.
