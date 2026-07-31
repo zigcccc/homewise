@@ -11,18 +11,19 @@ import {
 } from '@homewise/server/realtime';
 
 import { CLIENT_ID } from '@/api/client';
-import { invalidateChildProfile } from '@/modules/child-profiles';
+import { invalidateChildDictionaryEntries } from '@/modules/child-dictionaries';
+import { invalidateChildProfile, invalidateChildProfiles } from '@/modules/child-profiles';
 import { invalidateContacts } from '@/modules/contacts';
 import { invalidateIngredients } from '@/modules/ingredients';
-import { invalidatePetProfile } from '@/modules/pet-profiles';
+import { invalidatePetProfile, invalidatePetProfiles } from '@/modules/pet-profiles';
 import { invalidateRecipe, invalidateRecipes } from '@/modules/recipes';
 
 import { realtimeClient } from '../realtime.client';
 
 /** Both profile domains show contacts and medical records, so those changes reach either card. */
 function invalidateProfiles(queryClient: QueryClient) {
-  void queryClient.invalidateQueries({ queryKey: ['child-profiles'] });
-  void queryClient.invalidateQueries({ queryKey: ['pet-profiles'] });
+  invalidateChildProfiles(queryClient);
+  invalidatePetProfiles(queryClient);
 }
 
 /**
@@ -38,14 +39,14 @@ function invalidateProfiles(queryClient: QueryClient) {
 const invalidators: Record<HouseholdEventEntity, (queryClient: QueryClient, event: HouseholdEvent) => void> = {
   child_dictionary_entry: (queryClient, { parentId }) => {
     if (parentId) {
-      void queryClient.invalidateQueries({ queryKey: ['child-dictionaries', parentId] });
+      invalidateChildDictionaryEntries(queryClient, parentId);
     }
     // The profile card and its detail both carry the entry count.
-    void queryClient.invalidateQueries({ queryKey: ['child-profiles'] });
+    invalidateChildProfiles(queryClient);
   },
   child_profile: (queryClient, { id }) => {
     if (id === null) {
-      void queryClient.invalidateQueries({ queryKey: ['child-profiles'] });
+      invalidateChildProfiles(queryClient);
     } else {
       invalidateChildProfile(queryClient, id);
     }
@@ -59,7 +60,7 @@ const invalidators: Record<HouseholdEventEntity, (queryClient: QueryClient, even
   medical_info: (queryClient) => invalidateProfiles(queryClient),
   pet_profile: (queryClient, { id }) => {
     if (id === null) {
-      void queryClient.invalidateQueries({ queryKey: ['pet-profiles'] });
+      invalidatePetProfiles(queryClient);
     } else {
       invalidatePetProfile(queryClient, id);
     }

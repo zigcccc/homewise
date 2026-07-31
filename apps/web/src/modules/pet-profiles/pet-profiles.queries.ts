@@ -16,6 +16,14 @@ export function getPetProfileQueryOptions(id: number) {
   });
 }
 
+/**
+ * Refreshes every pet-profile query — the list and any open detail. For changes that reach profiles
+ * without naming one, e.g. a contact or medical record being unlinked.
+ */
+export function invalidatePetProfiles(queryClient: QueryClient) {
+  void queryClient.invalidateQueries({ queryKey: ['pet-profiles'] });
+}
+
 /** Refreshes just the profile list (cards) — e.g. after creating a profile and navigating away. */
 export function invalidatePetProfilesList(queryClient: QueryClient) {
   void queryClient.invalidateQueries({ queryKey: ['pet-profiles', 'list'], exact: true });
