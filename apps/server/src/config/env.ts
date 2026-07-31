@@ -45,8 +45,17 @@ const envModel = z
      * *not* guarded by a fail-closed refine like the two above: an unset DSN turns the SDK into a
      * no-op, which is exactly what local development and the E2E suite want. A missing DSN degrades
      * observability; it doesn't put the product into a broken state nobody would notice.
+     *
+     * A *malformed* one is a different thing from a missing one — somebody tried to configure this
+     * and got it wrong, and the SDK's own reaction is a line on stderr and a silent no-op. So the
+     * shape is checked, which makes that boot fail instead. An empty string still counts as unset:
+     * a blank env var in the dashboard is how you turn Sentry off for an environment, and it must
+     * not be the thing that stops the server starting.
      */
-    SENTRY_DSN: z.string().optional(),
+    SENTRY_DSN: z
+      .union([z.url(), z.literal('')])
+      .optional()
+      .transform((dsn) => dsn || undefined),
   })
   // Suppressing mail is only ever right locally or under the E2E suite, and it has to be asked for
   // deliberately. A boot with emails suppressed swallows every verification and invite mail —
