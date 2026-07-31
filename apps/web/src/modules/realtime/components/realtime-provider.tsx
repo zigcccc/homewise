@@ -1,6 +1,6 @@
 import { type QueryClient, useQueryClient } from '@tanstack/react-query';
 import { AblyProvider, ChannelProvider, useAbly, useChannel, useConnectionStateListener } from 'ably/react';
-import { type ReactNode, useEffect, useRef } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import {
@@ -82,22 +82,38 @@ function RealtimeSync({ channel }: { channel: string }) {
   const queryClient = useQueryClient();
   const ably = useAbly();
   const hasConnected = useRef(false);
-  const authorizedFor = useRef(channel);
+  const [authorizedChannel, setAuthorizedChannel] = useState<string | null>(null);
 
-  // Declared before `useChannel` so it runs before the attach on every mount pass. The token in
-  // hand names one channel, so when the household changes under a live connection — deleting a
-  // household and making another, or signing out and in as someone else without a reload — the old
-  // token can't authorize the new channel and the attach would be refused (40160).
+  // The token in hand names exactly one channel, and the client is scoped to the tab rather than to
+  // this component — so it outlives the household it was authorized for. Two ways that bites:
+  // the household can change under a live connection (delete one, create another; sign out and in
+  // as someone else), and this component unmounts and remounts around that change, which is why
+  // comparing against the previous `channel` prop can't catch it — the remounted component has no
+  // previous value to compare. Asking for a fresh token on every mount covers both, and the request
+  // is one the client would have made anyway on its first connect.
   useEffect(() => {
-    if (authorizedFor.current === channel) {
-      return;
-    }
+    let active = true;
+    const settle = () => {
+      if (active) {
+        setAuthorizedChannel(channel);
+      }
+    };
 
-    authorizedFor.current = channel;
-    void ably.auth.authorize();
+    // Settling on rejection too, rather than staying gated: a failed token request leaves the
+    // client with no usable credential, so its own reconnect loop asks for another — and the server
+    // always mints against the *current* household. Blocking here would turn a transient blip into
+    // a permanently deaf tab, which is the failure we're trying to avoid in the first place.
+    ably.auth.authorize().then(settle, settle);
+
+    return () => {
+      active = false;
+    };
   }, [ably, channel]);
 
-  useChannel(channel, HOUSEHOLD_EVENT_NAME, (message) => {
+  // `skip` until that token resolves. Attaching alongside the request instead of after it is a
+  // race: an attach that reaches Ably still carrying the previous household's token is refused with
+  // 40160, and a channel that fails that way is never retried — the tab goes silent for good.
+  useChannel({ channelName: channel, skip: authorizedChannel !== channel }, HOUSEHOLD_EVENT_NAME, (message) => {
     const parsed = householdEventMessageModel.safeParse(message.data);
 
     // Our server is the only publisher this token can hear, so a malformed payload means a version

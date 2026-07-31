@@ -15,6 +15,16 @@ export class IngredientsPage {
     await expect(this.page.getByRole('heading', { level: 1, name: 'Ingredients' })).toBeVisible();
   }
 
+  /**
+   * Same destination, reached through the sidebar instead of the address bar — so the tab keeps the
+   * JS context it already had. `goto()` is a full document load, which rebuilds the realtime client
+   * from scratch and would mask any bug in how a long-lived one survives a change beneath it.
+   */
+  async openFromSidebar() {
+    await this.page.getByRole('link', { name: 'Ingredients', exact: true }).click();
+    await expect(this.page.getByRole('heading', { level: 1, name: 'Ingredients' })).toBeVisible();
+  }
+
   row(name: string): Locator {
     return this.page.getByRole('row').filter({ hasText: name });
   }

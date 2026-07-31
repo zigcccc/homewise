@@ -170,6 +170,55 @@ test('keeps one household’s realtime changes out of another household', async 
   }
 });
 
+test('keeps realtime working after the household changes without a page load', async ({ browser }) => {
+  // The Ably client is scoped to the tab and never closed, so it outlives the household it was
+  // authorized for: its token names one channel, and a household swap moves the tab to another.
+  // Every path here after the first household exists is client-side routing, so the tab carries
+  // that stale token into the new household — which is exactly the state a reload would hide.
+  //
+  // Exclusive, like the isolation spec above, because it takes over the onboarding user's household.
+  test.slow();
+
+  const stamp = Date.now();
+  const context = await browser.newContext({ storageState: ONBOARDING_STORAGE_STATE });
+  const page = await context.newPage();
+  const onboarding = new OnboardingPage(page);
+
+  try {
+    await deleteHouseholdIfPresent(page);
+    await onboarding.start();
+    await onboarding.createHousehold(`E2E Rekey First ${stamp}`);
+    await onboarding.skipInvites();
+
+    // Landing on the dashboard is what constructs the client and gets it a token for the *first*
+    // household's channel. `deleteHouseholdIfPresent` then reloads once — still under that
+    // household — and everything from its delete onwards is routing, not navigation.
+    await deleteHouseholdIfPresent(page);
+    await onboarding.createHousehold(`E2E Rekey Second ${stamp}`);
+    await onboarding.skipInvites();
+
+    const observer = new IngredientsPage(page);
+    await observer.openFromSidebar();
+
+    // A second tab acts in the new household. If the observer never re-authorized, its attach was
+    // refused with 40160 — a channel Ably does not retry — and this row never arrives.
+    const name = `E2E Rekey ${stamp}`;
+    const actorPage = await context.newPage();
+    const actor = new IngredientsPage(actorPage);
+    await actor.goto();
+    await actor.add(name);
+
+    await expect(observer.row(name)).toBeVisible();
+  } finally {
+    // The ingredient belongs to the household being deleted, so it goes with it.
+    try {
+      await deleteHouseholdIfPresent(page);
+    } finally {
+      await context.close();
+    }
+  }
+});
+
 /**
  * Ensures the seed user is the owner again. If the forward transfer succeeded but
  * the restore didn't, the second member is still owner and can hand it back; if

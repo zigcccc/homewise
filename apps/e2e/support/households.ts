@@ -30,4 +30,7 @@ export async function deleteHouseholdIfPresent(page: Page) {
   await dialog.getByLabel('Household name').fill(name);
   await dialog.getByRole('button', { name: 'Delete', exact: true }).click();
   await page.waitForURL(/\/onboarding\/create-household/);
+  // The confirm dialog has a "Household name" field of its own and outlives the redirect by its
+  // close animation, so whatever runs next sees two of them. Leave the page settled instead.
+  await expect(dialog).toBeHidden();
 }
