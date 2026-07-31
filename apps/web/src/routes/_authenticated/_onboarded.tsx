@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router';
 
-import { SidebarInset } from '@homewise/ui/core';
+import { SidebarInset, Spinner } from '@homewise/ui/core';
 
 import { getMyHouseholdQueryOptions } from '@/modules/households';
 import { getRealtimeChannelQueryOptions } from '@/modules/realtime';
@@ -35,6 +35,10 @@ export const Route = createFileRoute('/_authenticated/_onboarded')({
     return { ...context, householdId: household.id, realtimeChannel };
   },
   component: OnboardedRouteComponent,
+  // `beforeLoad` now awaits two requests, and this is the shell every authenticated page renders
+  // inside — so on a cold cache there's a window with nothing on screen. Full-viewport, matching
+  // `_authenticated`: at this point the sidebar hasn't rendered either.
+  pendingComponent: () => <Spinner className="min-h-dvh min-w-dvw" />,
 });
 
 function OnboardedRouteComponent() {
