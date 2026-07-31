@@ -71,6 +71,12 @@ export class IngredientsPage {
   /** Renames a row in place: click the name, type, Enter. */
   async renameInline(from: string, to: string) {
     await this.openInlineRename(from, to);
+    await this.commitInlineRename();
+  }
+
+  /** Commits whatever an open inline editor is carrying. Split out for the specs that need to let
+   * something happen to the table between opening the editor and pressing Enter. */
+  async commitInlineRename() {
     await this.nameInput().press('Enter');
   }
 

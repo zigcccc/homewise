@@ -28,6 +28,7 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
+  getRowId,
   Tabs,
   TabsContent,
   TabsList,
@@ -65,11 +66,13 @@ function HouseholdMembersRoute() {
     data: household.members,
     columns: membersTableColumns,
     getCoreRowModel: getCoreRowModel(),
+    getRowId,
   });
   const invitesTable = useReactTable({
     data: invites,
     columns: invitesTableColumns,
     getCoreRowModel: getCoreRowModel(),
+    getRowId,
   });
 
   return (

@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { captureException } from '@sentry/react';
 import { createFileRoute, Link, redirect } from '@tanstack/react-router';
 import { type SubmitHandler, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -134,8 +135,9 @@ function SignupRoute() {
         }
       );
     } catch (err) {
-      // shouldn't happen :melting-face:
-      console.log(err);
+      // shouldn't happen :melting-face: — and if it does, nobody can sign up and nothing surfaces it,
+      // so report it rather than logging into a console no user will ever open.
+      captureException(err);
     }
   };
 

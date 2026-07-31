@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test';
 import { SEED_INGREDIENTS, SEED_RECIPE } from '@homewise/server/seed-fixtures';
 
 import { IngredientsPage } from '../pages/ingredients.page';
+import { API_URL } from '../playwright.config';
 
 test.describe('ingredient library', () => {
   // Every spec is self-contained: it creates uniquely-named data and removes it, so it's
@@ -65,6 +66,45 @@ test.describe('ingredient library', () => {
       await ingredients.goto();
       await ingredients.deleteIfPresent(renamed);
       await ingredients.deleteIfPresent(name);
+    }
+  });
+
+  test('keeps an open inline rename on its own row when the list shifts underneath it', async ({ page }) => {
+    const ingredients = new IngredientsPage(page);
+    await ingredients.goto();
+
+    const stamp = Date.now();
+    // Two adjacent names, so the row that arrives lands directly above the one being renamed and
+    // nothing else can end up between them — the shift is exactly one position, and both rows
+    // belong to this spec.
+    const neighbour = `E2E Shift ${stamp} a`;
+    const mine = `E2E Shift ${stamp} b`;
+    const renamed = `E2E Shifted ${stamp}`;
+
+    try {
+      await ingredients.add(mine);
+
+      await ingredients.openInlineRename(mine, renamed);
+
+      // Another member adds an ingredient that sorts above this one. Realtime refetches the list
+      // under the open editor, so every row below the new one moves down a place.
+      const response = await page.context().request.post(`${API_URL}/ingredients`, { data: { name: neighbour } });
+      expect(response.ok()).toBe(true);
+      await expect(ingredients.row(neighbour)).toBeVisible();
+
+      await ingredients.commitInlineRename();
+
+      // The rename has to follow the row it was opened on. Keyed by position, the editor would have
+      // moved onto whichever ingredient took the old index — renaming a row the user never touched
+      // and leaving theirs untouched.
+      await expect(ingredients.row(renamed)).toBeVisible();
+      await expect(ingredients.row(neighbour)).toBeVisible();
+      await expect(ingredients.row(mine)).toBeHidden();
+    } finally {
+      await ingredients.goto();
+      await ingredients.deleteIfPresent(renamed);
+      await ingredients.deleteIfPresent(mine);
+      await ingredients.deleteIfPresent(neighbour);
     }
   });
 

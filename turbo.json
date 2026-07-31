@@ -30,7 +30,13 @@
         "NODEJS_HELPERS",
         "HOMEWISE_FILES_READ_WRITE_TOKEN",
         "HOMEWISE_ABLY_API_KEY",
-        "HOMEWISE_REALTIME_NAMESPACE"
+        "HOMEWISE_REALTIME_NAMESPACE",
+        "SENTRY_AUTH_TOKEN",
+        "SENTRY_ORG",
+        "SENTRY_PROJECT",
+        "VITE_SENTRY_DSN",
+        "VITE_SENTRY_ENVIRONMENT",
+        "VITE_SENTRY_RELEASE"
       ],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": ["dist/**", ".vercel/**"]

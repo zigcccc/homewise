@@ -12,7 +12,10 @@ import { type AppType } from '@homewise/server';
  */
 export const CLIENT_ID = crypto.randomUUID();
 
-export const client = hc<AppType>(import.meta.env.VITE_API_URL ?? 'http://localhost:5173', {
+/** Where the API lives. Exported so tracing can be told which origin to propagate trace headers to. */
+export const API_URL: string = import.meta.env.VITE_API_URL ?? 'http://localhost:5173';
+
+export const client = hc<AppType>(API_URL, {
   headers: { 'x-homewise-client-id': CLIENT_ID },
   init: { credentials: 'include' },
 });

@@ -1,3 +1,4 @@
+import { setTag, setUser } from '@sentry/react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate, useRouteContext, useRouterState } from '@tanstack/react-router';
 import {
@@ -67,6 +68,10 @@ export function AppSidebar() {
   const handleSignOut = async () => {
     await authClient.signOut();
     queryClient?.clear();
+    // Same reason the query cache is cleared: whoever signs in next on this tab must not inherit the
+    // previous person's identity on their reports.
+    setUser(null);
+    setTag('householdId', undefined);
     navigate({ to: '/login', search: { redirect: window.location.href } });
   };
 

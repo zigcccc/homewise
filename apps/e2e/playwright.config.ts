@@ -15,8 +15,9 @@ loadEnv({ path: path.resolve(import.meta.dirname, '.env.test') });
 // and seeds it; webServer boots the server + the web app served as a production
 // build. There is no "run against a deployed preview" mode.
 const WEB_URL = 'http://localhost:3000';
-// Only used for the local webServer readiness probe + the web's VITE_API_URL.
-const API_URL = 'http://localhost:5173';
+// The local webServer readiness probe + the web's VITE_API_URL. Exported because a spec that asserts
+// on the API directly (rather than through the browser) needs the same value.
+export const API_URL = 'http://localhost:5173';
 const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL ?? 'postgres://user:password@localhost:8766/homewise_test';
 // Realtime channels are prefixed with this, and household ids repeat across databases. A fresh
 // value per run keeps a local suite and a CI suite (or two local runs) off each other's channels

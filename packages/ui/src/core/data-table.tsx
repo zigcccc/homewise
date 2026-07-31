@@ -5,6 +5,17 @@ import { type ReactNode } from 'react';
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from './empty';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './table';
 
+/**
+ * Row identity for `useReactTable`, to pass as its `getRowId`. Not optional in practice: the default
+ * is the row's *index*, which becomes React's key here — so when the data changes, every row's
+ * subtree keeps whatever state it had at that position while its props move on to a different
+ * record. A cell editing in place then belongs to one row and writes to another. Keying by the
+ * record's own id makes React move the subtree with the record instead, and drop it when the record
+ * goes. The data doesn't have to change *under* the user for this to bite: another household member
+ * adding a row is enough, since realtime refetches the list beneath an open editor.
+ */
+export const getRowId = <Data extends { id: number | string }>(row: Data) => String(row.id);
+
 function DefaultEmptyComponent() {
   return (
     <Empty>

@@ -17,6 +17,19 @@ set -euo pipefail
 
 echo "▸ ${VERCEL_ENV:-non-preview} build: VITE_API_URL=${VITE_API_URL}"
 
+# Vite only inlines VITE_-prefixed variables, so Vercel's own VERCEL_ENV/VERCEL_GIT_COMMIT_SHA have
+# to be re-exported under names the bundle can see. Not hard-failing on either: a missing DSN just
+# disables Sentry, which is the right outcome for a build that was never meant to report.
+export VITE_SENTRY_ENVIRONMENT="${VERCEL_ENV:-development}"
+export VITE_SENTRY_RELEASE="${VERCEL_GIT_COMMIT_SHA:-}"
+
+# The auth token is the one Sentry variable worth failing over, and not because of the upload: it is
+# what switches the build to hidden source maps that are deleted once they reach Sentry. Without it
+# there is no upload to delete them, so a build that quietly carried on would either publish our
+# source under `dist/assets` or — since vite.config.ts now refuses to emit maps it can't clean up —
+# ship a release whose stack traces are unreadable minified frames. Both are worth stopping for.
+: "${SENTRY_AUTH_TOKEN:?SENTRY_AUTH_TOKEN must be set for Vercel builds (it gates the source-map upload)}"
+
 # Build through Turbo (not `pnpm build`) so workspace deps are built first:
 # `build` dependsOn `^build`, which compiles the server and emits the .d.ts that
 # the web's type-check consumes via the RPC client. Turbo lists VITE_API_URL in

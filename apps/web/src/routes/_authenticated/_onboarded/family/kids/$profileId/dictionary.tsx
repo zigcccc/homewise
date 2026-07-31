@@ -21,6 +21,7 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
+  getRowId,
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
@@ -140,7 +141,7 @@ function DictionaryEntries({
   );
 
   const columns = createEntriesTableColumns(profileId);
-  const table = useReactTable({ data: entries, columns, getCoreRowModel: getCoreRowModel() });
+  const table = useReactTable({ data: entries, columns, getCoreRowModel: getCoreRowModel(), getRowId });
 
   const isFiltered = Boolean(searchParams.search);
 

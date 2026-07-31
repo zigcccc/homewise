@@ -1,3 +1,4 @@
+import { captureException } from '@sentry/hono/node';
 import { del, list, put } from '@vercel/blob';
 import sharp from 'sharp';
 
@@ -155,7 +156,10 @@ export class ImagesService {
     try {
       await ImagesService.delete(url);
     } catch (error) {
+      // Worth an issue rather than just a log line: an orphaned blob is storage we keep paying for
+      // and nothing else will ever notice it.
       console.error('Failed to clean up managed image blob', error);
+      captureException(error, { tags: { blobPrefix: ownedPrefix } });
     }
   }
 
