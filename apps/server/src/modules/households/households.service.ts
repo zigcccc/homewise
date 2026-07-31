@@ -1,3 +1,4 @@
+import { captureException } from '@sentry/hono/node';
 import { and, count, eq, inArray, isNull, or } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 import { render } from 'react-email';
@@ -272,6 +273,7 @@ export class HouseholdsService {
     } catch (error) {
       // Correlate by invite id, not email address, so logs carry no recipient PII.
       console.error(`✗ invite email failed for invite ${inviteId}; the invite is saved and can be re-sent`, error);
+      captureException(error, { tags: { emailKind: 'invite' } });
     }
   }
 

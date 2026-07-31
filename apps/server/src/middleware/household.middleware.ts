@@ -1,3 +1,4 @@
+import { setTag } from '@sentry/hono/node';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
 
@@ -36,6 +37,9 @@ export const withHousehold = createMiddleware<HouseholdContext>(async (c, next) 
   }
 
   c.set('household', household);
+  // Every error, trace and log from a household-scoped route becomes filterable by household — the
+  // unit a bug report ("our recipes stopped syncing") actually arrives in.
+  setTag('householdId', household.id);
 
   const buffered: HouseholdEvent[] = [];
   c.set('emit', (...events) => {

@@ -1,4 +1,10 @@
+// Must stay the first import: it calls Sentry.init(), and nothing below can be instrumented before
+// that has run. See the comment in that file for why there's no `--import` flag to lean on.
+import './instrument';
+
 import { serve } from '@hono/node-server';
+import { flush, sentry, setUser } from '@sentry/hono/node';
+import { waitUntil } from '@vercel/functions';
 import { Hono } from 'hono';
 import { logger } from 'hono/logger';
 
@@ -18,7 +24,26 @@ import recipesApp from './modules/recipes';
 import usersApp from './modules/users';
 import { type AppContext } from './types/app.type';
 
-const app = new Hono<AppContext>()
+// The Sentry middleware needs the app instance (it installs `onError` on it), so the chain can't
+// start straight off the constructor any more. `.use()` mutates and returns the same object, so
+// `base` and `app` below are one instance — `AppType` stays inferable, which is what the web's RPC
+// client is typed against.
+const base = new Hono<AppContext>();
+
+// Registered first, so its post-`next()` half runs last — after Sentry has finished recording the
+// request. Vercel freezes the function the moment the response is on its way, dropping whatever is
+// still buffered; `waitUntil` keeps it alive for the flush without delaying the response.
+base.use(async (_c, next) => {
+  await next();
+
+  if (process.env.VERCEL) waitUntil(flush(2000));
+});
+
+// 3xx/4xx are excluded by default, which is what we want: the ~60 `HTTPException`s in the services
+// are expected 400/404/409 responses, not incidents.
+base.use(sentry(base));
+
+const app = base
   .use(logger())
   // CORS rules
   .use('/*', corsConfig)
@@ -37,6 +62,7 @@ const app = new Hono<AppContext>()
 
     c.set('user', session.user);
     c.set('session', session.session);
+    setUser({ id: session.user.id, email: session.user.email });
 
     return next();
   })

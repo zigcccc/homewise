@@ -1,3 +1,4 @@
+import { captureException } from '@sentry/hono/node';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { oneTimeToken, openAPI } from 'better-auth/plugins';
@@ -67,6 +68,7 @@ export const auth = betterAuth({
         // but logs it instead of discarding it silently. The user can request a new link.
         // Correlate by user id, not email address, so logs carry no recipient PII.
         console.error(`✗ verification email failed for user ${user.id}; sign-up itself succeeded`, error);
+        captureException(error, { tags: { emailKind: 'verification' } });
       }
     },
   },

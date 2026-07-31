@@ -40,6 +40,13 @@ const envModel = z
      * `undefined` first is what lets that check tell "deliberately local" apart from "never set".
      */
     HOMEWISE_REALTIME_NAMESPACE: z.string().trim().min(1).optional(),
+    /**
+     * Sentry ingestion endpoint for the server project. Deliberately optional, and deliberately
+     * *not* guarded by a fail-closed refine like the two above: an unset DSN turns the SDK into a
+     * no-op, which is exactly what local development and the E2E suite want. A missing DSN degrades
+     * observability; it doesn't put the product into a broken state nobody would notice.
+     */
+    SENTRY_DSN: z.string().optional(),
   })
   // Suppressing mail is only ever right locally or under the E2E suite, and it has to be asked for
   // deliberately. A boot with emails suppressed swallows every verification and invite mail —

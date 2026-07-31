@@ -1,3 +1,4 @@
+import { captureException } from '@sentry/hono/node';
 import * as Ably from 'ably';
 
 import { env } from '@/config/env';
@@ -40,6 +41,7 @@ export class RealtimeService {
       await rest.channels.get(RealtimeService.channelName(householdId)).publish(HOUSEHOLD_EVENT_NAME, message);
     } catch (error) {
       console.error(`Failed to publish realtime events for household ${householdId}:`, error);
+      captureException(error, { tags: { householdId } });
     }
   }
 
