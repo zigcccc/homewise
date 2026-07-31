@@ -38,6 +38,14 @@ export default defineConfig(({ mode }) => {
               authToken: env.SENTRY_AUTH_TOKEN,
               release: { name: env.VITE_SENTRY_RELEASE },
               sourcemaps: { filesToDeleteAfterUpload: ['./dist/**/*.map'] },
+              // The plugin's default is to log the failure and let the build succeed. That ships a
+              // release whose every stack trace is minified frames, and announces it only in a build
+              // log nobody reads once the deploy is green — the exact silent degradation this
+              // integration exists to remove. Fail the build instead: the upload is the difference
+              // between a readable error and an unreadable one, and every cause is a config fix.
+              errorHandler: (error) => {
+                throw error;
+              },
             }),
           ]
         : []),
