@@ -56,7 +56,13 @@ Sentry.init({
   enableLogs: true,
   // This app shows children's medical information and household contacts. Errors are worth
   // reporting; the payloads that produced them are not.
-  dataCollection: { httpBodies: [] },
+  //
+  // Naming this object opts every category it *doesn't* name into collection, so the two that would
+  // otherwise arrive by default are turned off by hand — same as the server's. `urlQueryParams` is
+  // the one that actually matters here: `/join-household?token=…` carries a live invite credential
+  // in the query string, and Sentry's built-in scrubbing of `token`-ish keys is a safety net, not a
+  // reason to send it.
+  dataCollection: { httpBodies: [], cookies: false, urlQueryParams: false },
 });
 
 declare module '@tanstack/react-router' {
