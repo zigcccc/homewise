@@ -62,6 +62,14 @@ instrumentQueries(pool);
 
 // Transactions run on a checked-out client rather than the pool, so patching the pool alone would
 // miss every `db.transaction(...)` — which is most of the writes in this app.
+//
+// Patching both looks like it should double-count, since `Pool.query` is itself implemented as
+// connect-then-query. It doesn't, for two independent reasons: that internal checkout passes a
+// *callback*, and pg-pool's `connect(cb)` returns undefined rather than a promise, so the branch
+// below never reaches the client it acquired; and the `client.query(…, cb)` it then runs is the
+// callback form `instrumentQueries` skips anyway. Measured against a real pool: one span for
+// `pool.query`, one for a checked-out `client.query`. Neon's Pool is the same pg-pool source, so
+// this holds in production too.
 const connectable = pool as unknown as Connectable;
 const connect = connectable.connect.bind(connectable);
 
