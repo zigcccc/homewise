@@ -322,7 +322,7 @@ realtime.connection.on('disconnected', () => { /* temporarily offline */ });
 realtime.connection.on('suspended', () => { /* offline for extended period */ });
 ```
 
-- Call `realtime.close()` when the client itself is done — i.e. at the scope that owns it. **Match the close to the client's lifetime, not to a component's.** A client created once for the tab must not be closed by a component's effect cleanup: a closed client cannot be reopened (a closed *connection* can), so anything that re-subscribes afterwards attaches to a dead client and fails with `80017`. React StrictMode makes this the default outcome rather than an edge case — it re-runs effects without re-rendering, so the cleanup fires and the re-run subscribes to what it just closed. See Section 8.
+- Call `realtime.close()` when the client itself is done — i.e. at the scope that owns it. **Match the close to the client's lifetime, not to a component's.** A client created once for the tab must not be closed by a component's effect cleanup, and it makes little difference which close you reach for: `client.close()` is terminal, while `client.connection.close()` is recoverable *in principle* — a closed connection reopens on `connect()` — but a component that just unmounted is not going to call `connect()`, and the SDK won't do it for you. Either way, whatever re-subscribes next attaches to a closed connection and fails with `80017`. React StrictMode makes that the default outcome rather than an edge case: it re-runs effects without re-rendering, so the cleanup fires and the re-run subscribes to what it just closed. See Section 8.
 - Messages published while disconnected are received on reconnection (within the 2-minute recovery window)
 - For AI Transport (client-side): use channel `rewind` to hydrate returning clients with recent messages:
 
@@ -422,12 +422,14 @@ function App() {
   // ...
 }
 
-// WRONG: a client created once for the tab, closed by a component's cleanup
+// WRONG: a client created once for the tab, torn down by a component's cleanup
 const ably = new Ably.Realtime({ authUrl: '/api/ably-auth' });
 
 function Chat() {
   useChannel('chat:room-1', (msg) => console.log(msg.data));
-  useEffect(() => () => ably.connection.close(), []); // kills a client that outlives this component
+  // `ably.close()` here is just as wrong, and more obviously so. The connection variant looks
+  // safer precisely because it is reopenable — but nothing here reopens it.
+  useEffect(() => () => ably.connection.close(), []);
 }
 ```
 
@@ -435,8 +437,8 @@ function Chat() {
 a module-scope client belongs to the tab and should simply never be closed, while an effect-created
 one belongs to the component and must be. Mixing them — module-scope creation with component-scope
 cleanup — is the bug StrictMode surfaces immediately: it re-runs effects *without* re-rendering, so
-the cleanup closes the client and the re-run's `useChannel` attaches to a closed one (`80017`), with
-nothing left to retry. It reaches production silently whenever the checks that would have caught it
+the cleanup tears the connection down and the re-run's `useChannel` attaches to a closed one
+(`80017`), with nothing left to retry. It reaches production silently whenever the checks that would have caught it
 run a production build, where StrictMode does not double-invoke.
 
 Prefer module scope for a client shared by the whole app, and avoid `useState(() => new
