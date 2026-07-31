@@ -22,6 +22,7 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
+  getRowId,
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
@@ -81,6 +82,7 @@ function IngredientsRoute() {
     data: ingredients,
     columns: ingredientsTableColumns,
     getCoreRowModel: getCoreRowModel(),
+    getRowId,
   });
 
   const isFiltered = Boolean(searchParams.search || searchParams.category);
