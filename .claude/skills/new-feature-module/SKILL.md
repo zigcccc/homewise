@@ -106,8 +106,10 @@ the stubbed `<Link to="/">` placeholder if one exists.
 
 **10. Static checks**
 
-`pnpm check-types`, then `pnpm lint` to **zero diagnostics**. Type-checking green is not evidence the
-feature works — that's what the E2E flow below is for.
+`pnpm check-types`, then `pnpm lint` to **zero diagnostics**, then `pnpm knip`. All three, before the
+E2E gate: knip is the only one that flags a dependency a `package.json` declares but nothing in that
+package imports. Type-checking green is not evidence the feature works — that's what the E2E flow
+below is for.
 
 **11. E2E flow** — `apps/e2e/`
 

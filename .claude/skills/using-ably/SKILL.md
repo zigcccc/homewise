@@ -59,7 +59,7 @@ After generating code, verify these common-mistake patterns:
 - [ ] **Chat SDK: `attach()` before subscribing?** Subscribe first to avoid messages being silently lost (see Section 7)
 - [ ] **React: Ably client created inside a component without cleanup?** Create once outside and pass via provider, or use useEffect with proper cleanup (see Section 8)
 - [ ] **Server-side: Realtime SDK used when REST would suffice?** Default to `Ably.Rest` for publishing, token generation, history (see Section 2)
-- [ ] **Connection cleanup on unmount/exit?** Call `realtime.close()` (see Section 5)
+- [ ] **Connection cleanup at exit?** Call `realtime.close()` — but never from the cleanup of an effect in a component whose lifetime is shorter than the client's (see Section 5)
 - [ ] **Reimplementing built-in behavior?** Don't add custom debounce for typing indicators, custom throttling for cursors, or custom conflict resolution for LiveObjects (see Section 9)
 
 ---
@@ -322,7 +322,7 @@ realtime.connection.on('disconnected', () => { /* temporarily offline */ });
 realtime.connection.on('suspended', () => { /* offline for extended period */ });
 ```
 
-- Call `realtime.close()` when done (component unmount, page unload, etc.)
+- Call `realtime.close()` when the client itself is done — i.e. at the scope that owns it. **Match the close to the client's lifetime, not to a component's.** A client created once for the tab must not be closed by a component's effect cleanup: a closed client cannot be reopened (a closed *connection* can), so anything that re-subscribes afterwards attaches to a dead client and fails with `80017`. React StrictMode makes this the default outcome rather than an edge case — it re-runs effects without re-rendering, so the cleanup fires and the re-run subscribes to what it just closed. See Section 8.
 - Messages published while disconnected are received on reconnection (within the 2-minute recovery window)
 - For AI Transport (client-side): use channel `rewind` to hydrate returning clients with recent messages:
 
@@ -410,7 +410,8 @@ function App() {
   );
 }
 
-// ALSO RIGHT: Create in useEffect with proper cleanup
+// ALSO RIGHT, but only when the client's lifetime really is this component's: create it in an
+// effect, and close it in that same effect's cleanup.
 function App() {
   const [client, setClient] = useState(null);
   useEffect(() => {
@@ -420,7 +421,27 @@ function App() {
   }, []);
   // ...
 }
+
+// WRONG: a client created once for the tab, closed by a component's cleanup
+const ably = new Ably.Realtime({ authUrl: '/api/ably-auth' });
+
+function Chat() {
+  useChannel('chat:room-1', (msg) => console.log(msg.data));
+  useEffect(() => () => ably.connection.close(), []); // kills a client that outlives this component
+}
 ```
+
+**Pick one owner for the client and close it there.** The two shapes above are not interchangeable:
+a module-scope client belongs to the tab and should simply never be closed, while an effect-created
+one belongs to the component and must be. Mixing them — module-scope creation with component-scope
+cleanup — is the bug StrictMode surfaces immediately: it re-runs effects *without* re-rendering, so
+the cleanup closes the client and the re-run's `useChannel` attaches to a closed one (`80017`), with
+nothing left to retry. It reaches production silently whenever the checks that would have caught it
+run a production build, where StrictMode does not double-invoke.
+
+Prefer module scope for a client shared by the whole app, and avoid `useState(() => new
+Ably.Realtime(...))` for it: StrictMode calls that initializer twice and discards one instance, which
+leaks the socket it already opened.
 
 ---
 
@@ -455,7 +476,7 @@ Before going to production, verify:
 
 - [ ] **No API keys in client code** — use JWT or token auth via `authUrl`/`authCallback`
 - [ ] **Capabilities are scoped** — don't grant `{"*":["*"]}` to clients; restrict to specific channels and operations
-- [ ] **Connection cleanup** — call `realtime.close()` on unmount/unload to avoid connection leaks
+- [ ] **Connection cleanup** — close the client at the scope that owns it, so it isn't leaked *or* closed out from under live subscribers (see Sections 5 and 8)
 - [ ] **Error handling** — listen to `connection.on('failed')` and handle auth failures gracefully
 - [ ] **Channel detach** — detach from channels you no longer need (`channel.detach()`)
 - [ ] **Message size** — messages are limited to 64KB by default; if you're hitting this, split payloads or reconsider message design
