@@ -257,7 +257,7 @@ test.describe('recipes', () => {
     // "Stay" cancels the navigation and leaves the work exactly as it was.
     await recipes.stayOnForm();
     await expect(page.getByRole('heading', { level: 1, name: 'Add a recipe' })).toBeVisible();
-    await expect(page.getByLabel('Title')).toHaveValue(title);
+    await expect(recipes.titleInput()).toHaveValue(title);
 
     // "Leave without saving" lets it through, and nothing was ever created.
     await recipes.cancelForm();
@@ -293,7 +293,7 @@ test.describe('recipes', () => {
       await recipes.cancelForm();
       await expect(recipes.unsavedChangesDialog()).toBeVisible();
       await recipes.stayOnForm();
-      await expect(page.getByLabel('Title')).toHaveValue(draft);
+      await expect(recipes.titleInput()).toHaveValue(draft);
 
       // Leaving discards the edit: the recipe still has the name it was saved under.
       await recipes.cancelForm();

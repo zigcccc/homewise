@@ -39,12 +39,16 @@ const childDictionariesApp = new Hono<AppContext>()
     zValidator('json', createChildDictionaryEntryModel),
     async (c) => {
       const { household, user } = c.var;
+      const dictionaryId = c.req.valid('param').id;
       const entry = await ChildDictionariesService.createEntry(
         household.id,
-        c.req.valid('param').id,
+        dictionaryId,
         c.req.valid('json'),
         user.id
       );
+
+      // The dictionary id, not the entry id, is what subscribers key their queries on.
+      c.var.emit({ entity: 'child_dictionary_entry', id: entry.id, operation: 'create', parentId: dictionaryId });
 
       return c.json(entry, 201);
     }
@@ -57,12 +61,16 @@ const childDictionariesApp = new Hono<AppContext>()
       const { id, entryId } = c.req.valid('param');
       const entry = await ChildDictionariesService.patchEntry(c.var.household.id, id, entryId, c.req.valid('json'));
 
+      c.var.emit({ entity: 'child_dictionary_entry', id: entry.id, operation: 'update', parentId: id });
+
       return c.json(entry, 200);
     }
   )
   .delete('/:id/entries/:entryId', zValidator('param', childDictionaryEntryPathParamsModel), async (c) => {
     const { id, entryId } = c.req.valid('param');
     await ChildDictionariesService.deleteEntry(c.var.household.id, id, entryId);
+
+    c.var.emit({ entity: 'child_dictionary_entry', id: entryId, operation: 'delete', parentId: id });
 
     return c.json({ success: true }, 202);
   });

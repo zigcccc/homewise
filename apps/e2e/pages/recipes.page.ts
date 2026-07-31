@@ -49,8 +49,23 @@ export class RecipesPage {
     return this.page.locator('form').getByRole('button', { name: label });
   }
 
+  /**
+   * A labelled field inside the form element. Scoped for the same reason as {@link formButton}:
+   * `getByLabel` matches accessible names by substring, and the router devtools panel — present
+   * whenever the suite runs against the dev server (`E2E_WEB_MODE=dev`) — labels its match rows with
+   * the serialized search params, so `"sortKey":"title"` collides with a plain `getByLabel('Title')`.
+   */
+  private formField(label: string): Locator {
+    return this.page.locator('form').getByLabel(label);
+  }
+
   async fillTitle(title: string) {
-    await this.page.getByLabel('Title').fill(title);
+    await this.formField('Title').fill(title);
+  }
+
+  /** The title input, for asserting what the form is still holding. */
+  titleInput(): Locator {
+    return this.formField('Title');
   }
 
   /** Best-effort cleanup: removes the recipe when it's in the list, and says so. */
@@ -67,11 +82,12 @@ export class RecipesPage {
   }
 
   async fillNumber(label: string, value: string) {
-    await this.page.getByLabel(label).fill(value);
+    await this.formField(label).fill(value);
   }
 
   async selectMealType(mealType: string) {
-    await this.page.getByLabel('Meal type').click();
+    // Only the trigger is inside the form; the options render in a portal at the document root.
+    await this.formField('Meal type').click();
     await this.page.getByRole('option', { name: mealType, exact: true }).click();
   }
 
@@ -214,8 +230,8 @@ export class RecipesPage {
    * and committed on the spot; Enter covers the single-tag case, where no comma ever arrives.
    */
   async addTags(input: string) {
-    await this.page.getByLabel('Tags').fill(input);
-    await this.page.getByLabel('Tags').press('Enter');
+    await this.formField('Tags').fill(input);
+    await this.formField('Tags').press('Enter');
   }
 
   /** A committed tag chip, identified by its remove button. */
@@ -241,7 +257,7 @@ export class RecipesPage {
   }
 
   async scrollToFormTop() {
-    await this.page.getByLabel('Title').scrollIntoViewIfNeeded();
+    await this.formField('Title').scrollIntoViewIfNeeded();
   }
 
   /** The form's Cancel link — a navigation, so it trips the unsaved-changes guard when dirty. */
@@ -324,7 +340,10 @@ export class RecipesPage {
   }
 
   async toggleFavoritesFilter() {
-    await this.page.getByLabel('Favorites').click();
+    // `exact` for the same reason `formField` is scoped: under `E2E_WEB_MODE=dev` the router
+    // devtools label their match rows with the serialized search params, and `"favoritesOnly":false`
+    // contains "Favorites" as a substring.
+    await this.page.getByLabel('Favorites', { exact: true }).click();
   }
 
   async setServings(direction: 'more' | 'fewer') {

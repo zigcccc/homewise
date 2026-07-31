@@ -3,17 +3,21 @@ import { expect, test } from '@playwright/test';
 import { SEED_HOUSEHOLD_NAME, SEED_SECOND_USER, SEED_USER } from '@homewise/server/seed-fixtures';
 
 import { HouseholdMembersPage } from '../pages/household-members.page';
+import { IngredientsPage } from '../pages/ingredients.page';
+import { OnboardingPage } from '../pages/onboarding.page';
 import { SettingsPage } from '../pages/settings.page';
 import { UserProfilePage } from '../pages/user-profile.page';
-import { SECOND_USER_STORAGE_STATE } from '../support/paths';
+import { deleteHouseholdIfPresent } from '../support/households';
+import { ONBOARDING_STORAGE_STATE, SECOND_USER_STORAGE_STATE } from '../support/paths';
 
 /**
  * The specs that mutate a **shared seed row** the rest of the suite observes:
  *   - the household name (the dashboard/auth specs assert it),
- *   - the seed user's name (ditto), and
+ *   - the seed user's name (ditto),
  *   - household ownership (member removal, role changes, and every profile
  *     teardown are owner-only, so briefly de-owning the seed user would break
- *     anything running alongside it).
+ *     anything running alongside it), and
+ *   - the onboarding user's household, which `onboarding.spec.ts` also owns.
  *
  * They live in the `exclusive` Playwright project, which depends on `parallel`
  * and so runs only after every parallel spec has finished — and this file runs on
@@ -100,6 +104,118 @@ test('changes an account member’s role (owner action), then restores it', asyn
     // that fails or only partially applies is detected even when the try block threw.
     await members.setMemberRole(SEED_SECOND_USER.name, 'Adult');
     await expect(roleSelect).toContainText('Adult');
+  }
+});
+
+test('keeps one household’s realtime changes out of another household', async ({ page, browser }) => {
+  // Three tabs. The insider is the control: it proves the event was actually broadcast, which is
+  // what makes the outsider's silence evidence of isolation rather than of a slow round trip.
+  // Lives here rather than in the parallel project because it takes over the onboarding user's
+  // household, which `onboarding.spec.ts` also owns.
+  test.slow();
+
+  const stamp = Date.now();
+  const name = `E2E Isolation ${stamp}`;
+
+  const actor = new IngredientsPage(page);
+
+  const insiderContext = await browser.newContext({ storageState: SECOND_USER_STORAGE_STATE });
+  const insider = new IngredientsPage(await insiderContext.newPage());
+
+  const outsiderContext = await browser.newContext({ storageState: ONBOARDING_STORAGE_STATE });
+  const outsiderPage = await outsiderContext.newPage();
+  const outsider = new IngredientsPage(outsiderPage);
+
+  try {
+    // Give the outsider a household of their own, so they're a fully-fledged realtime subscriber —
+    // just on a different channel.
+    await deleteHouseholdIfPresent(outsiderPage);
+    const onboarding = new OnboardingPage(outsiderPage);
+    await onboarding.start();
+    await onboarding.createHousehold(`E2E Isolation Household ${stamp}`);
+    await onboarding.skipInvites();
+
+    await outsider.goto();
+    await insider.goto();
+    await actor.goto();
+
+    // Positive control for the outsider. Without it, their silence below could just as well mean
+    // their realtime never worked at all (a refused token, a channel they never attached to) — this
+    // pins it to "connected, listening, and correctly not hearing the other household".
+    const ownName = `E2E Isolation Own ${stamp}`;
+    const outsiderSecondPage = await outsiderContext.newPage();
+    const outsiderActor = new IngredientsPage(outsiderSecondPage);
+    await outsiderActor.goto();
+    await outsiderActor.add(ownName);
+    await expect(outsider.row(ownName)).toBeVisible();
+    await outsiderSecondPage.close();
+
+    await actor.add(name);
+
+    // Delivered to the household it was addressed to…
+    await expect(insider.row(name)).toBeVisible();
+    // …and to nobody else. The row would also be absent because the outsider's *database* scope
+    // excludes it, so this is belt and braces — but a leaked event would show up as a refetch
+    // storm here long before it showed up as leaked data.
+    await expect(outsider.row(name)).toHaveCount(0);
+  } finally {
+    try {
+      await actor.goto();
+      await actor.deleteIfPresent(name);
+      await deleteHouseholdIfPresent(outsiderPage);
+    } finally {
+      await insiderContext.close();
+      await outsiderContext.close();
+    }
+  }
+});
+
+test('keeps realtime working after the household changes without a page load', async ({ browser }) => {
+  // The Ably client is scoped to the tab and never closed, so it outlives the household it was
+  // authorized for: its token names one channel, and a household swap moves the tab to another.
+  // Every path here after the first household exists is client-side routing, so the tab carries
+  // that stale token into the new household — which is exactly the state a reload would hide.
+  //
+  // Exclusive, like the isolation spec above, because it takes over the onboarding user's household.
+  test.slow();
+
+  const stamp = Date.now();
+  const context = await browser.newContext({ storageState: ONBOARDING_STORAGE_STATE });
+  const page = await context.newPage();
+  const onboarding = new OnboardingPage(page);
+
+  try {
+    await deleteHouseholdIfPresent(page);
+    await onboarding.start();
+    await onboarding.createHousehold(`E2E Rekey First ${stamp}`);
+    await onboarding.skipInvites();
+
+    // Landing on the dashboard is what constructs the client and gets it a token for the *first*
+    // household's channel. `deleteHouseholdIfPresent` then reloads once — still under that
+    // household — and everything from its delete onwards is routing, not navigation.
+    await deleteHouseholdIfPresent(page);
+    await onboarding.createHousehold(`E2E Rekey Second ${stamp}`);
+    await onboarding.skipInvites();
+
+    const observer = new IngredientsPage(page);
+    await observer.openFromSidebar();
+
+    // A second tab acts in the new household. If the observer never re-authorized, its attach was
+    // refused with 40160 — a channel Ably does not retry — and this row never arrives.
+    const name = `E2E Rekey ${stamp}`;
+    const actorPage = await context.newPage();
+    const actor = new IngredientsPage(actorPage);
+    await actor.goto();
+    await actor.add(name);
+
+    await expect(observer.row(name)).toBeVisible();
+  } finally {
+    // The ingredient belongs to the household being deleted, so it goes with it.
+    try {
+      await deleteHouseholdIfPresent(page);
+    } finally {
+      await context.close();
+    }
   }
 });
 

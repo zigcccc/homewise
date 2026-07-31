@@ -2,10 +2,19 @@ import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
 
 import { type HouseholdSummary, HouseholdsService } from '@/modules/households/households.service';
+import { type HouseholdEvent } from '@/modules/realtime/models';
+import { RealtimeService } from '@/modules/realtime/realtime.service';
 import { type AppContext } from '@/types/app.type';
 
 export type HouseholdContext = {
-  Variables: AppContext['Variables'] & { household: HouseholdSummary };
+  Variables: AppContext['Variables'] & {
+    household: HouseholdSummary;
+    /**
+     * Announces what this request changed to the rest of the household. Buffered and published once
+     * the handler succeeds — call it as many times as the handler has distinct effects.
+     */
+    emit: (...events: HouseholdEvent[]) => void;
+  };
 };
 
 /**
@@ -13,6 +22,11 @@ export type HouseholdContext = {
  * `c.var.household` instead of repeating a lookup + 404 check. Mount it on household-scoped sub-apps
  * only — routes that must work without a household (creating one, reading/accepting an invite) stay
  * outside of it.
+ *
+ * It also owns realtime dispatch, because the two are the same concern: an event is only ever
+ * addressed to the household resolved here, and taking the id from anywhere else is how a change
+ * ends up broadcast to the wrong people. Handlers describe *what* changed via `c.var.emit`; who
+ * hears about it is not theirs to decide.
  */
 export const withHousehold = createMiddleware<HouseholdContext>(async (c, next) => {
   const household = await HouseholdsService.readSummaryForUser(c.var.user.id);
@@ -23,7 +37,27 @@ export const withHousehold = createMiddleware<HouseholdContext>(async (c, next) 
 
   c.set('household', household);
 
-  return next();
+  const buffered: HouseholdEvent[] = [];
+  c.set('emit', (...events) => {
+    buffered.push(...events);
+  });
+
+  await next();
+
+  // A thrown HTTPException never reaches this line, and a validator's 400 leaves `ok` false — so
+  // only work that actually landed is announced.
+  if (buffered.length === 0 || !c.res.ok) {
+    return;
+  }
+
+  // Awaited rather than fired and forgotten: on a serverless host the invocation can freeze the
+  // moment the response is returned, which would drop the publish silently. One batched round trip
+  // for the whole request, and `publish` swallows its own failures.
+  await RealtimeService.publish(household.id, {
+    actorId: c.var.user.id,
+    events: buffered,
+    origin: c.req.header('x-homewise-client-id') ?? null,
+  });
 });
 
 /** Guards owner-only actions. Must run after {@link withHousehold}. */

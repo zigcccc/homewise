@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 
 import { defineConfig, devices } from '@playwright/test';
@@ -17,6 +18,12 @@ const WEB_URL = 'http://localhost:3000';
 // Only used for the local webServer readiness probe + the web's VITE_API_URL.
 const API_URL = 'http://localhost:5173';
 const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL ?? 'postgres://user:password@localhost:8766/homewise_test';
+// Realtime channels are prefixed with this, and household ids repeat across databases. A fresh
+// value per run keeps a local suite and a CI suite (or two local runs) off each other's channels
+// even when they share one Ably app — the same reason preview deploys get `pr-<n>`.
+const REALTIME_NAMESPACE = `test-${randomUUID().slice(0, 8)}`;
+// Opt in with E2E_WEB_MODE=dev — see the web `webServer` entry for when that's worth doing.
+const WEB_DEV_MODE = process.env.E2E_WEB_MODE === 'dev';
 
 export default defineConfig({
   testDir: './tests',
@@ -84,10 +91,15 @@ export default defineConfig({
       // HOMEWISE_DISABLE_EMAILS: the invite specs would otherwise make real Resend calls on every
       // run — rate-limited across three workers, so a flake source, and quota spent on throwaway
       // addresses. Suppressing them tests our own invite rows, which is what the specs assert on.
+      // HOMEWISE_ABLY_API_KEY isn't set here because it isn't ours to fake: the server requires it
+      // to boot, and the realtime specs assert that one browser sees another's change, which only
+      // means anything against the real broker. It comes from apps/server/.env locally and the job
+      // env on CI — a run without it fails at startup rather than passing on a mock.
       env: {
         NODE_ENV: 'development',
         DATABASE_URL: TEST_DATABASE_URL,
         HOMEWISE_DISABLE_EMAILS: 'true',
+        HOMEWISE_REALTIME_NAMESPACE: REALTIME_NAMESPACE,
       },
     },
     {
@@ -97,7 +109,16 @@ export default defineConfig({
       // contexts comfortably. `VITE_API_URL` is inlined at build time, so it's set
       // on this command. The tsc step is skipped (`vite build` only) —
       // type-checking is a separate gate.
-      command: 'pnpm --filter @homewise/web-app exec vite build && pnpm --filter @homewise/web-app exec vite preview',
+      //
+      // `E2E_WEB_MODE=dev` runs against the Vite dev server instead. Worth reaching
+      // for when a change touches mount/unmount lifecycles: React StrictMode only
+      // double-invokes effects in development, so a component that tears down what
+      // it just set up passes here and fails on `pnpm dev`. That exact bug shipped
+      // once — an Ably connection closed by its own effect cleanup. Slower and
+      // flakier under load, so it's opt-in rather than the default.
+      command: WEB_DEV_MODE
+        ? 'pnpm --filter @homewise/web-app exec vite dev --port 3000 --strictPort'
+        : 'pnpm --filter @homewise/web-app exec vite build && pnpm --filter @homewise/web-app exec vite preview',
       url: WEB_URL,
       // Same reasoning as the API server: a running `vite dev` on :3000 would be adopted, and it
       // was built against whatever VITE_API_URL that session used.

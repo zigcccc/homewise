@@ -1,9 +1,9 @@
-import { expect, type Page, test } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 import { SEED_ONBOARDING_USER } from '@homewise/server/seed-fixtures';
 
 import { OnboardingPage } from '../pages/onboarding.page';
-import { SettingsPage } from '../pages/settings.page';
+import { deleteHouseholdIfPresent } from '../support/households';
 import { ONBOARDING_STORAGE_STATE } from '../support/paths';
 
 test.describe('onboarding', () => {
@@ -30,30 +30,3 @@ test.describe('onboarding', () => {
     await deleteHouseholdIfPresent(page);
   });
 });
-
-/**
- * Leaves the onboarding user without a household. If `/` renders the dashboard a
- * household exists (from this test or a crashed prior run) and is deleted via the
- * settings danger zone; otherwise the user is already household-less.
- */
-async function deleteHouseholdIfPresent(page: Page) {
-  await page.goto('/');
-
-  const createButton = page.getByRole('button', { name: 'Create', exact: true });
-  const householdHeading = page.getByRole('heading', { name: /Your household:/ });
-  await expect(createButton.or(householdHeading)).toBeVisible();
-
-  // Household-less users are redirected to create-household — nothing to clean up.
-  if (await createButton.isVisible()) {
-    return;
-  }
-
-  const settings = new SettingsPage(page);
-  await settings.goto();
-  const name = await settings.nameInput.inputValue();
-
-  const dialog = await settings.openDeleteDialog();
-  await dialog.getByLabel('Household name').fill(name);
-  await dialog.getByRole('button', { name: 'Delete', exact: true }).click();
-  await page.waitForURL(/\/onboarding\/create-household/);
-}

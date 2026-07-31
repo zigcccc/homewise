@@ -42,6 +42,10 @@
     "./ingredients": {
       "types": "./src/modules/ingredients/models/index.ts",
       "import": "./src/modules/ingredients/models/index.ts"
+    },
+    "./realtime": {
+      "types": "./src/modules/realtime/models/index.ts",
+      "import": "./src/modules/realtime/models/index.ts"
     }
   },
   "scripts": {
@@ -61,6 +65,7 @@
     "@hono/zod-validator": "catalog:",
     "@neondatabase/serverless": "catalog:",
     "@vercel/blob": "catalog:",
+    "ably": "catalog:",
     "better-auth": "catalog:",
     "dotenv": "catalog:",
     "drizzle-orm": "catalog:",

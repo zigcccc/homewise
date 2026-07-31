@@ -28,7 +28,9 @@
         "BETTER_AUTH_SECRET",
         "BETTER_AUTH_URL",
         "NODEJS_HELPERS",
-        "HOMEWISE_FILES_READ_WRITE_TOKEN"
+        "HOMEWISE_FILES_READ_WRITE_TOKEN",
+        "HOMEWISE_ABLY_API_KEY",
+        "HOMEWISE_REALTIME_NAMESPACE"
       ],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": ["dist/**", ".vercel/**"]

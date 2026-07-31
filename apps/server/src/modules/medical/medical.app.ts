@@ -21,6 +21,8 @@ const medicalApp = new Hono<AppContext>()
     async (c) => {
       const info = await MedicalService.patchInfo(c.var.household.id, c.req.valid('param').id, c.req.valid('json'));
 
+      c.var.emit({ entity: 'medical_info', id: info.id, operation: 'update' });
+
       return c.json(info, 200);
     }
   )
@@ -29,7 +31,15 @@ const medicalApp = new Hono<AppContext>()
     zValidator('param', medicalInfoPathParamsModel),
     zValidator('json', createContactModel),
     async (c) => {
-      const contact = await MedicalService.addContact(c.var.household.id, c.req.valid('param').id, c.req.valid('json'));
+      const id = c.req.valid('param').id;
+      const contact = await MedicalService.addContact(c.var.household.id, id, c.req.valid('json'));
+
+      // One request, two effects: a brand new contact in the household's address book, and a record
+      // that now points at it.
+      c.var.emit(
+        { entity: 'contact', id: contact.id, operation: 'create' },
+        { entity: 'medical_info', id, operation: 'update' }
+      );
 
       return c.json(contact, 201);
     }
@@ -38,11 +48,15 @@ const medicalApp = new Hono<AppContext>()
     const { id, contactId } = c.req.valid('param');
     const contact = await MedicalService.linkContact(c.var.household.id, id, contactId);
 
+    c.var.emit({ entity: 'medical_info', id, operation: 'update' });
+
     return c.json(contact, 201);
   })
   .delete('/:id/contacts/:contactId', zValidator('param', medicalInfoContactPathParamsModel), async (c) => {
     const { id, contactId } = c.req.valid('param');
     await MedicalService.unlinkContact(c.var.household.id, id, contactId);
+
+    c.var.emit({ entity: 'medical_info', id, operation: 'update' });
 
     return c.json({ success: true }, 202);
   });

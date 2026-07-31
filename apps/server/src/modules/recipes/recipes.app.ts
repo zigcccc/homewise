@@ -27,7 +27,10 @@ const recipesApp = new Hono<AppContext>()
     return c.json(tags, 200);
   })
   .delete('/tags/:tagId', zValidator('param', recipeTagPathParamsModel), async (c) => {
-    await RecipesService.deleteTag(c.var.household.id, c.req.valid('param').tagId);
+    const { tagId } = c.req.valid('param');
+    await RecipesService.deleteTag(c.var.household.id, tagId);
+
+    c.var.emit({ entity: 'recipe_tag', id: tagId, operation: 'delete' });
 
     return c.json({ success: true }, 202);
   })
@@ -40,6 +43,13 @@ const recipesApp = new Hono<AppContext>()
     const { household, user } = c.var;
     const recipe = await RecipesService.create(household.id, c.req.valid('json'), user.id);
 
+    // Saving a recipe is also when the names on it get minted into the ingredient library, so the
+    // library changed too even though nobody asked for an ingredient.
+    c.var.emit(
+      { entity: 'recipe', id: recipe.id, operation: 'create' },
+      { entity: 'ingredient', id: null, operation: 'update' }
+    );
+
     return c.json(recipe, 201);
   })
   .get('/:id', zValidator('param', recipePathParamsModel), async (c) => {
@@ -50,10 +60,18 @@ const recipesApp = new Hono<AppContext>()
   .patch('/:id', zValidator('param', recipePathParamsModel), zValidator('json', patchRecipeModel), async (c) => {
     const recipe = await RecipesService.patch(c.var.household.id, c.req.valid('param').id, c.req.valid('json'));
 
+    c.var.emit(
+      { entity: 'recipe', id: recipe.id, operation: 'update' },
+      { entity: 'ingredient', id: null, operation: 'update' }
+    );
+
     return c.json(recipe, 200);
   })
   .delete('/:id', zValidator('param', recipePathParamsModel), async (c) => {
-    await RecipesService.delete(c.var.household.id, c.req.valid('param').id);
+    const { id } = c.req.valid('param');
+    await RecipesService.delete(c.var.household.id, id);
+
+    c.var.emit({ entity: 'recipe', id, operation: 'delete' });
 
     return c.json({ success: true }, 202);
   });

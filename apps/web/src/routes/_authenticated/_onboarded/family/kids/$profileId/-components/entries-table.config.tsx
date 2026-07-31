@@ -39,6 +39,7 @@ import {
 } from '@homewise/ui/core';
 
 import { client, parseResponse } from '@/api/client';
+import { invalidateChildDictionaryEntries } from '@/modules/child-dictionaries';
 import { invalidateChildProfile } from '@/modules/child-profiles';
 import { ConfirmDeleteDialog, DateField } from '@/modules/shared';
 
@@ -62,7 +63,7 @@ const emptyEntry = () => ({ childPhrase: '', adultTranslation: '', notes: '', fi
  * the dialog close or toast on a refetch only adds latency.
  */
 function invalidateDictionary(queryClient: QueryClient, dictionaryId: number, profileId: number) {
-  void queryClient.invalidateQueries({ queryKey: ['child-dictionaries', dictionaryId] });
+  invalidateChildDictionaryEntries(queryClient, dictionaryId);
   invalidateChildProfile(queryClient, profileId);
 }
 

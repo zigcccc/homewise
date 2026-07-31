@@ -56,6 +56,11 @@ names. Aggregate queries (counts) must be constrained to the ids just read, not 
 `new Hono<AppContext>().use(withHousehold)` then chained handlers reading `c.var.household.id`. Keep
 the chain unbroken — `AppType` inference depends on it. Register in `src/index.ts` with `.route()`.
 
+Every mutating handler ends with `c.var.emit(...)` before its `c.json(...)` — one call per distinct
+effect, so other members' open tabs refresh. Add the entity to `householdEventEntity`
+(`modules/realtime/models`); the web's `invalidators` record then fails to compile until step 7's
+helper is mapped, which is what keeps the two halves in sync.
+
 **5. Migration**
 
 `pnpm db:migrations:create` then `db:migrations:apply`. Read the generated SQL before applying and
@@ -77,6 +82,11 @@ Work in `apps/web/src/`.
 `queryOptions` helpers wrapped in `parseResponse`. Hierarchical keys (see CLAUDE.md). Export a
 `invalidate<Feature>(queryClient, id)` helper alongside them.
 
+Then map the entity from step 4 in the `invalidators` record in
+`modules/realtime/components/realtime-provider.tsx`, calling that same helper — that's what makes
+another member's tab refresh. It's a `Record` keyed by the server's entity union, so this won't
+compile until you do. Mutations still invalidate locally as well; the acting tab skips its own event.
+
 **8. Routes** — `routes/_authenticated/_onboarded/<area>/<feature>/`
 
 `index.tsx` (list) and `$id.tsx` (detail). Both need a loader and a
@@ -96,8 +106,10 @@ the stubbed `<Link to="/">` placeholder if one exists.
 
 **10. Static checks**
 
-`pnpm check-types`, then `pnpm lint` to **zero diagnostics**. Type-checking green is not evidence the
-feature works — that's what the E2E flow below is for.
+`pnpm check-types`, then `pnpm lint` to **zero diagnostics**, then `pnpm knip`. All three, before the
+E2E gate: knip is the only one that flags a dependency a `package.json` declares but nothing in that
+package imports. Type-checking green is not evidence the feature works — that's what the E2E flow
+below is for.
 
 **11. E2E flow** — `apps/e2e/`
 
@@ -110,6 +122,9 @@ assertions in `apps/e2e/tests/<feature>.spec.ts`, mirroring `household-members.p
 (`` `... ${Date.now()}` ``) and remove it — so it's idempotent and never mutates the shared seed
 fixture. Reuse seeded data from `@homewise/server/seed-fixtures`; never hard-code creds/names.
 See CLAUDE.md → End-to-end testing. Every feature ships with one.
+
+If the feature's list is one a second member would sit and watch, extend `realtime.spec.ts` too: two
+browser contexts in the same household, one acts, the other asserts **without reloading**.
 
 **12. Final gate** — run the full suite
 
