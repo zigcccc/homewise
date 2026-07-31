@@ -68,7 +68,9 @@ export const auth = betterAuth({
         // but logs it instead of discarding it silently. The user can request a new link.
         // Correlate by user id, not email address, so logs carry no recipient PII.
         console.error(`✗ verification email failed for user ${user.id}; sign-up itself succeeded`, error);
-        captureException(error, { tags: { emailKind: 'verification' } });
+        // The id goes on `user`, not a tag: it's the same identity `setUser` carries everywhere else
+        // (id only, never the address), and one value per user would blow out a tag's cardinality.
+        captureException(error, { tags: { emailKind: 'verification' }, user: { id: user.id } });
       }
     },
   },

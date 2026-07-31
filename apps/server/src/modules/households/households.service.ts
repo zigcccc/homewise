@@ -273,7 +273,9 @@ export class HouseholdsService {
     } catch (error) {
       // Correlate by invite id, not email address, so logs carry no recipient PII.
       console.error(`✗ invite email failed for invite ${inviteId}; the invite is saved and can be re-sent`, error);
-      captureException(error, { tags: { emailKind: 'invite' } });
+      // `extra`, not a tag: the id is here to identify the row from the issue, and one distinct
+      // value per invite is exactly what tags are the wrong place for.
+      captureException(error, { tags: { emailKind: 'invite' }, extra: { inviteId } });
     }
   }
 
