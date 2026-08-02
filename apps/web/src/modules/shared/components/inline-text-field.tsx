@@ -107,7 +107,13 @@ export function InlineTextField({
       return;
     }
 
-    void form.handleSubmit(submit)();
+    // The `onInvalid` half matters as much as the handler: `handleSubmit` silently declines to call
+    // `submit` when the schema rejects the value, so without this a too-long name left a red border
+    // and no explanation of what was wrong with it. A toast, not a `FormMessage` — this renders in
+    // table cells and card rows that have no space to grow one.
+    void form.handleSubmit(submit, (errors) => {
+      toast.error(errors.value?.message ?? 'That value is not valid.');
+    })();
   };
 
   const keyDown = (event: React.KeyboardEvent) => {
