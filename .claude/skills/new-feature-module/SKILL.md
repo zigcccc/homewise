@@ -48,8 +48,16 @@ app imports models the same way it does `@homewise/server/households`.
 
 Static class. Every method takes `householdId: number` — no auth logic, no Hono imports. Scope every
 query by `householdId`; throw `HTTPException(404)` rather than leaking cross-household ids. Reuse
-`HouseholdsService.readHouseholdMember` for member validation and `toMemberResponse` for display
-names. Aggregate queries (counts) must be constrained to the ids just read, not the whole table.
+`HouseholdsService.readHouseholdMember` for member validation, and `memberDisplayName` /
+`toMemberResponse` for display names. Aggregate queries (counts) must be constrained to the ids just
+read, not the whole table. Date arithmetic comes from `@/lib/dates` — never re-derive it locally.
+
+Services carry the business logic, so they get the strictest review in the repo. Read a sibling
+(`recipes`, `ingredients`) for the *pattern* — then read what you wrote for the things copying
+introduces. CLAUDE.md → "Services are the cornerstone" is the checklist: no generic helpers stranded
+in the module, no dead `executor` params, no explicit return types or hand-written response shapes,
+comments that explain a live constraint rather than how the code got here. A smell you find is
+almost never confined to your file — grep before you fix it.
 
 **4. Routes** — `modules/<feature>/<feature>.app.ts` + `index.ts`
 
@@ -97,6 +105,16 @@ Table columns and row-action dialogs go in a co-located `-<feature>.config.tsx`,
 Derive every payload type from the RPC client, narrowing responses to `, 200`. Forms use
 `useForm` + `zodResolver(<server model>)`. Destructive actions use `ConfirmDeleteDialog` from
 `@/modules/shared`.
+
+**Read `packages/ui/src/core/index.ts` before writing any markup.** The kit is larger than it looks,
+and hand-rolling something it already ships is the fastest way to make this codebase worse — `Tabs`,
+`Combobox`/`ComboboxFieldTrigger`, `Empty`, `ButtonGroup`, `InputGroup`, `Badge` and `DataTable` all
+exist. Note the `Button` wrapper-span trap in CLAUDE.md → Shared UI before reaching for a `Button` in
+a layout that needs `justify-between`.
+
+**Verify the RPC types actually resolved.** `pnpm check-types` passes just as happily when a response
+type has collapsed to `any`, because `any` is assignable to everything. Probe one leaf of the new
+response per CLAUDE.md → Key Conventions; deeply nested arrays are where it breaks.
 
 Give the empty state real intent: distinguish "nothing here yet" from "nothing matches your filter",
 and point at the action that fixes it.

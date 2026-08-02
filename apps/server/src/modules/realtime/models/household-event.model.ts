@@ -17,6 +17,8 @@ export const householdEventEntity = z.enum([
   'child_profile',
   'contact',
   'ingredient',
+  /** Any change to a planned meal or a day note — the client caches the window under one range key. */
+  'meal_plan',
   'medical_info',
   'pet_profile',
   'recipe',

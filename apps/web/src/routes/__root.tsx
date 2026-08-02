@@ -15,7 +15,19 @@ function RootLayout() {
   return (
     <>
       <HeadContent />
-      <Toaster position="top-center" richColors />
+      <Toaster
+        position="top-center"
+        richColors
+        toastOptions={{
+          classNames: {
+            // Sonner fills the action button with the toast's *text* colour, which on a rich-colors
+            // success toast is a near-black pill sitting in a pale green box. Ghost it instead.
+            // `!` because sonner's `[data-sonner-toast][data-styled='true'] [data-button]` outranks
+            // a single utility class three selectors to one.
+            actionButton: '!border !border-current/25 !bg-transparent !text-current hover:!bg-current/10',
+          },
+        }}
+      />
       <SidebarProvider>
         <Outlet />
       </SidebarProvider>

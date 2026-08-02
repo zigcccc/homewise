@@ -17,6 +17,7 @@ import childProfilesApp from './modules/child-profiles';
 import contactsApp from './modules/contacts';
 import householdsApp from './modules/households';
 import ingredientsApp from './modules/ingredients';
+import mealPlanApp from './modules/meal-plan';
 import medicalApp from './modules/medical';
 import petProfilesApp from './modules/pet-profiles';
 import realtimeApp from './modules/realtime';
@@ -76,6 +77,7 @@ const app = base
   .route('/medical-info', medicalApp)
   .route('/recipes', recipesApp)
   .route('/ingredients', ingredientsApp)
+  .route('/meal-plan', mealPlanApp)
   .route('/realtime', realtimeApp);
 
 if (env.NODE_ENV === 'development') {

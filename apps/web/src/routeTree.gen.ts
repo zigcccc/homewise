@@ -29,6 +29,7 @@ import { Route as AuthenticatedOnboardedFamilyKidsProfileIdRouteRouteImport } fr
 import { Route as AuthenticatedOnboardedFamilyPetsIndexRouteImport } from './routes/_authenticated/_onboarded/family/pets/index'
 import { Route as AuthenticatedOnboardedFamilyPetsProfileIdRouteRouteImport } from './routes/_authenticated/_onboarded/family/pets/$profileId/route'
 import { Route as AuthenticatedOnboardedFoodIngredientsIndexRouteImport } from './routes/_authenticated/_onboarded/food/ingredients/index'
+import { Route as AuthenticatedOnboardedFoodMealPlanIndexRouteImport } from './routes/_authenticated/_onboarded/food/meal-plan/index'
 import { Route as AuthenticatedOnboardedFoodRecipesIndexRouteImport } from './routes/_authenticated/_onboarded/food/recipes/index'
 import { Route as AuthenticatedOnboardedFoodRecipesRecipeIdRouteRouteImport } from './routes/_authenticated/_onboarded/food/recipes/$recipeId/route'
 import { Route as AuthenticatedOnboardedFoodRecipesNewRouteImport } from './routes/_authenticated/_onboarded/food/recipes/new'
@@ -153,6 +154,12 @@ const AuthenticatedOnboardedFoodIngredientsIndexRoute =
     path: '/food/ingredients/',
     getParentRoute: () => AuthenticatedOnboardedRoute,
   } as any)
+const AuthenticatedOnboardedFoodMealPlanIndexRoute =
+  AuthenticatedOnboardedFoodMealPlanIndexRouteImport.update({
+    id: '/food/meal-plan/',
+    path: '/food/meal-plan/',
+    getParentRoute: () => AuthenticatedOnboardedRoute,
+  } as any)
 const AuthenticatedOnboardedFoodRecipesIndexRoute =
   AuthenticatedOnboardedFoodRecipesIndexRouteImport.update({
     id: '/food/recipes/',
@@ -235,6 +242,7 @@ export interface FileRoutesByFullPath {
   '/family/kids/': typeof AuthenticatedOnboardedFamilyKidsIndexRoute
   '/family/pets/': typeof AuthenticatedOnboardedFamilyPetsIndexRoute
   '/food/ingredients/': typeof AuthenticatedOnboardedFoodIngredientsIndexRoute
+  '/food/meal-plan/': typeof AuthenticatedOnboardedFoodMealPlanIndexRoute
   '/food/recipes/': typeof AuthenticatedOnboardedFoodRecipesIndexRoute
   '/family/kids/$profileId/dictionary': typeof AuthenticatedOnboardedFamilyKidsProfileIdDictionaryRoute
   '/family/kids/$profileId/general': typeof AuthenticatedOnboardedFamilyKidsProfileIdGeneralRoute
@@ -261,6 +269,7 @@ export interface FileRoutesByTo {
   '/family/kids': typeof AuthenticatedOnboardedFamilyKidsIndexRoute
   '/family/pets': typeof AuthenticatedOnboardedFamilyPetsIndexRoute
   '/food/ingredients': typeof AuthenticatedOnboardedFoodIngredientsIndexRoute
+  '/food/meal-plan': typeof AuthenticatedOnboardedFoodMealPlanIndexRoute
   '/food/recipes': typeof AuthenticatedOnboardedFoodRecipesIndexRoute
   '/family/kids/$profileId/dictionary': typeof AuthenticatedOnboardedFamilyKidsProfileIdDictionaryRoute
   '/family/kids/$profileId/general': typeof AuthenticatedOnboardedFamilyKidsProfileIdGeneralRoute
@@ -294,6 +303,7 @@ export interface FileRoutesById {
   '/_authenticated/_onboarded/family/kids/': typeof AuthenticatedOnboardedFamilyKidsIndexRoute
   '/_authenticated/_onboarded/family/pets/': typeof AuthenticatedOnboardedFamilyPetsIndexRoute
   '/_authenticated/_onboarded/food/ingredients/': typeof AuthenticatedOnboardedFoodIngredientsIndexRoute
+  '/_authenticated/_onboarded/food/meal-plan/': typeof AuthenticatedOnboardedFoodMealPlanIndexRoute
   '/_authenticated/_onboarded/food/recipes/': typeof AuthenticatedOnboardedFoodRecipesIndexRoute
   '/_authenticated/_onboarded/family/kids/$profileId/dictionary': typeof AuthenticatedOnboardedFamilyKidsProfileIdDictionaryRoute
   '/_authenticated/_onboarded/family/kids/$profileId/general': typeof AuthenticatedOnboardedFamilyKidsProfileIdGeneralRoute
@@ -326,6 +336,7 @@ export interface FileRouteTypes {
     | '/family/kids/'
     | '/family/pets/'
     | '/food/ingredients/'
+    | '/food/meal-plan/'
     | '/food/recipes/'
     | '/family/kids/$profileId/dictionary'
     | '/family/kids/$profileId/general'
@@ -352,6 +363,7 @@ export interface FileRouteTypes {
     | '/family/kids'
     | '/family/pets'
     | '/food/ingredients'
+    | '/food/meal-plan'
     | '/food/recipes'
     | '/family/kids/$profileId/dictionary'
     | '/family/kids/$profileId/general'
@@ -384,6 +396,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_onboarded/family/kids/'
     | '/_authenticated/_onboarded/family/pets/'
     | '/_authenticated/_onboarded/food/ingredients/'
+    | '/_authenticated/_onboarded/food/meal-plan/'
     | '/_authenticated/_onboarded/food/recipes/'
     | '/_authenticated/_onboarded/family/kids/$profileId/dictionary'
     | '/_authenticated/_onboarded/family/kids/$profileId/general'
@@ -541,6 +554,13 @@ declare module '@tanstack/react-router' {
       path: '/food/ingredients'
       fullPath: '/food/ingredients/'
       preLoaderRoute: typeof AuthenticatedOnboardedFoodIngredientsIndexRouteImport
+      parentRoute: typeof AuthenticatedOnboardedRoute
+    }
+    '/_authenticated/_onboarded/food/meal-plan/': {
+      id: '/_authenticated/_onboarded/food/meal-plan/'
+      path: '/food/meal-plan'
+      fullPath: '/food/meal-plan/'
+      preLoaderRoute: typeof AuthenticatedOnboardedFoodMealPlanIndexRouteImport
       parentRoute: typeof AuthenticatedOnboardedRoute
     }
     '/_authenticated/_onboarded/food/recipes/': {
@@ -706,6 +726,7 @@ interface AuthenticatedOnboardedRouteChildren {
   AuthenticatedOnboardedFamilyKidsIndexRoute: typeof AuthenticatedOnboardedFamilyKidsIndexRoute
   AuthenticatedOnboardedFamilyPetsIndexRoute: typeof AuthenticatedOnboardedFamilyPetsIndexRoute
   AuthenticatedOnboardedFoodIngredientsIndexRoute: typeof AuthenticatedOnboardedFoodIngredientsIndexRoute
+  AuthenticatedOnboardedFoodMealPlanIndexRoute: typeof AuthenticatedOnboardedFoodMealPlanIndexRoute
   AuthenticatedOnboardedFoodRecipesIndexRoute: typeof AuthenticatedOnboardedFoodRecipesIndexRoute
 }
 
@@ -734,6 +755,8 @@ const AuthenticatedOnboardedRouteChildren: AuthenticatedOnboardedRouteChildren =
       AuthenticatedOnboardedFamilyPetsIndexRoute,
     AuthenticatedOnboardedFoodIngredientsIndexRoute:
       AuthenticatedOnboardedFoodIngredientsIndexRoute,
+    AuthenticatedOnboardedFoodMealPlanIndexRoute:
+      AuthenticatedOnboardedFoodMealPlanIndexRoute,
     AuthenticatedOnboardedFoodRecipesIndexRoute:
       AuthenticatedOnboardedFoodRecipesIndexRoute,
   }

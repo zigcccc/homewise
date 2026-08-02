@@ -31,6 +31,21 @@ const firstFilled = (...values: (string | null | undefined)[]) =>
   values.find((value): value is string => typeof value === 'string' && value.trim().length > 0);
 
 export class HouseholdsService {
+  /**
+   * The name to show for a member, by the same precedence `toMemberResponse` uses.
+   *
+   * Separate from it because most callers can't satisfy that one: it needs the household's `ownerId`
+   * to derive `isOwner`, and it ships `email`/`isManaged` alongside — none of which a meal card, or
+   * anything else that just wants to write a person's name on screen, has any business carrying.
+   */
+  public static memberDisplayName(member: {
+    name: string | null;
+    nickname: string | null;
+    user?: { name: string } | null;
+  }) {
+    return firstFilled(member.nickname, member.user?.name, member.name) ?? 'Unknown';
+  }
+
   public static toMemberResponse<M extends MemberWithUser>(member: M, ownerId: string) {
     const { user, ...rest } = member;
     return {

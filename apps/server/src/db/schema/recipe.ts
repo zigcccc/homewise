@@ -3,6 +3,7 @@ import { boolean, integer, numeric, pgEnum, pgTable, text, unique, uniqueIndex }
 
 import { baseDbEntityFields } from './__shared/base';
 import { household } from './household';
+import { plannedMeal } from './meal-plan';
 import { user } from './user';
 
 /**
@@ -183,6 +184,8 @@ export const recipeRelations = relations(recipe, ({ many, one }) => ({
   creator: one(user, { fields: [recipe.createdBy], references: [user.id] }),
   household: one(household, { fields: [recipe.householdId], references: [household.id] }),
   ingredients: many(recipeIngredient),
+  /** Every day this recipe is planned for. Nulled (and title-tombstoned) when the recipe is deleted. */
+  plannedMeals: many(plannedMeal),
   steps: many(recipeStep),
   tagLinks: many(recipeTagLink),
 }));

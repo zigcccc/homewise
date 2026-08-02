@@ -1,7 +1,11 @@
 import { expect, test } from '@playwright/test';
 
 import { IngredientsPage } from '../pages/ingredients.page';
+import { MealPlanPage } from '../pages/meal-plan.page';
 import { SECOND_USER_STORAGE_STATE } from '../support/paths';
+
+/** This spec's own far-future week — see the note in `meal-plan.spec.ts`. */
+const REALTIME_WEEK = '2099-05-04';
 
 test.describe('realtime', () => {
   /**
@@ -40,6 +44,34 @@ test.describe('realtime', () => {
       } finally {
         await actorContext.close();
       }
+    }
+  });
+
+  /**
+   * The meal plan is the surface where this matters most: two people plan the week together, often
+   * on two devices at the same table. The observer never reloads.
+   */
+  test('shows a meal another member plans, without a reload', async ({ page, browser }) => {
+    test.slow();
+    const lunch = `E2E Realtime Lunch ${Date.now()}`;
+
+    const observer = new MealPlanPage(page);
+    await observer.goto(REALTIME_WEEK);
+    await expect(observer.meal(REALTIME_WEEK, lunch)).toHaveCount(0);
+
+    const actorContext = await browser.newContext({ storageState: SECOND_USER_STORAGE_STATE });
+    const actor = new MealPlanPage(await actorContext.newPage());
+
+    try {
+      await actor.goto(REALTIME_WEEK);
+
+      await actor.addFreeTextMeal(REALTIME_WEEK, lunch);
+      await expect(observer.meal(REALTIME_WEEK, lunch)).toBeVisible();
+
+      await actor.removeMeal(REALTIME_WEEK, lunch);
+      await expect(observer.meal(REALTIME_WEEK, lunch)).toHaveCount(0);
+    } finally {
+      await actorContext.close();
     }
   });
 });

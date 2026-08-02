@@ -78,6 +78,13 @@
       "when": 1784982376475,
       "tag": "0010_gigantic_onslaught",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1785567259388,
+      "tag": "0011_jittery_thing",
+      "breakpoints": true
     }
   ]
 }

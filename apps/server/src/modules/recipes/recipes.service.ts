@@ -4,6 +4,7 @@ import { HTTPException } from 'hono/http-exception';
 import { db, schema } from '@/db';
 import { type Executor, emptyToNull } from '@/db/utils';
 import { IngredientsService } from '@/modules/ingredients/ingredients.service';
+import { MealPlanService } from '@/modules/meal-plan/meal-plan.service';
 
 import {
   type CreateRecipe,
@@ -40,8 +41,8 @@ export class RecipesService {
   }
 
   /** Re-reads a recipe with everything nested, so every mutation returns the shape a read produces. */
-  private static async readRecipeWithRelations(householdId: number, recipeId: number, executor: Executor = db) {
-    const recipe = await executor.query.recipe.findFirst({
+  private static async readRecipeWithRelations(householdId: number, recipeId: number) {
+    const recipe = await db.query.recipe.findFirst({
       where: (fields, { and, eq }) => and(eq(fields.householdId, householdId), eq(fields.id, recipeId)),
       with: {
         creator: creatorWith,
@@ -64,18 +65,24 @@ export class RecipesService {
   /**
    * Rejects ingredient ids that don't belong to this household — without this a caller could
    * reference another household's ingredient rows through their own recipe.
+   *
+   * Deduplicates its own input. The query returns distinct rows, so a repeated id makes `found`
+   * shorter than `ids` and 404s something valid — a recipe listing the same ingredient twice is
+   * ordinary. That used to depend on the one call site remembering to pass a `Set`.
    */
   private static async assertIngredientsInHousehold(executor: Executor, householdId: number, ids: number[]) {
-    if (ids.length === 0) {
+    const unique = [...new Set(ids)];
+
+    if (unique.length === 0) {
       return;
     }
 
     const found = await executor
       .select({ id: schema.ingredient.id })
       .from(schema.ingredient)
-      .where(and(eq(schema.ingredient.householdId, householdId), inArray(schema.ingredient.id, ids)));
+      .where(and(eq(schema.ingredient.householdId, householdId), inArray(schema.ingredient.id, unique)));
 
-    if (found.length !== ids.length) {
+    if (found.length !== unique.length) {
       throw new HTTPException(404, { message: 'Ingredient not found' });
     }
   }
@@ -97,7 +104,7 @@ export class RecipesService {
       line.ingredientName === undefined ? [] : [{ defaultUnit: line.unit, name: line.ingredientName }]
     );
 
-    await RecipesService.assertIngredientsInHousehold(executor, householdId, [...new Set(ids)]);
+    await RecipesService.assertIngredientsInHousehold(executor, householdId, ids);
     const idByName = await IngredientsService.resolveByName(executor, householdId, named);
 
     return lines.map(({ ingredientId, ingredientName, ...rest }) => {
@@ -386,17 +393,30 @@ export class RecipesService {
     return RecipesService.readRecipeWithRelations(householdId, recipeId);
   }
 
+  /**
+   * Deletes a recipe, leaving any meal plan that referenced it readable.
+   *
+   * The plan rows can't simply follow the FK to NULL: `planned_meal_label_check` requires a recipe or
+   * a title, so the recipe's name is copied onto them first. That's the whole point of the check —
+   * forgetting this step fails the delete outright instead of quietly producing label-less rows.
+   */
   public static async delete(householdId: number, recipeId: number) {
-    const [deleted] = await db
-      .delete(schema.recipe)
-      .where(and(eq(schema.recipe.householdId, householdId), eq(schema.recipe.id, recipeId)))
-      .returning();
+    return db.transaction(async (tx) => {
+      const recipe = await RecipesService.readRecipeRow(householdId, recipeId, tx);
 
-    if (!deleted) {
-      throw new HTTPException(404, { message: 'Recipe not found' });
-    }
+      await MealPlanService.detachRecipe(tx, recipeId, recipe.title);
 
-    return deleted;
+      const [deleted] = await tx
+        .delete(schema.recipe)
+        .where(and(eq(schema.recipe.householdId, householdId), eq(schema.recipe.id, recipeId)))
+        .returning();
+
+      if (!deleted) {
+        throw new HTTPException(404, { message: 'Recipe not found' });
+      }
+
+      return deleted;
+    });
   }
 
   /** The household's tag vocabulary, for the recipe form's picker and the list filter. */
