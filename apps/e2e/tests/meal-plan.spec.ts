@@ -5,6 +5,7 @@ import { SEED_CHILD_MEMBER, SEED_RECIPE, SEED_SECOND_USER, SEED_USER } from '@ho
 import { HouseholdMembersPage } from '../pages/household-members.page';
 import { MealPlanPage } from '../pages/meal-plan.page';
 import { API_URL } from '../playwright.config';
+import { SECOND_USER_STORAGE_STATE } from '../support/paths';
 import { removeManagedMember } from '../support/profiles';
 
 /**
@@ -175,7 +176,7 @@ test.describe('meal plan', () => {
     }
   });
 
-  test('keeps an open inline edit on its own meal when the day fills underneath it', async ({ page }) => {
+  test('keeps an open inline edit on its own meal when the day fills underneath it', async ({ browser, page }) => {
     const mealPlan = new MealPlanPage(page);
     const { monday } = WEEKS.identity;
     const stamp = Date.now();
@@ -192,10 +193,21 @@ test.describe('meal plan', () => {
 
       // Another member adds a meal to the same day, at position 0. Realtime refetches the list under
       // the open editor and everything below shifts down a place.
-      const response = await page.context().request.post(`${API_URL}/meal-plan/meals`, {
-        data: { day: monday, position: 0, title: neighbour },
-      });
-      expect(response.ok()).toBe(true);
+      //
+      // Genuinely a second account, not this tab's own request context. The acting tab is identified
+      // by `x-homewise-client-id` and skips its own events, so posting as the same user would only
+      // work because `APIRequestContext` happens not to send that header — an invisible dependency
+      // that would turn into an unexplained timeout the day anything sets `extraHTTPHeaders`.
+      const actorContext = await browser.newContext({ storageState: SECOND_USER_STORAGE_STATE });
+
+      try {
+        const response = await actorContext.request.post(`${API_URL}/meal-plan/meals`, {
+          data: { day: monday, position: 0, title: neighbour },
+        });
+        expect(response.ok()).toBe(true);
+      } finally {
+        await actorContext.close();
+      }
       await expect(mealPlan.meal(monday, neighbour)).toBeVisible();
 
       await mealPlan.labelEditor(monday, mine).press('Enter');
@@ -286,7 +298,11 @@ test.describe('meal plan', () => {
 
     // Back to the current week. Only the marker is asserted — never any meal data, since this is the
     // one week that carries the seed and whatever a real person has planned.
+    //
+    // Scoped to the day cards, because the *link* that got us here is also called "Today" and renders
+    // on every week. Unscoped, this matched the link and passed without the view moving at all — and
+    // once the cards rendered it matched both and died of a strict-mode violation instead.
     await mealPlan.goToToday();
-    await expect(page.getByText('Today', { exact: true })).toBeVisible();
+    await expect(mealPlan.dayCards().getByText('Today', { exact: true })).toBeVisible();
   });
 });
