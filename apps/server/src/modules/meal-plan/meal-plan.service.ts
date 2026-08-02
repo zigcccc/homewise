@@ -102,18 +102,26 @@ export class MealPlanService {
     }
   }
 
-  /** Same guard for the people a meal is assigned to. */
+  /**
+   * Same guard for the people a meal is assigned to.
+   *
+   * Deduplicated before the count comparison, because the query returns distinct rows: `[7, 7]` would
+   * otherwise find one row for two ids and 404 on a member that is perfectly valid. `replaceMembers`
+   * already tolerates repeats, so rejecting them here was never intended.
+   */
   private static async assertMembersInHousehold(executor: Executor, householdId: number, ids: number[]) {
-    if (ids.length === 0) {
+    const unique = [...new Set(ids)];
+
+    if (unique.length === 0) {
       return;
     }
 
     const found = await executor
       .select({ id: schema.householdMember.id })
       .from(schema.householdMember)
-      .where(and(eq(schema.householdMember.householdId, householdId), inArray(schema.householdMember.id, ids)));
+      .where(and(eq(schema.householdMember.householdId, householdId), inArray(schema.householdMember.id, unique)));
 
-    if (found.length !== ids.length) {
+    if (found.length !== unique.length) {
       throw new HTTPException(404, { message: 'Household member not found' });
     }
   }

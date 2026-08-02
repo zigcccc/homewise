@@ -65,18 +65,24 @@ export class RecipesService {
   /**
    * Rejects ingredient ids that don't belong to this household — without this a caller could
    * reference another household's ingredient rows through their own recipe.
+   *
+   * Deduplicates its own input. The query returns distinct rows, so a repeated id makes `found`
+   * shorter than `ids` and 404s something valid — a recipe listing the same ingredient twice is
+   * ordinary. That used to depend on the one call site remembering to pass a `Set`.
    */
   private static async assertIngredientsInHousehold(executor: Executor, householdId: number, ids: number[]) {
-    if (ids.length === 0) {
+    const unique = [...new Set(ids)];
+
+    if (unique.length === 0) {
       return;
     }
 
     const found = await executor
       .select({ id: schema.ingredient.id })
       .from(schema.ingredient)
-      .where(and(eq(schema.ingredient.householdId, householdId), inArray(schema.ingredient.id, ids)));
+      .where(and(eq(schema.ingredient.householdId, householdId), inArray(schema.ingredient.id, unique)));
 
-    if (found.length !== ids.length) {
+    if (found.length !== unique.length) {
       throw new HTTPException(404, { message: 'Ingredient not found' });
     }
   }
@@ -98,7 +104,7 @@ export class RecipesService {
       line.ingredientName === undefined ? [] : [{ defaultUnit: line.unit, name: line.ingredientName }]
     );
 
-    await RecipesService.assertIngredientsInHousehold(executor, householdId, [...new Set(ids)]);
+    await RecipesService.assertIngredientsInHousehold(executor, householdId, ids);
     const idByName = await IngredientsService.resolveByName(executor, householdId, named);
 
     return lines.map(({ ingredientId, ingredientName, ...rest }) => {
