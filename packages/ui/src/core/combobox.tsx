@@ -34,8 +34,13 @@ function ComboboxTrigger({ ...props }: ComponentProps<typeof PopoverTrigger>) {
  *
  * Deliberately not a `Button`: `Button` wraps all its children in one flex span for the loading
  * overlay, so `justify-between` sees a single item and the chevron ends up next to the label instead
- * of at the far edge (and `truncate` on the label can never fire). Wearing `selectTriggerClassName`
- * also brings real truncation and placeholder styling for free.
+ * of at the far edge (and `truncate` on the label can never fire).
+ *
+ * `selectTriggerClassName` brings the box, border, focus ring, sizing and `aria-invalid` state with
+ * it. Its truncation and placeholder rules are **not** free, though — they are keyed off
+ * `*:data-[slot=select-value]` and `data-placeholder`, which Radix sets on a `Select` and nobody
+ * sets on a `PopoverTrigger`. Render the value child as `<span data-slot="select-value">` to pick up
+ * the line clamp, and put `data-placeholder` on the trigger yourself while nothing is chosen.
  *
  * Use `ComboboxTrigger` instead when the trigger is an *action* — a small "Add ingredient" button
  * that happens to open a picker.

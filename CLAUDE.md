@@ -157,7 +157,7 @@ Domain-specific code that is reused across routes lives under `src/modules/<doma
 
 ShadCN components built on Radix UI primitives + TailwindCSS v4. Add new components here when they are **generic and app-agnostic** (Button, Dialog, Calendar, Spinner).
 
-**Read `src/core/index.ts` before building any UI.** Hand-rolling something the kit already ships is the most common way this codebase gets worse: a two-`Button` segmented toggle shipped once where `Tabs` was already exported and already used for exactly that (`modules/households/components/add-member-forms.tsx`). The same applies one level down — when a layout fights you, check whether a sibling primitive already solves it before inventing markup (`ComboboxFieldTrigger` exists because `SelectTrigger` had already solved label-left/chevron-right, and reusing its class string got truncation and placeholder styling for free).
+**Read `src/core/index.ts` before building any UI.** Hand-rolling something the kit already ships is the most common way this codebase gets worse: a two-`Button` segmented toggle shipped once where `Tabs` was already exported and already used for exactly that (`modules/households/components/add-member-forms.tsx`). The same applies one level down — when a layout fights you, check whether a sibling primitive already solves it before inventing markup (`ComboboxFieldTrigger` exists because `SelectTrigger` had already solved label-left/chevron-right, and reusing its class string got the box, focus ring and `aria-invalid` state for free — though not its truncation and placeholder rules, which are keyed off `data-slot`/`data-placeholder` attributes only Radix's own `Select` sets).
 
 Two structural traps in the kit, both of which have already cost a bug:
 
