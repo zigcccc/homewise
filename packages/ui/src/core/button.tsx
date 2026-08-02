@@ -19,10 +19,16 @@ const buttonVariants = cva(
         ghost: 'not-disabled:hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50',
         link: 'text-primary underline-offset-4 not-disabled:hover:underline',
       },
+      // The icon-bearing padding is matched two ways on purpose. `asChild` renders children directly,
+      // so the svg is a direct child; the normal branch wraps them in `[data-slot=button-content]`,
+      // which made the plain `>svg` selector silently never match — every icon button in the app was
+      // quietly getting the wider text-only padding. Matching *through* the content slot rather than
+      // with a loose descendant selector is what keeps the absolutely-positioned loading spinner from
+      // counting as an icon and re-padding a button the moment it starts loading.
       size: {
-        default: 'h-9 px-4 py-2 has-[>svg]:px-3',
-        sm: 'h-8 gap-1.5 rounded-md px-3 has-[>svg]:px-2.5',
-        lg: 'h-10 rounded-md px-6 has-[>svg]:px-4',
+        default: 'h-9 px-4 py-2 has-[>[data-slot=button-content]>svg]:px-3 has-[>svg]:px-3',
+        sm: 'h-8 gap-1.5 rounded-md px-3 has-[>[data-slot=button-content]>svg]:px-2.5 has-[>svg]:px-2.5',
+        lg: 'h-10 rounded-md px-6 has-[>[data-slot=button-content]>svg]:px-4 has-[>svg]:px-4',
         icon: 'size-9',
         'icon-sm': 'size-8',
         'icon-lg': 'size-10',
@@ -67,7 +73,12 @@ function Button({ children, className, variant, disabled, loading = false, size,
           <LoaderCircleIcon className="animate-spin text-gray-400" />
         </span>
       )}
-      <span className={cn('inline-flex items-center gap-2', loading ? 'invisible' : 'visible')}>{children}</span>
+      <span
+        className={cn('inline-flex items-center gap-2', loading ? 'invisible' : 'visible')}
+        data-slot="button-content"
+      >
+        {children}
+      </span>
     </button>
   );
 }

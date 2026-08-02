@@ -1,3 +1,4 @@
+import { ChevronsUpDownIcon } from 'lucide-react';
 import { type ComponentProps } from 'react';
 
 import { cn } from '../lib/utils';
@@ -11,6 +12,7 @@ import {
   CommandSeparator,
 } from './command';
 import { Popover, PopoverContent, PopoverTrigger } from './popover';
+import { selectTriggerClassName } from './select';
 
 /**
  * A searchable select — a Popover housing a Command list, surfaced under its own `Combobox*` API.
@@ -24,6 +26,31 @@ function Combobox({ ...props }: ComponentProps<typeof Popover>) {
 
 function ComboboxTrigger({ ...props }: ComponentProps<typeof PopoverTrigger>) {
   return <PopoverTrigger data-slot="combobox-trigger" {...props} />;
+}
+
+/**
+ * The trigger for a combobox used as a **form field** — full width, label left, chevron right, i.e.
+ * indistinguishable from a closed `Select`.
+ *
+ * Deliberately not a `Button`: `Button` wraps all its children in one flex span for the loading
+ * overlay, so `justify-between` sees a single item and the chevron ends up next to the label instead
+ * of at the far edge (and `truncate` on the label can never fire). Wearing `selectTriggerClassName`
+ * also brings real truncation and placeholder styling for free.
+ *
+ * Use `ComboboxTrigger` instead when the trigger is an *action* — a small "Add ingredient" button
+ * that happens to open a picker.
+ */
+function ComboboxFieldTrigger({ children, className, ...props }: ComponentProps<typeof PopoverTrigger>) {
+  return (
+    <PopoverTrigger
+      className={cn(selectTriggerClassName, 'w-full', className)}
+      data-slot="combobox-field-trigger"
+      {...props}
+    >
+      {children}
+      <ChevronsUpDownIcon className="size-4 shrink-0 opacity-50" />
+    </PopoverTrigger>
+  );
 }
 
 /**
@@ -84,6 +111,7 @@ export {
   ComboboxAction,
   ComboboxContent,
   ComboboxEmpty,
+  ComboboxFieldTrigger,
   ComboboxGroup,
   ComboboxInput,
   ComboboxItem,
