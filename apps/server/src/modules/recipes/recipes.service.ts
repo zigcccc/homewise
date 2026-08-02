@@ -4,6 +4,7 @@ import { HTTPException } from 'hono/http-exception';
 import { db, schema } from '@/db';
 import { type Executor, emptyToNull } from '@/db/utils';
 import { IngredientsService } from '@/modules/ingredients/ingredients.service';
+import { MealPlanService } from '@/modules/meal-plan/meal-plan.service';
 
 import {
   type CreateRecipe,
@@ -40,8 +41,8 @@ export class RecipesService {
   }
 
   /** Re-reads a recipe with everything nested, so every mutation returns the shape a read produces. */
-  private static async readRecipeWithRelations(householdId: number, recipeId: number, executor: Executor = db) {
-    const recipe = await executor.query.recipe.findFirst({
+  private static async readRecipeWithRelations(householdId: number, recipeId: number) {
+    const recipe = await db.query.recipe.findFirst({
       where: (fields, { and, eq }) => and(eq(fields.householdId, householdId), eq(fields.id, recipeId)),
       with: {
         creator: creatorWith,
@@ -386,17 +387,30 @@ export class RecipesService {
     return RecipesService.readRecipeWithRelations(householdId, recipeId);
   }
 
+  /**
+   * Deletes a recipe, leaving any meal plan that referenced it readable.
+   *
+   * The plan rows can't simply follow the FK to NULL: `planned_meal_label_check` requires a recipe or
+   * a title, so the recipe's name is copied onto them first. That's the whole point of the check —
+   * forgetting this step fails the delete outright instead of quietly producing label-less rows.
+   */
   public static async delete(householdId: number, recipeId: number) {
-    const [deleted] = await db
-      .delete(schema.recipe)
-      .where(and(eq(schema.recipe.householdId, householdId), eq(schema.recipe.id, recipeId)))
-      .returning();
+    return db.transaction(async (tx) => {
+      const recipe = await RecipesService.readRecipeRow(householdId, recipeId, tx);
 
-    if (!deleted) {
-      throw new HTTPException(404, { message: 'Recipe not found' });
-    }
+      await MealPlanService.detachRecipe(tx, recipeId, recipe.title);
 
-    return deleted;
+      const [deleted] = await tx
+        .delete(schema.recipe)
+        .where(and(eq(schema.recipe.householdId, householdId), eq(schema.recipe.id, recipeId)))
+        .returning();
+
+      if (!deleted) {
+        throw new HTTPException(404, { message: 'Recipe not found' });
+      }
+
+      return deleted;
+    });
   }
 
   /** The household's tag vocabulary, for the recipe form's picker and the list filter. */

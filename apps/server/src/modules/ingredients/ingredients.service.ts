@@ -26,8 +26,8 @@ export type ResolvableIngredient = { defaultUnit?: MeasurementUnit | null; name:
  */
 export class IngredientsService {
   /** Resolves an ingredient, scoped to its household so ids from elsewhere 404. */
-  private static async readIngredientRow(householdId: number, ingredientId: number, executor: Executor = db) {
-    const ingredient = await executor.query.ingredient.findFirst({
+  private static async readIngredientRow(householdId: number, ingredientId: number) {
+    const ingredient = await db.query.ingredient.findFirst({
       where: (fields, { and, eq }) => and(eq(fields.householdId, householdId), eq(fields.id, ingredientId)),
     });
 

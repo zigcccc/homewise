@@ -43,6 +43,10 @@
       "types": "./src/modules/ingredients/models/index.ts",
       "import": "./src/modules/ingredients/models/index.ts"
     },
+    "./meal-plan": {
+      "types": "./src/modules/meal-plan/models/index.ts",
+      "import": "./src/modules/meal-plan/models/index.ts"
+    },
     "./realtime": {
       "types": "./src/modules/realtime/models/index.ts",
       "import": "./src/modules/realtime/models/index.ts"

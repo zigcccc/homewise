@@ -91,3 +91,23 @@ export const SEED_RECIPE = {
   ],
   tags: ['quick', 'weeknight'],
 } as const;
+
+/**
+ * A small planned week, so a preview environment opens the meal plan on something rather than seven
+ * empty cards.
+ *
+ * Days are **offsets from the current ISO-week Monday, resolved at seed time** — never literal dates.
+ * A hard-coded `2026-08-03` would be in the past by the following week, leaving the default view
+ * blank again and any assertion about it meaningless.
+ *
+ * The e2e suite plans its own meals on far-future weeks, so nothing here is mutated by a test.
+ */
+export const SEED_MEAL_PLAN = {
+  meals: [
+    /** Monday: the seeded recipe, for the whole household. */
+    { dayOffset: 0, recipeTitle: SEED_RECIPE.title, memberNames: [] },
+    /** Wednesday: free text for one person — the "I'm eating at work" case. */
+    { dayOffset: 2, title: 'At work', memberNames: [SEED_USER.name] },
+  ],
+  notes: [{ dayOffset: 5, note: 'Picnic — 8 adults, 2 children' }],
+} as const;

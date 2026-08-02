@@ -5,11 +5,13 @@ import { and, eq, inArray } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 
+import { addDays, startOfISOWeek, todayISO } from '../lib/dates';
 import * as schema from './schema';
 import {
   SEED_CHILD_MEMBER,
   SEED_HOUSEHOLD_NAME,
   SEED_INGREDIENTS,
+  SEED_MEAL_PLAN,
   SEED_ONBOARDING_USER,
   SEED_RECIPE,
   SEED_SECOND_USER,
@@ -294,6 +296,72 @@ async function seed() {
       console.log('▸ seeded preview recipe');
     } else {
       console.log('▸ preview recipe already present — skipping');
+    }
+
+    // 7. A planned week, so the meal plan opens on something. Days are resolved from *this* week's
+    //    Monday at seed time — a literal date would fall into the past and leave the default view
+    //    blank again a week later.
+    const monday = startOfISOWeek(todayISO());
+    const dayFromOffset = (offset: number) => addDays(monday, offset);
+
+    const [existingPlan] = await db
+      .select({ id: schema.plannedMeal.id })
+      .from(schema.plannedMeal)
+      .where(eq(schema.plannedMeal.householdId, household.id))
+      .limit(1);
+
+    if (!existingPlan) {
+      const householdMembers = await db
+        .select({ id: schema.householdMember.id, name: schema.householdMember.name })
+        .from(schema.householdMember)
+        .where(eq(schema.householdMember.householdId, household.id));
+
+      const [seedRecipeRow] = await db
+        .select({ id: schema.recipe.id })
+        .from(schema.recipe)
+        .where(and(eq(schema.recipe.householdId, household.id), eq(schema.recipe.title, SEED_RECIPE.title)));
+
+      await db.transaction(async (tx) => {
+        for (const [position, meal] of SEED_MEAL_PLAN.meals.entries()) {
+          const [created] = await tx
+            .insert(schema.plannedMeal)
+            .values({
+              householdId: household.id,
+              day: dayFromOffset(meal.dayOffset),
+              position,
+              recipeId: 'recipeTitle' in meal ? (seedRecipeRow?.id ?? null) : null,
+              // A recipe-backed meal reads its label off the join, so `title` stays null.
+              title: 'title' in meal ? meal.title : null,
+              createdBy: user.id,
+            })
+            .returning();
+
+          const assignees = householdMembers.filter((member) =>
+            (meal.memberNames as readonly string[]).includes(member.name ?? '')
+          );
+
+          if (created && assignees.length > 0) {
+            await tx
+              .insert(schema.plannedMealMember)
+              .values(assignees.map((member) => ({ plannedMealId: created.id, householdMemberId: member.id })));
+          }
+        }
+
+        await tx
+          .insert(schema.plannedDayNote)
+          .values(
+            SEED_MEAL_PLAN.notes.map((note) => ({
+              householdId: household.id,
+              day: dayFromOffset(note.dayOffset),
+              note: note.note,
+            }))
+          )
+          .onConflictDoNothing();
+      });
+
+      console.log('▸ seeded preview meal plan');
+    } else {
+      console.log('▸ preview meal plan already present — skipping');
     }
 
     console.log('✓ seed complete');

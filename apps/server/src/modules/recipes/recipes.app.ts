@@ -71,7 +71,9 @@ const recipesApp = new Hono<AppContext>()
     const { id } = c.req.valid('param');
     await RecipesService.delete(c.var.household.id, id);
 
-    c.var.emit({ entity: 'recipe', id, operation: 'delete' });
+    // Any meal plan that referenced it just had the title tombstoned onto it, so those cards changed
+    // too — and the plan's cache is keyed by date range, which no recipe id can address.
+    c.var.emit({ entity: 'recipe', id, operation: 'delete' }, { entity: 'meal_plan', id: null, operation: 'update' });
 
     return c.json({ success: true }, 202);
   });

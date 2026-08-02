@@ -3,6 +3,7 @@ import { boolean, integer, pgEnum, pgTable, text } from 'drizzle-orm/pg-core';
 
 import { baseDbEntityFields } from './__shared/base';
 import { childProfile } from './child-profile';
+import { plannedDayNote, plannedMeal, plannedMealMember } from './meal-plan';
 import { petProfile } from './pet-profile';
 import { ingredient, recipe, recipeTag } from './recipe';
 import { user } from './user';
@@ -44,6 +45,8 @@ export const householdMemberRelations = relations(householdMember, ({ many, one 
   childProfiles: many(childProfile),
   petProfiles: many(petProfile),
   household: one(household, { fields: [householdMember.householdId], references: [household.id] }),
+  /** Meals this person is specifically assigned to eat. */
+  plannedMeals: many(plannedMealMember),
   user: one(user, { fields: [householdMember.userId], references: [user.id] }),
 }));
 
@@ -54,6 +57,8 @@ export const householdRelations = relations(household, ({ many, one }) => ({
   invites: many(householdInvite),
   members: many(householdMember),
   owner: one(user, { fields: [household.ownerId], references: [user.id] }),
+  plannedDayNotes: many(plannedDayNote),
+  plannedMeals: many(plannedMeal),
   recipeTags: many(recipeTag),
   recipes: many(recipe),
 }));
