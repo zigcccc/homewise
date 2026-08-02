@@ -1,11 +1,8 @@
-import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createColumnHelper } from '@tanstack/react-table';
 import { MoreHorizontal, PencilIcon, TrashIcon } from 'lucide-react';
-import { useRef, useState } from 'react';
-import { type SubmitHandler, useForm } from 'react-hook-form';
+import { useState } from 'react';
 import { toast } from 'sonner';
-import type z from 'zod';
 
 import {
   createIngredientModel,
@@ -20,11 +17,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  Input,
   Select,
   SelectContent,
   SelectTrigger,
@@ -41,7 +33,7 @@ import {
   measurementUnitLabels,
   useInlineIngredientPatch,
 } from '@/modules/ingredients';
-import { ConfirmDeleteDialog, isServerStatus, SELECT_NONE, serverMessage } from '@/modules/shared';
+import { ConfirmDeleteDialog, InlineTextField, SELECT_NONE, serverMessage } from '@/modules/shared';
 
 const $deleteIngredient = client.ingredients[':id'].$delete;
 
@@ -152,6 +144,7 @@ const inlineNameSizerClassName = 'invisible col-start-1 row-start-1 border px-2 
 /** Click to rename in place. The dialog stays the way to reach the fields the table doesn't show. */
 function IngredientNameCell({ id, name }: { id: number; name: string }) {
   const [editing, setEditing] = useState(false);
+  const { save } = useInlineIngredientPatch(id);
 
   return (
     // Both states stack into the one grid cell, over the sizer that fixes the column's width. The
@@ -159,9 +152,15 @@ function IngredientNameCell({ id, name }: { id: number; name: string }) {
     <div className="grid grid-cols-1">
       <span className={inlineNameSizerClassName}>{name}</span>
       {editing ? (
-        // Mounted only while editing, so `defaultValues` reseed on every open with no reset effect —
-        // the same remount boundary the dialog relies on.
-        <IngredientNameForm id={id} name={name} onDone={() => setEditing(false)} />
+        // Mounted only while editing, so `defaultValues` reseed on every open with no reset effect.
+        <InlineTextField
+          ariaLabel="Name"
+          className={`${inlineNameClassName} col-start-1 row-start-1`}
+          defaultValue={name}
+          onDone={() => setEditing(false)}
+          onSave={async (value) => save({ name: value })}
+          schema={createIngredientModel.shape.name}
+        />
       ) : (
         <button
           className={`${inlineNameClassName} col-start-1 row-start-1 flex cursor-pointer items-center border-transparent text-left hover:bg-accent`}
@@ -172,107 +171,6 @@ function IngredientNameCell({ id, name }: { id: number; name: string }) {
         </button>
       )}
     </div>
-  );
-}
-
-const inlineNameModel = createIngredientModel.pick({ name: true });
-
-type InlineNameValues = z.infer<typeof inlineNameModel>;
-
-function IngredientNameForm({ id, name, onDone }: { id: number; name: string; onDone: () => void }) {
-  // Escape and a successful save both unmount the input, and the browser fires `blur` on the way
-  // out — without this, that blur would re-submit the value just abandoned or already written.
-  const closing = useRef(false);
-  // A value the server refused. The failure deliberately leaves the input open, so without this the
-  // blur that follows would fire the same doomed request again — and again on the blur after that,
-  // leaving no way to click out of the cell at all. Editing the name clears the match, so a corrected
-  // value gets its own attempt.
-  const refused = useRef<string | null>(null);
-  const { save } = useInlineIngredientPatch(id);
-
-  const form = useForm<InlineNameValues>({
-    resolver: zodResolver(inlineNameModel),
-    defaultValues: { name },
-  });
-
-  const close = () => {
-    closing.current = true;
-    onDone();
-  };
-
-  const submit: SubmitHandler<InlineNameValues> = async (values) => {
-    // Clicking into a name and straight back out shouldn't cost a request, and neither should
-    // clicking away from a value the server has already turned down.
-    if (values.name === name || values.name === refused.current) {
-      close();
-      return;
-    }
-
-    try {
-      await save(values);
-      close();
-    } catch (error) {
-      refused.current = values.name;
-
-      // The reason goes in a toast rather than under the input: a message in the cell is the widest
-      // thing in the column, so an auto-layout table hands it the width it asks for and every other
-      // column jumps sideways. The input stays open carrying what was typed — dropping the edit would
-      // make the user retype it to find out what went wrong.
-      const message = serverMessage(error, 'Something went wrong.');
-
-      // A duplicate name comes back as a 409 naming the conflict, and that one is about the value, so
-      // it also earns the red `aria-invalid` border. A 500 or a dropped connection says nothing about
-      // what was typed.
-      if (isServerStatus(error, 409)) {
-        form.setError('name', { message });
-      }
-
-      toast.error(message);
-    }
-  };
-
-  const commit = () => {
-    if (closing.current || form.formState.isSubmitting) {
-      return;
-    }
-
-    void form.handleSubmit(submit)();
-  };
-
-  return (
-    <Form {...form}>
-      <form className="col-start-1 row-start-1" onSubmit={form.handleSubmit(submit)}>
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormControl>
-                <Input
-                  {...field}
-                  aria-label="Name"
-                  autoFocus
-                  className={inlineNameClassName}
-                  onBlur={commit}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
-                      event.preventDefault();
-                      commit();
-                    }
-
-                    if (event.key === 'Escape') {
-                      event.preventDefault();
-                      close();
-                    }
-                  }}
-                  size={1}
-                />
-              </FormControl>
-            </FormItem>
-          )}
-        />
-      </form>
-    </Form>
   );
 }
 
