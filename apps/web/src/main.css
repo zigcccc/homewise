@@ -120,6 +120,14 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Tailwind v4's preflight sets buttons to `cursor: default`. Anything you can click should say so
+     — this covers every raw `<button>` and every Radix trigger, which all render as one. Components
+     that carry `cursor-pointer` themselves still win: utilities outrank the base layer. */
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']) {
+    cursor: pointer;
+  }
 }
 
 @layer base {
