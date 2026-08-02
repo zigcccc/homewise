@@ -177,11 +177,13 @@ export function AppSidebar() {
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <Link to="/">
-                <SidebarMenuButton tooltip="Meal plans">
-                  <CookingPotIcon className="size-4" />
-                  <span>Weekly meal plans</span>
-                </SidebarMenuButton>
+              <Link to="/food/meal-plan">
+                {({ isActive }) => (
+                  <SidebarMenuButton isActive={isActive} tooltip="Meal plans">
+                    <CookingPotIcon className="size-4" />
+                    <span>Weekly meal plans</span>
+                  </SidebarMenuButton>
+                )}
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>

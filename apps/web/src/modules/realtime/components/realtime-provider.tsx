@@ -18,6 +18,7 @@ import { invalidateChildDictionaryEntries } from '@/modules/child-dictionaries';
 import { invalidateChildProfile, invalidateChildProfiles } from '@/modules/child-profiles';
 import { invalidateContacts } from '@/modules/contacts';
 import { invalidateIngredients } from '@/modules/ingredients';
+import { invalidateMealPlan } from '@/modules/meal-plan';
 import { invalidatePetProfile, invalidatePetProfiles } from '@/modules/pet-profiles';
 import { invalidateRecipe, invalidateRecipes } from '@/modules/recipes';
 
@@ -60,6 +61,9 @@ const invalidators: Record<HouseholdEventEntity, (queryClient: QueryClient, even
     invalidateProfiles(queryClient);
   },
   ingredient: (queryClient) => invalidateIngredients(queryClient),
+  // Keyed by date range, so no id in the event can address a single cache entry — the whole domain
+  // goes, and only the window someone is actually looking at refetches.
+  meal_plan: (queryClient) => invalidateMealPlan(queryClient),
   medical_info: (queryClient) => invalidateProfiles(queryClient),
   pet_profile: (queryClient, { id }) => {
     if (id === null) {
@@ -75,6 +79,10 @@ const invalidators: Record<HouseholdEventEntity, (queryClient: QueryClient, even
     } else {
       invalidateRecipe(queryClient, id);
     }
+
+    // Meal cards read the recipe's title off the join, so a rename relabels every day it's planned
+    // on — and a delete tombstones those labels server-side.
+    invalidateMealPlan(queryClient);
   },
   // Deleting a tag unlinks it from every recipe that carried it, so no single recipe is enough.
   recipe_tag: (queryClient) => invalidateRecipes(queryClient),
