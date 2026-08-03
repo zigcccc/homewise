@@ -152,6 +152,35 @@ test.describe('shopping lists', () => {
     }
   });
 
+  test('drops a section once its last item is gone', async ({ page }) => {
+    const lists = new ShoppingListsPage(page);
+    await lists.goto();
+    const listId = await lists.createList();
+
+    const first = sparIngredients[0]!.name;
+    const second = sparIngredients[1]!.name;
+
+    try {
+      await lists.addIngredient(first);
+      await lists.addIngredient(second);
+      await expect(lists.section(SPAR.name)).toBeVisible();
+
+      // Still one item left, so the heading stays.
+      await lists.removeItem(first);
+      await expect(lists.section(SPAR.name)).toBeVisible();
+
+      // The heading exists to group things; with nothing under it, it goes too.
+      await lists.removeItem(second);
+      await expect(lists.section(SPAR.name)).toBeHidden();
+    } finally {
+      await lists.deleteListIfPresent(listId);
+    }
+  });
+
+  // Deleting the open list is covered in `serial-seed-mutations.spec.ts` instead: reproducing the
+  // bug needs the deleted list to be the one the index would auto-select, which is only certain when
+  // the household holds no others — and this project runs several list-making specs at once.
+
   test('keeps a section’s items when the section is removed', async ({ page }) => {
     const lists = new ShoppingListsPage(page);
     await lists.goto();

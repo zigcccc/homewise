@@ -141,6 +141,11 @@ export class ShoppingListsPage {
     return this.page.getByRole('checkbox', { name: `Tick ${label}`, checked: true });
   }
 
+  async removeItem(label: string) {
+    await this.page.getByRole('button', { name: `Remove ${label}` }).click();
+    await expect(this.item(label)).toHaveCount(0);
+  }
+
   /** The "3 of 12 ticked" line under the open list's title — the master column shows it too. */
   progress(): Locator {
     return this.page.getByTestId('list-progress');
@@ -201,11 +206,23 @@ export class ShoppingListsPage {
     await expect(dialog).toBeHidden();
   }
 
-  /** Best-effort cleanup: opens the list by id and removes it if it's still there. */
+  /**
+   * Best-effort cleanup: opens the list by id and removes it if it's still there.
+   *
+   * The `waitFor` matters. `goto` resolves on document load, but the detail pane only appears once
+   * the route loader has resolved — and `count()`/`isVisible()` don't auto-wait like `expect` does.
+   * Without it this read 0 every time and silently skipped the delete, leaving a list behind for
+   * every spec in the run.
+   */
   async deleteListIfPresent(listId: string): Promise<boolean> {
     await this.page.goto(`/food/shopping-lists/${listId}`);
 
-    if ((await this.page.getByRole('button', { name: 'List actions' }).count()) === 0) {
+    const actions = this.page.getByRole('button', { name: 'List actions' });
+    await actions.waitFor({ state: 'visible', timeout: 10_000 }).catch(() => {
+      // Genuinely gone — the spec deleted it itself, or a previous run cleaned up.
+    });
+
+    if (!(await actions.isVisible())) {
       return false;
     }
 
@@ -214,13 +231,37 @@ export class ShoppingListsPage {
     return true;
   }
 
+  /**
+   * Removes every list the household still has. Only for the exclusive project, where one spec needs
+   * "no lists exist" as a precondition and owns the household while it runs.
+   */
+  async deleteAllLists() {
+    await this.goto();
+    await this.showCompleted(true);
+
+    // Re-read each time: deleting one re-renders the column, so a captured handle goes stale.
+    let link = this.page.locator('a[href^="/food/shopping-lists/"]').first();
+    while ((await link.count()) > 0) {
+      const href = await link.getAttribute('href');
+      await this.deleteListIfPresent(/\/food\/shopping-lists\/(\d+)/.exec(href ?? '')![1]!);
+      await this.goto();
+      await this.showCompleted(true);
+      link = this.page.locator('a[href^="/food/shopping-lists/"]').first();
+    }
+  }
+
   private async openListMenu() {
     await this.page.getByRole('button', { name: 'List actions' }).click();
   }
 
-  /** The master column, which steps aside on a phone once a list is open. */
+  /**
+   * The master column, which steps aside on a phone once a list is open.
+   *
+   * The `<aside>` itself (role `complementary`), not the `<h1>` — the heading lives in the page
+   * header row now, which stays visible in both panes.
+   */
   masterColumn(): Locator {
-    return this.page.getByRole('heading', { level: 1, name: 'Shopping lists' });
+    return this.page.getByRole('complementary');
   }
 
   backToAllLists(): Locator {

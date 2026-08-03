@@ -6,6 +6,7 @@ import { HouseholdMembersPage } from '../pages/household-members.page';
 import { IngredientsPage } from '../pages/ingredients.page';
 import { OnboardingPage } from '../pages/onboarding.page';
 import { SettingsPage } from '../pages/settings.page';
+import { ShoppingListsPage } from '../pages/shopping-lists.page';
 import { UserProfilePage } from '../pages/user-profile.page';
 import { deleteHouseholdIfPresent } from '../support/households';
 import { ONBOARDING_STORAGE_STATE, SECOND_USER_STORAGE_STATE } from '../support/paths';
@@ -217,6 +218,38 @@ test('keeps realtime working after the household changes without a page load', a
       await context.close();
     }
   }
+});
+
+/**
+ * The two shopping-list behaviours that need the household to hold **no other lists** — a
+ * whole-household precondition no self-contained spec can create, since the parallel project has
+ * several specs minting lists at once. The seed creates none, and every parallel spec deletes the
+ * ones it made, so by the time this project runs the household is empty.
+ *
+ * Both matter: the empty state is the only thing on screen at that point, and deleting the last
+ * list is the case where a stale cache used to leave the deleted list rendered in the detail pane.
+ */
+test('shows the empty state with no lists, and returns to it when the last one is deleted', async ({ page }) => {
+  const lists = new ShoppingListsPage(page);
+
+  // Establish the precondition rather than assume it: the parallel specs each clean up after
+  // themselves, but one of them failing shouldn't turn into a second, misleading failure here.
+  await lists.deleteAllLists();
+
+  await expect(page.getByText('No shopping lists yet')).toBeVisible();
+  // No second column to fill when there is nothing to put beside it.
+  await expect(lists.masterColumn()).toHaveCount(0);
+
+  const listId = await lists.createList();
+  await expect(lists.listLink(listId)).toBeVisible();
+
+  await lists.deleteList();
+
+  // The detail pane has to go with it. It used to survive: the index route auto-selected the first
+  // list it could see, and the cache still held the one just deleted.
+  await expect(page).not.toHaveURL(new RegExp(`/food/shopping-lists/${listId}$`));
+  await expect(page.getByRole('button', { name: 'List actions' })).toHaveCount(0);
+  await expect(page.getByText('No shopping lists yet')).toBeVisible();
 });
 
 /**
