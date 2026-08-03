@@ -34,10 +34,17 @@ export type IngredientChoice = { kind: 'existing'; ingredient: Ingredient } | { 
  * and stays visible precisely when the search matches nothing.
  */
 export function IngredientCombobox({
+  actionLabel,
   ingredients,
   label = 'Add ingredient',
   onSelect,
 }: {
+  /**
+   * Wording for the row that takes a name the library doesn't have. Defaults to "Create …", which
+   * is right where the name will become a library ingredient — a shopping list, where it stays a
+   * one-off, says so instead.
+   */
+  actionLabel?: string;
   ingredients: Ingredient[];
   label?: string;
   onSelect: (choice: IngredientChoice) => void;
@@ -113,7 +120,7 @@ export function IngredientCombobox({
               <ComboboxSeparator />
               <ComboboxAction onClick={handleCreate}>
                 <PlusIcon />
-                Create "{search.trim()}"
+                {actionLabel ?? 'Create'} "{search.trim()}"
               </ComboboxAction>
             </>
           )}

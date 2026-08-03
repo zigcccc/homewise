@@ -1,0 +1,271 @@
+import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { CheckIcon, ChevronLeftIcon, MoreHorizontal, PlusIcon, RotateCcwIcon, TrashIcon } from 'lucide-react';
+import { useState } from 'react';
+import { toast } from 'sonner';
+
+import { shoppingListName, shoppingListSectionName } from '@homewise/server/shopping-lists';
+import {
+  Badge,
+  Button,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  Spinner,
+} from '@homewise/ui/core';
+
+import { parseResponse } from '@/api/client';
+import { listIngredientsQueryOptions } from '@/modules/ingredients';
+import { ConfirmDeleteDialog, InlineTextField, serverMessage } from '@/modules/shared';
+import {
+  $completeList,
+  $createSection,
+  $deleteList,
+  $patchList,
+  $reopenList,
+  applyShoppingListDetail,
+  CompleteListDialog,
+  getShoppingListQueryOptions,
+  invalidateShoppingLists,
+  toSectionsWithItems,
+} from '@/modules/shopping-lists';
+
+import { AddItemRow } from './-components/add-item-row';
+import { ListSection } from './-components/list-section';
+
+export const Route = createFileRoute('/_authenticated/_onboarded/food/shopping-lists/$listId')({
+  async loader({ context, params }) {
+    await Promise.all([
+      context.queryClient.ensureQueryData(getShoppingListQueryOptions(Number(params.listId))),
+      // The add-item picker opens without a spinner, and the library is small.
+      context.queryClient.ensureQueryData(listIngredientsQueryOptions()),
+    ]);
+  },
+  component: ShoppingListDetailRoute,
+  pendingComponent: () => <Spinner />,
+});
+
+function ShoppingListDetailRoute() {
+  const { listId } = Route.useParams();
+  const id = Number(listId);
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const [renaming, setRenaming] = useState(false);
+  const [completeOpen, setCompleteOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [addingSection, setAddingSection] = useState(false);
+
+  const { data: list } = useSuspenseQuery(getShoppingListQueryOptions(id));
+
+  const param = { id: listId };
+  const onWritten = (detail: typeof list) => {
+    applyShoppingListDetail(queryClient, detail);
+    invalidateShoppingLists(queryClient);
+  };
+
+  const { mutateAsync: rename } = useMutation({
+    mutationFn: async (name: string | null) => parseResponse($patchList({ param, json: { name } })),
+    onSuccess: onWritten,
+  });
+
+  const { mutateAsync: addSection } = useMutation({
+    mutationFn: async (name: string) => parseResponse($createSection({ param, json: { name } })),
+    onSuccess: onWritten,
+  });
+
+  const { mutateAsync: complete } = useMutation({
+    mutationFn: async (unchecked: 'carry-over' | 'discard') =>
+      parseResponse($completeList({ param, json: { unchecked } })),
+    onSuccess: (result) => {
+      applyShoppingListDetail(queryClient, result.list);
+      invalidateShoppingLists(queryClient);
+    },
+  });
+
+  const { mutateAsync: reopen } = useMutation({
+    mutationFn: async () => parseResponse($reopenList({ param })),
+    onSuccess: onWritten,
+  });
+
+  const { mutateAsync: removeList } = useMutation({
+    mutationFn: async () => parseResponse($deleteList({ param })),
+  });
+
+  const grouped = toSectionsWithItems(list);
+  const checked = list.items.filter((item) => item.checkedAt !== null).length;
+  const remaining = list.items.length - checked;
+
+  const handleComplete = async (unchecked: 'carry-over' | 'discard') => {
+    try {
+      const result = await complete(unchecked);
+      if (result.carriedListId !== null) {
+        toast.success('Unticked items moved to a new list.');
+        await navigate({
+          params: { listId: result.carriedListId.toString() },
+          to: '/food/shopping-lists/$listId',
+        });
+
+        return;
+      }
+      toast.success('List marked as done.');
+    } catch (error) {
+      toast.error(serverMessage(error, 'Something went wrong.'));
+      throw error;
+    }
+  };
+
+  const handleMarkDone = () => {
+    // Nothing left to decide when everything is ticked — no dialog, just finish it.
+    if (remaining === 0) {
+      void handleComplete('discard');
+
+      return;
+    }
+    setCompleteOpen(true);
+  };
+
+  const handleDelete = async () => {
+    try {
+      await removeList();
+      toast.success('List deleted.');
+      await navigate({ to: '/food/shopping-lists' });
+      invalidateShoppingLists(queryClient);
+    } catch (error) {
+      toast.error(serverMessage(error, 'Something went wrong.'));
+      throw error;
+    }
+  };
+
+  return (
+    <div className="space-y-4 lg:max-w-2/3">
+      {/* The master column is off-screen under `md`, so this is the only way back to it. */}
+      <Link className="flex items-center gap-1 text-muted-foreground text-sm md:hidden" to="/food/shopping-lists">
+        <ChevronLeftIcon className="size-4" />
+        All lists
+      </Link>
+
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          {renaming ? (
+            // Mounted only while editing, so `defaultValues` reseed on every open with no reset effect.
+            <InlineTextField
+              ariaLabel="List name"
+              cancellable
+              className="h-9 text-lg"
+              defaultValue={list.name ?? ''}
+              onDone={() => setRenaming(false)}
+              onSave={async (value) => rename(value.trim() === '' ? null : value)}
+              placeholder={list.label}
+              schema={shoppingListName}
+            />
+          ) : (
+            <button
+              className="flex cursor-pointer items-center gap-2 rounded-md text-left font-medium text-lg hover:bg-accent"
+              onClick={() => setRenaming(true)}
+              type="button"
+            >
+              {list.label}
+              {list.completedAt && (
+                <Badge variant="secondary">
+                  <CheckIcon />
+                  Done
+                </Badge>
+              )}
+            </button>
+          )}
+          {/* Test id because the master column shows the same "N of M ticked" for every list, so
+              there is no accessible name that distinguishes this one. */}
+          <p className="text-muted-foreground text-sm" data-testid="list-progress">
+            {list.items.length === 0 ? 'Nothing on this list yet.' : `${checked} of ${list.items.length} ticked`}
+          </p>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-2">
+          {!list.completedAt && (
+            <Button onClick={handleMarkDone} size="sm" variant="outline">
+              <CheckIcon />
+              Mark done
+            </Button>
+          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button className="h-8 w-8 p-0" variant="ghost">
+                <span className="sr-only">List actions</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setAddingSection(true)}>
+                <PlusIcon />
+                Add section
+              </DropdownMenuItem>
+              {list.completedAt && (
+                <DropdownMenuItem onClick={() => void reopen()}>
+                  <RotateCcwIcon />
+                  Reopen list
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setDeleteOpen(true)} variant="destructive">
+                <TrashIcon />
+                Delete list
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+
+      {addingSection && (
+        <InlineTextField
+          ariaLabel="Section name"
+          cancellable
+          className="h-9"
+          defaultValue=""
+          onDone={() => setAddingSection(false)}
+          onSave={async (value) => addSection(value)}
+          placeholder="Section name"
+          schema={shoppingListSectionName}
+        />
+      )}
+
+      {grouped.length === 0 ? (
+        <p className="text-muted-foreground text-sm">
+          Add an ingredient and it files itself under the shop you buy it at.
+        </p>
+      ) : (
+        <div className="space-y-6">
+          {grouped.map(({ items, section }) => (
+            <ListSection
+              items={items}
+              key={section?.id ?? 'ungrouped'}
+              listId={id}
+              readOnly={list.completedAt !== null}
+              section={section}
+            />
+          ))}
+        </div>
+      )}
+
+      {!list.completedAt && <AddItemRow listId={id} />}
+
+      <CompleteListDialog
+        onConfirm={handleComplete}
+        onOpenChange={setCompleteOpen}
+        open={completeOpen}
+        remaining={remaining}
+      />
+
+      <ConfirmDeleteDialog
+        confirmLabel="Delete list"
+        description={<>"{list.label}" and everything on it will be permanently removed.</>}
+        onConfirm={handleDelete}
+        onOpenChange={setDeleteOpen}
+        open={deleteOpen}
+        title={`Delete "${list.label}"?`}
+      />
+    </div>
+  );
+}

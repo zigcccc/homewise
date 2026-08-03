@@ -23,6 +23,7 @@ import { Route as AuthenticatedOnboardingCreateHouseholdRouteImport } from './ro
 import { Route as AuthenticatedOnboardingInviteMembersRouteImport } from './routes/_authenticated/onboarding/invite-members'
 import { Route as AuthenticatedOnboardedExpensesMonthlyExpensesRouteImport } from './routes/_authenticated/_onboarded/expenses/monthly-expenses'
 import { Route as AuthenticatedOnboardedFoodIngredientsRouteRouteImport } from './routes/_authenticated/_onboarded/food/ingredients/route'
+import { Route as AuthenticatedOnboardedFoodShoppingListsRouteRouteImport } from './routes/_authenticated/_onboarded/food/shopping-lists/route'
 import { Route as AuthenticatedOnboardedManageHouseholdMembersRouteImport } from './routes/_authenticated/_onboarded/manage/household-members'
 import { Route as AuthenticatedOnboardedManageSettingsRouteImport } from './routes/_authenticated/_onboarded/manage/settings'
 import { Route as AuthenticatedOnboardedFamilyKidsIndexRouteImport } from './routes/_authenticated/_onboarded/family/kids/index'
@@ -35,6 +36,8 @@ import { Route as AuthenticatedOnboardedFoodMealPlanIndexRouteImport } from './r
 import { Route as AuthenticatedOnboardedFoodRecipesIndexRouteImport } from './routes/_authenticated/_onboarded/food/recipes/index'
 import { Route as AuthenticatedOnboardedFoodRecipesRecipeIdRouteRouteImport } from './routes/_authenticated/_onboarded/food/recipes/$recipeId/route'
 import { Route as AuthenticatedOnboardedFoodRecipesNewRouteImport } from './routes/_authenticated/_onboarded/food/recipes/new'
+import { Route as AuthenticatedOnboardedFoodShoppingListsIndexRouteImport } from './routes/_authenticated/_onboarded/food/shopping-lists/index'
+import { Route as AuthenticatedOnboardedFoodShoppingListsListIdRouteImport } from './routes/_authenticated/_onboarded/food/shopping-lists/$listId'
 import { Route as AuthenticatedOnboardedFamilyKidsProfileIdIndexRouteImport } from './routes/_authenticated/_onboarded/family/kids/$profileId/index'
 import { Route as AuthenticatedOnboardedFamilyKidsProfileIdDictionaryRouteImport } from './routes/_authenticated/_onboarded/family/kids/$profileId/dictionary'
 import { Route as AuthenticatedOnboardedFamilyKidsProfileIdGeneralRouteImport } from './routes/_authenticated/_onboarded/family/kids/$profileId/general'
@@ -120,6 +123,12 @@ const AuthenticatedOnboardedFoodIngredientsRouteRoute =
     path: '/food/ingredients',
     getParentRoute: () => AuthenticatedOnboardedRoute,
   } as any)
+const AuthenticatedOnboardedFoodShoppingListsRouteRoute =
+  AuthenticatedOnboardedFoodShoppingListsRouteRouteImport.update({
+    id: '/food/shopping-lists',
+    path: '/food/shopping-lists',
+    getParentRoute: () => AuthenticatedOnboardedRoute,
+  } as any)
 const AuthenticatedOnboardedManageHouseholdMembersRoute =
   AuthenticatedOnboardedManageHouseholdMembersRouteImport.update({
     id: '/manage/household-members',
@@ -192,6 +201,18 @@ const AuthenticatedOnboardedFoodRecipesNewRoute =
     path: '/food/recipes/new',
     getParentRoute: () => AuthenticatedOnboardedRoute,
   } as any)
+const AuthenticatedOnboardedFoodShoppingListsIndexRoute =
+  AuthenticatedOnboardedFoodShoppingListsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedOnboardedFoodShoppingListsRouteRoute,
+  } as any)
+const AuthenticatedOnboardedFoodShoppingListsListIdRoute =
+  AuthenticatedOnboardedFoodShoppingListsListIdRouteImport.update({
+    id: '/$listId',
+    path: '/$listId',
+    getParentRoute: () => AuthenticatedOnboardedFoodShoppingListsRouteRoute,
+  } as any)
 const AuthenticatedOnboardedFamilyKidsProfileIdIndexRoute =
   AuthenticatedOnboardedFamilyKidsProfileIdIndexRouteImport.update({
     id: '/',
@@ -247,6 +268,7 @@ export interface FileRoutesByFullPath {
   '/onboarding/invite-members': typeof AuthenticatedOnboardingInviteMembersRoute
   '/onboarding/': typeof AuthenticatedOnboardingIndexRoute
   '/food/ingredients': typeof AuthenticatedOnboardedFoodIngredientsRouteRouteWithChildren
+  '/food/shopping-lists': typeof AuthenticatedOnboardedFoodShoppingListsRouteRouteWithChildren
   '/expenses/monthly-expenses': typeof AuthenticatedOnboardedExpensesMonthlyExpensesRoute
   '/manage/household-members': typeof AuthenticatedOnboardedManageHouseholdMembersRoute
   '/manage/settings': typeof AuthenticatedOnboardedManageSettingsRoute
@@ -255,11 +277,13 @@ export interface FileRoutesByFullPath {
   '/food/recipes/$recipeId': typeof AuthenticatedOnboardedFoodRecipesRecipeIdRouteRouteWithChildren
   '/food/ingredients/stores': typeof AuthenticatedOnboardedFoodIngredientsStoresRoute
   '/food/recipes/new': typeof AuthenticatedOnboardedFoodRecipesNewRoute
+  '/food/shopping-lists/$listId': typeof AuthenticatedOnboardedFoodShoppingListsListIdRoute
   '/family/kids/': typeof AuthenticatedOnboardedFamilyKidsIndexRoute
   '/family/pets/': typeof AuthenticatedOnboardedFamilyPetsIndexRoute
   '/food/ingredients/': typeof AuthenticatedOnboardedFoodIngredientsIndexRoute
   '/food/meal-plan/': typeof AuthenticatedOnboardedFoodMealPlanIndexRoute
   '/food/recipes/': typeof AuthenticatedOnboardedFoodRecipesIndexRoute
+  '/food/shopping-lists/': typeof AuthenticatedOnboardedFoodShoppingListsIndexRoute
   '/family/kids/$profileId/dictionary': typeof AuthenticatedOnboardedFamilyKidsProfileIdDictionaryRoute
   '/family/kids/$profileId/general': typeof AuthenticatedOnboardedFamilyKidsProfileIdGeneralRoute
   '/family/pets/$profileId/general': typeof AuthenticatedOnboardedFamilyPetsProfileIdGeneralRoute
@@ -283,11 +307,13 @@ export interface FileRoutesByTo {
   '/manage/settings': typeof AuthenticatedOnboardedManageSettingsRoute
   '/food/ingredients/stores': typeof AuthenticatedOnboardedFoodIngredientsStoresRoute
   '/food/recipes/new': typeof AuthenticatedOnboardedFoodRecipesNewRoute
+  '/food/shopping-lists/$listId': typeof AuthenticatedOnboardedFoodShoppingListsListIdRoute
   '/family/kids': typeof AuthenticatedOnboardedFamilyKidsIndexRoute
   '/family/pets': typeof AuthenticatedOnboardedFamilyPetsIndexRoute
   '/food/ingredients': typeof AuthenticatedOnboardedFoodIngredientsIndexRoute
   '/food/meal-plan': typeof AuthenticatedOnboardedFoodMealPlanIndexRoute
   '/food/recipes': typeof AuthenticatedOnboardedFoodRecipesIndexRoute
+  '/food/shopping-lists': typeof AuthenticatedOnboardedFoodShoppingListsIndexRoute
   '/family/kids/$profileId/dictionary': typeof AuthenticatedOnboardedFamilyKidsProfileIdDictionaryRoute
   '/family/kids/$profileId/general': typeof AuthenticatedOnboardedFamilyKidsProfileIdGeneralRoute
   '/family/pets/$profileId/general': typeof AuthenticatedOnboardedFamilyPetsProfileIdGeneralRoute
@@ -311,6 +337,7 @@ export interface FileRoutesById {
   '/_authenticated/_onboarded/': typeof AuthenticatedOnboardedIndexRoute
   '/_authenticated/onboarding/': typeof AuthenticatedOnboardingIndexRoute
   '/_authenticated/_onboarded/food/ingredients': typeof AuthenticatedOnboardedFoodIngredientsRouteRouteWithChildren
+  '/_authenticated/_onboarded/food/shopping-lists': typeof AuthenticatedOnboardedFoodShoppingListsRouteRouteWithChildren
   '/_authenticated/_onboarded/expenses/monthly-expenses': typeof AuthenticatedOnboardedExpensesMonthlyExpensesRoute
   '/_authenticated/_onboarded/manage/household-members': typeof AuthenticatedOnboardedManageHouseholdMembersRoute
   '/_authenticated/_onboarded/manage/settings': typeof AuthenticatedOnboardedManageSettingsRoute
@@ -319,11 +346,13 @@ export interface FileRoutesById {
   '/_authenticated/_onboarded/food/recipes/$recipeId': typeof AuthenticatedOnboardedFoodRecipesRecipeIdRouteRouteWithChildren
   '/_authenticated/_onboarded/food/ingredients/stores': typeof AuthenticatedOnboardedFoodIngredientsStoresRoute
   '/_authenticated/_onboarded/food/recipes/new': typeof AuthenticatedOnboardedFoodRecipesNewRoute
+  '/_authenticated/_onboarded/food/shopping-lists/$listId': typeof AuthenticatedOnboardedFoodShoppingListsListIdRoute
   '/_authenticated/_onboarded/family/kids/': typeof AuthenticatedOnboardedFamilyKidsIndexRoute
   '/_authenticated/_onboarded/family/pets/': typeof AuthenticatedOnboardedFamilyPetsIndexRoute
   '/_authenticated/_onboarded/food/ingredients/': typeof AuthenticatedOnboardedFoodIngredientsIndexRoute
   '/_authenticated/_onboarded/food/meal-plan/': typeof AuthenticatedOnboardedFoodMealPlanIndexRoute
   '/_authenticated/_onboarded/food/recipes/': typeof AuthenticatedOnboardedFoodRecipesIndexRoute
+  '/_authenticated/_onboarded/food/shopping-lists/': typeof AuthenticatedOnboardedFoodShoppingListsIndexRoute
   '/_authenticated/_onboarded/family/kids/$profileId/dictionary': typeof AuthenticatedOnboardedFamilyKidsProfileIdDictionaryRoute
   '/_authenticated/_onboarded/family/kids/$profileId/general': typeof AuthenticatedOnboardedFamilyKidsProfileIdGeneralRoute
   '/_authenticated/_onboarded/family/pets/$profileId/general': typeof AuthenticatedOnboardedFamilyPetsProfileIdGeneralRoute
@@ -346,6 +375,7 @@ export interface FileRouteTypes {
     | '/onboarding/invite-members'
     | '/onboarding/'
     | '/food/ingredients'
+    | '/food/shopping-lists'
     | '/expenses/monthly-expenses'
     | '/manage/household-members'
     | '/manage/settings'
@@ -354,11 +384,13 @@ export interface FileRouteTypes {
     | '/food/recipes/$recipeId'
     | '/food/ingredients/stores'
     | '/food/recipes/new'
+    | '/food/shopping-lists/$listId'
     | '/family/kids/'
     | '/family/pets/'
     | '/food/ingredients/'
     | '/food/meal-plan/'
     | '/food/recipes/'
+    | '/food/shopping-lists/'
     | '/family/kids/$profileId/dictionary'
     | '/family/kids/$profileId/general'
     | '/family/pets/$profileId/general'
@@ -382,11 +414,13 @@ export interface FileRouteTypes {
     | '/manage/settings'
     | '/food/ingredients/stores'
     | '/food/recipes/new'
+    | '/food/shopping-lists/$listId'
     | '/family/kids'
     | '/family/pets'
     | '/food/ingredients'
     | '/food/meal-plan'
     | '/food/recipes'
+    | '/food/shopping-lists'
     | '/family/kids/$profileId/dictionary'
     | '/family/kids/$profileId/general'
     | '/family/pets/$profileId/general'
@@ -409,6 +443,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_onboarded/'
     | '/_authenticated/onboarding/'
     | '/_authenticated/_onboarded/food/ingredients'
+    | '/_authenticated/_onboarded/food/shopping-lists'
     | '/_authenticated/_onboarded/expenses/monthly-expenses'
     | '/_authenticated/_onboarded/manage/household-members'
     | '/_authenticated/_onboarded/manage/settings'
@@ -417,11 +452,13 @@ export interface FileRouteTypes {
     | '/_authenticated/_onboarded/food/recipes/$recipeId'
     | '/_authenticated/_onboarded/food/ingredients/stores'
     | '/_authenticated/_onboarded/food/recipes/new'
+    | '/_authenticated/_onboarded/food/shopping-lists/$listId'
     | '/_authenticated/_onboarded/family/kids/'
     | '/_authenticated/_onboarded/family/pets/'
     | '/_authenticated/_onboarded/food/ingredients/'
     | '/_authenticated/_onboarded/food/meal-plan/'
     | '/_authenticated/_onboarded/food/recipes/'
+    | '/_authenticated/_onboarded/food/shopping-lists/'
     | '/_authenticated/_onboarded/family/kids/$profileId/dictionary'
     | '/_authenticated/_onboarded/family/kids/$profileId/general'
     | '/_authenticated/_onboarded/family/pets/$profileId/general'
@@ -538,6 +575,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOnboardedFoodIngredientsRouteRouteImport
       parentRoute: typeof AuthenticatedOnboardedRoute
     }
+    '/_authenticated/_onboarded/food/shopping-lists': {
+      id: '/_authenticated/_onboarded/food/shopping-lists'
+      path: '/food/shopping-lists'
+      fullPath: '/food/shopping-lists'
+      preLoaderRoute: typeof AuthenticatedOnboardedFoodShoppingListsRouteRouteImport
+      parentRoute: typeof AuthenticatedOnboardedRoute
+    }
     '/_authenticated/_onboarded/manage/household-members': {
       id: '/_authenticated/_onboarded/manage/household-members'
       path: '/manage/household-members'
@@ -621,6 +665,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/food/recipes/new'
       preLoaderRoute: typeof AuthenticatedOnboardedFoodRecipesNewRouteImport
       parentRoute: typeof AuthenticatedOnboardedRoute
+    }
+    '/_authenticated/_onboarded/food/shopping-lists/': {
+      id: '/_authenticated/_onboarded/food/shopping-lists/'
+      path: '/'
+      fullPath: '/food/shopping-lists/'
+      preLoaderRoute: typeof AuthenticatedOnboardedFoodShoppingListsIndexRouteImport
+      parentRoute: typeof AuthenticatedOnboardedFoodShoppingListsRouteRoute
+    }
+    '/_authenticated/_onboarded/food/shopping-lists/$listId': {
+      id: '/_authenticated/_onboarded/food/shopping-lists/$listId'
+      path: '/$listId'
+      fullPath: '/food/shopping-lists/$listId'
+      preLoaderRoute: typeof AuthenticatedOnboardedFoodShoppingListsListIdRouteImport
+      parentRoute: typeof AuthenticatedOnboardedFoodShoppingListsRouteRoute
     }
     '/_authenticated/_onboarded/family/kids/$profileId/': {
       id: '/_authenticated/_onboarded/family/kids/$profileId/'
@@ -712,6 +770,24 @@ const AuthenticatedOnboardedFoodIngredientsRouteRouteWithChildren =
     AuthenticatedOnboardedFoodIngredientsRouteRouteChildren,
   )
 
+interface AuthenticatedOnboardedFoodShoppingListsRouteRouteChildren {
+  AuthenticatedOnboardedFoodShoppingListsListIdRoute: typeof AuthenticatedOnboardedFoodShoppingListsListIdRoute
+  AuthenticatedOnboardedFoodShoppingListsIndexRoute: typeof AuthenticatedOnboardedFoodShoppingListsIndexRoute
+}
+
+const AuthenticatedOnboardedFoodShoppingListsRouteRouteChildren: AuthenticatedOnboardedFoodShoppingListsRouteRouteChildren =
+  {
+    AuthenticatedOnboardedFoodShoppingListsListIdRoute:
+      AuthenticatedOnboardedFoodShoppingListsListIdRoute,
+    AuthenticatedOnboardedFoodShoppingListsIndexRoute:
+      AuthenticatedOnboardedFoodShoppingListsIndexRoute,
+  }
+
+const AuthenticatedOnboardedFoodShoppingListsRouteRouteWithChildren =
+  AuthenticatedOnboardedFoodShoppingListsRouteRoute._addFileChildren(
+    AuthenticatedOnboardedFoodShoppingListsRouteRouteChildren,
+  )
+
 interface AuthenticatedOnboardedFamilyKidsProfileIdRouteRouteChildren {
   AuthenticatedOnboardedFamilyKidsProfileIdDictionaryRoute: typeof AuthenticatedOnboardedFamilyKidsProfileIdDictionaryRoute
   AuthenticatedOnboardedFamilyKidsProfileIdGeneralRoute: typeof AuthenticatedOnboardedFamilyKidsProfileIdGeneralRoute
@@ -773,6 +849,7 @@ interface AuthenticatedOnboardedRouteChildren {
   AuthenticatedOnboardedUserProfileRoute: typeof AuthenticatedOnboardedUserProfileRoute
   AuthenticatedOnboardedIndexRoute: typeof AuthenticatedOnboardedIndexRoute
   AuthenticatedOnboardedFoodIngredientsRouteRoute: typeof AuthenticatedOnboardedFoodIngredientsRouteRouteWithChildren
+  AuthenticatedOnboardedFoodShoppingListsRouteRoute: typeof AuthenticatedOnboardedFoodShoppingListsRouteRouteWithChildren
   AuthenticatedOnboardedExpensesMonthlyExpensesRoute: typeof AuthenticatedOnboardedExpensesMonthlyExpensesRoute
   AuthenticatedOnboardedManageHouseholdMembersRoute: typeof AuthenticatedOnboardedManageHouseholdMembersRoute
   AuthenticatedOnboardedManageSettingsRoute: typeof AuthenticatedOnboardedManageSettingsRoute
@@ -793,6 +870,8 @@ const AuthenticatedOnboardedRouteChildren: AuthenticatedOnboardedRouteChildren =
     AuthenticatedOnboardedIndexRoute: AuthenticatedOnboardedIndexRoute,
     AuthenticatedOnboardedFoodIngredientsRouteRoute:
       AuthenticatedOnboardedFoodIngredientsRouteRouteWithChildren,
+    AuthenticatedOnboardedFoodShoppingListsRouteRoute:
+      AuthenticatedOnboardedFoodShoppingListsRouteRouteWithChildren,
     AuthenticatedOnboardedExpensesMonthlyExpensesRoute:
       AuthenticatedOnboardedExpensesMonthlyExpensesRoute,
     AuthenticatedOnboardedManageHouseholdMembersRoute:
