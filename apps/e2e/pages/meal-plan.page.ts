@@ -25,6 +25,11 @@ export class MealPlanPage {
     return this.page.getByTestId(`meal-plan-day-${day}`);
   }
 
+  /** The header above a week's group of day cards. */
+  weekHeader(text: string): Locator {
+    return this.page.getByRole('heading', { level: 2, name: text });
+  }
+
   /** One planned meal, found by the label shown on its card. */
   meal(day: string, label: string): Locator {
     return this.dayRow(day).getByRole('listitem').filter({ hasText: label });

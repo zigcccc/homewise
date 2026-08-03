@@ -2,6 +2,8 @@ import { addDays, addWeeks, format, parseISO, startOfWeek } from 'date-fns';
 
 import { type HouseholdMemberRole, householdMemberRole } from '@homewise/server/households';
 
+import { formatDate } from '@/modules/shared';
+
 /** ISO weeks — a European calendar starts on Monday. */
 const WEEK_OPTIONS = { weekStartsOn: 1 } as const;
 
@@ -30,12 +32,15 @@ export const shiftWeeks = (from: string, delta: number) => toISODate(addWeeks(pa
 /** "Monday" — the day's name, which is what you scan a plan by. */
 export const weekdayLabel = (iso: string) => format(parseISO(iso), 'EEEE');
 
-/** "4. 08." — day-first, matching the tables' `dd. MM. yyyy`. */
-export const dayLabel = (iso: string) => format(parseISO(iso), 'd. MM.');
+/** "04. 08." — day-first, matching the tables' `dd. MM. yyyy`. */
+export const dayLabel = (iso: string) => format(parseISO(iso), 'dd. MM.');
 
-/** "3. – 9. 08. 2026" for a week header. */
-export const rangeLabel = (from: string, to: string) =>
-  `${format(parseISO(from), 'd.')} – ${format(parseISO(to), 'd. MM. yyyy')}`;
+/**
+ * "03. 08. 2026 – 09. 08. 2026" for a week header.
+ *
+ * Both endpoints in full: a week that crosses a month or a year names both sides of the boundary.
+ */
+export const rangeLabel = (from: string, to: string) => `${formatDate(from)} – ${formatDate(to)}`;
 
 export const isToday = (iso: string) => iso === toISODate(new Date());
 

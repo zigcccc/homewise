@@ -278,6 +278,11 @@ test.describe('meal plan', () => {
 
     await expect(mealPlan.dayCards()).toHaveCount(7);
 
+    // Dates read `dd. MM. yyyy`, zero-padded on both tokens. 6 April is the check: a `d` or an `M`
+    // anywhere in those format strings renders "6. 4." and fails here.
+    await expect(mealPlan.weekHeader('06. 04. 2099 – 12. 04. 2099')).toBeVisible();
+    await expect(mealPlan.dayRow(WEEKS.nav.monday)).toContainText('06. 04.');
+
     // Wait for the *cards* after each step, not just the URL.
     //
     // The router flips the URL as part of the navigation, but the week links only recompute their

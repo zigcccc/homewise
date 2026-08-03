@@ -1,6 +1,6 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import dayjs from 'dayjs';
+import { format, getMonth, getYear, parseISO } from 'date-fns';
 import { PlusIcon, SearchIcon } from 'lucide-react';
 import { useMemo } from 'react';
 import { useDebounceCallback } from 'usehooks-ts';
@@ -30,8 +30,8 @@ import { getMyHouseholdQueryOptions } from '@/modules/households';
 import { Actionbar } from '@/modules/shared';
 
 const monthlyExpensesSearchParamsModel = z.object({
-  month: z.coerce.number<number>().min(0).max(11).default(dayjs().month()),
-  year: z.coerce.number<number>().min(1900).max(3000).default(dayjs().year()),
+  month: z.coerce.number<number>().min(0).max(11).default(getMonth(new Date())),
+  year: z.coerce.number<number>().min(1900).max(3000).default(getYear(new Date())),
   search: z
     .string()
     .transform((val) => (val === '' ? undefined : val))
@@ -53,17 +53,20 @@ function MonthlyExpensesRoute() {
 
   const monthsOptions = useMemo(() => {
     return Array.from({ length: 12 }).map((_, idx) => ({
-      label: dayjs().month(idx).format('MMMM'),
+      // Day 1 of an arbitrary year: only the month name is read off it, and setting the month on
+      // *today* would roll a 31st over into the next month.
+      label: format(new Date(2000, idx, 1), 'MMMM'),
       value: idx,
     }));
   }, []);
 
   const yearsOptions = useMemo(() => {
-    const yearsDiff = dayjs().year() - dayjs(household.createdAt).year();
+    const thisYear = getYear(new Date());
+    const yearsDiff = thisYear - getYear(parseISO(household.createdAt));
 
     return Array.from({ length: yearsDiff + 1 }).map((_, idx) => ({
-      label: dayjs().year() - idx,
-      value: dayjs().year() - idx,
+      label: thisYear - idx,
+      value: thisYear - idx,
     }));
   }, [household.createdAt]);
 

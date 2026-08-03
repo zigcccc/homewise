@@ -1,7 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import dayjs from 'dayjs';
 import { type InferRequestType } from 'hono';
 import { SaveIcon, TrashIcon } from 'lucide-react';
 import { type SubmitHandler, useForm } from 'react-hook-form';
@@ -37,7 +36,7 @@ import {
 
 import { client, parseResponse } from '@/api/client';
 import { getSessionQueryOptions } from '@/auth/queries';
-import { Actionbar, UnsavedChangesDialog } from '@/modules/shared';
+import { Actionbar, formatDate, UnsavedChangesDialog } from '@/modules/shared';
 
 const userProfileFormModel = z.object({
   id: z.string(),
@@ -214,7 +213,7 @@ function UserProfileRoute() {
                   <FormItem>
                     <FormLabel>Created at</FormLabel>
                     <FormControl>
-                      <Input {...field} disabled value={dayjs(field.value).format('DD. MM. YYYY')} />
+                      <Input {...field} disabled value={formatDate(field.value) ?? ''} />
                     </FormControl>
                   </FormItem>
                 )}
