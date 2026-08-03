@@ -1,7 +1,10 @@
 import { expect, test } from '@playwright/test';
 
+import { SEED_INGREDIENTS } from '@homewise/server/seed-fixtures';
+
 import { IngredientsPage } from '../pages/ingredients.page';
 import { MealPlanPage } from '../pages/meal-plan.page';
+import { ShoppingListsPage } from '../pages/shopping-lists.page';
 import { SECOND_USER_STORAGE_STATE } from '../support/paths';
 
 /** This spec's own far-future week — see the note in `meal-plan.spec.ts`. */
@@ -72,6 +75,37 @@ test.describe('realtime', () => {
       await expect(observer.meal(REALTIME_WEEK, lunch)).toHaveCount(0);
     } finally {
       await actorContext.close();
+    }
+  });
+
+  /**
+   * Two people in the same shop, splitting the aisles. One ticks the milk off, the other's phone has
+   * to show it — otherwise they both buy milk, which is the exact failure a shared list exists to
+   * prevent. The observer never reloads after opening the list.
+   */
+  test('shows an item another member ticks off, without a reload', async ({ page, browser }) => {
+    test.slow();
+    const item = SEED_INGREDIENTS[0]!.name;
+
+    const observer = new ShoppingListsPage(page);
+    await observer.goto();
+    const listId = await observer.createList();
+    await observer.addIngredient(item);
+    await expect(observer.progress()).toHaveText('0 of 1 ticked');
+
+    const actorContext = await browser.newContext({ storageState: SECOND_USER_STORAGE_STATE });
+    const actor = new ShoppingListsPage(await actorContext.newPage());
+
+    try {
+      await actor.openList(listId);
+      await actor.tick(item);
+
+      // The observer hasn't touched its page — only a delivered event can move this counter.
+      await expect(observer.progress()).toHaveText('1 of 1 ticked');
+      await expect(observer.isTicked(item)).toBeVisible();
+    } finally {
+      await actorContext.close();
+      await observer.deleteListIfPresent(listId);
     }
   });
 });
