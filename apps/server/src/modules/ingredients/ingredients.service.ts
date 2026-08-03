@@ -3,6 +3,7 @@ import { HTTPException } from 'hono/http-exception';
 
 import { db, schema } from '@/db';
 import { type Executor, emptyToNull, type Filters, isUniqueViolation } from '@/db/utils';
+import { ShoppingListsService } from '@/modules/shopping-lists/shopping-lists.service';
 import { StoresService } from '@/modules/stores/stores.service';
 
 import {
@@ -329,9 +330,15 @@ export class IngredientsService {
    * Hard delete, blocked while any recipe still uses it — deleting "flour" must not silently gut
    * every recipe that references it. The FK is `restrict`, so this check is the friendly message,
    * not the guarantee.
+   *
+   * Shopping lists are deliberately *not* a blocker. A recipe is a lasting document; a list is one
+   * trip, and refusing a library cleanup because of a six-month-old completed list would be the
+   * wrong trade. Their lines keep the name as free text instead, copied on before the FK nulls the
+   * link — their check constraint makes the delete fail otherwise, which is what stops this being
+   * forgotten.
    */
   public static async delete(householdId: number, ingredientId: number) {
-    await IngredientsService.readIngredientRow(householdId, ingredientId);
+    const ingredient = await IngredientsService.readIngredientRow(householdId, ingredientId);
 
     const usage = await IngredientsService.countRecipeUsage([ingredientId]);
     const recipeCount = usage.get(ingredientId) ?? 0;
@@ -342,10 +349,16 @@ export class IngredientsService {
       });
     }
 
-    const [deleted] = await db
-      .delete(schema.ingredient)
-      .where(and(eq(schema.ingredient.householdId, householdId), eq(schema.ingredient.id, ingredientId)))
-      .returning();
+    const deleted = await db.transaction(async (tx) => {
+      await ShoppingListsService.detachIngredient(tx, ingredientId, ingredient.name);
+
+      const [row] = await tx
+        .delete(schema.ingredient)
+        .where(and(eq(schema.ingredient.householdId, householdId), eq(schema.ingredient.id, ingredientId)))
+        .returning();
+
+      return row;
+    });
 
     if (!deleted) {
       throw new HTTPException(404, { message: 'Ingredient not found' });

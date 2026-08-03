@@ -3,6 +3,7 @@ import { HTTPException } from 'hono/http-exception';
 
 import { db, schema } from '@/db';
 import { type Executor, emptyToNull, type Filters, isUniqueViolation } from '@/db/utils';
+import { ShoppingListsService } from '@/modules/shopping-lists/shopping-lists.service';
 
 import { type CreateStore, type ListStoresQueryParams, type PatchStore } from './models';
 
@@ -211,14 +212,25 @@ export class StoresService {
   /**
    * Hard delete, never blocked by usage: the ingredients that pointed here just lose their default
    * (the FK is `set null`), which is a preference, not content worth protecting.
+   *
+   * Shopping-list sections are different — a heading with neither a shop nor a name violates their
+   * check constraint — so the name is copied onto them first, inside the same transaction. Skip that
+   * and the delete fails rather than silently leaving a hole, which is exactly what makes it
+   * impossible to forget.
    */
   public static async delete(householdId: number, storeId: number) {
-    await StoresService.readStoreRow(householdId, storeId);
+    const store = await StoresService.readStoreRow(householdId, storeId);
 
-    const [deleted] = await db
-      .delete(schema.store)
-      .where(and(eq(schema.store.householdId, householdId), eq(schema.store.id, storeId)))
-      .returning();
+    const deleted = await db.transaction(async (tx) => {
+      await ShoppingListsService.detachStore(tx, storeId, store.name);
+
+      const [row] = await tx
+        .delete(schema.store)
+        .where(and(eq(schema.store.householdId, householdId), eq(schema.store.id, storeId)))
+        .returning();
+
+      return row;
+    });
 
     if (!deleted) {
       throw new HTTPException(404, { message: 'Shop not found' });

@@ -47,6 +47,10 @@
       "types": "./src/modules/stores/models/index.ts",
       "import": "./src/modules/stores/models/index.ts"
     },
+    "./shopping-lists": {
+      "types": "./src/modules/shopping-lists/models/index.ts",
+      "import": "./src/modules/shopping-lists/models/index.ts"
+    },
     "./meal-plan": {
       "types": "./src/modules/meal-plan/models/index.ts",
       "import": "./src/modules/meal-plan/models/index.ts"
