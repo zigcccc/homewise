@@ -1,8 +1,9 @@
-import { and, asc, count, desc, eq, ilike, inArray, ne, or, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, ilike, inArray, isNull, ne, or, sql } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 
 import { db, schema } from '@/db';
-import { type Executor, emptyToNull, isUniqueViolation } from '@/db/utils';
+import { type Executor, emptyToNull, type Filters, isUniqueViolation } from '@/db/utils';
+import { StoresService } from '@/modules/stores/stores.service';
 
 import {
   type CreateIngredient,
@@ -39,6 +40,26 @@ export class IngredientsService {
   }
 
   /**
+   * An ingredient in the shape the list endpoint returns it — joined shop, recipe count. Every
+   * mutation reads back through here so a created or patched row is the same type as a refetched
+   * one, which is what lets the web swap a PATCH result straight into its cached list.
+   */
+  private static async readIngredientWithRelations(householdId: number, ingredientId: number) {
+    const ingredient = await db.query.ingredient.findFirst({
+      where: (fields, { and, eq }) => and(eq(fields.householdId, householdId), eq(fields.id, ingredientId)),
+      with: { store: { columns: { id: true, name: true } } },
+    });
+
+    if (!ingredient) {
+      throw new HTTPException(404, { message: 'Ingredient not found' });
+    }
+
+    const usage = await IngredientsService.countRecipeUsage([ingredientId]);
+
+    return { ...ingredient, recipeCount: usage.get(ingredientId) ?? 0 };
+  }
+
+  /**
    * How many recipe lines reference each of the given ingredients. Constrained to the ids just read
    * rather than grouping the whole table.
    */
@@ -60,13 +81,8 @@ export class IngredientsService {
    * Rejects a name that already exists in the household, case-insensitively. The unique index is the
    * real guarantee — this exists so the user gets a 409 with a message instead of a constraint error.
    */
-  private static async assertNameAvailable(
-    householdId: number,
-    name: string,
-    executor: Executor = db,
-    excludeId?: number
-  ) {
-    const filters = [
+  private static async assertNameAvailable(householdId: number, name: string, excludeId?: number) {
+    const filters: Filters = [
       eq(schema.ingredient.householdId, householdId),
       sql`lower(${schema.ingredient.name}) = lower(${name})`,
     ];
@@ -75,7 +91,7 @@ export class IngredientsService {
       filters.push(ne(schema.ingredient.id, excludeId));
     }
 
-    const [existing] = await executor
+    const [existing] = await db
       .select({ id: schema.ingredient.id })
       .from(schema.ingredient)
       .where(and(...filters))
@@ -161,25 +177,38 @@ export class IngredientsService {
   /** The household's ingredient library, with how many recipes each one is used in. */
   public static async list(
     householdId: number,
-    { search, category, sortKey, sortDirection }: ListIngredientsQueryParams
+    { search, category, store, sortKey, sortDirection }: ListIngredientsQueryParams
   ) {
-    const { householdId: householdIdColumn, name, notes, category: categoryColumn } = schema.ingredient;
+    const {
+      householdId: householdIdColumn,
+      name,
+      notes,
+      category: categoryColumn,
+      storeId: storeIdColumn,
+    } = schema.ingredient;
     const sortColumn = schema.ingredient[sortKey];
 
-    const filters = [eq(householdIdColumn, householdId)];
+    const filters: Filters = [eq(householdIdColumn, householdId)];
 
     if (search) {
       const term = `%${search}%`;
-      filters.push(or(ilike(name, term), ilike(notes, term))!);
+      filters.push(or(ilike(name, term), ilike(notes, term)));
     }
 
     if (category) {
       filters.push(eq(categoryColumn, category));
     }
 
+    if (store === 'none') {
+      filters.push(isNull(storeIdColumn));
+    } else if (store !== undefined) {
+      filters.push(eq(storeIdColumn, store));
+    }
+
     const ingredients = await db.query.ingredient.findMany({
       where: and(...filters),
       orderBy: sortDirection === 'desc' ? [desc(sortColumn)] : [asc(sortColumn)],
+      with: { store: { columns: { id: true, name: true } } },
     });
 
     const usage = await IngredientsService.countRecipeUsage(ingredients.map((row) => row.id));
@@ -187,79 +216,113 @@ export class IngredientsService {
     return ingredients.map((row) => ({ ...row, recipeCount: usage.get(row.id) ?? 0 }));
   }
 
-  /** Creates an ingredient. Accepts an `executor` so a recipe save can create one atomically. */
-  public static async create(householdId: number, data: CreateIngredient, executor: Executor = db) {
-    await IngredientsService.assertNameAvailable(householdId, data.name, executor);
-
-    // The check above is a TOCTOU window: two concurrent creates of the same name both pass it, and
-    // the loser hits the unique index. Translate that into the same 409 rather than a 500.
-    const [created] = await executor
-      .insert(schema.ingredient)
-      .values({
-        householdId,
-        name: data.name,
-        category: data.category,
-        defaultUnit: data.defaultUnit ?? null,
-        notes: emptyToNull(data.notes),
-      })
-      .returning()
-      .catch((error: unknown) => {
-        if (isUniqueViolation(error)) {
-          throw duplicateNameError(data.name);
-        }
-        throw error;
-      });
-
-    if (!created) {
-      throw new HTTPException(400, { message: 'Something went wrong.' });
+  /**
+   * The shop to write, from a payload that may name one instead of pointing at one. `storeName`
+   * wins: it's what the form sends when the user typed a shop that doesn't exist yet.
+   *
+   * Runs inside the caller's transaction so a shop minted here dies with a write that then fails on
+   * a duplicate ingredient name.
+   */
+  private static async resolveStoreId(
+    executor: Executor,
+    householdId: number,
+    data: { storeId?: number | null; storeName?: string }
+  ) {
+    if (data.storeName !== undefined) {
+      return StoresService.resolveByName(executor, householdId, data.storeName);
     }
 
-    return { ...created, recipeCount: 0 };
+    // A shop id is a client-supplied foreign key, so it's checked rather than trusted — one from
+    // another household would otherwise be writable here.
+    return StoresService.assertInHousehold(householdId, data.storeId);
+  }
+
+  public static async create(householdId: number, data: CreateIngredient) {
+    // Before anything is written: a refused name must not leave a shop behind, and this is the check
+    // that catches every duplicate except a concurrent one — which the transaction below covers.
+    await IngredientsService.assertNameAvailable(householdId, data.name);
+
+    const created = await db.transaction(async (tx) => {
+      const storeId = await IngredientsService.resolveStoreId(tx, householdId, data);
+
+      // `assertNameAvailable` above is a TOCTOU window: two concurrent creates of the same name both
+      // pass it, and the loser hits the unique index. Translate that into the same 409, not a 500.
+      const [row] = await tx
+        .insert(schema.ingredient)
+        .values({
+          householdId,
+          name: data.name,
+          category: data.category,
+          defaultUnit: data.defaultUnit ?? null,
+          storeId: storeId ?? null,
+          notes: emptyToNull(data.notes),
+        })
+        .returning({ id: schema.ingredient.id })
+        .catch((error: unknown) => {
+          if (isUniqueViolation(error)) {
+            throw duplicateNameError(data.name);
+          }
+          throw error;
+        });
+
+      if (!row) {
+        throw new HTTPException(400, { message: 'Something went wrong.' });
+      }
+
+      return row;
+    });
+
+    return IngredientsService.readIngredientWithRelations(householdId, created.id);
   }
 
   public static async patch(householdId: number, ingredientId: number, data: PatchIngredient) {
     await IngredientsService.readIngredientRow(householdId, ingredientId);
 
     if (data.name !== undefined) {
-      await IngredientsService.assertNameAvailable(householdId, data.name, db, ingredientId);
+      await IngredientsService.assertNameAvailable(householdId, data.name, ingredientId);
     }
 
-    const set = {
-      name: data.name,
-      category: data.category,
-      // `null` clears the unit; `undefined` leaves it alone.
-      defaultUnit: data.defaultUnit,
-      notes: emptyToNull(data.notes),
-    };
+    // Nothing to write is decided before the shop is resolved, so `PATCH {}` can't mint one.
+    const writesAnything =
+      data.name !== undefined ||
+      data.category !== undefined ||
+      data.defaultUnit !== undefined ||
+      data.storeId !== undefined ||
+      data.storeName !== undefined ||
+      data.notes !== undefined;
 
     // Every field is optional, so `PATCH {}` reaches here with nothing to write — and drizzle throws
     // "No values to set" rather than no-opping, which would surface as a 500. Return the row as-is.
-    if (Object.values(set).every((value) => value === undefined)) {
-      const current = await IngredientsService.readIngredientRow(householdId, ingredientId);
-      const usage = await IngredientsService.countRecipeUsage([ingredientId]);
-
-      return { ...current, recipeCount: usage.get(ingredientId) ?? 0 };
+    if (!writesAnything) {
+      return IngredientsService.readIngredientWithRelations(householdId, ingredientId);
     }
 
-    const [updated] = await db
-      .update(schema.ingredient)
-      .set(set)
-      .where(and(eq(schema.ingredient.householdId, householdId), eq(schema.ingredient.id, ingredientId)))
-      .returning()
-      .catch((error: unknown) => {
-        if (data.name !== undefined && isUniqueViolation(error)) {
-          throw duplicateNameError(data.name);
-        }
-        throw error;
-      });
+    await db.transaction(async (tx) => {
+      const [updated] = await tx
+        .update(schema.ingredient)
+        .set({
+          name: data.name,
+          category: data.category,
+          // `null` clears the unit; `undefined` leaves it alone. Same for the shop.
+          defaultUnit: data.defaultUnit,
+          storeId: await IngredientsService.resolveStoreId(tx, householdId, data),
+          notes: emptyToNull(data.notes),
+        })
+        .where(and(eq(schema.ingredient.householdId, householdId), eq(schema.ingredient.id, ingredientId)))
+        .returning({ id: schema.ingredient.id })
+        .catch((error: unknown) => {
+          if (data.name !== undefined && isUniqueViolation(error)) {
+            throw duplicateNameError(data.name);
+          }
+          throw error;
+        });
 
-    if (!updated) {
-      throw new HTTPException(404, { message: 'Ingredient not found' });
-    }
+      if (!updated) {
+        throw new HTTPException(404, { message: 'Ingredient not found' });
+      }
+    });
 
-    const usage = await IngredientsService.countRecipeUsage([ingredientId]);
-
-    return { ...updated, recipeCount: usage.get(ingredientId) ?? 0 };
+    return IngredientsService.readIngredientWithRelations(householdId, ingredientId);
   }
 
   /**

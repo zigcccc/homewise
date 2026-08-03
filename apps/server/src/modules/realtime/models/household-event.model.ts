@@ -23,6 +23,7 @@ export const householdEventEntity = z.enum([
   'pet_profile',
   'recipe',
   'recipe_tag',
+  'store',
 ]);
 export type HouseholdEventEntity = z.infer<typeof householdEventEntity>;
 

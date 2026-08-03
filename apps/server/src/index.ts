@@ -22,6 +22,7 @@ import medicalApp from './modules/medical';
 import petProfilesApp from './modules/pet-profiles';
 import realtimeApp from './modules/realtime';
 import recipesApp from './modules/recipes';
+import storesApp from './modules/stores';
 import usersApp from './modules/users';
 import { type AppContext } from './types/app.type';
 
@@ -77,6 +78,7 @@ const app = base
   .route('/medical-info', medicalApp)
   .route('/recipes', recipesApp)
   .route('/ingredients', ingredientsApp)
+  .route('/stores', storesApp)
   .route('/meal-plan', mealPlanApp)
   .route('/realtime', realtimeApp);
 

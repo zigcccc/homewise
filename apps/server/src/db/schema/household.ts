@@ -6,6 +6,7 @@ import { childProfile } from './child-profile';
 import { plannedDayNote, plannedMeal, plannedMealMember } from './meal-plan';
 import { petProfile } from './pet-profile';
 import { ingredient, recipe, recipeTag } from './recipe';
+import { store } from './store';
 import { user } from './user';
 
 export const householdMemberRoleEnum = pgEnum('householdMemberRole', ['adult', 'child', 'pet', 'external']);
@@ -61,6 +62,7 @@ export const householdRelations = relations(household, ({ many, one }) => ({
   plannedMeals: many(plannedMeal),
   recipeTags: many(recipeTag),
   recipes: many(recipe),
+  stores: many(store),
 }));
 
 export const householdInviteRelations = relations(householdInvite, ({ one }) => ({

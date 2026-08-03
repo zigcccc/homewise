@@ -48,19 +48,28 @@ export const SEED_CHILD_MEMBER = {
 } as const;
 
 /**
+ * The shops the seeded household buys at. Two of them, so the e2e suite can prove a shopping list
+ * splits into one section per shop rather than merging everything into one.
+ */
+export const SEED_STORES = [{ name: 'Spar' }, { name: 'Hofer' }] as const;
+
+/**
  * Pantry staples seeded into the household's ingredient library. A brand-new household would
  * otherwise open the recipe form to an empty ingredient picker, which reads as broken; the e2e suite
  * also needs known ingredients it can attach to a recipe without creating any first.
+ *
+ * `store` names one of `SEED_STORES`, resolved at seed time. Some are deliberately left without
+ * one — an ingredient with no shop is the ungrouped case a shopping list also has to handle.
  */
 export const SEED_INGREDIENTS = [
-  { name: 'Onion', category: 'produce', defaultUnit: 'piece' },
-  { name: 'Garlic', category: 'produce', defaultUnit: 'clove' },
-  { name: 'Olive oil', category: 'pantry', defaultUnit: 'tbsp' },
-  { name: 'Flour', category: 'pantry', defaultUnit: 'g' },
-  { name: 'Eggs', category: 'dairy_eggs', defaultUnit: 'piece' },
-  { name: 'Butter', category: 'dairy_eggs', defaultUnit: 'g' },
-  { name: 'Salt', category: 'spices', defaultUnit: 'tsp' },
-  { name: 'Black pepper', category: 'spices', defaultUnit: 'tsp' },
+  { name: 'Onion', category: 'produce', defaultUnit: 'piece', store: 'Spar' },
+  { name: 'Garlic', category: 'produce', defaultUnit: 'clove', store: 'Spar' },
+  { name: 'Olive oil', category: 'pantry', defaultUnit: 'tbsp', store: 'Hofer' },
+  { name: 'Flour', category: 'pantry', defaultUnit: 'g', store: null },
+  { name: 'Eggs', category: 'dairy_eggs', defaultUnit: 'piece', store: null },
+  { name: 'Butter', category: 'dairy_eggs', defaultUnit: 'g', store: 'Hofer' },
+  { name: 'Salt', category: 'spices', defaultUnit: 'tsp', store: null },
+  { name: 'Black pepper', category: 'spices', defaultUnit: 'tsp', store: null },
 ] as const;
 
 /**

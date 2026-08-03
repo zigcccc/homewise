@@ -55,11 +55,21 @@ export const ingredientName = name(z.string());
 const notes = optionalText(500, 'Notes');
 /** `null` clears the default unit; omitting the key leaves it untouched. */
 const defaultUnit = measurementUnit.nullish();
+/** The shop this is usually bought at. `null` clears it; omitting the key leaves it untouched. */
+const storeId = z.number().int().positive().nullish();
+/**
+ * A shop to file this under **by name**, found-or-created as part of the same write. Takes
+ * precedence over `storeId`, so a form can offer "create it on the fly" without making the user
+ * leave and add the shop first — and without minting one when they then abandon the dialog.
+ */
+const storeName = name(z.string()).optional();
 
 export const createIngredientModel = z.object({
   name: name(z.string()),
   category: ingredientCategory.default('other'),
   defaultUnit,
+  storeId,
+  storeName,
   notes,
 });
 export type CreateIngredient = z.infer<typeof createIngredientModel>;
@@ -68,6 +78,8 @@ export const patchIngredientModel = z.object({
   name: name(z.string()).optional(),
   category: ingredientCategory.optional(),
   defaultUnit,
+  storeId,
+  storeName,
   notes,
 });
 export type PatchIngredient = z.infer<typeof patchIngredientModel>;
@@ -89,6 +101,11 @@ export const listIngredientsQueryParamsModel = z.object({
     .optional()
     .catch(undefined),
   category: ingredientCategory.optional().catch(undefined),
+  /** Narrows to one shop. `none` is its own filter: the ingredients with no shop assigned yet. */
+  store: z
+    .union([z.literal('none'), z.coerce.number<number>().int().positive()])
+    .optional()
+    .catch(undefined),
   sortKey: ingredientSortKey.default('name').catch('name'),
   sortDirection: ingredientSortDirection.default('asc').catch('asc'),
 });
