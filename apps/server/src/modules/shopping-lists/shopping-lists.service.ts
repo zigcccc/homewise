@@ -187,6 +187,28 @@ export class ShoppingListsService {
     return created.id;
   }
 
+  /**
+   * Drops a section once its last item has gone, so a shop heading doesn't outlive the reason it
+   * appeared. `null` is the ungrouped bucket, which isn't a row and can't be pruned.
+   *
+   * Only ever called from the paths where an item *leaves* a section — never from `createSection`,
+   * where a section is empty by definition and would delete itself the instant it was made.
+   */
+  private static async pruneSectionIfEmpty(executor: Executor, sectionId: number | null) {
+    if (sectionId === null) {
+      return;
+    }
+
+    const [remaining] = await executor
+      .select({ value: count() })
+      .from(schema.shoppingListItem)
+      .where(eq(schema.shoppingListItem.sectionId, sectionId));
+
+    if ((remaining?.value ?? 0) === 0) {
+      await executor.delete(schema.shoppingListSection).where(eq(schema.shoppingListSection.id, sectionId));
+    }
+  }
+
   /** Confirms a section belongs to this list, so an id from another list can't be written into it. */
   private static async assertSectionInList(executor: Executor, listId: number, sectionId: number | null | undefined) {
     if (sectionId === null || sectionId === undefined) {
@@ -433,6 +455,11 @@ export class ShoppingListsService {
             })
             .where(eq(schema.shoppingListItem.id, item.id));
         }
+
+        // Carrying everything out of a section leaves an empty heading behind on the finished list.
+        for (const sourceSectionId of usedSectionIds) {
+          await ShoppingListsService.pruneSectionIfEmpty(tx, sourceSectionId);
+        }
       }
 
       await tx.update(schema.shoppingList).set({ completedAt: new Date() }).where(eq(schema.shoppingList.id, listId));
@@ -606,9 +633,11 @@ export class ShoppingListsService {
       }
 
       if (movingSection) {
-        // Both ends: the item is appended to its new section, and the one it left closes the gap.
+        // Both ends: the item is appended to its new section, and the one it left closes the gap —
+        // or goes entirely, if that item was the last thing in it.
         await ShoppingListsService.resequence(tx, listId, data.sectionId ?? null, { index: APPEND, itemId });
         await ShoppingListsService.resequence(tx, listId, item.sectionId);
+        await ShoppingListsService.pruneSectionIfEmpty(tx, item.sectionId);
       }
     });
 
@@ -629,6 +658,7 @@ export class ShoppingListsService {
       }
 
       await ShoppingListsService.resequence(tx, listId, deleted.sectionId);
+      await ShoppingListsService.pruneSectionIfEmpty(tx, deleted.sectionId);
     });
 
     return ShoppingListsService.read(householdId, listId);
