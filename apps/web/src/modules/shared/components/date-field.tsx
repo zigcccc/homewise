@@ -4,15 +4,15 @@ import { useState } from 'react';
 
 import { Button, Calendar, Input, Popover, PopoverContent, PopoverTrigger } from '@homewise/ui/core';
 
-/** Display format for the text input; matches the tables' `DD. MM. YYYY`. Value stays ISO. */
-const DATE_DISPLAY_FORMAT = 'dd. MM. yyyy';
+import { DATE_DISPLAY_FORMAT } from '../helpers';
 
 /**
- * Accepted typing formats, tried in order. Day-first throughout — `new Date()` would read
- * "03. 07. 2026" as 7 March (US month-first), which is the wrong reading here.
+ * Accepted typing formats, tried in order — the display format first, so what the field renders is
+ * always something it takes back. Day-first throughout: `new Date()` would read "03. 07. 2026" as
+ * 7 March (US month-first), which is the wrong reading here.
  */
 const DATE_INPUT_FORMATS = [
-  'dd. MM. yyyy',
+  DATE_DISPLAY_FORMAT,
   'd. M. yyyy',
   'dd.MM.yyyy',
   'd.M.yyyy',

@@ -2,6 +2,8 @@ import { addDays, addWeeks, format, parseISO, startOfWeek } from 'date-fns';
 
 import { type HouseholdMemberRole, householdMemberRole } from '@homewise/server/households';
 
+import { formatDate } from '@/modules/shared';
+
 /** ISO weeks — a European calendar starts on Monday. */
 const WEEK_OPTIONS = { weekStartsOn: 1 } as const;
 
@@ -38,8 +40,7 @@ export const dayLabel = (iso: string) => format(parseISO(iso), 'dd. MM.');
  *
  * Both endpoints in full: a week that crosses a month or a year names both sides of the boundary.
  */
-export const rangeLabel = (from: string, to: string) =>
-  `${format(parseISO(from), 'dd. MM. yyyy')} – ${format(parseISO(to), 'dd. MM. yyyy')}`;
+export const rangeLabel = (from: string, to: string) => `${formatDate(from)} – ${formatDate(to)}`;
 
 export const isToday = (iso: string) => iso === toISODate(new Date());
 

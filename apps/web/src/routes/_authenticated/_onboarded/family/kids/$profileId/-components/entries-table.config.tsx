@@ -1,7 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { type QueryClient, useMutation, useQueryClient } from '@tanstack/react-query';
 import { createColumnHelper } from '@tanstack/react-table';
-import dayjs from 'dayjs';
 import { type InferRequestType, type InferResponseType } from 'hono';
 import { ArchiveIcon, ArchiveRestoreIcon, MoreHorizontal, PencilIcon, TrashIcon } from 'lucide-react';
 import { useState } from 'react';
@@ -41,7 +40,7 @@ import {
 import { client, parseResponse } from '@/api/client';
 import { invalidateChildDictionaryEntries } from '@/modules/child-dictionaries';
 import { invalidateChildProfile } from '@/modules/child-profiles';
-import { ConfirmDeleteDialog, DateField } from '@/modules/shared';
+import { ConfirmDeleteDialog, DateField, formatDate } from '@/modules/shared';
 
 const $listEntries = client['child-dictionaries'][':id'].entries.$get;
 /** Narrowed to the 200 response — the bare inference unions in every error status too. */
@@ -223,11 +222,7 @@ export function createEntriesTableColumns(profileId: number) {
       header: 'First heard',
       cell(info) {
         const date = info.getValue();
-        return date ? (
-          <span>{dayjs(date).format('DD. MM. YYYY')}</span>
-        ) : (
-          <span className="text-muted-foreground/60">—</span>
-        );
+        return date ? <span>{formatDate(date)}</span> : <span className="text-muted-foreground/60">—</span>;
       },
     }),
     entriesTableBuilder.accessor('creator', {

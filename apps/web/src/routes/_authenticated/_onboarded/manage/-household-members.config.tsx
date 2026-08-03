@@ -2,7 +2,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import { useRouteContext } from '@tanstack/react-router';
 import { createColumnHelper } from '@tanstack/react-table';
-import dayjs from 'dayjs';
 import { type InferRequestType, type InferResponseType } from 'hono';
 import { BanIcon, MoreHorizontal, PencilIcon, UserPlusIcon } from 'lucide-react';
 import { useState } from 'react';
@@ -49,6 +48,7 @@ import {
 
 import { client, parseResponse } from '@/api/client';
 import { HouseholdMemberRoleSelectItems } from '@/modules/households/components';
+import { formatDateTime } from '@/modules/shared';
 
 type HouseholdMember = NonNullable<Awaited<InferResponseType<typeof client.households.my.$get>>>['members'][number];
 
@@ -460,8 +460,7 @@ export const invitesTableColumns = [
   invitesTableBuilder.accessor('createdAt', {
     header: 'Invited at',
     cell(info) {
-      const formatted = dayjs(info.getValue()).format('DD. MM. YYYY @ HH:MM');
-      return <span>{formatted}</span>;
+      return <span>{formatDateTime(info.getValue())}</span>;
     },
   }),
   invitesTableBuilder.display({
