@@ -1,8 +1,6 @@
 import * as Sentry from '@sentry/react';
 import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createRouter, RouterProvider } from '@tanstack/react-router';
-import dayjs from 'dayjs';
-import customParseFormat from 'dayjs/plugin/customParseFormat';
 import { StrictMode } from 'react';
 import ReactDOM from 'react-dom/client';
 
@@ -10,8 +8,6 @@ import { API_URL } from '@/api/client';
 import { isExpectedRequestFailure } from '@/modules/shared/helpers';
 
 import { routeTree } from './routeTree.gen';
-
-dayjs.extend(customParseFormat);
 
 import './main.css';
 
