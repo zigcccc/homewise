@@ -29,6 +29,19 @@ const UNIQUE_VIOLATION = '23505';
  * Identifies the error a duplicate row raises, so a service can answer 409 with a message naming the
  * conflict instead of letting a 500 escape. Kept structural rather than typed against a driver error
  * class: the pg and Neon pools raise different classes carrying the same `code`.
+ *
+ * Walks `cause`, because drizzle wraps driver errors in a `DrizzleQueryError` that carries no `code`
+ * of its own. Checking only the top level silently answered `false` for every duplicate — invisible
+ * until two writes actually raced, since each service pre-checks the name and rarely reaches here.
  */
-export const isUniqueViolation = (error: unknown) =>
-  typeof error === 'object' && error !== null && 'code' in error && error.code === UNIQUE_VIOLATION;
+export const isUniqueViolation = (error: unknown): boolean => {
+  if (typeof error !== 'object' || error === null) {
+    return false;
+  }
+
+  if ('code' in error && error.code === UNIQUE_VIOLATION) {
+    return true;
+  }
+
+  return 'cause' in error && isUniqueViolation(error.cause);
+};
