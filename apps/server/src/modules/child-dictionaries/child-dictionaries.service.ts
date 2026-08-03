@@ -2,7 +2,7 @@ import { and, asc, desc, eq, ilike, or } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 
 import { db, schema } from '@/db';
-import { emptyToNull } from '@/db/utils';
+import { emptyToNull, type Filters } from '@/db/utils';
 
 import {
   type CreateChildDictionaryEntry,
@@ -38,11 +38,11 @@ export class ChildDictionariesService {
     const { childPhrase, adultTranslation, archived, dictionaryId: dictionaryIdColumn } = schema.childDictionaryEntry;
     const sortColumn = schema.childDictionaryEntry[sortKey];
 
-    const filters = [eq(dictionaryIdColumn, dictionaryId)];
+    const filters: Filters = [eq(dictionaryIdColumn, dictionaryId)];
 
     if (search) {
       const term = `%${search}%`;
-      filters.push(or(ilike(childPhrase, term), ilike(adultTranslation, term))!);
+      filters.push(or(ilike(childPhrase, term), ilike(adultTranslation, term)));
     }
 
     if (!includeArchived) {

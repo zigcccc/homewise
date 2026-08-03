@@ -1,3 +1,5 @@
+import { type SQL } from 'drizzle-orm';
+
 import { type db } from '@/db';
 
 /**
@@ -6,6 +8,16 @@ import { type db } from '@/db';
  * Methods that accept one default it to `db`.
  */
 export type Executor = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/**
+ * The conditions a list query accumulates before handing them to `and(...)`.
+ *
+ * `undefined` is a member because `and()` and `or()` both ignore undefined conditions — that's what
+ * lets an optional filter be pushed as-is. Without it the array infers as `SQL[]` from its first
+ * element and every `or(...)` push needs a non-null assertion, which is a lie waiting to become true
+ * the day one of the arguments turns conditional.
+ */
+export type Filters = (SQL | undefined)[];
 
 /** Optional text fields come in as '' when a user clears them; store that as NULL. */
 export const emptyToNull = (value: string | undefined) => (value === '' ? null : value);

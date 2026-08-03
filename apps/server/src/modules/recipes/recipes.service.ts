@@ -2,7 +2,7 @@ import { and, asc, count, desc, eq, ilike, inArray, or } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 
 import { db, schema } from '@/db';
-import { type Executor, emptyToNull } from '@/db/utils';
+import { type Executor, emptyToNull, type Filters } from '@/db/utils';
 import { IngredientsService } from '@/modules/ingredients/ingredients.service';
 import { MealPlanService } from '@/modules/meal-plan/meal-plan.service';
 
@@ -232,7 +232,7 @@ export class RecipesService {
     const { archived, cuisine, description, householdId: householdIdColumn, isFavorite, title } = schema.recipe;
     const sortColumn = schema.recipe[sortKey];
 
-    const filters = [eq(householdIdColumn, householdId)];
+    const filters: Filters = [eq(householdIdColumn, householdId)];
 
     if (search) {
       const term = `%${search}%`;
@@ -245,7 +245,7 @@ export class RecipesService {
         .where(ilike(schema.ingredient.name, term));
 
       filters.push(
-        or(ilike(title, term), ilike(description, term), ilike(cuisine, term), inArray(schema.recipe.id, byIngredient))!
+        or(ilike(title, term), ilike(description, term), ilike(cuisine, term), inArray(schema.recipe.id, byIngredient))
       );
     }
 
