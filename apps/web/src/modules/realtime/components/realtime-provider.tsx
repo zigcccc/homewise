@@ -21,6 +21,7 @@ import { invalidateIngredients } from '@/modules/ingredients';
 import { invalidateMealPlan } from '@/modules/meal-plan';
 import { invalidatePetProfile, invalidatePetProfiles } from '@/modules/pet-profiles';
 import { invalidateRecipe, invalidateRecipes } from '@/modules/recipes';
+import { invalidateStores } from '@/modules/stores';
 
 import { realtimeClient } from '../realtime.client';
 
@@ -86,6 +87,12 @@ const invalidators: Record<HouseholdEventEntity, (queryClient: QueryClient, even
   },
   // Deleting a tag unlinks it from every recipe that carried it, so no single recipe is enough.
   recipe_tag: (queryClient) => invalidateRecipes(queryClient),
+  store: (queryClient) => {
+    invalidateStores(queryClient);
+    // The ingredient table shows the shop's name off the join, so a rename relabels rows there and
+    // a delete clears the column on every ingredient that pointed at it.
+    invalidateIngredients(queryClient);
+  },
 };
 
 /** Turns household events into cache invalidations. Renders nothing. */

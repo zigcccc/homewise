@@ -28,6 +28,7 @@ import {
 
 import { client, parseResponse } from '@/api/client';
 import { isServerStatus, SELECT_NONE, serverMessage } from '@/modules/shared';
+import { invalidateStores, type StoreChoice, StoreCombobox } from '@/modules/stores';
 
 import { ingredientCategoryLabels, measurementUnitLabels } from '../helpers';
 import { type Ingredient, invalidateIngredients } from '../ingredients.queries';
@@ -85,9 +86,21 @@ function IngredientForm({ ingredient, onDone }: { ingredient?: Ingredient; onDon
       name: ingredient?.name ?? '',
       category: ingredient?.category ?? 'other',
       defaultUnit: ingredient?.defaultUnit ?? null,
+      storeId: ingredient?.storeId ?? null,
+      storeName: undefined,
       notes: ingredient?.notes ?? '',
     },
   });
+
+  // The shop picker's value is the two payload fields read back as one choice, so the control stays
+  // in step with the form rather than holding a second copy of the answer.
+  const [storeId, storeName] = form.watch(['storeId', 'storeName']);
+  let storeChoice: StoreChoice = { kind: 'none' };
+  if (storeName) {
+    storeChoice = { kind: 'new', name: storeName };
+  } else if (storeId) {
+    storeChoice = { kind: 'existing', id: storeId };
+  }
 
   const { mutateAsync: save } = useMutation({
     mutationFn: async (json: IngredientFormValues) =>
@@ -101,6 +114,12 @@ function IngredientForm({ ingredient, onDone }: { ingredient?: Ingredient; onDon
       await save(values);
       toast.success(ingredient ? 'Ingredient updated.' : `"${values.name}" added.`);
       invalidateIngredients(queryClient);
+
+      // The save may have minted a shop along the way, so the pickers and the Shops tab are stale.
+      if (values.storeName) {
+        invalidateStores(queryClient);
+      }
+
       onDone();
     } catch (error) {
       const message = serverMessage(error, 'Something went wrong.');
@@ -179,6 +198,27 @@ function IngredientForm({ ingredient, onDone }: { ingredient?: Ingredient; onDon
             )}
           />
         </div>
+        {/* `storeId` and `storeName` are two halves of one choice, so one control drives both: an
+            existing shop sets the id, a typed one sets the name for the server to find-or-create. */}
+        <FormField
+          control={form.control}
+          name="storeId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Shop</FormLabel>
+              <FormControl>
+                <StoreCombobox
+                  onChange={(choice) => {
+                    field.onChange(choice.kind === 'existing' ? choice.id : null);
+                    form.setValue('storeName', choice.kind === 'new' ? choice.name : undefined);
+                  }}
+                  value={storeChoice}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <FormField
           control={form.control}
           name="notes"

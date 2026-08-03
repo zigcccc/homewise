@@ -34,6 +34,7 @@ import {
   useInlineIngredientPatch,
 } from '@/modules/ingredients';
 import { ConfirmDeleteDialog, InlineTextField, SELECT_NONE, serverMessage } from '@/modules/shared';
+import { StoreCombobox } from '@/modules/stores';
 
 const $deleteIngredient = client.ingredients[':id'].$delete;
 
@@ -53,6 +54,10 @@ export const ingredientsTableColumns = [
   columnHelper.accessor('category', {
     header: 'Category',
     cell: (info) => <IngredientCategoryCell category={info.getValue()} id={info.row.original.id} />,
+  }),
+  columnHelper.accessor('store', {
+    header: 'Shop',
+    cell: (info) => <IngredientStoreCell id={info.row.original.id} store={info.getValue()} />,
   }),
   columnHelper.accessor('defaultUnit', {
     header: 'Default unit',
@@ -100,6 +105,34 @@ function IngredientCategoryCell({ category, id }: { category: IngredientCategory
         <IngredientCategorySelectItems />
       </SelectContent>
     </Select>
+  );
+}
+
+/**
+ * Which shop this is bought at — and so which section of a shopping list it files itself under.
+ *
+ * A combobox rather than a select, because a shop the household hasn't recorded yet is the common
+ * case while triaging recipe-born ingredients, and making the user leave for the Shops tab to add
+ * one is the friction this avoids. Naming a new shop patches `storeName`, and the server
+ * finds-or-creates it as part of the same write — the dialog's field does exactly the same thing.
+ */
+function IngredientStoreCell({ id, store }: { id: number; store: Ingredient['store'] }) {
+  const { isPending, saveOrToast } = useInlineIngredientPatch(id);
+
+  return (
+    <StoreCombobox
+      className={inlineSelectTriggerClassName}
+      disabled={isPending}
+      noneLabel="—"
+      onChange={(choice) =>
+        saveOrToast(
+          choice.kind === 'new'
+            ? { storeName: choice.name }
+            : { storeId: choice.kind === 'existing' ? choice.id : null }
+        )
+      }
+      value={store ? { kind: 'existing', id: store.id } : { kind: 'none' }}
+    />
   );
 }
 
