@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute, Link, Outlet, useMatchRoute, useNavigate } from '@tanstack/react-router';
-import { CheckIcon, PlusIcon } from 'lucide-react';
+import { CheckIcon, ListTodoIcon, PlusIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import z from 'zod';
 
@@ -14,6 +14,11 @@ import {
   BreadcrumbSeparator,
   Button,
   Checkbox,
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
   Label,
   Spinner,
 } from '@homewise/ui/core';
@@ -25,6 +30,7 @@ import {
   $createList,
   invalidateShoppingLists,
   listShoppingListsQueryOptions,
+  listTitle,
   remainingCount,
 } from '@/modules/shopping-lists';
 
@@ -95,17 +101,12 @@ function ShoppingListsLayout() {
         </Breadcrumb>
       </Actionbar.Content>
 
-      <main className="flex-1 p-4">
-        <div className="md:grid md:grid-cols-[18rem_minmax(0,1fr)] md:gap-6">
-          <aside className={cn('space-y-4', isDetail && 'hidden md:block')}>
-            <div className="flex items-start justify-between gap-2">
-              <h1 className="font-medium text-lg">Shopping lists</h1>
-              <Button loading={isCreating} onClick={handleCreate} size="sm">
-                <PlusIcon />
-                New list
-              </Button>
-            </div>
-
+      <main className="flex-1 space-y-6 p-4">
+        {/* Full width, whatever the columns below are doing — the actions belong to the page, not
+            to the master column. */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="font-medium text-lg">Shopping lists</h1>
+          <div className="flex items-center gap-4">
             <Label className="flex items-center gap-2 text-sm">
               <Checkbox
                 checked={searchParams.includeCompleted}
@@ -113,10 +114,30 @@ function ShoppingListsLayout() {
               />
               Show completed
             </Label>
+            <Button loading={isCreating} onClick={handleCreate} size="sm">
+              <PlusIcon />
+              New list
+            </Button>
+          </div>
+        </div>
 
-            {lists.length === 0 ? (
-              <p className="text-muted-foreground text-sm">No lists yet. Start one and add what you need to buy.</p>
-            ) : (
+        {/* Nothing to put beside, so nothing beside it. Guarded on `isDetail` too: marking the only
+            list done filters it out of the master column while its detail is still open. */}
+        {lists.length === 0 && !isDetail ? (
+          <Empty className="min-h-[60vh]">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <ListTodoIcon />
+              </EmptyMedia>
+              <EmptyTitle>No shopping lists yet</EmptyTitle>
+              {/* No call to action here: "New list" sits in the header row above, always visible, and
+                  two identical buttons on one screen is one too many. */}
+              <EmptyDescription>Start one with “New list” and add what you need to buy.</EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        ) : (
+          <div className="md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] md:gap-6">
+            <aside className={cn(isDetail && 'hidden md:block')}>
               <ul className="space-y-1">
                 {lists.map((list) => (
                   <li key={list.id}>
@@ -127,7 +148,7 @@ function ShoppingListsLayout() {
                       to="/food/shopping-lists/$listId"
                     >
                       <span className="flex items-center gap-2">
-                        <span className="min-w-0 flex-1 truncate font-medium">{list.label}</span>
+                        <span className="min-w-0 flex-1 truncate font-medium">{listTitle(list)}</span>
                         {list.completedAt && (
                           <Badge className="shrink-0" variant="secondary">
                             <CheckIcon />
@@ -146,15 +167,15 @@ function ShoppingListsLayout() {
                   </li>
                 ))}
               </ul>
-            )}
-          </aside>
+            </aside>
 
-          {/* A layout column, not a `section` — the list's own headings are the real sections, and a
-              wrapper that also matched `section` would contain every one of them. */}
-          <div className={cn('min-w-0', !isDetail && 'hidden md:block')}>
-            <Outlet />
+            {/* A layout column, not a `section` — the list's own headings are the real sections, and
+                a wrapper that also matched `section` would contain every one of them. */}
+            <div className={cn('min-w-0', !isDetail && 'hidden md:block')}>
+              <Outlet />
+            </div>
           </div>
-        </div>
+        )}
       </main>
     </>
   );

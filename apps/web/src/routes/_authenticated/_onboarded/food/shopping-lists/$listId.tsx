@@ -29,6 +29,8 @@ import {
   CompleteListDialog,
   getShoppingListQueryOptions,
   invalidateShoppingLists,
+  listTitle,
+  removeShoppingListFromCache,
   toSectionsWithItems,
 } from '@/modules/shopping-lists';
 
@@ -131,7 +133,10 @@ function ShoppingListDetailRoute() {
     try {
       await removeList();
       toast.success('List deleted.');
-      await navigate({ to: '/food/shopping-lists' });
+      // Before navigating, not after: the index route auto-selects the first list it can see, and a
+      // stale cache would hand it the one just deleted — leaving the page showing it.
+      removeShoppingListFromCache(queryClient, id);
+      await navigate({ replace: true, to: '/food/shopping-lists' });
       invalidateShoppingLists(queryClient);
     } catch (error) {
       toast.error(serverMessage(error, 'Something went wrong.'));
@@ -140,7 +145,7 @@ function ShoppingListDetailRoute() {
   };
 
   return (
-    <div className="space-y-4 lg:max-w-2/3">
+    <div className="space-y-4">
       {/* The master column is off-screen under `md`, so this is the only way back to it. */}
       <Link className="flex items-center gap-1 text-muted-foreground text-sm md:hidden" to="/food/shopping-lists">
         <ChevronLeftIcon className="size-4" />
@@ -167,7 +172,7 @@ function ShoppingListDetailRoute() {
               onClick={() => setRenaming(true)}
               type="button"
             >
-              {list.label}
+              {listTitle(list)}
               {list.completedAt && (
                 <Badge variant="secondary">
                   <CheckIcon />
@@ -236,7 +241,7 @@ function ShoppingListDetailRoute() {
           Add an ingredient and it files itself under the shop you buy it at.
         </p>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-3">
           {grouped.map(({ items, section }) => (
             <ListSection
               items={items}

@@ -37,6 +37,7 @@ export function IngredientCombobox({
   actionLabel,
   ingredients,
   label = 'Add ingredient',
+  meta = 'category',
   onSelect,
 }: {
   /**
@@ -47,6 +48,11 @@ export function IngredientCombobox({
   actionLabel?: string;
   ingredients: Ingredient[];
   label?: string;
+  /**
+   * What the right-hand column shows. The aisle is what a recipe author scans for; a shopping list
+   * cares where the thing is bought, since that decides which section it lands in.
+   */
+  meta?: 'category' | 'store';
   onSelect: (choice: IngredientChoice) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -105,7 +111,7 @@ export function IngredientCombobox({
                 >
                   <span className="truncate">{ingredient.name}</span>
                   <span className="ml-auto shrink-0 text-muted-foreground text-xs">
-                    {ingredientCategoryLabels[ingredient.category]}
+                    {meta === 'store' ? ingredient.store?.name : ingredientCategoryLabels[ingredient.category]}
                   </span>
                 </ComboboxItem>
               ))}

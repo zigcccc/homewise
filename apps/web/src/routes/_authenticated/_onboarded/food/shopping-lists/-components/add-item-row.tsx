@@ -20,6 +20,8 @@ export function AddItemRow({ listId }: { listId: number }) {
       actionLabel="Add as a one-off"
       ingredients={ingredients}
       label={isAdding ? 'Adding…' : 'Add item'}
+      // The shop, not the aisle: it's what decides which section the item lands in.
+      meta="store"
       onSelect={(choice) =>
         void addItemOrToast(
           choice.kind === 'existing' ? { ingredientId: choice.ingredient.id } : { title: choice.name }

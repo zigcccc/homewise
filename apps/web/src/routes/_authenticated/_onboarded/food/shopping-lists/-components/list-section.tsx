@@ -118,6 +118,40 @@ export function ListSection({
   );
 }
 
+function ItemLabel({
+  amount,
+  checked,
+  editable,
+  label,
+  onEdit,
+}: {
+  amount: string | null;
+  checked: boolean;
+  editable: boolean;
+  label: string;
+  onEdit: () => void;
+}) {
+  const content = (
+    <>
+      <span className="min-w-0 truncate">{label}</span>
+      {amount && <span className="shrink-0 text-muted-foreground text-xs">{amount}</span>}
+    </>
+  );
+  const className = `flex w-full items-baseline gap-2 rounded-md text-left text-sm ${
+    checked ? 'text-muted-foreground line-through' : ''
+  }`;
+
+  if (!editable) {
+    return <span className={className}>{content}</span>;
+  }
+
+  return (
+    <button className={`${className} cursor-pointer hover:bg-accent`} onClick={onEdit} type="button">
+      {content}
+    </button>
+  );
+}
+
 function ListItemRow({ item, listId, readOnly }: { item: ShoppingListItem; listId: number; readOnly: boolean }) {
   const [editing, setEditing] = useState(false);
   const { removeItemOrToast, saveItem, saveItemOrToast } = useListMutations(listId);
@@ -149,18 +183,16 @@ function ListItemRow({ item, listId, readOnly }: { item: ShoppingListItem; listI
             schema={shoppingListItemTitle}
           />
         ) : (
-          <button
-            className={`flex w-full cursor-pointer items-baseline gap-2 rounded-md text-left text-sm hover:bg-accent ${
-              checked ? 'text-muted-foreground line-through' : ''
-            }`}
-            // Only a free-text line can be renamed; an ingredient's label lives on the library row.
-            disabled={readOnly || item.ingredientId !== null}
-            onClick={() => setEditing(true)}
-            type="button"
-          >
-            <span className="min-w-0 truncate">{item.label}</span>
-            {amount && <span className="shrink-0 text-muted-foreground text-xs">{amount}</span>}
-          </button>
+          // Only a free-text line can be renamed — an ingredient's label lives on the library row,
+          // so those render as plain text. A `disabled` button would still be lit by `hover:bg-accent`
+          // and look clickable while doing nothing.
+          <ItemLabel
+            amount={amount}
+            checked={checked}
+            editable={!readOnly && item.ingredientId === null}
+            label={item.label}
+            onEdit={() => setEditing(true)}
+          />
         )}
         {item.note && <p className="text-muted-foreground text-xs">{item.note}</p>}
         {checked && item.checkedBy && <p className="text-muted-foreground text-xs">Got by {item.checkedBy}</p>}

@@ -106,3 +106,18 @@ export function invalidateShoppingLists(queryClient: QueryClient) {
 export function applyShoppingListDetail(queryClient: QueryClient, detail: ShoppingListDetail) {
   queryClient.setQueryData(['shopping-lists', detail.id], detail);
 }
+
+/**
+ * Erases a deleted list from the cache: its detail, and its row in every cached listing variant.
+ *
+ * Cache surgery rather than an awaited refetch, because the navigation that follows has to be
+ * instant *and* correct. Leaving the stale data in place, the index route reads the summaries it
+ * still has, auto-selects the list that was just deleted, and renders its cached detail — the page
+ * showing a list the sidebar and the toast both agree is gone.
+ */
+export function removeShoppingListFromCache(queryClient: QueryClient, listId: number) {
+  queryClient.removeQueries({ queryKey: ['shopping-lists', listId], exact: true });
+  queryClient.setQueriesData<ShoppingListSummary[]>({ queryKey: ['shopping-lists', 'list'] }, (lists) =>
+    lists?.filter((list) => list.id !== listId)
+  );
+}
