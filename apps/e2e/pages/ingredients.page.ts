@@ -44,6 +44,46 @@ export class IngredientsPage {
   }
 
   /**
+   * Adds an ingredient filed under a shop that doesn't exist yet, typed straight into the dialog's
+   * shop picker. The shop is found-or-created by the same save, so nothing is minted until then.
+   *
+   * The picker is a `PopoverTrigger`, not a Radix `Select`, so it's a button rather than a combobox
+   * — which is also what keeps it clear of the category/unit selects in the same dialog.
+   */
+  async addWithNewStore(name: string, storeName: string) {
+    await this.page.getByRole('button', { name: 'Add ingredient', exact: true }).first().click();
+    const dialog = this.page.getByRole('dialog');
+    await dialog.getByLabel('Name').fill(name);
+
+    await dialog.getByRole('button', { name: 'Shop', exact: true }).click();
+    await this.page.getByPlaceholder('Search shops').fill(storeName);
+    await this.page.getByRole('button', { name: `Create "${storeName}"` }).click();
+    await expect(dialog.getByRole('button', { name: 'Shop', exact: true })).toContainText(storeName);
+
+    await dialog.getByRole('button', { name: 'Add ingredient', exact: true }).click();
+    await expect(dialog).toBeHidden();
+  }
+
+  /**
+   * Same as `addWithNewStore`, but for the path where the ingredient name is refused — the dialog
+   * stays open on the 409, so this returns it rather than waiting for it to close.
+   */
+  async addWithNewStoreExpectingError(name: string, storeName: string) {
+    await this.page.getByRole('button', { name: 'Add ingredient', exact: true }).first().click();
+    const dialog = this.page.getByRole('dialog');
+    await dialog.getByLabel('Name').fill(name);
+
+    await dialog.getByRole('button', { name: 'Shop', exact: true }).click();
+    await this.page.getByPlaceholder('Search shops').fill(storeName);
+    await this.page.getByRole('button', { name: `Create "${storeName}"` }).click();
+
+    await dialog.getByRole('button', { name: 'Add ingredient', exact: true }).click();
+    await expect(dialog).toContainText('already in your ingredient library');
+
+    return dialog;
+  }
+
+  /**
    * Submits the add dialog and leaves it open, for the duplicate-name path where the server's 409
    * lands on the name field instead of closing the dialog.
    */
@@ -66,6 +106,52 @@ export class IngredientsPage {
 
   async setDefaultUnitInline(name: string, unit: string) {
     await this.pickInRow(name, 'Default unit', unit);
+  }
+
+  /**
+   * Assigns the shop an ingredient is bought at — what decides its section on a shopping list.
+   *
+   * Not `pickInRow`: this cell is a combobox built on a Popover, so its trigger is a button rather
+   * than the `combobox` role a Radix `Select` reports.
+   */
+  async setStoreInline(name: string, store: string) {
+    await this.openStorePicker(name);
+    await this.page.getByRole('option', { name: store, exact: true }).click();
+  }
+
+  /** Files a row under a shop that doesn't exist yet, created by the same patch that assigns it. */
+  async createStoreInline(name: string, storeName: string) {
+    await this.openStorePicker(name);
+    await this.page.getByPlaceholder('Search shops').fill(storeName);
+    await this.page.getByRole('button', { name: `Create "${storeName}"` }).click();
+  }
+
+  /**
+   * `exact` matters: Playwright matches an accessible name as a *substring* by default, so a plain
+   * `'Shop'` also picks up the row's name-cell button whenever the ingredient is called something
+   * like "Shopped" — two matches, and a strict-mode failure.
+   */
+  private async openStorePicker(name: string) {
+    // Settle on the row before reaching into it, so the click can't land mid-rerender.
+    await expect(this.row(name)).toBeVisible();
+    await this.row(name).getByRole('button', { name: 'Shop', exact: true }).click();
+  }
+
+  /**
+   * Narrows the list to one shop. The toolbar control is labelled "Filter by shop" rather than
+   * "Shop" precisely so it can't match a row's own shop cell, and this waits out the navigation so
+   * the next assertion reads the filtered list.
+   */
+  async filterByStore(store: string) {
+    await this.page.getByRole('combobox', { name: 'Filter by shop' }).click();
+    await this.page.getByRole('option', { name: store, exact: true }).click();
+    await this.page.waitForURL((url) => url.searchParams.has('store'));
+  }
+
+  async clearStoreFilter() {
+    await this.page.getByRole('combobox', { name: 'Filter by shop' }).click();
+    await this.page.getByRole('option', { name: 'Any shop', exact: true }).click();
+    await this.page.waitForURL((url) => !url.searchParams.has('store'));
   }
 
   /** Renames a row in place: click the name, type, Enter. */
