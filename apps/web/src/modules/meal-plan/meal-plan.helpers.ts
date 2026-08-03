@@ -30,12 +30,16 @@ export const shiftWeeks = (from: string, delta: number) => toISODate(addWeeks(pa
 /** "Monday" — the day's name, which is what you scan a plan by. */
 export const weekdayLabel = (iso: string) => format(parseISO(iso), 'EEEE');
 
-/** "4. 08." — day-first, matching the tables' `dd. MM. yyyy`. */
-export const dayLabel = (iso: string) => format(parseISO(iso), 'd. MM.');
+/** "04. 08." — day-first, matching the tables' `dd. MM. yyyy`. */
+export const dayLabel = (iso: string) => format(parseISO(iso), 'dd. MM.');
 
-/** "3. – 9. 08. 2026" for a week header. */
+/**
+ * "03. 08. 2026 – 09. 08. 2026" for a week header.
+ *
+ * Both endpoints in full: a week that crosses a month or a year names both sides of the boundary.
+ */
 export const rangeLabel = (from: string, to: string) =>
-  `${format(parseISO(from), 'd.')} – ${format(parseISO(to), 'd. MM. yyyy')}`;
+  `${format(parseISO(from), 'dd. MM. yyyy')} – ${format(parseISO(to), 'dd. MM. yyyy')}`;
 
 export const isToday = (iso: string) => iso === toISODate(new Date());
 
