@@ -44,7 +44,7 @@ The only thing worth checking after committing is `git status` — the tree shou
 A commit message says *what this code is for*. The code says how it works, and the comments say
 why. Subject line, blank line, two or three sentences at most. Often the subject alone is enough.
 
-```
+```text
 feat(web): import a shopping list from the meal plan
 
 Preview a date range, untick what's already in the cupboard, add the rest.
@@ -52,7 +52,7 @@ Preview a date range, untick what's already in the cupboard, add the rest.
 
 Not this:
 
-```
+```text
 feat(web): import a shopping list from the meal plan
 
 The import screen, reachable from the lists toolbar ("From meal plan", minting
@@ -76,3 +76,9 @@ messages.
 
 Standing constraints: never create branches, and only commit when the user has asked for it in
 this conversation.
+
+That last one is the whole boundary, and it is why this skill and `new-feature-module` don't
+contradict each other. `new-feature-module` describes finishing a feature, where the answer is
+always "stop at the checkpoint and ask" — it never authorises a commit. This skill describes what
+to do *after* the user has answered. Reaching for it without that ask is the mistake it exists to
+prevent.
