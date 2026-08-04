@@ -44,9 +44,11 @@ const shoppingListsApp = new Hono<AppContext>()
     return c.json(preview, 200);
   })
   .post('/import', zValidator('json', importFromMealPlanModel), async (c) => {
+    const { listId } = c.req.valid('json');
     const list = await ShoppingListsService.importFromMealPlan(c.var.household.id, c.req.valid('json'), c.var.user.id);
 
-    c.var.emit({ entity: 'shopping_list', id: list.id, operation: 'update' });
+    // Without a target the import mints a list, and no other client has heard of that id yet.
+    c.var.emit({ entity: 'shopping_list', id: list.id, operation: listId === undefined ? 'create' : 'update' });
 
     return c.json(list, 201);
   })

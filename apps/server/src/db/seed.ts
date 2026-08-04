@@ -243,6 +243,19 @@ async function seed() {
       console.log('▸ ingredients already present — skipping');
     }
 
+    // Shops arrived after the ingredient fixtures did, so a database seeded before then has them all
+    // unfiled. Only the ones still without a shop, so a deliberate reassignment isn't undone.
+    const unfiled = existingIngredients.filter((row) => row.storeId === null);
+
+    for (const row of unfiled) {
+      const fixture = SEED_INGREDIENTS.find((entry) => entry.name.toLowerCase() === row.name.toLowerCase());
+      const storeId = fixture?.store ? (storeIdByName.get(fixture.store.toLowerCase()) ?? null) : null;
+
+      if (storeId !== null) {
+        await db.update(schema.ingredient).set({ storeId }).where(eq(schema.ingredient.id, row.id));
+      }
+    }
+
     // 7. One complete recipe (idempotent by household + title), so the list, the
     // detail view and search-by-ingredient all have known data to read.
     const [existingRecipe] = await db

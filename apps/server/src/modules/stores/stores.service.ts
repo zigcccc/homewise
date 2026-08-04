@@ -34,7 +34,7 @@ export class StoresService {
    * How many library ingredients default to each of the given shops. Constrained to the ids just
    * read rather than grouping the whole table.
    */
-  private static async countIngredientUsage(storeIds: number[]) {
+  private static async countIngredientUsage(householdId: number, storeIds: number[]) {
     if (storeIds.length === 0) {
       return new Map<number, number>();
     }
@@ -42,7 +42,7 @@ export class StoresService {
     const rows = await db
       .select({ storeId: schema.ingredient.storeId, count: count() })
       .from(schema.ingredient)
-      .where(inArray(schema.ingredient.storeId, storeIds))
+      .where(and(eq(schema.ingredient.householdId, householdId), inArray(schema.ingredient.storeId, storeIds)))
       .groupBy(schema.ingredient.storeId);
 
     return new Map(rows.map((row) => [row.storeId!, row.count]));
@@ -142,7 +142,10 @@ export class StoresService {
       .where(and(...filters))
       .orderBy(sortDirection === 'desc' ? desc(sortColumn) : asc(sortColumn));
 
-    const usage = await StoresService.countIngredientUsage(stores.map((row) => row.id));
+    const usage = await StoresService.countIngredientUsage(
+      householdId,
+      stores.map((row) => row.id)
+    );
 
     return stores.map((row) => ({ ...row, ingredientCount: usage.get(row.id) ?? 0 }));
   }
@@ -183,7 +186,7 @@ export class StoresService {
     // "No values to set" rather than no-opping, which would surface as a 500. Return the row as-is.
     if (Object.values(set).every((value) => value === undefined)) {
       const current = await StoresService.readStoreRow(householdId, storeId);
-      const usage = await StoresService.countIngredientUsage([storeId]);
+      const usage = await StoresService.countIngredientUsage(householdId, [storeId]);
 
       return { ...current, ingredientCount: usage.get(storeId) ?? 0 };
     }
@@ -204,7 +207,7 @@ export class StoresService {
       throw new HTTPException(404, { message: 'Shop not found' });
     }
 
-    const usage = await StoresService.countIngredientUsage([storeId]);
+    const usage = await StoresService.countIngredientUsage(householdId, [storeId]);
 
     return { ...updated, ingredientCount: usage.get(storeId) ?? 0 };
   }

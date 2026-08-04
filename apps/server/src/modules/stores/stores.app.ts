@@ -36,8 +36,13 @@ const storesApp = new Hono<AppContext>()
     const { id } = c.req.valid('param');
     await StoresService.delete(c.var.household.id, id);
 
-    // Also an ingredient change: every row that defaulted to this shop just lost that default.
-    c.var.emit({ entity: 'store', id, operation: 'delete' }, { entity: 'ingredient', id: null, operation: 'update' });
+    // Also an ingredient change — every row that defaulted to this shop just lost that default — and
+    // a shopping-list one, since the sections that stood for it were tombstoned with its name.
+    c.var.emit(
+      { entity: 'store', id, operation: 'delete' },
+      { entity: 'ingredient', id: null, operation: 'update' },
+      { entity: 'shopping_list', id: null, operation: 'update' }
+    );
 
     return c.json({ success: true }, 202);
   });

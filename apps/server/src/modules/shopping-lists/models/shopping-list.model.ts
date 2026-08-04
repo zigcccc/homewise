@@ -69,6 +69,10 @@ const itemFields = {
   note,
   /** Omit to let the ingredient's shop decide; `null` forces it ungrouped. */
   sectionId: id.nullish(),
+  /** Where in its section to land. Omit to append — only an Undo knows the slot a row came from. */
+  position: z.number().int().min(0).optional(),
+  /** Only an Undo sends this: a row that was already in the basket goes back ticked. */
+  checked: z.boolean().optional(),
 };
 
 export const createItemModel = z

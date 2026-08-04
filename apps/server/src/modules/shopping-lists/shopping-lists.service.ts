@@ -250,12 +250,44 @@ export class ShoppingListsService {
    * Copies a shop's name onto the sections that stand for it, so they keep a heading once the shop is
    * gone. Runs inside `StoresService.delete`'s transaction, before the FK nulls the link — the check
    * constraint makes the delete fail otherwise, which is what stops this being forgotten.
+   *
+   * A list that already has a free-text heading of that name absorbs the items instead: two "Spar"
+   * headings on one list is both a worse thing to read and a `shopping_list_section_name_unique`
+   * violation, which would fail the shop delete outright.
    */
   public static async detachStore(executor: Executor, storeId: number, name: string) {
-    await executor
-      .update(schema.shoppingListSection)
-      .set({ name })
+    const sections = await executor
+      .select({ id: schema.shoppingListSection.id, listId: schema.shoppingListSection.shoppingListId })
+      .from(schema.shoppingListSection)
       .where(and(eq(schema.shoppingListSection.storeId, storeId), isNull(schema.shoppingListSection.name)));
+
+    for (const section of sections) {
+      const [twin] = await executor
+        .select({ id: schema.shoppingListSection.id })
+        .from(schema.shoppingListSection)
+        .where(
+          and(
+            eq(schema.shoppingListSection.shoppingListId, section.listId),
+            sql`lower(${schema.shoppingListSection.name}) = lower(${name})`
+          )
+        )
+        .limit(1);
+
+      if (!twin) {
+        await executor
+          .update(schema.shoppingListSection)
+          .set({ name })
+          .where(eq(schema.shoppingListSection.id, section.id));
+        continue;
+      }
+
+      await executor
+        .update(schema.shoppingListItem)
+        .set({ sectionId: twin.id })
+        .where(eq(schema.shoppingListItem.sectionId, section.id));
+      await executor.delete(schema.shoppingListSection).where(eq(schema.shoppingListSection.id, section.id));
+      await ShoppingListsService.resequence(executor, section.listId, twin.id);
+    }
   }
 
   /** The same tombstone for an ingredient: a list keeps the line, it just stops being a library row. */
@@ -267,8 +299,8 @@ export class ShoppingListsService {
   }
 
   /**
-   * Every list, active first and newest first within each. Carries the counts the master column shows
-   * ("3 of 12") and the inferred label, so listing never has to read a list's items.
+   * Every list, newest first. Carries the counts the master column shows ("3 of 12") and the inferred
+   * label, so listing never has to read a list's items.
    */
   public static async list(householdId: number, { includeCompleted }: ListShoppingListsQueryParams) {
     const lists = await db.query.shoppingList.findMany({
@@ -616,6 +648,8 @@ export class ShoppingListsService {
           // A placeholder: `resequence` below assigns the real one. `APPEND` is a splice index, not
           // a column value — writing it here overflows the `integer` position.
           position: 0,
+          checkedAt: data.checked ? new Date() : null,
+          checkedBy: data.checked ? userId : null,
           createdBy: userId,
         })
         .returning({ id: schema.shoppingListItem.id })
@@ -632,7 +666,10 @@ export class ShoppingListsService {
         throw new HTTPException(400, { message: 'Something went wrong.' });
       }
 
-      await ShoppingListsService.resequence(tx, listId, sectionId ?? null, { index: APPEND, itemId: created.id });
+      await ShoppingListsService.resequence(tx, listId, sectionId ?? null, {
+        index: data.position ?? APPEND,
+        itemId: created.id,
+      });
     });
 
     return ShoppingListsService.read(householdId, listId);
