@@ -9,8 +9,10 @@ import {
   createItemModel,
   createSectionModel,
   createShoppingListModel,
+  importFromMealPlanModel,
   itemPathParamsModel,
   listShoppingListsQueryParamsModel,
+  mealPlanPreviewQueryParamsModel,
   patchItemModel,
   patchSectionModel,
   patchShoppingListModel,
@@ -34,6 +36,19 @@ const shoppingListsApp = new Hono<AppContext>()
     const lists = await ShoppingListsService.list(c.var.household.id, c.req.valid('query'));
 
     return c.json(lists, 200);
+  })
+  // Before `/:id`, or the router reads "meal-plan-preview" as a list id.
+  .get('/meal-plan-preview', zValidator('query', mealPlanPreviewQueryParamsModel), async (c) => {
+    const preview = await ShoppingListsService.previewFromMealPlan(c.var.household.id, c.req.valid('query'));
+
+    return c.json(preview, 200);
+  })
+  .post('/import', zValidator('json', importFromMealPlanModel), async (c) => {
+    const list = await ShoppingListsService.importFromMealPlan(c.var.household.id, c.req.valid('json'), c.var.user.id);
+
+    c.var.emit({ entity: 'shopping_list', id: list.id, operation: 'update' });
+
+    return c.json(list, 201);
   })
   .post('/', zValidator('json', createShoppingListModel), async (c) => {
     const list = await ShoppingListsService.create(c.var.household.id, c.req.valid('json'), c.var.user.id);

@@ -119,6 +119,14 @@ export const shoppingListItem = pgTable(
     index('shopping_list_item_list_idx').on(table.shoppingListId),
     index('shopping_list_item_ingredient_idx').on(table.ingredientId),
     check('shopping_list_item_label_check', sql`${table.ingredientId} IS NOT NULL OR ${table.title} IS NOT NULL`),
+    // One line per ingredient per list. Two "Potato" rows are never what anyone meant, and you can't
+    // tick half of them. Scoped to the list rather than the section: an ingredient has one shop, so
+    // it belongs under one heading — and a NULL section (an ingredient with no shop) would slip
+    // through a section-scoped index, since NULLs don't collide. Free text is left alone; only a
+    // library row has an identity to be duplicated.
+    uniqueIndex('shopping_list_item_ingredient_unique')
+      .on(table.shoppingListId, table.ingredientId)
+      .where(sql`${table.ingredientId} IS NOT NULL`),
   ]
 );
 

@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "shopping_list_item_ingredient_unique" ON "shopping_list_item" USING btree ("shopping_list_id","ingredient_id") WHERE "shopping_list_item"."ingredient_id" IS NOT NULL;

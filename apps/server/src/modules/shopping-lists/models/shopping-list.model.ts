@@ -107,6 +107,46 @@ export const itemPathParamsModel = z.object({
   itemId: z.coerce.number<number>().int().positive(),
 });
 
+/**
+ * How far ahead an import looks by default. A week from today, not the current ISO week: you shop
+ * for the days coming, and on a Saturday "this week" is mostly behind you.
+ */
+export const IMPORT_DEFAULT_DAYS = 7;
+
+export const mealPlanPreviewQueryParamsModel = z.object({
+  from: z.iso.date().optional().catch(undefined),
+  to: z.iso.date().optional().catch(undefined),
+});
+export type MealPlanPreviewQueryParams = z.infer<typeof mealPlanPreviewQueryParamsModel>;
+
+/**
+ * One line the user ticked in the preview. The amounts come back from the preview rather than being
+ * recomputed here, so what lands on the list is exactly what was on screen — more than one only when
+ * the recipes called for units that don't add up, which the service writes into the item's note.
+ */
+const importLineModel = z.object({
+  ingredientId: id,
+  // Both keys required, values nullable — the shape the preview hands back, so a line can round-trip
+  // unchanged rather than being reassembled on the way in.
+  amounts: z
+    .array(
+      z.object({
+        quantity: z.number().positive().max(1_000_000).nullable(),
+        unit: measurementUnit.nullable(),
+      })
+    )
+    .min(1)
+    .max(8),
+});
+
+export const importFromMealPlanModel = z.object({
+  /** Omit to start a new list; name it too, if the new list should carry one. */
+  listId: id.optional(),
+  name: shoppingListName.optional(),
+  lines: z.array(importLineModel).min(1, { error: 'Pick at least one thing to add' }).max(200),
+});
+export type ImportFromMealPlan = z.infer<typeof importFromMealPlanModel>;
+
 export const listShoppingListsQueryParamsModel = z.object({
   /** Completed lists are hidden by default — the useful list is the one you haven't shopped yet. */
   includeCompleted: z
