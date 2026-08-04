@@ -8,21 +8,24 @@ export const UNTITLED_LIST_LABEL = 'Shopping list';
 /** Surfaced on the field the form can act on, the way `MEAL_LABEL_ERROR` is on the meal plan. */
 export const ITEM_LABEL_ERROR = 'Pick an ingredient or give the item a name';
 
-const boundedName = (max: number) =>
-  z
-    .string()
-    .trim()
-    .min(1, { error: 'Name must contain at least 1 character' })
-    .max(max, { error: `Name must contain at most ${max} characters` });
-
 /** Exported bare, so an inline editor validates against the same contract the endpoint does. */
-export const shoppingListName = boundedName(96);
-export const shoppingListSectionName = boundedName(96);
-export const shoppingListItemTitle = boundedName(160);
+export const shoppingListName = z
+  .string()
+  .trim()
+  .min(1, { error: 'Name must contain at least 1 character' })
+  .max(96, { error: 'Name must contain at most 96 characters' });
 
-const listName = shoppingListName;
-const sectionName = shoppingListSectionName;
-const itemTitle = shoppingListItemTitle;
+export const shoppingListSectionName = z
+  .string()
+  .trim()
+  .min(1, { error: 'Name must contain at least 1 character' })
+  .max(96, { error: 'Name must contain at most 96 characters' });
+
+export const shoppingListItemTitle = z
+  .string()
+  .trim()
+  .min(1, { error: 'Name must contain at least 1 character' })
+  .max(160, { error: 'Name must contain at most 160 characters' });
 
 const note = z
   .string()
@@ -36,11 +39,11 @@ const quantity = z.number().positive().max(1_000_000).nullish();
 const id = z.number().int().positive();
 
 /** Optional, and expected to stay empty — a list is normally labelled from its sections. */
-export const createShoppingListModel = z.object({ name: listName.optional() });
+export const createShoppingListModel = z.object({ name: shoppingListName.optional() });
 export type CreateShoppingList = z.infer<typeof createShoppingListModel>;
 
 /** `null` clears the name and hands labelling back to the sections. */
-export const patchShoppingListModel = z.object({ name: listName.nullish() });
+export const patchShoppingListModel = z.object({ name: shoppingListName.nullish() });
 export type PatchShoppingList = z.infer<typeof patchShoppingListModel>;
 
 /**
@@ -53,17 +56,17 @@ export const completeShoppingListModel = z.object({
 });
 export type CompleteShoppingList = z.infer<typeof completeShoppingListModel>;
 
-export const createSectionModel = z.object({ name: sectionName });
+export const createSectionModel = z.object({ name: shoppingListSectionName });
 export type CreateSection = z.infer<typeof createSectionModel>;
 
-export const patchSectionModel = z.object({ name: sectionName.optional() });
+export const patchSectionModel = z.object({ name: shoppingListSectionName.optional() });
 export type PatchSection = z.infer<typeof patchSectionModel>;
 
 const itemFields = {
   /** An existing library row. Mutually exclusive with `title` in practice; `ingredientId` wins. */
   ingredientId: id.optional(),
   /** A one-off nobody wants in the ingredient library — batteries, a birthday card. */
-  title: itemTitle.optional(),
+  title: shoppingListItemTitle.optional(),
   quantity,
   unit: measurementUnit.nullish(),
   note,
@@ -91,7 +94,7 @@ export type CreateItem = z.infer<typeof createItemModel>;
  * free-text line.
  */
 export const patchItemModel = z.object({
-  title: itemTitle.optional(),
+  title: shoppingListItemTitle.optional(),
   quantity,
   unit: measurementUnit.nullish(),
   note,

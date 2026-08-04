@@ -3,6 +3,7 @@ import { HTTPException } from 'hono/http-exception';
 
 import { db, schema } from '@/db';
 import { emptyToNull } from '@/db/utils';
+import { notFound } from '@/lib/errors';
 
 import { HouseholdsService } from '../households/households.service';
 import { ImagesService } from '../images/images.service';
@@ -46,7 +47,7 @@ export class PetProfilesService {
     });
 
     if (!profile) {
-      throw new HTTPException(404, { message: 'Profile not found' });
+      throw notFound('Profile');
     }
 
     return profile;
@@ -59,7 +60,7 @@ export class PetProfilesService {
     });
 
     if (!profile) {
-      throw new HTTPException(404, { message: 'Profile not found' });
+      throw notFound('Profile');
     }
 
     // The medical record is eager-created with the profile (and backfilled), so it's always present.
@@ -138,7 +139,7 @@ export class PetProfilesService {
 
     // Zero rows means the profile was deleted concurrently — the replacement blob was already rolled back.
     if (!persisted) {
-      throw new HTTPException(404, { message: 'Profile not found' });
+      throw notFound('Profile');
     }
 
     return PetProfilesService.read(householdId, profileId, ownerId);
@@ -151,7 +152,7 @@ export class PetProfilesService {
       .returning();
 
     if (!deleted) {
-      throw new HTTPException(404, { message: 'Profile not found' });
+      throw notFound('Profile');
     }
 
     // The row is already gone — cleanup is best-effort and guarded to this pet's own uploads.

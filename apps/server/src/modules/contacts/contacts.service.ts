@@ -1,8 +1,8 @@
 import { and, eq } from 'drizzle-orm';
-import { HTTPException } from 'hono/http-exception';
 
 import { db, schema } from '@/db';
 import { type Executor, emptyToNull } from '@/db/utils';
+import { notFound, somethingWentWrong } from '@/lib/errors';
 
 import { type ContactLink, type CreateContact, type PatchContact } from './models';
 
@@ -16,7 +16,7 @@ export class ContactsService {
     });
 
     if (!contact) {
-      throw new HTTPException(404, { message: 'Contact not found' });
+      throw notFound('Contact');
     }
 
     return contact;
@@ -47,7 +47,7 @@ export class ContactsService {
     });
 
     if (!contact) {
-      throw new HTTPException(404, { message: 'Contact not found' });
+      throw notFound('Contact');
     }
 
     return contact;
@@ -69,7 +69,7 @@ export class ContactsService {
       .returning();
 
     if (!created) {
-      throw new HTTPException(400, { message: 'Something went wrong.' });
+      throw somethingWentWrong();
     }
 
     await ContactsService.insertLinks(executor, created.id, data.links);
@@ -115,7 +115,7 @@ export class ContactsService {
       .returning();
 
     if (!deleted) {
-      throw new HTTPException(404, { message: 'Contact not found' });
+      throw notFound('Contact');
     }
 
     return deleted;

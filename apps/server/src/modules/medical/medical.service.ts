@@ -3,6 +3,7 @@ import { HTTPException } from 'hono/http-exception';
 
 import { db, schema } from '@/db';
 import { emptyToNull } from '@/db/utils';
+import { notFound } from '@/lib/errors';
 
 import { ContactsService } from '../contacts/contacts.service';
 import { type CreateContact } from '../contacts/models';
@@ -41,7 +42,7 @@ export class MedicalService {
     });
 
     if (!info) {
-      throw new HTTPException(404, { message: 'Medical info not found' });
+      throw notFound('Medical info');
     }
 
     return info;
@@ -55,7 +56,7 @@ export class MedicalService {
     });
 
     if (!info) {
-      throw new HTTPException(404, { message: 'Medical info not found' });
+      throw notFound('Medical info');
     }
 
     return MedicalService.toMedicalInfoResponse(info);
@@ -69,7 +70,7 @@ export class MedicalService {
       .returning({ id: schema.medicalInfo.id });
 
     if (!updated) {
-      throw new HTTPException(404, { message: 'Medical info not found' });
+      throw notFound('Medical info');
     }
 
     return MedicalService.read(householdId, medicalInfoId);
@@ -99,7 +100,7 @@ export class MedicalService {
     });
 
     if (!contact) {
-      throw new HTTPException(404, { message: 'Contact not found' });
+      throw notFound('Contact');
     }
 
     await db

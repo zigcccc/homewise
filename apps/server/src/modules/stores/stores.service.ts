@@ -1,13 +1,11 @@
 import { and, asc, count, desc, eq, ilike, inArray, ne, or, sql } from 'drizzle-orm';
-import { HTTPException } from 'hono/http-exception';
 
 import { db, schema } from '@/db';
-import { type Executor, emptyToNull, type Filters, isUniqueViolation } from '@/db/utils';
+import { type Executor, emptyToNull, type Filters, isUniqueViolation, writesAnything } from '@/db/utils';
+import { alreadyExists, couldNotResolve, notFound, somethingWentWrong } from '@/lib/errors';
 import { ShoppingListsService } from '@/modules/shopping-lists/shopping-lists.service';
 
 import { type CreateStore, type ListStoresQueryParams, type PatchStore } from './models';
-
-const duplicateNameError = (name: string) => new HTTPException(409, { message: `"${name}" is already a shop` });
 
 /**
  * The shops a household buys at. An ingredient points at one, and a shopping list files that
@@ -24,7 +22,7 @@ export class StoresService {
       .limit(1);
 
     if (!store) {
-      throw new HTTPException(404, { message: 'Shop not found' });
+      throw notFound('Shop');
     }
 
     return store;
@@ -69,7 +67,7 @@ export class StoresService {
       .limit(1);
 
     if (existing) {
-      throw duplicateNameError(name);
+      throw alreadyExists(name, 'a shop');
     }
   }
 
@@ -118,7 +116,7 @@ export class StoresService {
     const [resolved] = await readMatching();
 
     if (!resolved) {
-      throw new HTTPException(500, { message: `Could not resolve shop "${name}"` });
+      throw couldNotResolve(`shop "${name}"`);
     }
 
     return resolved.id;
@@ -161,13 +159,13 @@ export class StoresService {
       .returning()
       .catch((error: unknown) => {
         if (isUniqueViolation(error)) {
-          throw duplicateNameError(data.name);
+          throw alreadyExists(data.name, 'a shop');
         }
         throw error;
       });
 
     if (!created) {
-      throw new HTTPException(400, { message: 'Something went wrong.' });
+      throw somethingWentWrong();
     }
 
     return { ...created, ingredientCount: 0 };
@@ -182,9 +180,7 @@ export class StoresService {
 
     const set = { name: data.name, notes: emptyToNull(data.notes) };
 
-    // Every field is optional, so `PATCH {}` reaches here with nothing to write — and drizzle throws
-    // "No values to set" rather than no-opping, which would surface as a 500. Return the row as-is.
-    if (Object.values(set).every((value) => value === undefined)) {
+    if (!writesAnything(set)) {
       const current = await StoresService.readStoreRow(householdId, storeId);
       const usage = await StoresService.countIngredientUsage(householdId, [storeId]);
 
@@ -198,13 +194,13 @@ export class StoresService {
       .returning()
       .catch((error: unknown) => {
         if (data.name !== undefined && isUniqueViolation(error)) {
-          throw duplicateNameError(data.name);
+          throw alreadyExists(data.name, 'a shop');
         }
         throw error;
       });
 
     if (!updated) {
-      throw new HTTPException(404, { message: 'Shop not found' });
+      throw notFound('Shop');
     }
 
     const usage = await StoresService.countIngredientUsage(householdId, [storeId]);
@@ -236,7 +232,7 @@ export class StoresService {
     });
 
     if (!deleted) {
-      throw new HTTPException(404, { message: 'Shop not found' });
+      throw notFound('Shop');
     }
 
     return deleted;

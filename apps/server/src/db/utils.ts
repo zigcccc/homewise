@@ -22,6 +22,16 @@ export type Filters = (SQL | undefined)[];
 /** Optional text fields come in as '' when a user clears them; store that as NULL. */
 export const emptyToNull = (value: string | undefined) => (value === '' ? null : value);
 
+/**
+ * Whether a patch has anything for drizzle to write.
+ *
+ * Every PATCH field is optional, so `PATCH {}` reaches the update with every key undefined — and
+ * drizzle throws "No values to set" rather than no-opping, which escapes as a 500. Pass either the
+ * `set` object or the validated payload; three services had grown three different spellings of this.
+ */
+export const writesAnything = (patch: Record<string, unknown>) =>
+  Object.values(patch).some((value) => value !== undefined);
+
 /** Postgres unique-violation SQLSTATE — what any of our `unique()` constraints raises on a duplicate. */
 const UNIQUE_VIOLATION = '23505';
 

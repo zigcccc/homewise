@@ -4,6 +4,7 @@ import { HTTPException } from 'hono/http-exception';
 import { db, schema } from '@/db';
 import { type Executor, emptyToNull } from '@/db/utils';
 import { addDays, eachDayInclusive, startOfISOWeek, todayISO } from '@/lib/dates';
+import { notFound, somethingWentWrong } from '@/lib/errors';
 import { HouseholdsService } from '@/modules/households/households.service';
 
 import {
@@ -45,7 +46,7 @@ export class MealPlanService {
     });
 
     if (!meal) {
-      throw new HTTPException(404, { message: 'Meal not found' });
+      throw notFound('Meal');
     }
 
     return meal;
@@ -59,7 +60,7 @@ export class MealPlanService {
     });
 
     if (!meal) {
-      throw new HTTPException(404, { message: 'Meal not found' });
+      throw notFound('Meal');
     }
 
     return MealPlanService.toMealResponse(meal);
@@ -98,7 +99,7 @@ export class MealPlanService {
     });
 
     if (!found) {
-      throw new HTTPException(404, { message: 'Recipe not found' });
+      throw notFound('Recipe');
     }
   }
 
@@ -122,7 +123,7 @@ export class MealPlanService {
       .where(and(eq(schema.householdMember.householdId, householdId), inArray(schema.householdMember.id, unique)));
 
     if (found.length !== unique.length) {
-      throw new HTTPException(404, { message: 'Household member not found' });
+      throw notFound('Household member');
     }
   }
 
@@ -273,7 +274,7 @@ export class MealPlanService {
         .returning();
 
       if (!created) {
-        throw new HTTPException(400, { message: 'Something went wrong.' });
+        throw somethingWentWrong();
       }
 
       await MealPlanService.resequenceDay(tx, householdId, data.day, {
@@ -352,7 +353,7 @@ export class MealPlanService {
         .returning();
 
       if (!deleted) {
-        throw new HTTPException(404, { message: 'Meal not found' });
+        throw notFound('Meal');
       }
 
       await MealPlanService.resequenceDay(tx, householdId, deleted.day);
@@ -381,7 +382,7 @@ export class MealPlanService {
       .returning();
 
     if (!saved) {
-      throw new HTTPException(400, { message: 'Something went wrong.' });
+      throw somethingWentWrong();
     }
 
     return { day: saved.day, note: saved.note };

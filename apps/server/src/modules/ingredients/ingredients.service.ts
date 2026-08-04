@@ -2,7 +2,8 @@ import { and, asc, count, desc, eq, ilike, inArray, isNull, ne, or, sql } from '
 import { HTTPException } from 'hono/http-exception';
 
 import { db, schema } from '@/db';
-import { type Executor, emptyToNull, type Filters, isUniqueViolation } from '@/db/utils';
+import { type Executor, emptyToNull, type Filters, isUniqueViolation, writesAnything } from '@/db/utils';
+import { alreadyExists, couldNotResolve, notFound, somethingWentWrong } from '@/lib/errors';
 import { ShoppingListsService } from '@/modules/shopping-lists/shopping-lists.service';
 import { StoresService } from '@/modules/stores/stores.service';
 
@@ -12,9 +13,6 @@ import {
   type MeasurementUnit,
   type PatchIngredient,
 } from './models';
-
-const duplicateNameError = (name: string) =>
-  new HTTPException(409, { message: `"${name}" is already in your ingredient library` });
 
 /**
  * A name to find-or-create in the library, plus the unit it was used with — a recipe line, in
@@ -34,7 +32,7 @@ export class IngredientsService {
     });
 
     if (!ingredient) {
-      throw new HTTPException(404, { message: 'Ingredient not found' });
+      throw notFound('Ingredient');
     }
 
     return ingredient;
@@ -52,7 +50,7 @@ export class IngredientsService {
     });
 
     if (!ingredient) {
-      throw new HTTPException(404, { message: 'Ingredient not found' });
+      throw notFound('Ingredient');
     }
 
     const usage = await IngredientsService.countRecipeUsage([ingredientId]);
@@ -99,7 +97,7 @@ export class IngredientsService {
       .limit(1);
 
     if (existing) {
-      throw duplicateNameError(name);
+      throw alreadyExists(name, 'in your ingredient library');
     }
   }
 
@@ -168,7 +166,7 @@ export class IngredientsService {
     // something is wrong with the insert — fail rather than quietly saving the recipe minus a line.
     for (const [key, { name }] of wanted) {
       if (!refreshedByLower.has(key)) {
-        throw new HTTPException(500, { message: `Could not resolve ingredient "${name}"` });
+        throw couldNotResolve(`ingredient "${name}"`);
       }
     }
 
@@ -261,13 +259,13 @@ export class IngredientsService {
         .returning({ id: schema.ingredient.id })
         .catch((error: unknown) => {
           if (isUniqueViolation(error)) {
-            throw duplicateNameError(data.name);
+            throw alreadyExists(data.name, 'in your ingredient library');
           }
           throw error;
         });
 
       if (!row) {
-        throw new HTTPException(400, { message: 'Something went wrong.' });
+        throw somethingWentWrong();
       }
 
       return row;
@@ -283,18 +281,8 @@ export class IngredientsService {
       await IngredientsService.assertNameAvailable(householdId, data.name, ingredientId);
     }
 
-    // Nothing to write is decided before the shop is resolved, so `PATCH {}` can't mint one.
-    const writesAnything =
-      data.name !== undefined ||
-      data.category !== undefined ||
-      data.defaultUnit !== undefined ||
-      data.storeId !== undefined ||
-      data.storeName !== undefined ||
-      data.notes !== undefined;
-
-    // Every field is optional, so `PATCH {}` reaches here with nothing to write — and drizzle throws
-    // "No values to set" rather than no-opping, which would surface as a 500. Return the row as-is.
-    if (!writesAnything) {
+    // Decided before the shop is resolved, so `PATCH {}` can't mint one on its way to doing nothing.
+    if (!writesAnything(data)) {
       return IngredientsService.readIngredientWithRelations(householdId, ingredientId);
     }
 
@@ -313,13 +301,13 @@ export class IngredientsService {
         .returning({ id: schema.ingredient.id })
         .catch((error: unknown) => {
           if (data.name !== undefined && isUniqueViolation(error)) {
-            throw duplicateNameError(data.name);
+            throw alreadyExists(data.name, 'in your ingredient library');
           }
           throw error;
         });
 
       if (!updated) {
-        throw new HTTPException(404, { message: 'Ingredient not found' });
+        throw notFound('Ingredient');
       }
     });
 
@@ -361,7 +349,7 @@ export class IngredientsService {
     });
 
     if (!deleted) {
-      throw new HTTPException(404, { message: 'Ingredient not found' });
+      throw notFound('Ingredient');
     }
 
     return deleted;

@@ -2,8 +2,9 @@ import { and, asc, count, eq, gte, inArray, isNotNull, isNull, lte, ne, sql } fr
 import { HTTPException } from 'hono/http-exception';
 
 import { db, schema } from '@/db';
-import { type Executor, emptyToNull, isUniqueViolation } from '@/db/utils';
+import { type Executor, emptyToNull, isUniqueViolation, writesAnything } from '@/db/utils';
 import { addDays, todayISO } from '@/lib/dates';
+import { alreadyExists, couldNotResolve, notFound, somethingWentWrong } from '@/lib/errors';
 import { type Amount, formatAmount, scaleAmount, sumAmounts } from '@/modules/ingredients/units';
 import { MAX_RANGE_DAYS, MEAL_ROLES } from '@/modules/meal-plan/models';
 
@@ -21,10 +22,6 @@ import {
   type PatchShoppingList,
   UNTITLED_LIST_LABEL,
 } from './models';
-
-const listNotFound = () => new HTTPException(404, { message: 'Shopping list not found' });
-const sectionNotFound = () => new HTTPException(404, { message: 'Section not found' });
-const itemNotFound = () => new HTTPException(404, { message: 'Item not found' });
 
 /** Appending is "place me past everyone", resolved by the clamp in `resequence`. */
 const APPEND = Number.MAX_SAFE_INTEGER;
@@ -56,7 +53,7 @@ export class ShoppingListsService {
       .limit(1);
 
     if (!list) {
-      throw listNotFound();
+      throw notFound('Shopping list');
     }
 
     return list;
@@ -199,7 +196,7 @@ export class ShoppingListsService {
     const [created] = await readSection();
 
     if (!created) {
-      throw new HTTPException(500, { message: 'Could not resolve the shop’s section' });
+      throw couldNotResolve('the shop’s section');
     }
 
     return created.id;
@@ -240,7 +237,7 @@ export class ShoppingListsService {
       .limit(1);
 
     if (!section) {
-      throw sectionNotFound();
+      throw notFound('Section');
     }
 
     return sectionId;
@@ -395,7 +392,7 @@ export class ShoppingListsService {
       .returning({ id: schema.shoppingList.id });
 
     if (!created) {
-      throw new HTTPException(400, { message: 'Something went wrong.' });
+      throw somethingWentWrong();
     }
 
     return ShoppingListsService.read(householdId, created.id);
@@ -423,7 +420,7 @@ export class ShoppingListsService {
       .returning();
 
     if (!deleted) {
-      throw listNotFound();
+      throw notFound('Shopping list');
     }
 
     return deleted;
@@ -462,7 +459,7 @@ export class ShoppingListsService {
           .returning({ id: schema.shoppingList.id });
 
         if (!created) {
-          throw new HTTPException(400, { message: 'Something went wrong.' });
+          throw somethingWentWrong();
         }
         nextListId = created.id;
 
@@ -545,7 +542,7 @@ export class ShoppingListsService {
       .values({ shoppingListId: listId, name: data.name, position: nextPosition?.value ?? 0 })
       .catch((error: unknown) => {
         if (isUniqueViolation(error)) {
-          throw new HTTPException(409, { message: `"${data.name}" is already a section of this list` });
+          throw alreadyExists(data.name, 'a section of this list');
         }
         throw error;
       });
@@ -557,16 +554,18 @@ export class ShoppingListsService {
     await ShoppingListsService.readListRow(householdId, listId);
     await ShoppingListsService.assertSectionInList(db, listId, sectionId);
 
-    if (data.name !== undefined) {
+    const { name } = data;
+
+    if (name !== undefined) {
       // Renaming a shop-backed section detaches it: the heading is now the user's words, not the
       // shop's, and leaving the link would let a later shop rename overwrite what they just typed.
       await db
         .update(schema.shoppingListSection)
-        .set({ name: data.name, storeId: null })
+        .set({ name, storeId: null })
         .where(eq(schema.shoppingListSection.id, sectionId))
         .catch((error: unknown) => {
           if (isUniqueViolation(error)) {
-            throw new HTTPException(409, { message: `"${data.name}" is already a section of this list` });
+            throw alreadyExists(name, 'a section of this list');
           }
           throw error;
         });
@@ -602,7 +601,7 @@ export class ShoppingListsService {
           .limit(1);
 
         if (!ingredient) {
-          throw new HTTPException(404, { message: 'Ingredient not found' });
+          throw notFound('Ingredient');
         }
 
         // The unique index is the real guarantee; this exists so the answer names the thing that's
@@ -619,7 +618,7 @@ export class ShoppingListsService {
           .limit(1);
 
         if (duplicate) {
-          throw new HTTPException(409, { message: `"${ingredient.name}" is already on this list` });
+          throw alreadyExists(ingredient.name, 'on this list');
         }
       }
 
@@ -663,7 +662,7 @@ export class ShoppingListsService {
         });
 
       if (!created) {
-        throw new HTTPException(400, { message: 'Something went wrong.' });
+        throw somethingWentWrong();
       }
 
       await ShoppingListsService.resequence(tx, listId, sectionId ?? null, {
@@ -686,7 +685,7 @@ export class ShoppingListsService {
         .limit(1);
 
       if (!item) {
-        throw itemNotFound();
+        throw notFound('Item');
       }
 
       const movingSection = data.sectionId !== undefined;
@@ -706,9 +705,7 @@ export class ShoppingListsService {
         checkedBy: data.checked === undefined ? undefined : data.checked ? userId : null,
       };
 
-      // Every field is optional, so `PATCH {}` reaches here with nothing to write — and drizzle throws
-      // "No values to set" rather than no-opping, which would surface as a 500.
-      if (Object.values(set).some((value) => value !== undefined)) {
+      if (writesAnything(set)) {
         await tx.update(schema.shoppingListItem).set(set).where(eq(schema.shoppingListItem.id, itemId));
       }
 
@@ -746,7 +743,7 @@ export class ShoppingListsService {
         .returning({ sectionId: schema.shoppingListItem.sectionId });
 
       if (!deleted) {
-        throw itemNotFound();
+        throw notFound('Item');
       }
 
       await ShoppingListsService.resequence(tx, listId, deleted.sectionId);
@@ -968,7 +965,7 @@ export class ShoppingListsService {
       const ownedIds = new Set(owned.map((row) => row.id));
 
       if (ownedIds.size !== new Set(ingredientIds).size) {
-        throw new HTTPException(404, { message: 'Ingredient not found' });
+        throw notFound('Ingredient');
       }
 
       let targetId = data.listId;
@@ -980,7 +977,7 @@ export class ShoppingListsService {
           .returning({ id: schema.shoppingList.id });
 
         if (!created) {
-          throw new HTTPException(400, { message: 'Something went wrong.' });
+          throw somethingWentWrong();
         }
         targetId = created.id;
       } else {

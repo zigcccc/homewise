@@ -6,6 +6,7 @@ import { render } from 'react-email';
 import { db, schema } from '@/db';
 import { JoinHousehold } from '@/emails/JoinHousehold';
 import { auth } from '@/lib/auth';
+import { notFound, somethingWentWrong } from '@/lib/errors';
 import { sendEmail } from '@/lib/resend';
 
 import {
@@ -110,7 +111,7 @@ export class HouseholdsService {
       const [createdHousehold] = await db.insert(schema.household).values(data).returning();
       if (!createdHousehold) {
         tx.rollback();
-        throw new HTTPException(400, { message: 'Something went wrong' });
+        throw somethingWentWrong();
       }
 
       const [createdHouseholdMember] = await db
@@ -120,7 +121,7 @@ export class HouseholdsService {
 
       if (!createdHouseholdMember) {
         tx.rollback();
-        throw new HTTPException(400, { message: 'Something went wrong' });
+        throw somethingWentWrong();
       }
       return createdHousehold;
     });
@@ -134,7 +135,7 @@ export class HouseholdsService {
       .returning();
 
     if (!updatedHousehold) {
-      throw new HTTPException(400, { message: 'Something went wrong' });
+      throw somethingWentWrong();
     }
 
     return updatedHousehold;
@@ -157,7 +158,7 @@ export class HouseholdsService {
     });
 
     if (!member) {
-      throw new HTTPException(404, { message: 'Household member not found' });
+      throw notFound('Household member');
     }
 
     return member;
@@ -178,7 +179,7 @@ export class HouseholdsService {
       .returning();
 
     if (created.length !== members.length) {
-      throw new HTTPException(400, { message: 'Something went wrong.' });
+      throw somethingWentWrong();
     }
 
     return created;
@@ -206,7 +207,7 @@ export class HouseholdsService {
       .returning();
 
     if (!updated) {
-      throw new HTTPException(400, { message: 'Something went wrong.' });
+      throw somethingWentWrong();
     }
 
     return updated;
@@ -219,7 +220,7 @@ export class HouseholdsService {
       .returning();
 
     if (!deleted) {
-      throw new HTTPException(400, { message: 'Something went wrong.' });
+      throw somethingWentWrong();
     }
 
     return deleted;
@@ -246,7 +247,7 @@ export class HouseholdsService {
 
         if (!invite) {
           tx.rollback();
-          throw new HTTPException(400, { message: 'Something went wrong' });
+          throw somethingWentWrong();
         }
 
         pending.push({ id: invite.id, email: member.email, token });
@@ -315,7 +316,7 @@ export class HouseholdsService {
       .returning();
 
     if (!invite) {
-      throw new HTTPException(400, { message: 'Something went wrong' });
+      throw somethingWentWrong();
     }
 
     // Sent after the row is committed, for the same reason as the bulk path above.
@@ -342,7 +343,7 @@ export class HouseholdsService {
       .returning();
 
     if (!deletedInvite) {
-      throw new HTTPException(400, { message: 'Something went wrong.' });
+      throw somethingWentWrong();
     }
 
     return deletedInvite;
@@ -355,7 +356,7 @@ export class HouseholdsService {
     });
 
     if (!invite) {
-      throw new HTTPException(404, { message: 'Invite not found' });
+      throw notFound('Invite');
     }
 
     // Prevent a second membership if the accepting user already belongs to this household.
@@ -392,7 +393,7 @@ export class HouseholdsService {
     }
 
     if (!householdMember) {
-      throw new HTTPException(400, { message: 'Something went wrong' });
+      throw somethingWentWrong();
     }
 
     await HouseholdsService.deleteInvite(invite.householdId, invite.id);
