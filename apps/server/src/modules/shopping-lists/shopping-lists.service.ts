@@ -98,13 +98,12 @@ export class ShoppingListsService {
   /**
    * Renumbers one section's items to `0..n-1`, optionally splicing an item in at a given index.
    *
-   * One routine covers appending on create and moving between sections — the item's `sectionId` must
-   * already be updated when this runs, and the `ne(id)` exclusion is what stops it being counted
-   * twice in its new section. `sectionId` is nullable because ungrouped items are a section too, just
-   * an implicit one.
+   * One routine covers appending on create, reordering within a section and moving between them —
+   * the item's `sectionId` must already be updated when this runs, and the `ne(id)` exclusion is what
+   * stops it being counted twice in its new section. `sectionId` is nullable because ungrouped items
+   * are a section too, just an implicit one.
    *
-   * A section holds a handful of items, so N single-row updates cost nothing; concurrent edits are
-   * last-write-wins, reconciled by the realtime invalidation that follows.
+   * Concurrent edits are last-write-wins, reconciled by the realtime invalidation that follows.
    */
   private static async resequence(
     executor: Executor,
@@ -132,9 +131,22 @@ export class ShoppingListsService {
       ids.splice(Math.min(Math.max(place.index, 0), ids.length), 0, place.itemId);
     }
 
-    for (const [index, id] of ids.entries()) {
-      await executor.update(schema.shoppingListItem).set({ position: index }).where(eq(schema.shoppingListItem.id, id));
+    if (ids.length === 0) {
+      return;
     }
+
+    // One statement rather than one per row. The loop this replaces held its transaction open across
+    // N sequential round trips, which is how a handful of concurrent writers came to occupy the whole
+    // connection pool at once.
+    const positions = sql.join(
+      ids.map((id, index) => sql`(${id}::int, ${index}::int)`),
+      sql`, `
+    );
+
+    await executor.execute(
+      sql`update ${schema.shoppingListItem} as i set position = v.position
+          from (values ${positions}) as v(id, position) where i.id = v.id`
+    );
   }
 
   /**
@@ -663,8 +675,20 @@ export class ShoppingListsService {
         await tx.update(schema.shoppingListItem).set(set).where(eq(schema.shoppingListItem.id, itemId));
       }
 
+      // Whichever section the item ends up in: the one it was moved to, or the one it was already
+      // in when only a position changed.
+      const targetSection = data.sectionId === undefined ? item.sectionId : data.sectionId;
+
+      // A drop carries the index it landed on; a menu move carries none and appends. Reordering
+      // within one section falls out of the same branch.
+      if (movingSection || data.position !== undefined) {
+        await ShoppingListsService.resequence(tx, listId, targetSection, {
+          index: data.position ?? APPEND,
+          itemId,
+        });
+      }
+
       if (movingSection) {
-        await ShoppingListsService.resequence(tx, listId, data.sectionId ?? null, { index: APPEND, itemId });
         // The section it left closes the gap — or goes entirely, if that item was the last thing
         // in it.
         await ShoppingListsService.resequence(tx, listId, item.sectionId);

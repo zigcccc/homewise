@@ -92,6 +92,8 @@ export const patchItemModel = z.object({
   unit: measurementUnit.nullish(),
   note,
   sectionId: id.nullish(),
+  /** Where in its section to land. Omit to append — a drop knows the index, a menu move doesn't. */
+  position: z.number().int().min(0).optional(),
   /** The API is a boolean; the storage is a timestamp plus who ticked it. */
   checked: z.boolean().optional(),
 });
