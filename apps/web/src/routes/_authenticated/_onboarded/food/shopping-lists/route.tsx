@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
-import { createFileRoute, Link, Outlet, useMatchRoute, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, Link, Outlet, retainSearchParams, useMatchRoute, useNavigate } from '@tanstack/react-router';
 import { CheckIcon, CookingPotIcon, ListTodoIcon, PlusIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import z from 'zod';
@@ -36,16 +36,32 @@ import {
 } from '@/modules/shopping-lists';
 
 const searchParamsModel = z.object({
-  /** Completed lists are hidden by default — the useful list is the one you haven't shopped yet. */
-  includeCompleted: z.boolean().default(false).catch(false),
+  /**
+   * Completed lists are hidden by default — the useful list is the one you haven't shopped yet.
+   *
+   * Absent rather than `false` when it's off, and deliberately not `.default(false)`: the param is
+   * retained across every navigation inside the section (see below), and a default is a value like
+   * any other, so it would be retained too — stamping `?includeCompleted=false` onto every link here.
+   */
+  includeCompleted: z.boolean().optional().catch(undefined),
 });
 
 /** Search params are typed; the RPC query string wants strings. */
-const toQuery = (search: { includeCompleted: boolean }) =>
+const toQuery = (search: { includeCompleted?: boolean }) =>
   ({ includeCompleted: search.includeCompleted ? 'true' : 'false' }) as const;
 
 export const Route = createFileRoute('/_authenticated/_onboarded/food/shopping-lists')({
   validateSearch: searchParamsModel,
+  /**
+   * The filter belongs to the section, not to one screen in it.
+   *
+   * Search params are not inherited across a navigation by default, so every link *inside* this
+   * section used to drop the very param it was found under — and `$listId`'s loader, seeing the
+   * filter off, redirected a completed list straight back out. Turning "Show completed" on was
+   * therefore self-undoing: the index route's auto-select `<Navigate>` bounced off the first
+   * completed list and back to the unfiltered column, and clicking one by hand did the same.
+   */
+  search: { middlewares: [retainSearchParams(['includeCompleted'])] },
   loaderDeps: ({ search }) => search,
   async loader({ context, deps }) {
     await context.queryClient.ensureQueryData(listShoppingListsQueryOptions(toQuery(deps)));
@@ -112,8 +128,12 @@ function ShoppingListsLayout() {
           <div className="flex items-center gap-4">
             <Label className="flex items-center gap-2 text-sm">
               <Checkbox
-                checked={searchParams.includeCompleted}
-                onCheckedChange={(checked) => navigate({ search: { includeCompleted: checked === true }, to: '.' })}
+                checked={searchParams.includeCompleted ?? false}
+                // Off drops the param rather than writing `false`, which is what keeps it out of every
+                // link the section retains it onto.
+                onCheckedChange={(checked) =>
+                  navigate({ search: { includeCompleted: checked === true ? true : undefined }, to: '.' })
+                }
               />
               Show completed
             </Label>
