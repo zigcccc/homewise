@@ -1,6 +1,5 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import clsx from 'clsx';
 import { PlusIcon, RefreshCwIcon, Rows3Icon } from 'lucide-react';
 import { useState } from 'react';
@@ -28,11 +27,11 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-  getRowId,
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
+  useDataTable,
 } from '@homewise/ui/core';
 
 import { getMyHouseholdQueryOptions, listMyHouseholdActiveInvitesQueryOptions } from '@/modules/households';
@@ -62,17 +61,13 @@ function HouseholdMembersRoute() {
 
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
 
-  const membersTable = useReactTable({
+  const membersTable = useDataTable({
     data: household.members,
     columns: membersTableColumns,
-    getCoreRowModel: getCoreRowModel(),
-    getRowId,
   });
-  const invitesTable = useReactTable({
+  const invitesTable = useDataTable({
     data: invites,
     columns: invitesTableColumns,
-    getCoreRowModel: getCoreRowModel(),
-    getRowId,
   });
 
   return (

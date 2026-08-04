@@ -1,6 +1,19 @@
 import z from 'zod';
 
 import { optionalText } from '@/lib/models';
+import { type HouseholdMemberRole, householdMemberRole } from '@/modules/households/models';
+
+/**
+ * Who eats off the plan. A pet doesn't, and an external member is by definition eating elsewhere —
+ * neither belongs in the "who's eating this?" picker, in the count of who still needs a meal, or in
+ * the headcount a shopping-list import scales its amounts to. A `null` role is none of these either,
+ * so it doesn't count.
+ *
+ * Lives here rather than in `households` because it is a statement about meals, not about the
+ * roster; and on the server rather than on the web because the import's headcount needs it too, and
+ * a second copy would let the two disagree about who's eating.
+ */
+export const MEAL_ROLES: HouseholdMemberRole[] = [householdMemberRole.enum.adult, householdMemberRole.enum.child];
 
 /**
  * `z.iso.date()` accepts anything shaped like a date, including `3000-01-01`. A plan lives on a

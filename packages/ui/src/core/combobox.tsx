@@ -42,13 +42,23 @@ function ComboboxTrigger({ ...props }: ComponentProps<typeof PopoverTrigger>) {
  * sets on a `PopoverTrigger`. Render the value child as `<span data-slot="select-value">` to pick up
  * the line clamp, and put `data-placeholder` on the trigger yourself while nothing is chosen.
  *
+ * `data-size` is the third of those: the `h-9`/`h-8` rules key off it, so without it this box has no
+ * height of its own and lands ~2px taller than the `Select` beside it. `SelectTrigger` sets it from
+ * the same `size` prop, so this mirrors it rather than hard-coding a height.
+ *
  * Use `ComboboxTrigger` instead when the trigger is an *action* — a small "Add ingredient" button
  * that happens to open a picker.
  */
-function ComboboxFieldTrigger({ children, className, ...props }: ComponentProps<typeof PopoverTrigger>) {
+function ComboboxFieldTrigger({
+  children,
+  className,
+  size = 'default',
+  ...props
+}: ComponentProps<typeof PopoverTrigger> & { size?: 'sm' | 'default' }) {
   return (
     <PopoverTrigger
       className={cn(selectTriggerClassName, 'w-full', className)}
+      data-size={size}
       data-slot="combobox-field-trigger"
       {...props}
     >

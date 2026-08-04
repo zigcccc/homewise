@@ -1,8 +1,8 @@
 import { and, asc, count, desc, eq, ilike, inArray, or } from 'drizzle-orm';
-import { HTTPException } from 'hono/http-exception';
 
 import { db, schema } from '@/db';
-import { type Executor, emptyToNull } from '@/db/utils';
+import { type Executor, emptyToNull, type Filters } from '@/db/utils';
+import { couldNotResolve, notFound, somethingWentWrong } from '@/lib/errors';
 import { IngredientsService } from '@/modules/ingredients/ingredients.service';
 import { MealPlanService } from '@/modules/meal-plan/meal-plan.service';
 
@@ -34,7 +34,7 @@ export class RecipesService {
     });
 
     if (!recipe) {
-      throw new HTTPException(404, { message: 'Recipe not found' });
+      throw notFound('Recipe');
     }
 
     return recipe;
@@ -56,7 +56,7 @@ export class RecipesService {
     });
 
     if (!recipe) {
-      throw new HTTPException(404, { message: 'Recipe not found' });
+      throw notFound('Recipe');
     }
 
     return flattenTags(recipe);
@@ -83,7 +83,7 @@ export class RecipesService {
       .where(and(eq(schema.ingredient.householdId, householdId), inArray(schema.ingredient.id, unique)));
 
     if (found.length !== unique.length) {
-      throw new HTTPException(404, { message: 'Ingredient not found' });
+      throw notFound('Ingredient');
     }
   }
 
@@ -113,7 +113,7 @@ export class RecipesService {
       // The model refines that exactly one of the two is set, and `resolveByName` throws on anything
       // it can't resolve — so this is unreachable unless one of those guarantees breaks.
       if (resolved === undefined) {
-        throw new HTTPException(500, { message: 'Could not resolve a recipe ingredient' });
+        throw couldNotResolve('a recipe ingredient');
       }
 
       return { ...rest, ingredientId: resolved };
@@ -165,7 +165,7 @@ export class RecipesService {
       const id = refreshedByLower.get(key);
 
       if (id === undefined) {
-        throw new HTTPException(500, { message: `Could not resolve tag "${wanted.get(key)}"` });
+        throw couldNotResolve(`tag "${wanted.get(key)}"`);
       }
 
       return id;
@@ -232,7 +232,7 @@ export class RecipesService {
     const { archived, cuisine, description, householdId: householdIdColumn, isFavorite, title } = schema.recipe;
     const sortColumn = schema.recipe[sortKey];
 
-    const filters = [eq(householdIdColumn, householdId)];
+    const filters: Filters = [eq(householdIdColumn, householdId)];
 
     if (search) {
       const term = `%${search}%`;
@@ -245,7 +245,7 @@ export class RecipesService {
         .where(ilike(schema.ingredient.name, term));
 
       filters.push(
-        or(ilike(title, term), ilike(description, term), ilike(cuisine, term), inArray(schema.recipe.id, byIngredient))!
+        or(ilike(title, term), ilike(description, term), ilike(cuisine, term), inArray(schema.recipe.id, byIngredient))
       );
     }
 
@@ -332,7 +332,7 @@ export class RecipesService {
         .returning();
 
       if (!created) {
-        throw new HTTPException(400, { message: 'Something went wrong.' });
+        throw somethingWentWrong();
       }
 
       await RecipesService.replaceIngredients(tx, created.id, lines);
@@ -412,7 +412,7 @@ export class RecipesService {
         .returning();
 
       if (!deleted) {
-        throw new HTTPException(404, { message: 'Recipe not found' });
+        throw notFound('Recipe');
       }
 
       return deleted;
@@ -435,7 +435,7 @@ export class RecipesService {
       .returning();
 
     if (!deleted) {
-      throw new HTTPException(404, { message: 'Tag not found' });
+      throw notFound('Tag');
     }
 
     return deleted;

@@ -3,6 +3,7 @@ import { HTTPException } from 'hono/http-exception';
 
 import { db, schema } from '@/db';
 import { emptyToNull } from '@/db/utils';
+import { notFound } from '@/lib/errors';
 
 import { HouseholdsService } from '../households/households.service';
 import { ImagesService } from '../images/images.service';
@@ -67,7 +68,7 @@ export class ChildProfilesService {
     });
 
     if (!profile) {
-      throw new HTTPException(404, { message: 'Profile not found' });
+      throw notFound('Profile');
     }
 
     return profile;
@@ -80,7 +81,7 @@ export class ChildProfilesService {
     });
 
     if (!profile) {
-      throw new HTTPException(404, { message: 'Profile not found' });
+      throw notFound('Profile');
     }
 
     const entryCount = profile.dictionary
@@ -169,7 +170,7 @@ export class ChildProfilesService {
 
     // Zero rows means the profile was deleted concurrently — the replacement blob was already rolled back.
     if (!persisted) {
-      throw new HTTPException(404, { message: 'Profile not found' });
+      throw notFound('Profile');
     }
 
     return ChildProfilesService.read(householdId, profileId, ownerId);
@@ -182,7 +183,7 @@ export class ChildProfilesService {
       .returning();
 
     if (!deleted) {
-      throw new HTTPException(404, { message: 'Profile not found' });
+      throw notFound('Profile');
     }
 
     // The row is already gone — cleanup is best-effort and guarded to this child's own uploads.

@@ -1,8 +1,8 @@
 import { and, asc, desc, eq, ilike, or } from 'drizzle-orm';
-import { HTTPException } from 'hono/http-exception';
 
 import { db, schema } from '@/db';
-import { emptyToNull } from '@/db/utils';
+import { emptyToNull, type Filters } from '@/db/utils';
+import { notFound, somethingWentWrong } from '@/lib/errors';
 
 import {
   type CreateChildDictionaryEntry,
@@ -21,7 +21,7 @@ export class ChildDictionariesService {
     });
 
     if (!dictionary) {
-      throw new HTTPException(404, { message: 'Dictionary not found' });
+      throw notFound('Dictionary');
     }
 
     return dictionary;
@@ -38,11 +38,11 @@ export class ChildDictionariesService {
     const { childPhrase, adultTranslation, archived, dictionaryId: dictionaryIdColumn } = schema.childDictionaryEntry;
     const sortColumn = schema.childDictionaryEntry[sortKey];
 
-    const filters = [eq(dictionaryIdColumn, dictionaryId)];
+    const filters: Filters = [eq(dictionaryIdColumn, dictionaryId)];
 
     if (search) {
       const term = `%${search}%`;
-      filters.push(or(ilike(childPhrase, term), ilike(adultTranslation, term))!);
+      filters.push(or(ilike(childPhrase, term), ilike(adultTranslation, term)));
     }
 
     if (!includeArchived) {
@@ -64,7 +64,7 @@ export class ChildDictionariesService {
     });
 
     if (!entry) {
-      throw new HTTPException(404, { message: 'Entry not found' });
+      throw notFound('Entry');
     }
 
     return entry;
@@ -78,7 +78,7 @@ export class ChildDictionariesService {
     });
 
     if (!entry || entry.dictionary.householdId !== householdId) {
-      throw new HTTPException(404, { message: 'Entry not found' });
+      throw notFound('Entry');
     }
 
     return entry;
@@ -105,7 +105,7 @@ export class ChildDictionariesService {
       .returning();
 
     if (!created) {
-      throw new HTTPException(400, { message: 'Something went wrong.' });
+      throw somethingWentWrong();
     }
 
     return ChildDictionariesService.readEntryWithCreator(dictionaryId, created.id);
@@ -132,7 +132,7 @@ export class ChildDictionariesService {
       .returning();
 
     if (!updated) {
-      throw new HTTPException(400, { message: 'Something went wrong.' });
+      throw somethingWentWrong();
     }
 
     return ChildDictionariesService.readEntryWithCreator(dictionaryId, updated.id);
@@ -149,7 +149,7 @@ export class ChildDictionariesService {
       .returning();
 
     if (!deleted) {
-      throw new HTTPException(400, { message: 'Something went wrong.' });
+      throw somethingWentWrong();
     }
 
     return deleted;

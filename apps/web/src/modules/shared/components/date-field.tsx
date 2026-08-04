@@ -26,16 +26,16 @@ const DATE_INPUT_FORMATS = [
 ];
 
 /**
- * Parses day-first input. Returns undefined for anything unparseable, out of range (31. 02.), or in
- * the future — these dates are past-only, matching the calendar's `disabled={{ after: today }}`.
+ * Parses day-first input. Returns undefined for anything unparseable or out of range (31. 02.), and
+ * — unless `allowFuture` — for anything ahead of today, matching the calendar's `after` limit.
  */
-function parseDayFirst(input: string) {
+function parseDayFirst(input: string, allowFuture: boolean) {
   const trimmed = input.trim();
 
   for (const dateFormat of DATE_INPUT_FORMATS) {
     const parsed = parse(trimmed, dateFormat, new Date());
 
-    if (isValid(parsed) && !isFuture(parsed)) {
+    if (isValid(parsed) && (allowFuture || !isFuture(parsed))) {
       return parsed;
     }
   }
@@ -45,10 +45,23 @@ function parseDayFirst(input: string) {
 
 /**
  * ShadCN date-picker (input + calendar popover) bound to the `YYYY-MM-DD` string the API expects.
- * Typing is allowed for fast entry; the calendar covers the "which day was that?" case. The dates it
- * captures (a birth date, a first-heard date, a joined-the-family date) can only be in the past.
+ * Typing is allowed for fast entry; the calendar covers the "which day was that?" case.
+ *
+ * Past-only by default, because most dates here are records of something that happened (a birth
+ * date, a first-heard date, a joined-the-family date). `allowFuture` opts out, for the ranges that
+ * are inherently ahead — which stretch of the meal plan to shop for.
  */
-export function DateField({ id, onChange, value }: { id: string; onChange: (value: string) => void; value: string }) {
+export function DateField({
+  allowFuture = false,
+  id,
+  onChange,
+  value,
+}: {
+  allowFuture?: boolean;
+  id: string;
+  onChange: (value: string) => void;
+  value: string;
+}) {
   const [open, setOpen] = useState(false);
   const selected = value ? parseISO(value) : undefined;
   const isValidSelection = selected && isValid(selected);
@@ -63,7 +76,7 @@ export function DateField({ id, onChange, value }: { id: string; onChange: (valu
       return;
     }
 
-    const parsed = parseDayFirst(input);
+    const parsed = parseDayFirst(input, allowFuture);
 
     if (parsed) {
       onChange(format(parsed, 'yyyy-MM-dd'));
@@ -101,8 +114,7 @@ export function DateField({ id, onChange, value }: { id: string; onChange: (valu
         <PopoverContent align="end" className="w-auto overflow-hidden p-0">
           <Calendar
             captionLayout="dropdown"
-            // These dates can only be in the past.
-            disabled={{ after: new Date() }}
+            disabled={allowFuture ? undefined : { after: new Date() }}
             mode="single"
             onSelect={(date) => {
               if (date) {

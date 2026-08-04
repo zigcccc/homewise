@@ -169,11 +169,13 @@ export function AppSidebar() {
           <SidebarGroupLabel>Food & Groceries</SidebarGroupLabel>
           <SidebarMenu>
             <SidebarMenuItem>
-              <Link to="/">
-                <SidebarMenuButton tooltip="Shopping lists">
-                  <ListTodoIcon className="size-4" />
-                  <span>Shopping lists</span>
-                </SidebarMenuButton>
+              <Link to="/food/shopping-lists">
+                {({ isActive }) => (
+                  <SidebarMenuButton isActive={isActive} tooltip="Shopping lists">
+                    <ListTodoIcon className="size-4" />
+                    <span>Shopping lists</span>
+                  </SidebarMenuButton>
+                )}
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>

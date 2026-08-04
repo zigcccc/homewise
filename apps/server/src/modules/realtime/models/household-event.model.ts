@@ -23,6 +23,9 @@ export const householdEventEntity = z.enum([
   'pet_profile',
   'recipe',
   'recipe_tag',
+  /** Any change to a list, its sections or its items — the client caches the whole list under one key. */
+  'shopping_list',
+  'store',
 ]);
 export type HouseholdEventEntity = z.infer<typeof householdEventEntity>;
 

@@ -1,6 +1,7 @@
 import { addDays, addWeeks, format, parseISO, startOfWeek } from 'date-fns';
 
-import { type HouseholdMemberRole, householdMemberRole } from '@homewise/server/households';
+import { type HouseholdMemberRole } from '@homewise/server/households';
+import { MEAL_ROLES } from '@homewise/server/meal-plan';
 
 import { formatDate } from '@/modules/shared';
 
@@ -45,13 +46,11 @@ export const rangeLabel = (from: string, to: string) => `${formatDate(from)} –
 export const isToday = (iso: string) => iso === toISODate(new Date());
 
 /**
- * Who eats off the plan. A pet doesn't, and an external member is by definition eating elsewhere —
- * neither belongs in the "who's eating this?" picker or in the count of who still needs a meal.
+ * Who eats off the plan — the roles, from the server, so this picker and the headcount a
+ * shopping-list import scales to can't drift apart.
  */
-const MEAL_PLAN_ROLES: HouseholdMemberRole[] = [householdMemberRole.enum.adult, householdMemberRole.enum.child];
-
 export const eligibleMembers = <T extends { role: HouseholdMemberRole | null }>(members: T[]) =>
-  members.filter((member) => member.role !== null && MEAL_PLAN_ROLES.includes(member.role));
+  members.filter((member) => member.role !== null && MEAL_ROLES.includes(member.role));
 
 /**
  * The eligible members with nothing to eat on a day.

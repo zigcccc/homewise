@@ -1,4 +1,10 @@
-import { type Table as CoreTable, flexRender } from '@tanstack/react-table';
+import {
+  type Table as CoreTable,
+  flexRender,
+  getCoreRowModel,
+  type TableOptions,
+  useReactTable,
+} from '@tanstack/react-table';
 import { Rows3Icon } from 'lucide-react';
 import { type ReactNode } from 'react';
 
@@ -15,6 +21,19 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
  * adding a row is enough, since realtime refetches the list beneath an open editor.
  */
 export const getRowId = <Data extends { id: number | string }>(row: Data) => String(row.id);
+
+/**
+ * `useReactTable` with the two options every table in this app was passing by hand.
+ *
+ * `getRowId` is the one that matters — see above; leaving it to the caller means one table
+ * eventually ships without it and starts committing an inline edit to the wrong record. Both are
+ * still overridable, so a table that needs sorting or filtering row models just passes its own.
+ */
+export function useDataTable<Data extends { id: number | string }>(
+  options: Omit<TableOptions<Data>, 'getCoreRowModel'> & Partial<Pick<TableOptions<Data>, 'getCoreRowModel'>>
+) {
+  return useReactTable({ getCoreRowModel: getCoreRowModel(), getRowId, ...options });
+}
 
 function DefaultEmptyComponent() {
   return (

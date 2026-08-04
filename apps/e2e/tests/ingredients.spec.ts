@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { SEED_INGREDIENTS, SEED_RECIPE } from '@homewise/server/seed-fixtures';
+import { SEED_INGREDIENTS, SEED_RECIPE, SEED_STORES } from '@homewise/server/seed-fixtures';
 
 import { IngredientsPage } from '../pages/ingredients.page';
 import { API_URL } from '../playwright.config';
@@ -65,6 +65,39 @@ test.describe('ingredient library', () => {
     } finally {
       await ingredients.goto();
       await ingredients.deleteIfPresent(renamed);
+      await ingredients.deleteIfPresent(name);
+    }
+  });
+
+  test('assigns a shop inline and filters the library by it', async ({ page }) => {
+    const ingredients = new IngredientsPage(page);
+    await ingredients.goto();
+
+    const name = `E2E Shopped ${Date.now()}`;
+    // A seeded ingredient assigned to the *other* shop, so filtering has something to exclude.
+    const elsewhere = SEED_INGREDIENTS.find((fixture) => fixture.store === SEED_STORES[1].name)!;
+
+    try {
+      await ingredients.add(name);
+      // A brand-new ingredient has no shop until someone says where they buy it.
+      await expect(ingredients.row(name)).toContainText('—');
+
+      await ingredients.setStoreInline(name, SEED_STORES[0].name);
+      await expect(ingredients.row(name)).toContainText(SEED_STORES[0].name);
+
+      await ingredients.filterByStore(SEED_STORES[0].name);
+      await expect(ingredients.row(name)).toBeVisible();
+      await expect(ingredients.row(elsewhere.name)).toBeHidden();
+
+      // "No shop" is its own filter — the ingredients nobody has placed yet.
+      await ingredients.filterByStore('No shop');
+      await expect(ingredients.row(name)).toBeHidden();
+
+      await ingredients.clearStoreFilter();
+      await expect(ingredients.row(name)).toBeVisible();
+      await expect(ingredients.row(elsewhere.name)).toBeVisible();
+    } finally {
+      await ingredients.goto();
       await ingredients.deleteIfPresent(name);
     }
   });

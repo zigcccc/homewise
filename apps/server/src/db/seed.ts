@@ -15,6 +15,7 @@ import {
   SEED_ONBOARDING_USER,
   SEED_RECIPE,
   SEED_SECOND_USER,
+  SEED_STORES,
   SEED_USER,
 } from './seed-fixtures';
 
@@ -189,7 +190,27 @@ async function seed() {
     // e2e onboarding spec can create one from a clean slate.
     await ensureUser(db, SEED_ONBOARDING_USER);
 
-    // 5. Ingredient library — pantry staples, so the recipe form's picker is never
+    // 5. Shops, before the ingredients that point at them (idempotent by household
+    // + lower(name), matching the unique index).
+    const existingStores = await db.select().from(schema.store).where(eq(schema.store.householdId, household.id));
+    const storeIdByName = new Map(existingStores.map((row) => [row.name.toLowerCase(), row.id]));
+    const missingStores = SEED_STORES.filter((fixture) => !storeIdByName.has(fixture.name.toLowerCase()));
+
+    if (missingStores.length > 0) {
+      const inserted = await db
+        .insert(schema.store)
+        .values(missingStores.map((fixture) => ({ householdId: household.id, name: fixture.name })))
+        .returning();
+
+      for (const row of inserted) {
+        storeIdByName.set(row.name.toLowerCase(), row.id);
+      }
+      console.log(`▸ seeded ${inserted.length} stores`);
+    } else {
+      console.log('▸ stores already present — skipping');
+    }
+
+    // 6. Ingredient library — pantry staples, so the recipe form's picker is never
     // empty (idempotent by household + lower(name), matching the unique index).
     const existingIngredients = await db
       .select()
@@ -209,6 +230,7 @@ async function seed() {
             name: fixture.name,
             category: fixture.category,
             defaultUnit: fixture.defaultUnit,
+            storeId: fixture.store === null ? null : (storeIdByName.get(fixture.store.toLowerCase()) ?? null),
           }))
         )
         .returning();
@@ -221,7 +243,20 @@ async function seed() {
       console.log('▸ ingredients already present — skipping');
     }
 
-    // 6. One complete recipe (idempotent by household + title), so the list, the
+    // Shops arrived after the ingredient fixtures did, so a database seeded before then has them all
+    // unfiled. Only the ones still without a shop, so a deliberate reassignment isn't undone.
+    const unfiled = existingIngredients.filter((row) => row.storeId === null);
+
+    for (const row of unfiled) {
+      const fixture = SEED_INGREDIENTS.find((entry) => entry.name.toLowerCase() === row.name.toLowerCase());
+      const storeId = fixture?.store ? (storeIdByName.get(fixture.store.toLowerCase()) ?? null) : null;
+
+      if (storeId !== null) {
+        await db.update(schema.ingredient).set({ storeId }).where(eq(schema.ingredient.id, row.id));
+      }
+    }
+
+    // 7. One complete recipe (idempotent by household + title), so the list, the
     // detail view and search-by-ingredient all have known data to read.
     const [existingRecipe] = await db
       .select()
@@ -298,7 +333,7 @@ async function seed() {
       console.log('▸ preview recipe already present — skipping');
     }
 
-    // 7. A planned week, so the meal plan opens on something. Days are resolved from *this* week's
+    // 8. A planned week, so the meal plan opens on something. Days are resolved from *this* week's
     //    Monday at seed time — a literal date would fall into the past and leave the default view
     //    blank again a week later.
     const monday = startOfISOWeek(todayISO());

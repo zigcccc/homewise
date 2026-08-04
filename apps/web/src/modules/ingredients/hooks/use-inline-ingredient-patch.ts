@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 
 import { client, parseResponse } from '@/api/client';
 import { serverMessage } from '@/modules/shared';
+import { invalidateStores } from '@/modules/stores';
 
 import { applyIngredientUpdate, invalidateIngredients } from '../ingredients.queries';
 
@@ -24,9 +25,14 @@ export function useInlineIngredientPatch(ingredientId: number) {
   const { isPending, mutateAsync: save } = useMutation({
     mutationFn: async (json: PatchIngredientPayload) =>
       parseResponse($patchIngredient({ param: { id: ingredientId.toString() }, json })),
-    onSuccess: (updated) => {
+    onSuccess: (updated, json) => {
       applyIngredientUpdate(queryClient, updated);
       invalidateIngredients(queryClient);
+
+      // Naming a shop found-or-creates it as part of the same write, so the list may have grown.
+      if (json.storeName) {
+        invalidateStores(queryClient);
+      }
     },
   });
 

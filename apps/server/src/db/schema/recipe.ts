@@ -4,6 +4,7 @@ import { boolean, integer, numeric, pgEnum, pgTable, text, unique, uniqueIndex }
 import { baseDbEntityFields } from './__shared/base';
 import { household } from './household';
 import { plannedMeal } from './meal-plan';
+import { store } from './store';
 import { user } from './user';
 
 /**
@@ -74,6 +75,11 @@ export const ingredient = pgTable(
     category: ingredientCategoryEnum().notNull().default('other'),
     /** Pre-fills the unit when this ingredient is added to a recipe. */
     defaultUnit: measurementUnitEnum(),
+    /**
+     * Where this is usually bought. Decides which section of a shopping list it lands in; NULL
+     * leaves it ungrouped. `set null` because deleting a shop should clear a default, not block it.
+     */
+    storeId: integer('store_id').references(() => store.id, { onDelete: 'set null' }),
     notes: text('notes'),
   },
   (table) => [
@@ -177,6 +183,8 @@ export const ingredientRelations = relations(ingredient, ({ many, one }) => ({
   household: one(household, { fields: [ingredient.householdId], references: [household.id] }),
   /** Every recipe line that references this ingredient. */
   recipeLinks: many(recipeIngredient),
+  /** Where it's usually bought. Survives the shop's deletion as NULL. */
+  store: one(store, { fields: [ingredient.storeId], references: [store.id] }),
 }));
 
 export const recipeRelations = relations(recipe, ({ many, one }) => ({

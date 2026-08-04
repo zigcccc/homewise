@@ -1,5 +1,7 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 
+import { Drag } from './drag';
+
 /**
  * The weekly meal plan.
  *
@@ -13,7 +15,11 @@ import { expect, type Locator, type Page } from '@playwright/test';
  * same days.
  */
 export class MealPlanPage {
-  constructor(private readonly page: Page) {}
+  private readonly drag: Drag;
+
+  constructor(private readonly page: Page) {
+    this.drag = new Drag(page);
+  }
 
   async goto(from?: string) {
     await this.page.goto(from ? `/food/meal-plan?from=${from}` : '/food/meal-plan');
@@ -242,43 +248,7 @@ export class MealPlanPage {
    * sail straight past the move spec.
    */
   async dragMeal(fromDay: string, label: string, toDay: string) {
-    // Scroll and settle before measuring: the raw `mouse` API is in absolute viewport coordinates and
-    // does no scrolling itself, so a box read mid-scroll puts `mouse.down()` beside the handle rather
-    // than on it — and the drag then never starts, silently.
-    const handle = await this.stableBox(this.meal(fromDay, label).getByRole('button', { name: `Move ${label}` }));
-    const target = await this.stableBox(this.dayRow(toDay));
-
-    const x = handle.x + handle.width / 2;
-    const y = handle.y + handle.height / 2;
-    const toX = target.x + target.width / 2;
-    const toY = target.y + target.height / 2;
-
-    await this.page.mouse.move(x, y);
-    await this.page.mouse.down();
-    // dnd-kit activates on measured pointer travel, so the pointer moves in steps, never teleports.
-    for (const fraction of [0.1, 0.3, 0.5, 0.7, 0.9, 1]) {
-      await this.page.mouse.move(x + (toX - x) * fraction, y + (toY - y) * fraction);
-    }
-    await this.page.mouse.up();
-  }
-
-  private async stableBox(locator: Locator) {
-    await locator.scrollIntoViewIfNeeded();
-
-    let previous = await locator.boundingBox();
-
-    for (let attempt = 0; attempt < 20; attempt += 1) {
-      await this.page.waitForTimeout(50);
-      const current = await locator.boundingBox();
-
-      if (previous && current && previous.x === current.x && previous.y === current.y) {
-        return current;
-      }
-
-      previous = current;
-    }
-
-    throw new Error('Bounding box never settled.');
+    await this.drag.onto(this.meal(fromDay, label).getByRole('button', { name: `Move ${label}` }), this.dayRow(toDay));
   }
 
   // ── Week navigation ───────────────────────────────────────────────────────

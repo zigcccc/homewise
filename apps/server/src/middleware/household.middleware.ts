@@ -2,6 +2,7 @@ import { setTag } from '@sentry/hono/node';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
 
+import { notFound } from '@/lib/errors';
 import { type HouseholdSummary, HouseholdsService } from '@/modules/households/households.service';
 import { type HouseholdEvent } from '@/modules/realtime/models';
 import { RealtimeService } from '@/modules/realtime/realtime.service';
@@ -33,7 +34,7 @@ export const withHousehold = createMiddleware<HouseholdContext>(async (c, next) 
   const household = await HouseholdsService.readSummaryForUser(c.var.user.id);
 
   if (!household) {
-    throw new HTTPException(404, { message: 'Household not found' });
+    throw notFound('Household');
   }
 
   c.set('household', household);

@@ -1,12 +1,15 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 
+import { Drag } from './drag';
 import { SearchBox } from './search-box';
 
 /** The recipes list, the create/edit form, and the detail read view. */
 export class RecipesPage {
+  private readonly drag: Drag;
   private readonly searchBox: SearchBox;
 
   constructor(private readonly page: Page) {
+    this.drag = new Drag(page);
     this.searchBox = new SearchBox(page, 'Search recipes or ingredients');
   }
 
@@ -145,30 +148,6 @@ export class RecipesPage {
   }
 
   /**
-   * Scrolls `locator` into view and returns its box once it has stopped moving — two identical reads
-   * in a row. Needed because `scrollIntoViewIfNeeded` resolves before the scroll has settled, so a
-   * box read straight afterwards can be stale by the time it's used.
-   */
-  private async stableBox(locator: Locator) {
-    await locator.scrollIntoViewIfNeeded();
-
-    let previous = await locator.boundingBox();
-
-    for (let attempt = 0; attempt < 20; attempt += 1) {
-      await this.page.waitForTimeout(50);
-      const current = await locator.boundingBox();
-
-      if (previous && current && previous.x === current.x && previous.y === current.y) {
-        return current;
-      }
-
-      previous = current;
-    }
-
-    throw new Error('Bounding box never settled.');
-  }
-
-  /**
    * Moves an ingredient line one slot up or down with the keyboard: space lifts it, an arrow moves
    * it a full slot (dnd-kit's sortable keyboard plugin), space drops it. This is the accessible
    * path — if it passes, the list is operable without a pointer.
@@ -184,30 +163,15 @@ export class RecipesPage {
    * Drags an ingredient line with the pointer until it lands in the slot `onto` currently occupies.
    * Worth having next to `moveIngredient` because the two go through different dnd-kit sensors, so a
    * broken pointer drag would otherwise sail past a keyboard-only test.
+   *
+   * By displacement rather than `Drag.onto`: one row pitch keeps the pointer at the same offset
+   * *within* the destination row, where aiming at the row's centre would also drag it sideways across
+   * a row that spans the form.
    */
   async dragIngredient(name: string, onto: string) {
-    // Scroll first and settle before measuring anything. The raw `mouse` API works in absolute
-    // viewport coordinates and does no scrolling of its own, so on a form this tall every coordinate
-    // here depends on the scroll having finished: measure mid-scroll and `mouse.down()` lands next to
-    // the handle rather than on it, and the drag then never starts at all — silently, in either
-    // direction. This was the whole reason the first version of this helper "worked" downwards and
-    // not upwards; it was never about direction.
-    const handle = await this.stableBox(this.ingredientDragHandle(name));
-    const source = await this.stableBox(this.ingredientRow(name));
-    const target = await this.stableBox(this.ingredientRow(onto));
+    const [source, target] = await this.drag.stableBoxes(this.ingredientRow(name), this.ingredientRow(onto));
 
-    const x = handle.x + handle.width / 2;
-    const y = handle.y + handle.height / 2;
-    // Exactly one row pitch, which lands the pointer at the same offset *within* the target row.
-    const distance = target.y - source.y;
-
-    await this.page.mouse.move(x, y);
-    await this.page.mouse.down();
-    // dnd-kit activates on measured pointer travel, so the pointer has to move in steps, not teleport.
-    for (const fraction of [0.1, 0.3, 0.5, 0.7, 0.9, 1]) {
-      await this.page.mouse.move(x, y + distance * fraction);
-    }
-    await this.page.mouse.up();
+    await this.drag.by(this.ingredientDragHandle(name), { y: target.y - source.y });
   }
 
   async setIngredientQuantity(name: string, quantity: string) {

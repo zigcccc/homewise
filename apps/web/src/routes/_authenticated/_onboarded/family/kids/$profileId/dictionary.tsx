@@ -1,6 +1,5 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
-import { getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { ArrowDownAZIcon, ArrowUpAZIcon, BookHeartIcon, PlusIcon, SearchIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useDebounceCallback } from 'usehooks-ts';
@@ -21,7 +20,6 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-  getRowId,
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
@@ -31,6 +29,7 @@ import {
   SelectItem,
   SelectTrigger,
   Spinner,
+  useDataTable,
 } from '@homewise/ui/core';
 
 import { listChildDictionaryEntriesQueryOptions } from '@/modules/child-dictionaries';
@@ -141,7 +140,7 @@ function DictionaryEntries({
   );
 
   const columns = createEntriesTableColumns(profileId);
-  const table = useReactTable({ data: entries, columns, getCoreRowModel: getCoreRowModel(), getRowId });
+  const table = useDataTable({ data: entries, columns });
 
   const isFiltered = Boolean(searchParams.search);
 
