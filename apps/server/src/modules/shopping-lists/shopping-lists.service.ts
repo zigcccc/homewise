@@ -262,9 +262,9 @@ export class ShoppingListsService {
     const lists = await db.query.shoppingList.findMany({
       where: (fields, { and, eq, isNull }) =>
         and(eq(fields.householdId, householdId), includeCompleted ? undefined : isNull(fields.completedAt)),
-      // Active before completed; `id` is the tiebreaker so two lists made in the same millisecond
-      // never flip order between reads.
-      orderBy: (fields, { asc, desc }) => [asc(fields.completedAt), desc(fields.createdAt), desc(fields.id)],
+      // Newest first, shopped or not — "done" is a state, not a rank. `id` breaks ties so two lists
+      // made in the same millisecond never flip order between reads.
+      orderBy: (fields, { desc }) => [desc(fields.createdAt), desc(fields.id)],
       with: { sections: { ...sectionWith, orderBy: (fields, { asc }) => [asc(fields.position), asc(fields.id)] } },
     });
 
