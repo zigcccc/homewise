@@ -406,7 +406,7 @@ function ListItemRow({
   sections: ShoppingListSection[];
 }) {
   const [editing, setEditing] = useState(false);
-  const { removeItemOrToast, saveItem, saveItemOrToast } = useListMutations(listId);
+  const { removeItemWithUndo, saveItem, saveItemOrToast } = useListMutations(listId);
 
   // `group` is the section, which is what makes this a cross-container sortable: dropping onto
   // another shop's row moves it between groups rather than just reordering within one.
@@ -514,7 +514,7 @@ function ListItemRow({
               </DropdownMenuSub>
             )}
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => void removeItemOrToast(item.id)} variant="destructive">
+            <DropdownMenuItem onClick={() => void removeItemWithUndo(item)} variant="destructive">
               <TrashIcon />
               Remove item
             </DropdownMenuItem>

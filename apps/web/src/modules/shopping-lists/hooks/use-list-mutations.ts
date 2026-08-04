@@ -13,6 +13,7 @@ import {
   invalidateShoppingLists,
   type PatchItemPayload,
   type ShoppingListDetail,
+  type ShoppingListItem,
 } from '../shopping-lists.queries';
 
 /**
@@ -74,10 +75,6 @@ export function useListMutations(listId: number) {
       sectionId?: number | null;
     }) => parseResponse($patchItem({ param: { ...param, itemId: itemId.toString() }, json: { position, sectionId } })),
     onSuccess,
-    onError: (error) => {
-      toast.error(serverMessage(error, 'Could not move that item.'));
-      invalidateShoppingLists(queryClient);
-    },
   });
 
   const saveItemOrToast = async (itemId: number, json: PatchItemPayload) => {
@@ -96,13 +93,56 @@ export function useListMutations(listId: number) {
     }
   };
 
-  const removeItemOrToast = async (itemId: number) => {
+  /**
+   * Removes a row and offers to put it back, the same trade the meal plan makes for a planned meal:
+   * an item holds no content of its own, and every field needed to re-create it exactly — its slot
+   * and whether it was already in the basket included — is on the row being removed.
+   */
+  const removeItemWithUndo = async (item: ShoppingListItem) => {
+    let detail: ShoppingListDetail;
+
     try {
-      await removeItem(itemId);
+      detail = await removeItem(item.id);
     } catch (error) {
       toast.error(serverMessage(error, 'Something went wrong.'));
+
+      return;
+    }
+
+    // Removing the last row under a heading takes the heading with it, so its id is already dead.
+    // Omitting it lets the ingredient's shop resolve a section again — which mints the same heading
+    // back — where sending the stale id would 404 and lose the row for good.
+    // `null` is the ungrouped bucket, which is a real placement rather than a heading and survives.
+    const section =
+      item.sectionId === null || detail.sections.some((row) => row.id === item.sectionId) ? item.sectionId : undefined;
+
+    toast.success(`Removed "${item.label}"`, {
+      action: {
+        label: 'Undo',
+        onClick: () =>
+          void addItemOrToast({
+            checked: item.checkedAt !== null,
+            ingredientId: item.ingredientId ?? undefined,
+            note: item.note ?? '',
+            position: item.position,
+            quantity: item.quantity,
+            sectionId: section,
+            // A named ingredient has no title of its own — its label comes off the join.
+            title: item.ingredientId === null ? item.label : undefined,
+            unit: item.unit,
+          }),
+      },
+    });
+  };
+
+  const moveItemOrToast = async (move: { itemId: number; position: number; sectionId?: number | null }) => {
+    try {
+      await moveItem(move);
+    } catch (error) {
+      toast.error(serverMessage(error, 'Could not move that item.'));
+      invalidateShoppingLists(queryClient);
     }
   };
 
-  return { addItemOrToast, isAdding, moveItem, removeItemOrToast, saveItem, saveItemOrToast };
+  return { addItemOrToast, isAdding, moveItemOrToast, removeItemWithUndo, saveItem, saveItemOrToast };
 }

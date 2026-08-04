@@ -4,7 +4,7 @@ import { createFileRoute, Navigate } from '@tanstack/react-router';
 import { Spinner } from '@homewise/ui/core';
 import { useIsMobile } from '@homewise/ui/hooks';
 
-import { listShoppingListsQueryOptions } from '@/modules/shopping-lists';
+import { listQueryFor, listShoppingListsQueryOptions } from '@/modules/shopping-lists';
 
 export const Route = createFileRoute('/_authenticated/_onboarded/food/shopping-lists/')({
   component: ShoppingListsIndex,
@@ -25,10 +25,8 @@ export const Route = createFileRoute('/_authenticated/_onboarded/food/shopping-l
  */
 function ShoppingListsIndex() {
   const isMobile = useIsMobile();
-  const { includeCompleted } = Route.useSearch();
-  const { data: lists } = useSuspenseQuery(
-    listShoppingListsQueryOptions({ includeCompleted: includeCompleted ? 'true' : 'false' })
-  );
+  const searchParams = Route.useSearch();
+  const { data: lists } = useSuspenseQuery(listShoppingListsQueryOptions(listQueryFor(searchParams)));
 
   const first = lists[0];
 

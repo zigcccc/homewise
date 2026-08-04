@@ -30,6 +30,7 @@ import { Actionbar, serverMessage } from '@/modules/shared';
 import {
   $createList,
   invalidateShoppingLists,
+  listQueryFor,
   listShoppingListsQueryOptions,
   listTitle,
   remainingCount,
@@ -46,10 +47,6 @@ const searchParamsModel = z.object({
   includeCompleted: z.boolean().optional().catch(undefined),
 });
 
-/** Search params are typed; the RPC query string wants strings. */
-const toQuery = (search: { includeCompleted?: boolean }) =>
-  ({ includeCompleted: search.includeCompleted ? 'true' : 'false' }) as const;
-
 export const Route = createFileRoute('/_authenticated/_onboarded/food/shopping-lists')({
   validateSearch: searchParamsModel,
   /**
@@ -64,7 +61,7 @@ export const Route = createFileRoute('/_authenticated/_onboarded/food/shopping-l
   search: { middlewares: [retainSearchParams(['includeCompleted'])] },
   loaderDeps: ({ search }) => search,
   async loader({ context, deps }) {
-    await context.queryClient.ensureQueryData(listShoppingListsQueryOptions(toQuery(deps)));
+    await context.queryClient.ensureQueryData(listShoppingListsQueryOptions(listQueryFor(deps)));
   },
   component: ShoppingListsLayout,
   pendingComponent: () => <Spinner />,
@@ -76,7 +73,7 @@ function ShoppingListsLayout() {
   const matchRoute = useMatchRoute();
   const queryClient = useQueryClient();
 
-  const { data: lists } = useSuspenseQuery(listShoppingListsQueryOptions(toQuery(searchParams)));
+  const { data: lists } = useSuspenseQuery(listShoppingListsQueryOptions(listQueryFor(searchParams)));
 
   // Which pane the small screen is showing. Two columns side by side don't fit under `md`, so the
   // master column steps aside once a list is open and the detail offers a way back.

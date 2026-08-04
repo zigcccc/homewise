@@ -1,5 +1,5 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, redirect } from '@tanstack/react-router';
 import { getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { CarrotIcon, PlusIcon, SearchIcon } from 'lucide-react';
 import { useState } from 'react';
@@ -59,11 +59,17 @@ export const Route = createFileRoute('/_authenticated/_onboarded/food/ingredient
   validateSearch: searchParamsModel,
   loaderDeps: ({ search }) => search,
   async loader({ context, deps }) {
-    await Promise.all([
-      context.queryClient.ensureQueryData(listIngredientsQueryOptions(deps)),
-      // The shop filter labels itself from this, and every row's shop picker reads it.
-      context.queryClient.ensureQueryData(listStoresQueryOptions()),
-    ]);
+    // The shop filter labels itself from this, and every row's shop picker reads it.
+    const stores = await context.queryClient.ensureQueryData(listStoresQueryOptions());
+
+    // A shop the household no longer has — another member deleted it, or the link was hand-edited.
+    // The filter would still send the id while the trigger read "Any shop", so the table and the
+    // control that supposedly drives it would disagree.
+    if (typeof deps.store === 'number' && !stores.some((store) => store.id === deps.store)) {
+      throw redirect({ search: { ...deps, store: undefined }, to: '/food/ingredients' });
+    }
+
+    await context.queryClient.ensureQueryData(listIngredientsQueryOptions(deps));
   },
   component: IngredientsRoute,
   pendingComponent: () => <Spinner />,

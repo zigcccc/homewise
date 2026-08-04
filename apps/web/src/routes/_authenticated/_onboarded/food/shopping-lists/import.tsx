@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { addDays, format } from 'date-fns';
+import { addDays, format, parseISO } from 'date-fns';
 import { CalendarOffIcon, ChevronLeftIcon } from 'lucide-react';
 import { type SubmitHandler, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -53,11 +53,17 @@ const searchParamsModel = z.object({
     .catch('new'),
 });
 
-/** The range actually used, once the optional params are filled in. */
+/**
+ * The range actually used, once the optional params are filled in.
+ *
+ * `parseISO`, never `new Date(from)`: that reads the string as UTC midnight while `format` writes
+ * local time, so west of Greenwich the default range would end a day early and quietly drop the last
+ * planned day.
+ */
 function rangeFor(search: { from?: string; to?: string }) {
   const from = search.from ?? today();
 
-  return { from, to: search.to ?? format(addDays(new Date(from), IMPORT_DEFAULT_DAYS - 1), 'yyyy-MM-dd') };
+  return { from, to: search.to ?? format(addDays(parseISO(from), IMPORT_DEFAULT_DAYS - 1), 'yyyy-MM-dd') };
 }
 
 const importLineModel = importFromMealPlanModel.shape.lines.element;

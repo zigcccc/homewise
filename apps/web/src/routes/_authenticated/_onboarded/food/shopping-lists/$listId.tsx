@@ -153,7 +153,7 @@ function ShoppingListDetailRoute() {
     mutationFn: async () => parseResponse($deleteList({ param })),
   });
 
-  const { moveItem } = useListMutations(id);
+  const { moveItemOrToast } = useListMutations(id);
   const origin = useRef<{ groupId: string; index: number } | null>(null);
 
   /**
@@ -232,7 +232,7 @@ function ShoppingListDetailRoute() {
 
       // A drag that ended where it started is not a move.
       if (changedSection || from.index !== position) {
-        void moveItem({
+        void moveItemOrToast({
           itemId: movedId,
           position,
           sectionId: changedSection ? groupIdToSectionId(groupId) : undefined,

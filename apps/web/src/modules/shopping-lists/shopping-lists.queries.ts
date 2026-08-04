@@ -91,6 +91,14 @@ export function remainingCount(list: ShoppingListSummary) {
   return list.itemCount - list.checkedCount;
 }
 
+/**
+ * The section's search params as the RPC query string wants them. Shared, because the result is the
+ * query key: two spellings of it and the index route stops reading what the layout's loader
+ * prefetched.
+ */
+export const listQueryFor = (search: { includeCompleted?: boolean }) =>
+  ({ includeCompleted: search.includeCompleted ? 'true' : 'false' }) as const;
+
 export function listShoppingListsQueryOptions(query: InferRequestType<typeof $listLists>['query'] = {}) {
   return queryOptions({
     queryKey: ['shopping-lists', 'list', query],
@@ -121,7 +129,7 @@ export function invalidateShoppingLists(queryClient: QueryClient) {
  * Pair it with `invalidateShoppingLists`, which fixes the counts in the master column.
  */
 export function applyShoppingListDetail(queryClient: QueryClient, detail: ShoppingListDetail) {
-  queryClient.setQueryData(['shopping-lists', detail.id], detail);
+  queryClient.setQueryData(getShoppingListQueryOptions(detail.id).queryKey, detail);
 }
 
 /** Which items sit under which section, in render order. dnd-kit's `move()` works on this shape. */
@@ -184,7 +192,7 @@ export function applyItemArrangement(queryClient: QueryClient, listId: number, a
  * showing a list the sidebar and the toast both agree is gone.
  */
 export function removeShoppingListFromCache(queryClient: QueryClient, listId: number) {
-  queryClient.removeQueries({ queryKey: ['shopping-lists', listId], exact: true });
+  queryClient.removeQueries({ queryKey: getShoppingListQueryOptions(listId).queryKey, exact: true });
   queryClient.setQueriesData<ShoppingListSummary[]>({ queryKey: ['shopping-lists', 'list'] }, (lists) =>
     lists?.filter((list) => list.id !== listId)
   );

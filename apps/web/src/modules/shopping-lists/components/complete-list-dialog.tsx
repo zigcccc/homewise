@@ -32,6 +32,12 @@ export function CompleteListDialog({
   const [pending, setPending] = useState<'carry-over' | 'discard' | null>(null);
 
   const confirm = async (unchecked: 'carry-over' | 'discard') => {
+    // A pending carry-over leaves both buttons on screen; sending "discard" on top of it would
+    // complete the list a second time, with the opposite policy for the items in flight.
+    if (pending !== null) {
+      return;
+    }
+
     setPending(unchecked);
     try {
       await onConfirm(unchecked);
@@ -52,10 +58,15 @@ export function CompleteListDialog({
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="gap-2 sm:flex-row-reverse sm:justify-start">
-          <Button loading={pending === 'carry-over'} onClick={() => confirm('carry-over')}>
+          <Button disabled={pending !== null} loading={pending === 'carry-over'} onClick={() => confirm('carry-over')}>
             Move to a new list
           </Button>
-          <Button loading={pending === 'discard'} onClick={() => confirm('discard')} variant="outline">
+          <Button
+            disabled={pending !== null}
+            loading={pending === 'discard'}
+            onClick={() => confirm('discard')}
+            variant="outline"
+          >
             Finish anyway
           </Button>
           <Button disabled={pending !== null} onClick={() => onOpenChange(false)} variant="ghost">
