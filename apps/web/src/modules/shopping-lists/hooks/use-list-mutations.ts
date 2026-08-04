@@ -16,7 +16,8 @@ import {
 } from '../shopping-lists.queries';
 
 /**
- * The writes an open list makes: adding an item, editing one in place, ticking it off, removing it.
+ * The writes an open list makes: adding an item, editing one in place, ticking it off, dragging it
+ * to another shop, removing it.
  *
  * Takes the list id once, at mount. Every endpoint returns the whole list — one write routinely
  * moves more than the row it names — so each success swaps that straight into the cache before the
@@ -51,6 +52,34 @@ export function useListMutations(listId: number) {
     onSuccess,
   });
 
+  /**
+   * Persists where a drop landed: the row belongs in `sectionId` at `position`.
+   *
+   * No optimistic write of its own — `applyItemArrangement` has been keeping the cache in step with
+   * the drag since it started, so by the time this fires the screen is already right. A refusal is
+   * recovered by refetching rather than by rolling back a snapshot: a rejected move is rare, and the
+   * server is the only thing that knows what the order really is once one has failed.
+   */
+  const { mutateAsync: moveItem } = useMutation({
+    mutationFn: async ({
+      itemId,
+      position,
+      // Omitted when the row stayed in its own section, so the request says what actually happened:
+      // sending it anyway makes every reorder look like a move and costs the old section a pointless
+      // renumber and prune check.
+      sectionId,
+    }: {
+      itemId: number;
+      position: number;
+      sectionId?: number | null;
+    }) => parseResponse($patchItem({ param: { ...param, itemId: itemId.toString() }, json: { position, sectionId } })),
+    onSuccess,
+    onError: (error) => {
+      toast.error(serverMessage(error, 'Could not move that item.'));
+      invalidateShoppingLists(queryClient);
+    },
+  });
+
   const saveItemOrToast = async (itemId: number, json: PatchItemPayload) => {
     try {
       await saveItem({ itemId, json });
@@ -75,5 +104,5 @@ export function useListMutations(listId: number) {
     }
   };
 
-  return { addItemOrToast, isAdding, removeItemOrToast, saveItem, saveItemOrToast };
+  return { addItemOrToast, isAdding, moveItem, removeItemOrToast, saveItem, saveItemOrToast };
 }

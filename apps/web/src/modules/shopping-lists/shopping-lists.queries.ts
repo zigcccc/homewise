@@ -3,6 +3,8 @@ import { type InferRequestType, type InferResponseType } from 'hono';
 
 import { client, parseResponse } from '@/api/client';
 
+import { groupIdToSectionId, sectionGroupId } from './helpers/drag';
+
 const $listLists = client['shopping-lists'].$get;
 const $readList = client['shopping-lists'][':id'].$get;
 const $createList = client['shopping-lists'].$post;
@@ -49,7 +51,7 @@ export function mealPlanPreviewQueryOptions(query: InferRequestType<typeof $meal
 /** A list as the master column shows it: label, completion, and the "3 of 12" counts. */
 export type ShoppingListSummary = InferResponseType<typeof $listLists, 200>[number];
 export type ShoppingListDetail = InferResponseType<typeof $readList, 200>;
-type ShoppingListSection = ShoppingListDetail['sections'][number];
+export type ShoppingListSection = ShoppingListDetail['sections'][number];
 export type ShoppingListItem = ShoppingListDetail['items'][number];
 
 export type PatchItemPayload = InferRequestType<typeof $patchItem>['json'];
@@ -120,6 +122,57 @@ export function invalidateShoppingLists(queryClient: QueryClient) {
  */
 export function applyShoppingListDetail(queryClient: QueryClient, detail: ShoppingListDetail) {
   queryClient.setQueryData(['shopping-lists', detail.id], detail);
+}
+
+/** Which items sit under which section, in render order. dnd-kit's `move()` works on this shape. */
+export type ItemArrangement = Record<string, number[]>;
+
+export function itemArrangement(grouped: SectionWithItems[]): ItemArrangement {
+  return Object.fromEntries(
+    grouped.map(({ items, section }) => [sectionGroupId(section?.id ?? null), items.map((item) => item.id)])
+  );
+}
+
+/**
+ * The items re-filed to match an arrangement.
+ *
+ * This is what a drag renders from, from the moment it starts. dnd-kit relocates the dragged node in
+ * the DOM itself as you hover a new section, so React's idea of the order has to move with it — if it
+ * doesn't, the next render asks the old section to remove a child that now belongs to the new one
+ * (`NotFoundError: Failed to execute 'removeChild'`) and takes the pane down mid-drag. Rendering from
+ * the arrangement rather than from the query also means a refetch landing mid-drag — another member
+ * ticking something off — can't reorder the rows underneath the pointer and lose the drop.
+ */
+export function arrangeItems(items: ShoppingListItem[], arrangement: ItemArrangement): ShoppingListItem[] {
+  const byId = new Map(items.map((item) => [item.id, item]));
+  const placed = new Set<number>();
+
+  const arranged = Object.entries(arrangement).flatMap(([groupId, ids]) =>
+    ids.flatMap((itemId) => {
+      const item = byId.get(itemId);
+
+      if (!item) {
+        return [];
+      }
+      placed.add(itemId);
+
+      return [{ ...item, sectionId: groupIdToSectionId(groupId) }];
+    })
+  );
+
+  // Anything the arrangement has never heard of — a row another member added while the drag was in
+  // flight — keeps its place instead of disappearing until the drop.
+  return [...arranged, ...items.filter((item) => !placed.has(item.id))];
+}
+
+/**
+ * Writes an arrangement into the cache on drop, so the rows stay where they were let go rather than
+ * snapping back to the server's order for the one frame before the write lands.
+ */
+export function applyItemArrangement(queryClient: QueryClient, listId: number, arrangement: ItemArrangement) {
+  queryClient.setQueryData(getShoppingListQueryOptions(listId).queryKey, (list) =>
+    list ? { ...list, items: arrangeItems(list.items, arrangement) } : list
+  );
 }
 
 /**
