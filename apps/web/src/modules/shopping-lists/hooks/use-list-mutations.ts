@@ -8,8 +8,10 @@ import {
   $createItem,
   $deleteItem,
   $patchItem,
+  applyItemPatch,
   applyShoppingListDetail,
   type CreateItemPayload,
+  getShoppingListQueryOptions,
   invalidateShoppingLists,
   type PatchItemPayload,
   type ShoppingListDetail,
@@ -50,6 +52,35 @@ export function useListMutations(listId: number) {
   const { mutateAsync: removeItem } = useMutation({
     mutationFn: async (itemId: number) =>
       parseResponse($deleteItem({ param: { ...param, itemId: itemId.toString() } })),
+    onSuccess,
+  });
+
+  /**
+   * Ticking a box, written to the cache before the request leaves.
+   *
+   * The one mutation here that has to be optimistic: this is used while walking round a shop, on
+   * whatever signal the shop has, and a checkbox that waits for a round trip reads as a hung app.
+   * `checkedBy` is deliberately not guessed — the server's answer fills in "Got by …" a moment later.
+   */
+  const { mutate: toggleChecked } = useMutation({
+    mutationFn: async ({ checked, itemId }: { checked: boolean; itemId: number }) =>
+      parseResponse($patchItem({ param: { ...param, itemId: itemId.toString() }, json: { checked } })),
+    onMutate: async ({ checked, itemId }) => {
+      // Without this, a refetch already in flight can land after the optimistic write and put the
+      // old value straight back on screen.
+      await queryClient.cancelQueries({ queryKey: getShoppingListQueryOptions(listId).queryKey });
+      const previous = queryClient.getQueryData(getShoppingListQueryOptions(listId).queryKey);
+
+      applyItemPatch(queryClient, listId, itemId, { checkedAt: checked ? new Date().toISOString() : null });
+
+      return { previous };
+    },
+    onError: (error, _variables, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(getShoppingListQueryOptions(listId).queryKey, context.previous);
+      }
+      toast.error(serverMessage(error, 'Could not update that item.'));
+    },
     onSuccess,
   });
 
@@ -144,5 +175,5 @@ export function useListMutations(listId: number) {
     }
   };
 
-  return { addItemOrToast, isAdding, moveItemOrToast, removeItemWithUndo, saveItem, saveItemOrToast };
+  return { addItemOrToast, isAdding, moveItemOrToast, removeItemWithUndo, saveItem, saveItemOrToast, toggleChecked };
 }

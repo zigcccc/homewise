@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMemo } from 'react';
 import { type SubmitHandler, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import type z from 'zod';
@@ -95,12 +96,13 @@ function IngredientForm({ ingredient, onDone }: { ingredient?: Ingredient; onDon
   // The shop picker's value is the two payload fields read back as one choice, so the control stays
   // in step with the form rather than holding a second copy of the answer.
   const [storeId, storeName] = form.watch(['storeId', 'storeName']);
-  let storeChoice: StoreChoice = { kind: 'none' };
-  if (storeName) {
-    storeChoice = { kind: 'new', name: storeName };
-  } else if (storeId) {
-    storeChoice = { kind: 'existing', id: storeId };
-  }
+  const storeChoice = useMemo<StoreChoice>(() => {
+    if (storeName) {
+      return { kind: 'new', name: storeName };
+    }
+
+    return storeId ? { kind: 'existing', id: storeId } : { kind: 'none' };
+  }, [storeId, storeName]);
 
   const { mutateAsync: save } = useMutation({
     mutationFn: async (json: IngredientFormValues) =>

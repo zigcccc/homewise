@@ -1,5 +1,4 @@
-import { move } from '@dnd-kit/helpers';
-import { DragDropProvider, type DragEndEvent, type DragOverEvent, type DragStartEvent } from '@dnd-kit/react';
+import { DragDropProvider } from '@dnd-kit/react';
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute, Link, redirect, useNavigate } from '@tanstack/react-router';
 import {
@@ -12,7 +11,7 @@ import {
   RotateCcwIcon,
   TrashIcon,
 } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 
 import { shoppingListName, shoppingListSectionName } from '@homewise/server/shopping-lists';
@@ -42,21 +41,13 @@ import {
   $deleteList,
   $patchList,
   $reopenList,
-  applyItemArrangement,
   applyShoppingListDetail,
-  arrangeItems,
   CompleteListDialog,
   getShoppingListQueryOptions,
-  groupIdToSectionId,
-  type ItemArrangement,
   invalidateShoppingLists,
-  itemArrangement,
   listTitle,
   removeShoppingListFromCache,
-  sectionGroupId,
-  toSectionsWithItems,
-  UNGROUPED_GROUP,
-  useListMutations,
+  useItemDrag,
 } from '@/modules/shopping-lists';
 
 import { AddItemRow } from './-components/add-item-row';
@@ -153,95 +144,10 @@ function ShoppingListDetailRoute() {
     mutationFn: async () => parseResponse($deleteList({ param })),
   });
 
-  const { moveItemOrToast } = useListMutations(id);
-  const origin = useRef<{ groupId: string; index: number } | null>(null);
+  const { grouped, onDragEnd, onDragOver, onDragStart, showDropZone } = useItemDrag(list);
 
-  /**
-   * The order the drag currently proposes, and `null` when no drag is in flight.
-   *
-   * While it's set, the pane renders from it rather than from the query. That's what keeps React's
-   * order in step with the node dnd-kit has already moved in the DOM, and what stops a refetch
-   * landing mid-drag — another member ticking something off — from reshuffling rows under the
-   * pointer. See `arrangeItems`.
-   */
-  const [dragArrangement, setDragArrangement] = useState<ItemArrangement | null>(null);
-
-  const grouped = toSectionsWithItems(
-    dragArrangement ? { ...list, items: arrangeItems(list.items, dragArrangement) } : list
-  );
   const checked = list.items.filter((item) => item.checkedAt !== null).length;
   const remaining = list.items.length - checked;
-
-  // Only worth offering when there's a shop to drag out of and no ungrouped bucket already on screen.
-  const showDropZone =
-    dragArrangement !== null && grouped.length > 0 && grouped.every(({ section }) => section !== null);
-
-  const handleDragStart = (event: DragStartEvent) => {
-    const movedId = Number(event.operation.source?.id);
-    const from = grouped.find(({ items }) => items.some((item) => item.id === movedId));
-
-    // Where the row started. Kept aside because the arrangement moves under every hover — by drop
-    // time it already reports the row at its proposed place, so it can't answer "did this move?".
-    origin.current = from
-      ? {
-          groupId: sectionGroupId(from.section?.id ?? null),
-          index: from.items.findIndex((item) => item.id === movedId),
-        }
-      : null;
-
-    const initial = itemArrangement(grouped);
-    // The mid-drag drop zone holds nothing, so `grouped` doesn't know about it — `move()` needs the
-    // key to exist before it can put anything in it. `??=`, or a list that already has ungrouped
-    // items would have them emptied out from under it.
-    initial[UNGROUPED_GROUP] ??= [];
-    setDragArrangement(initial);
-  };
-
-  const handleDragOver = (event: DragOverEvent) => {
-    setDragArrangement((current) => (current ? move(current, event) : current));
-  };
-
-  /**
-   * A drop landed. The arrangement names its section by which key now holds it, and its position by
-   * its index there.
-   */
-  const handleDragEnd = (event: DragEndEvent) => {
-    const draggedId = event.operation.source?.id;
-    const before = dragArrangement;
-    setDragArrangement(null);
-
-    // Cancelled, or nothing to compare against — either way the query's own order stands.
-    if (event.canceled || draggedId === undefined || !before || !origin.current) {
-      return;
-    }
-
-    const movedId = Number(draggedId);
-    const after = move(before, event);
-    applyItemArrangement(queryClient, id, after);
-
-    const from = origin.current;
-
-    for (const [groupId, ids] of Object.entries(after)) {
-      const position = ids.indexOf(movedId);
-
-      if (position === -1) {
-        continue;
-      }
-
-      const changedSection = from.groupId !== groupId;
-
-      // A drag that ended where it started is not a move.
-      if (changedSection || from.index !== position) {
-        void moveItemOrToast({
-          itemId: movedId,
-          position,
-          sectionId: changedSection ? groupIdToSectionId(groupId) : undefined,
-        });
-      }
-
-      return;
-    }
-  };
 
   const handleComplete = async (unchecked: 'carry-over' | 'discard') => {
     try {
@@ -396,7 +302,7 @@ function ShoppingListDetailRoute() {
           Add an ingredient and it files itself under the shop you buy it at.
         </p>
       ) : (
-        <DragDropProvider onDragEnd={handleDragEnd} onDragOver={handleDragOver} onDragStart={handleDragStart}>
+        <DragDropProvider onDragEnd={onDragEnd} onDragOver={onDragOver} onDragStart={onDragStart}>
           <div className="space-y-3">
             {grouped.map(({ items, section }) => (
               <ListSection

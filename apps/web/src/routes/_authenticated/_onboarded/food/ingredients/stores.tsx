@@ -1,6 +1,5 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
-import { getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { PlusIcon, SearchIcon, StoreIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useDebounceCallback } from 'usehooks-ts';
@@ -16,11 +15,11 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-  getRowId,
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
   Spinner,
+  useDataTable,
 } from '@homewise/ui/core';
 
 import { listStoresQueryOptions, StoreFormDialog } from '@/modules/stores';
@@ -63,11 +62,9 @@ function StoresRoute() {
 
   const debouncedSearch = useDebounceCallback((value: string) => setSearchParam('search', value || undefined), 400);
 
-  const table = useReactTable({
+  const table = useDataTable({
     data: stores,
     columns: storesTableColumns,
-    getCoreRowModel: getCoreRowModel(),
-    getRowId,
   });
 
   const isFiltered = Boolean(searchParams.search);

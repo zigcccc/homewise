@@ -29,10 +29,7 @@ export function useInlineIngredientPatch(ingredientId: number) {
       applyIngredientUpdate(queryClient, updated);
       invalidateIngredients(queryClient);
 
-      // Naming a shop found-or-creates it as part of the same write, so the shop list may have grown.
-      // The pickers happen to recover without this today — they mount their query fresh each time
-      // the popover opens, and `staleTime` is 0 — but that's a property of the query config, not of
-      // this write being announced. Say what changed rather than leaning on it.
+      // Naming a shop found-or-creates it as part of the same write, so the list may have grown.
       if (json.storeName) {
         invalidateStores(queryClient);
       }

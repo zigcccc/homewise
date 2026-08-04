@@ -132,6 +132,18 @@ export function applyShoppingListDetail(queryClient: QueryClient, detail: Shoppi
   queryClient.setQueryData(getShoppingListQueryOptions(detail.id).queryKey, detail);
 }
 
+/** Rewrites one item in the cached detail — the optimistic half of ticking something off. */
+export function applyItemPatch(
+  queryClient: QueryClient,
+  listId: number,
+  itemId: number,
+  patch: Partial<ShoppingListItem>
+) {
+  queryClient.setQueryData(getShoppingListQueryOptions(listId).queryKey, (list) =>
+    list ? { ...list, items: list.items.map((item) => (item.id === itemId ? { ...item, ...patch } : item)) } : list
+  );
+}
+
 /** Which items sit under which section, in render order. dnd-kit's `move()` works on this shape. */
 export type ItemArrangement = Record<string, number[]>;
 

@@ -406,7 +406,7 @@ function ListItemRow({
   sections: ShoppingListSection[];
 }) {
   const [editing, setEditing] = useState(false);
-  const { removeItemWithUndo, saveItem, saveItemOrToast } = useListMutations(listId);
+  const { removeItemWithUndo, saveItem, saveItemOrToast, toggleChecked } = useListMutations(listId);
 
   // `group` is the section, which is what makes this a cross-container sortable: dropping onto
   // another shop's row moves it between groups rather than just reordering within one.
@@ -448,7 +448,7 @@ function ListItemRow({
         aria-label={`Tick ${item.label}`}
         checked={checked}
         disabled={readOnly}
-        onCheckedChange={(next) => void saveItemOrToast(item.id, { checked: next === true })}
+        onCheckedChange={(next) => toggleChecked({ checked: next === true, itemId: item.id })}
       />
 
       <div className="min-w-0 flex-1">
