@@ -169,8 +169,7 @@ export class RecipesPage {
    * a row that spans the form.
    */
   async dragIngredient(name: string, onto: string) {
-    const source = await this.drag.stableBox(this.ingredientRow(name));
-    const target = await this.drag.stableBox(this.ingredientRow(onto));
+    const [source, target] = await this.drag.stableBoxes(this.ingredientRow(name), this.ingredientRow(onto));
 
     await this.drag.by(this.ingredientDragHandle(name), { y: target.y - source.y });
   }

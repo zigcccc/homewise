@@ -88,9 +88,7 @@ export class StoresPage {
   }
 
   async delete(name: string) {
-    await this.openRowMenu(name);
-    await this.page.getByRole('menuitem', { name: 'Delete shop' }).click();
-    const dialog = this.page.getByRole('dialog');
+    const dialog = await this.openDelete(name);
     await dialog.getByRole('button', { name: 'Delete shop' }).click();
     await expect(dialog).toBeHidden();
   }

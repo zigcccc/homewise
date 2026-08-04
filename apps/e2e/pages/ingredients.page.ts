@@ -29,10 +29,24 @@ export class IngredientsPage {
     return this.page.getByRole('row').filter({ hasText: name });
   }
 
-  async add(name: string, category?: string) {
+  /** Opens the add dialog with the name already filled — the first two steps of every add path. */
+  private async openAddDialog(name: string): Promise<Locator> {
     await this.page.getByRole('button', { name: 'Add ingredient', exact: true }).first().click();
     const dialog = this.page.getByRole('dialog');
     await dialog.getByLabel('Name').fill(name);
+
+    return dialog;
+  }
+
+  /** Types a shop the library doesn't have into the dialog's picker, and creates it from there. */
+  private async createStoreInDialog(dialog: Locator, storeName: string) {
+    await dialog.getByRole('button', { name: 'Shop', exact: true }).click();
+    await this.page.getByPlaceholder('Search shops').fill(storeName);
+    await this.page.getByRole('button', { name: `Create "${storeName}"` }).click();
+  }
+
+  async add(name: string, category?: string) {
+    const dialog = await this.openAddDialog(name);
 
     if (category) {
       await dialog.getByRole('combobox').first().click();
@@ -51,13 +65,9 @@ export class IngredientsPage {
    * — which is also what keeps it clear of the category/unit selects in the same dialog.
    */
   async addWithNewStore(name: string, storeName: string) {
-    await this.page.getByRole('button', { name: 'Add ingredient', exact: true }).first().click();
-    const dialog = this.page.getByRole('dialog');
-    await dialog.getByLabel('Name').fill(name);
+    const dialog = await this.openAddDialog(name);
 
-    await dialog.getByRole('button', { name: 'Shop', exact: true }).click();
-    await this.page.getByPlaceholder('Search shops').fill(storeName);
-    await this.page.getByRole('button', { name: `Create "${storeName}"` }).click();
+    await this.createStoreInDialog(dialog, storeName);
     await expect(dialog.getByRole('button', { name: 'Shop', exact: true })).toContainText(storeName);
 
     await dialog.getByRole('button', { name: 'Add ingredient', exact: true }).click();
@@ -69,13 +79,9 @@ export class IngredientsPage {
    * stays open on the 409, so this returns it rather than waiting for it to close.
    */
   async addWithNewStoreExpectingError(name: string, storeName: string) {
-    await this.page.getByRole('button', { name: 'Add ingredient', exact: true }).first().click();
-    const dialog = this.page.getByRole('dialog');
-    await dialog.getByLabel('Name').fill(name);
+    const dialog = await this.openAddDialog(name);
 
-    await dialog.getByRole('button', { name: 'Shop', exact: true }).click();
-    await this.page.getByPlaceholder('Search shops').fill(storeName);
-    await this.page.getByRole('button', { name: `Create "${storeName}"` }).click();
+    await this.createStoreInDialog(dialog, storeName);
 
     await dialog.getByRole('button', { name: 'Add ingredient', exact: true }).click();
     await expect(dialog).toContainText('already in your ingredient library');
@@ -88,9 +94,7 @@ export class IngredientsPage {
    * lands on the name field instead of closing the dialog.
    */
   async addExpectingError(name: string) {
-    await this.page.getByRole('button', { name: 'Add ingredient', exact: true }).first().click();
-    const dialog = this.page.getByRole('dialog');
-    await dialog.getByLabel('Name').fill(name);
+    const dialog = await this.openAddDialog(name);
     await dialog.getByRole('button', { name: 'Add ingredient', exact: true }).click();
 
     return dialog;

@@ -245,6 +245,46 @@ test.describe('shopping lists', () => {
     }
   });
 
+  test('puts a removed item back exactly, slot and amount included', async ({ page }) => {
+    const lists = new ShoppingListsPage(page);
+    await lists.goto();
+    const listId = await lists.createList();
+
+    const first = sparIngredients[0]!.name;
+    const second = sparIngredients[1]!.name;
+
+    try {
+      await lists.addIngredient(first);
+      await lists.addIngredient(second);
+
+      // Everything a removal has to carry back: an amount, a note, and having been in the basket.
+      await lists.editItem(first, { note: 'the big tub', quantity: 2, unit: 'kg' });
+      await lists.tick(first);
+
+      await lists.removeItem(first);
+      await lists.undoRemoval(first);
+
+      // Back at the top, not appended below the row that outlived it — the whole reason this is an
+      // Undo rather than a confirm dialog is that it restores what was lost, position included.
+      await expect(lists.itemsUnder(SPAR.name).first()).toContainText(first);
+      await expect(lists.item(first)).toContainText('2 kg');
+      await expect(lists.item(first)).toContainText('the big tub');
+      await expect(lists.isTicked(first)).toHaveCount(1);
+
+      // The last row under a heading takes the heading with it, so the removed row's section id is
+      // dead by the time Undo fires. Restoring it has to mint the heading back rather than 404.
+      await lists.removeItem(second);
+      await lists.removeItem(first);
+      await expect(lists.section(SPAR.name)).toBeHidden();
+
+      await lists.undoRemoval(first);
+      await expect(lists.section(SPAR.name)).toBeVisible();
+      await expect(lists.itemsUnder(SPAR.name)).toHaveCount(1);
+    } finally {
+      await lists.deleteListIfPresent(listId);
+    }
+  });
+
   test('drops a section once its last item is gone', async ({ page }) => {
     const lists = new ShoppingListsPage(page);
     await lists.goto();
@@ -466,6 +506,8 @@ test.describe('shopping lists', () => {
     const mealIds: number[] = [];
     let listId = '';
 
+    const seededRecipeId = await recipeIdByTitle(page, SEED_RECIPE.title);
+
     const plant = async (day: string, memberIds: number[]) => {
       const response = await page
         .context()
@@ -477,7 +519,6 @@ test.describe('shopping lists', () => {
     // The seeded recipe on two days of the range, so the amounts have something to add up — and for
     // different numbers of people, so each planting has to be scaled on its own rather than the pair
     // sharing one factor. It serves 4: one eater takes a quarter of it, two take a half.
-    const seededRecipeId = await recipeIdByTitle(page, SEED_RECIPE.title);
     const [adult, child] = await memberIdsByName(page, [SEED_USER.name, SEED_CHILD_MEMBER.nickname]);
     const secondDay = '2098-03-04';
     await plant(from, [adult!]);

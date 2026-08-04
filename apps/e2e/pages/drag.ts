@@ -24,8 +24,7 @@ export class Drag {
 
   /** Drags `handle` onto the centre of `target`. */
   async onto(handle: Locator, target: Locator) {
-    const from = await this.stableBox(handle);
-    const to = await this.stableBox(target);
+    const [from, to] = await this.stableBoxes(handle, target);
 
     await this.travel(
       { x: from.x + from.width / 2, y: from.y + from.height / 2 },
@@ -53,6 +52,27 @@ export class Drag {
    * in a row. `scrollIntoViewIfNeeded` resolves before the scroll has settled, so a box read straight
    * afterwards can already be stale by the time it's used.
    */
+  /**
+   * Two boxes in one coordinate space.
+   *
+   * `stableBox` scrolls its own locator into view, so reading one box and then the other can leave
+   * the first describing a scroll position the second no longer shares — and anything derived from
+   * the pair, a row pitch above all, is then off by however far the page moved in between. Settle
+   * both first, re-read both after.
+   */
+  async stableBoxes(first: Locator, second: Locator) {
+    await this.stableBox(first);
+    await this.stableBox(second);
+
+    const [a, b] = [await first.boundingBox(), await second.boundingBox()];
+
+    if (!a || !b) {
+      throw new Error('One of the two elements has no bounding box.');
+    }
+
+    return [a, b] as const;
+  }
+
   async stableBox(locator: Locator) {
     await locator.scrollIntoViewIfNeeded();
 

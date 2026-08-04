@@ -155,11 +155,16 @@ export class ShoppingListsPage {
     await expect(this.page).toHaveURL(new RegExp(`${end}=${isoDay}`));
   }
 
-  /** Flips "Scale to who's eating" and waits for the amounts to follow. */
+  /** Puts "Scale to who's eating" in the given state and waits for the amounts to follow. */
   async toggleScaling(on: boolean) {
     const toggle = this.page.getByRole('checkbox', { name: "Scale to who's eating" });
-    await toggle.click();
-    await expect(toggle).toHaveAttribute('data-state', on ? 'checked' : 'unchecked');
+    const state = on ? 'checked' : 'unchecked';
+
+    if ((await toggle.getAttribute('data-state')) !== state) {
+      await toggle.click();
+    }
+
+    await expect(toggle).toHaveAttribute('data-state', state);
   }
 
   async confirmImport() {
@@ -173,12 +178,21 @@ export class ShoppingListsPage {
   }
 
   /**
+   * The list's own groups. A `section` each — but so is sonner's toast region, and its toasts are
+   * `listitem`s carrying the name of whatever they're reporting on ("Removed \"Onion\""), which is
+   * exactly the text the row locators filter by.
+   */
+  private sections(): Locator {
+    return this.page.locator('section').filter({ hasNot: this.page.locator('[data-sonner-toast]') });
+  }
+
+  /**
    * One row of the open list. Scoped inside a `section`, which only the list's own groups are — the
    * master column and the import preview are `listitem`s too, and an ingredient name can appear in
    * a list's inferred label.
    */
   item(label: string): Locator {
-    return this.page.locator('section').getByRole('listitem').filter({ hasText: label });
+    return this.sections().getByRole('listitem').filter({ hasText: label });
   }
 
   /**
@@ -186,24 +200,21 @@ export class ShoppingListsPage {
    * own heading and list, so this asks which section contains the row.
    */
   itemsUnder(sectionLabel: string): Locator {
-    return this.page
-      .locator('section')
+    return this.sections()
       .filter({ has: this.page.getByRole('heading', { level: 2, name: sectionLabel }) })
       .getByRole('listitem');
   }
 
   /** A section's `<ul>` — the drop target for a drag that isn't aimed at a particular row. */
   sectionList(sectionLabel: string): Locator {
-    return this.page
-      .locator('section')
+    return this.sections()
       .filter({ has: this.page.getByRole('heading', { level: 2, name: sectionLabel }) })
       .getByRole('list');
   }
 
   /** Items with no section render in the one `section` element that has no heading. */
   ungroupedItems(): Locator {
-    return this.page
-      .locator('section')
+    return this.sections()
       .filter({ hasNot: this.page.getByRole('heading', { level: 2 }) })
       .getByRole('listitem');
   }
@@ -265,6 +276,21 @@ export class ShoppingListsPage {
     await this.openItemMenu(label);
     await this.page.getByRole('menuitem', { name: 'Remove item' }).click();
     await expect(this.item(label)).toHaveCount(0);
+  }
+
+  /**
+   * Takes the Undo on the toast a removal leaves behind, and waits for the row to come back.
+   *
+   * Scoped to the toast naming this item: removals stack, and two toasts each carrying an `Undo`
+   * make a bare role query ambiguous — which Playwright retries until both have expired.
+   */
+  async undoRemoval(label: string) {
+    await this.page
+      .getByRole('listitem')
+      .filter({ hasText: `Removed "${label}"` })
+      .getByRole('button', { name: 'Undo' })
+      .click();
+    await expect(this.item(label)).toBeVisible();
   }
 
   /** Opens a row's amount editor and leaves it open — for the specs that assert on it mid-edit. */
@@ -423,6 +449,8 @@ export class ShoppingListsPage {
 
     // Re-read each time: deleting one re-renders the column, so a captured handle goes stale. Only
     // hrefs ending in an id — "From meal plan" points at `/food/shopping-lists/import`, same prefix.
+    const attempted = new Set<string>();
+
     for (;;) {
       const hrefs = await this.page
         .locator('a[href^="/food/shopping-lists/"]')
@@ -432,6 +460,11 @@ export class ShoppingListsPage {
       if (!id) {
         return;
       }
+
+      // A list that survives its own delete would otherwise keep reappearing until the test times
+      // out, and the failure would name the timeout rather than the list that wouldn't go.
+      expect(attempted.has(id), `list ${id} is still in the column after being deleted`).toBe(false);
+      attempted.add(id);
 
       await this.deleteListIfPresent(id);
       await this.goto();
