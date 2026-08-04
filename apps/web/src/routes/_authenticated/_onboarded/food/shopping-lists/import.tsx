@@ -21,6 +21,7 @@ import {
   FormControl,
   FormField,
   FormItem,
+  FormLabel,
   Label,
   Spinner,
 } from '@homewise/ui/core';
@@ -32,6 +33,7 @@ import {
   $importFromMealPlan,
   invalidateShoppingLists,
   type MealPlanPreview,
+  type MealPlanPreviewLine,
   mealPlanPreviewQueryOptions,
 } from '@/modules/shopping-lists';
 
@@ -64,10 +66,13 @@ const importLineModel = importFromMealPlanModel.shape.lines.element;
  * What you tick, plus the payload each row would contribute.
  *
  * Built out of the endpoint's own line model rather than beside it, so the amounts this screen sends
- * are validated by the same schema that will receive them.
+ * are validated by the same schema that will receive them. `scaledAmounts` reuses that model's
+ * `amounts` shape for the same reason — the toggle chooses between two sets of the same thing.
  */
 const importFormModel = z.object({
-  lines: z.array(importLineModel.extend({ include: z.boolean() })),
+  lines: z.array(importLineModel.extend({ include: z.boolean(), scaledAmounts: importLineModel.shape.amounts })),
+  /** Off buys what the recipes are written for, however many people the meals are actually for. */
+  scale: z.boolean(),
 });
 type ImportFormValues = z.infer<typeof importFormModel>;
 
@@ -163,6 +168,11 @@ function ImportRoute() {
   );
 }
 
+/** "Garlic Butter Pasta (2 of 8)" — where the amount beside it came from, when it isn't as written. */
+function recipeLabel(recipe: MealPlanPreviewLine['recipes'][number], scaled: boolean) {
+  return scaled && recipe.servings ? `${recipe.title} (${recipe.eaters} of ${recipe.servings})` : recipe.title;
+}
+
 function ImportForm({ preview, target }: { preview: MealPlanPreview; target: 'new' | number }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -174,11 +184,13 @@ function ImportForm({ preview, target }: { preview: MealPlanPreview; target: 'ne
         amounts: line.amounts,
         include: true,
         ingredientId: line.ingredientId,
+        scaledAmounts: line.scaledAmounts,
       })),
+      scale: true,
     },
   });
 
-  const lines = form.watch('lines');
+  const [lines, scale] = form.watch(['lines', 'scale']);
   const picked = lines.filter((line) => line.include);
 
   const { mutateAsync: runImport, isPending } = useMutation({
@@ -189,7 +201,10 @@ function ImportForm({ preview, target }: { preview: MealPlanPreview; target: 'ne
             listId: target === 'new' ? undefined : target,
             lines: values.lines
               .filter((line) => line.include)
-              .map((line) => ({ amounts: line.amounts, ingredientId: line.ingredientId })),
+              .map((line) => ({
+                amounts: values.scale ? line.scaledAmounts : line.amounts,
+                ingredientId: line.ingredientId,
+              })),
           },
         })
       ),
@@ -209,6 +224,19 @@ function ImportForm({ preview, target }: { preview: MealPlanPreview; target: 'ne
   return (
     <Form {...form}>
       <form className="space-y-4" onSubmit={form.handleSubmit(handleImport)}>
+        <FormField
+          control={form.control}
+          name="scale"
+          render={({ field }) => (
+            <FormItem className="flex items-center gap-2">
+              <FormControl>
+                <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(checked === true)} />
+              </FormControl>
+              <FormLabel className="font-normal text-sm">Scale to who's eating</FormLabel>
+            </FormItem>
+          )}
+        />
+
         <ul className="divide-y rounded-md border">
           {preview.lines.map((line, index) => (
             <li className="flex items-center gap-3 px-3 py-2" key={line.ingredientId}>
@@ -231,12 +259,14 @@ function ImportForm({ preview, target }: { preview: MealPlanPreview; target: 'ne
                 <span className="flex items-baseline gap-2 text-sm">
                   <span className="min-w-0 truncate">{line.name}</span>
                   <span className="shrink-0 text-muted-foreground text-xs">
-                    {line.amounts.map((amount) => formatQuantity(amount.quantity, amount.unit)).join(', ')}
+                    {(scale ? line.scaledAmounts : line.amounts)
+                      .map((amount) => formatQuantity(amount.quantity, amount.unit))
+                      .join(', ')}
                   </span>
                 </span>
                 <p className="text-muted-foreground text-xs">
                   {line.store ? `${line.store.name} · ` : ''}
-                  {line.recipeTitles.length === 1 ? line.recipeTitles[0] : `${line.recipeTitles.length} recipes`}
+                  {line.recipes.length === 1 ? recipeLabel(line.recipes[0]!, scale) : `${line.recipes.length} recipes`}
                 </p>
               </div>
             </li>

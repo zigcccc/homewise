@@ -4,8 +4,8 @@ import { HTTPException } from 'hono/http-exception';
 import { db, schema } from '@/db';
 import { type Executor, emptyToNull, isUniqueViolation } from '@/db/utils';
 import { addDays, todayISO } from '@/lib/dates';
-import { type Amount, formatAmount, sumAmounts } from '@/modules/ingredients/units';
-import { MAX_RANGE_DAYS } from '@/modules/meal-plan/models';
+import { type Amount, formatAmount, scaleAmount, sumAmounts } from '@/modules/ingredients/units';
+import { MAX_RANGE_DAYS, MEAL_ROLES } from '@/modules/meal-plan/models';
 
 import {
   type CompleteShoppingList,
@@ -737,11 +737,48 @@ export class ShoppingListsService {
   }
 
   /**
+   * How many people each of these meals is for.
+   *
+   * A meal that names nobody is for everyone, so it falls back to the household's headcount — and
+   * only the roles that eat off the plan, the same rule the plan's own "who still needs a meal?"
+   * count applies. A meal that *does* name people is for exactly those, whatever their role: someone
+   * put them there on purpose.
+   */
+  private static async eatersPerMeal(householdId: number, mealIds: number[]) {
+    if (mealIds.length === 0) {
+      return new Map<number, number>();
+    }
+
+    const [assigned, [household]] = await Promise.all([
+      db
+        .select({ eaters: count(), mealId: schema.plannedMealMember.plannedMealId })
+        .from(schema.plannedMealMember)
+        .where(inArray(schema.plannedMealMember.plannedMealId, mealIds))
+        .groupBy(schema.plannedMealMember.plannedMealId),
+      db
+        .select({ eaters: count() })
+        .from(schema.householdMember)
+        .where(
+          and(eq(schema.householdMember.householdId, householdId), inArray(schema.householdMember.role, MEAL_ROLES))
+        ),
+    ]);
+
+    const byMeal = new Map(assigned.map((row) => [row.mealId, row.eaters]));
+
+    return new Map(mealIds.map((mealId) => [mealId, byMeal.get(mealId) ?? household?.eaters ?? 0]));
+  }
+
+  /**
    * What a stretch of the meal plan says you need to buy: every ingredient of every recipe planned
    * in the range, one row per ingredient, amounts added up across the recipes that call for it.
    *
    * Planned meals with no recipe attached are simply skipped — "At work" names no ingredients, and
    * that's not an error, just nothing to contribute.
+   *
+   * Each line comes back twice over: `amounts` as the recipes are written, and `scaledAmounts` cut
+   * to the people each planting is actually for. Both, rather than one or a query param, because the
+   * client offers that as a toggle — computing it here would cost a round-trip and a second cache
+   * entry for a number the response already has everything to produce.
    *
    * A flat array, and the range it actually read: an over-long request is clamped rather than
    * refused, and without the effective range on the response a client asking for 90 days would
@@ -758,8 +795,10 @@ export class ShoppingListsService {
         storeName: schema.store.name,
         quantity: schema.recipeIngredient.quantity,
         unit: schema.recipeIngredient.unit,
+        mealId: schema.plannedMeal.id,
         recipeId: schema.recipe.id,
         recipeTitle: schema.recipe.title,
+        servings: schema.recipe.servings,
       })
       .from(schema.plannedMeal)
       .innerJoin(schema.recipe, eq(schema.recipe.id, schema.plannedMeal.recipeId))
@@ -776,15 +815,22 @@ export class ShoppingListsService {
       )
       .orderBy(asc(schema.ingredient.name), asc(schema.recipeIngredient.position));
 
+    const eatersByMeal = await ShoppingListsService.eatersPerMeal(householdId, [
+      ...new Set(lines.map((line) => line.mealId)),
+    ]);
+
     // Gathered in encounter order, so the preview reads alphabetically by ingredient rather than in
     // whatever order the planner happened to add meals.
     const byIngredient = new Map<
       number,
       {
         amounts: Amount[];
+        /** `recipeId:mealId`, so a recipe that lists the same ingredient twice is still one planting. */
+        counted: Set<string>;
         ingredientId: number;
         name: string;
-        recipeTitles: string[];
+        recipes: Map<number, { eaters: number; servings: number | null; title: string }>;
+        scaledAmounts: Amount[];
         store: { id: number; name: string } | null;
       }
     >();
@@ -792,17 +838,42 @@ export class ShoppingListsService {
     for (const line of lines) {
       const entry = byIngredient.get(line.ingredientId) ?? {
         amounts: [],
+        counted: new Set<string>(),
         ingredientId: line.ingredientId,
         name: line.name,
-        recipeTitles: [],
+        recipes: new Map<number, { eaters: number; servings: number | null; title: string }>(),
+        scaledAmounts: [],
         store: line.storeId !== null && line.storeName !== null ? { id: line.storeId, name: line.storeName } : null,
       };
 
-      entry.amounts.push({ quantity: line.quantity, unit: line.unit });
-      // The same recipe planned on two days is still one recipe asking for this.
-      if (!entry.recipeTitles.includes(line.recipeTitle)) {
-        entry.recipeTitles.push(line.recipeTitle);
+      const eaters = eatersByMeal.get(line.mealId) ?? 0;
+      // A recipe that never said how many it feeds can't be cut down to a headcount, and neither can
+      // one nobody is eating — both stand as written rather than silently becoming nothing.
+      const factor = line.servings && eaters ? eaters / line.servings : 1;
+      const amount = { quantity: line.quantity, unit: line.unit };
+
+      entry.amounts.push(amount);
+      entry.scaledAmounts.push(scaleAmount(amount, factor));
+
+      // The same recipe planned on two days is still one recipe asking for this — but it asks twice,
+      // so both the servings it makes and the people eating them add up. That's what makes the
+      // "4 of 8" on screen match the amount beside it.
+      const recipe = entry.recipes.get(line.recipeId) ?? {
+        eaters: 0,
+        servings: line.servings === null ? null : 0,
+        title: line.recipeTitle,
+      };
+      const planting = `${line.recipeId}:${line.mealId}`;
+
+      if (!entry.counted.has(planting)) {
+        entry.counted.add(planting);
+        recipe.eaters += eaters;
+        if (recipe.servings !== null && line.servings !== null) {
+          recipe.servings += line.servings;
+        }
       }
+
+      entry.recipes.set(line.recipeId, recipe);
       byIngredient.set(line.ingredientId, entry);
     }
 
@@ -825,7 +896,11 @@ export class ShoppingListsService {
       to,
       plannedMeals: planned?.count ?? 0,
       lines: [...byIngredient.values()].map((entry) => ({
-        ...entry,
+        ingredientId: entry.ingredientId,
+        name: entry.name,
+        store: entry.store,
+        recipes: [...entry.recipes.values()],
+        scaledAmounts: sumAmounts(entry.scaledAmounts),
         amounts: sumAmounts(entry.amounts),
       })),
     };

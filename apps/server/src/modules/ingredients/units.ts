@@ -71,6 +71,17 @@ export function sumAmounts(amounts: Amount[]): Amount[] {
   });
 }
 
+/**
+ * An amount for a fraction of what the recipe makes — half a batch, a batch and a half.
+ *
+ * A quantity-less line ("salt, to taste") is left exactly as it is: it says "you need some of this",
+ * and there's no half of that. Nothing is rounded to a whole unit either, so a scaled `can` can come
+ * out as `1.5` — deciding which units should round up is its own piece of work.
+ */
+export function scaleAmount({ quantity, unit }: Amount, factor: number): Amount {
+  return round({ quantity: quantity === null ? null : quantity * factor, unit });
+}
+
 /** "200 g", "3" — for the amounts that have to be written into text rather than their own columns. */
 export function formatAmount({ quantity, unit }: Amount) {
   if (quantity === null) {

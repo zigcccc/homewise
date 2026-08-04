@@ -36,7 +36,7 @@ export {
   $reopenList,
 };
 
-/** What a stretch of the meal plan says you need to buy. */
+/** What a stretch of the meal plan says you need to buy, both as written and cut to who's eating. */
 export type MealPlanPreview = InferResponseType<typeof $mealPlanPreview, 200>;
 /** One ingredient the planned recipes call for, with its amounts already added up. */
 export type MealPlanPreviewLine = MealPlanPreview['lines'][number];
