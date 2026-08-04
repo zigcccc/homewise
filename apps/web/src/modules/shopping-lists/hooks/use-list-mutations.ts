@@ -80,6 +80,9 @@ export function useListMutations(listId: number) {
         queryClient.setQueryData(getShoppingListQueryOptions(listId).queryKey, context.previous);
       }
       toast.error(serverMessage(error, 'Could not update that item.'));
+      // The snapshot predates any refetch that landed while the request was out, so rolling back can
+      // bury another member's change.
+      invalidateShoppingLists(queryClient);
     },
     onSuccess,
   });
