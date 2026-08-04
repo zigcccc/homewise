@@ -39,6 +39,7 @@ export function IngredientCombobox({
   label = 'Add ingredient',
   meta = 'category',
   onSelect,
+  usedIds,
 }: {
   /**
    * Wording for the row that takes a name the library doesn't have. Defaults to "Create …", which
@@ -54,9 +55,17 @@ export function IngredientCombobox({
    */
   meta?: 'category' | 'store';
   onSelect: (choice: IngredientChoice) => void;
+  /**
+   * Ingredients already taken, shown but unselectable. A shopping list holds one line per
+   * ingredient — two "Potato" rows are never what anyone meant, and you can't tick half of them.
+   * Omitted by default: a recipe legitimately uses butter in both the dough and the sauce.
+   */
+  usedIds?: number[];
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
+
+  const used = useMemo(() => new Set(usedIds), [usedIds]);
 
   const query = search.trim().toLowerCase();
   const filtered = useMemo(
@@ -105,13 +114,18 @@ export function IngredientCombobox({
             <ComboboxGroup heading="Your ingredients">
               {filtered.map((ingredient) => (
                 <ComboboxItem
+                  disabled={used.has(ingredient.id)}
                   key={ingredient.id}
                   onSelect={() => handleSelect(ingredient)}
                   value={String(ingredient.id)}
                 >
                   <span className="truncate">{ingredient.name}</span>
                   <span className="ml-auto shrink-0 text-muted-foreground text-xs">
-                    {meta === 'store' ? ingredient.store?.name : ingredientCategoryLabels[ingredient.category]}
+                    {used.has(ingredient.id)
+                      ? 'Already added'
+                      : meta === 'store'
+                        ? ingredient.store?.name
+                        : ingredientCategoryLabels[ingredient.category]}
                   </span>
                 </ComboboxItem>
               ))}

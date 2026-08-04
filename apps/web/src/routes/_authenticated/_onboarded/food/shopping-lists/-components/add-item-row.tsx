@@ -1,7 +1,7 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
 
 import { IngredientCombobox, listIngredientsQueryOptions } from '@/modules/ingredients';
-import { useListMutations } from '@/modules/shopping-lists';
+import { getShoppingListQueryOptions, useListMutations } from '@/modules/shopping-lists';
 
 /**
  * The one place items are added.
@@ -13,7 +13,12 @@ import { useListMutations } from '@/modules/shopping-lists';
  */
 export function AddItemRow({ listId }: { listId: number }) {
   const { data: ingredients } = useSuspenseQuery(listIngredientsQueryOptions());
+  const { data: list } = useSuspenseQuery(getShoppingListQueryOptions(listId));
   const { addItemOrToast, isAdding } = useListMutations(listId);
+
+  // One line per ingredient: the ones already here are shown but not selectable, so the rule shows
+  // up as a greyed-out row rather than a 409 after the click.
+  const usedIds = list.items.map((item) => item.ingredientId).filter((id) => id !== null);
 
   return (
     <IngredientCombobox
@@ -27,6 +32,7 @@ export function AddItemRow({ listId }: { listId: number }) {
           choice.kind === 'existing' ? { ingredientId: choice.ingredient.id } : { title: choice.name }
         )
       }
+      usedIds={usedIds}
     />
   );
 }

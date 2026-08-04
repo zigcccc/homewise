@@ -38,6 +38,7 @@ import { Route as AuthenticatedOnboardedFoodRecipesRecipeIdRouteRouteImport } fr
 import { Route as AuthenticatedOnboardedFoodRecipesNewRouteImport } from './routes/_authenticated/_onboarded/food/recipes/new'
 import { Route as AuthenticatedOnboardedFoodShoppingListsIndexRouteImport } from './routes/_authenticated/_onboarded/food/shopping-lists/index'
 import { Route as AuthenticatedOnboardedFoodShoppingListsListIdRouteImport } from './routes/_authenticated/_onboarded/food/shopping-lists/$listId'
+import { Route as AuthenticatedOnboardedFoodShoppingListsImportRouteImport } from './routes/_authenticated/_onboarded/food/shopping-lists/import'
 import { Route as AuthenticatedOnboardedFamilyKidsProfileIdIndexRouteImport } from './routes/_authenticated/_onboarded/family/kids/$profileId/index'
 import { Route as AuthenticatedOnboardedFamilyKidsProfileIdDictionaryRouteImport } from './routes/_authenticated/_onboarded/family/kids/$profileId/dictionary'
 import { Route as AuthenticatedOnboardedFamilyKidsProfileIdGeneralRouteImport } from './routes/_authenticated/_onboarded/family/kids/$profileId/general'
@@ -213,6 +214,12 @@ const AuthenticatedOnboardedFoodShoppingListsListIdRoute =
     path: '/$listId',
     getParentRoute: () => AuthenticatedOnboardedFoodShoppingListsRouteRoute,
   } as any)
+const AuthenticatedOnboardedFoodShoppingListsImportRoute =
+  AuthenticatedOnboardedFoodShoppingListsImportRouteImport.update({
+    id: '/import',
+    path: '/import',
+    getParentRoute: () => AuthenticatedOnboardedFoodShoppingListsRouteRoute,
+  } as any)
 const AuthenticatedOnboardedFamilyKidsProfileIdIndexRoute =
   AuthenticatedOnboardedFamilyKidsProfileIdIndexRouteImport.update({
     id: '/',
@@ -278,6 +285,7 @@ export interface FileRoutesByFullPath {
   '/food/ingredients/stores': typeof AuthenticatedOnboardedFoodIngredientsStoresRoute
   '/food/recipes/new': typeof AuthenticatedOnboardedFoodRecipesNewRoute
   '/food/shopping-lists/$listId': typeof AuthenticatedOnboardedFoodShoppingListsListIdRoute
+  '/food/shopping-lists/import': typeof AuthenticatedOnboardedFoodShoppingListsImportRoute
   '/family/kids/': typeof AuthenticatedOnboardedFamilyKidsIndexRoute
   '/family/pets/': typeof AuthenticatedOnboardedFamilyPetsIndexRoute
   '/food/ingredients/': typeof AuthenticatedOnboardedFoodIngredientsIndexRoute
@@ -308,6 +316,7 @@ export interface FileRoutesByTo {
   '/food/ingredients/stores': typeof AuthenticatedOnboardedFoodIngredientsStoresRoute
   '/food/recipes/new': typeof AuthenticatedOnboardedFoodRecipesNewRoute
   '/food/shopping-lists/$listId': typeof AuthenticatedOnboardedFoodShoppingListsListIdRoute
+  '/food/shopping-lists/import': typeof AuthenticatedOnboardedFoodShoppingListsImportRoute
   '/family/kids': typeof AuthenticatedOnboardedFamilyKidsIndexRoute
   '/family/pets': typeof AuthenticatedOnboardedFamilyPetsIndexRoute
   '/food/ingredients': typeof AuthenticatedOnboardedFoodIngredientsIndexRoute
@@ -347,6 +356,7 @@ export interface FileRoutesById {
   '/_authenticated/_onboarded/food/ingredients/stores': typeof AuthenticatedOnboardedFoodIngredientsStoresRoute
   '/_authenticated/_onboarded/food/recipes/new': typeof AuthenticatedOnboardedFoodRecipesNewRoute
   '/_authenticated/_onboarded/food/shopping-lists/$listId': typeof AuthenticatedOnboardedFoodShoppingListsListIdRoute
+  '/_authenticated/_onboarded/food/shopping-lists/import': typeof AuthenticatedOnboardedFoodShoppingListsImportRoute
   '/_authenticated/_onboarded/family/kids/': typeof AuthenticatedOnboardedFamilyKidsIndexRoute
   '/_authenticated/_onboarded/family/pets/': typeof AuthenticatedOnboardedFamilyPetsIndexRoute
   '/_authenticated/_onboarded/food/ingredients/': typeof AuthenticatedOnboardedFoodIngredientsIndexRoute
@@ -385,6 +395,7 @@ export interface FileRouteTypes {
     | '/food/ingredients/stores'
     | '/food/recipes/new'
     | '/food/shopping-lists/$listId'
+    | '/food/shopping-lists/import'
     | '/family/kids/'
     | '/family/pets/'
     | '/food/ingredients/'
@@ -415,6 +426,7 @@ export interface FileRouteTypes {
     | '/food/ingredients/stores'
     | '/food/recipes/new'
     | '/food/shopping-lists/$listId'
+    | '/food/shopping-lists/import'
     | '/family/kids'
     | '/family/pets'
     | '/food/ingredients'
@@ -453,6 +465,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_onboarded/food/ingredients/stores'
     | '/_authenticated/_onboarded/food/recipes/new'
     | '/_authenticated/_onboarded/food/shopping-lists/$listId'
+    | '/_authenticated/_onboarded/food/shopping-lists/import'
     | '/_authenticated/_onboarded/family/kids/'
     | '/_authenticated/_onboarded/family/pets/'
     | '/_authenticated/_onboarded/food/ingredients/'
@@ -680,6 +693,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOnboardedFoodShoppingListsListIdRouteImport
       parentRoute: typeof AuthenticatedOnboardedFoodShoppingListsRouteRoute
     }
+    '/_authenticated/_onboarded/food/shopping-lists/import': {
+      id: '/_authenticated/_onboarded/food/shopping-lists/import'
+      path: '/import'
+      fullPath: '/food/shopping-lists/import'
+      preLoaderRoute: typeof AuthenticatedOnboardedFoodShoppingListsImportRouteImport
+      parentRoute: typeof AuthenticatedOnboardedFoodShoppingListsRouteRoute
+    }
     '/_authenticated/_onboarded/family/kids/$profileId/': {
       id: '/_authenticated/_onboarded/family/kids/$profileId/'
       path: '/'
@@ -772,6 +792,7 @@ const AuthenticatedOnboardedFoodIngredientsRouteRouteWithChildren =
 
 interface AuthenticatedOnboardedFoodShoppingListsRouteRouteChildren {
   AuthenticatedOnboardedFoodShoppingListsListIdRoute: typeof AuthenticatedOnboardedFoodShoppingListsListIdRoute
+  AuthenticatedOnboardedFoodShoppingListsImportRoute: typeof AuthenticatedOnboardedFoodShoppingListsImportRoute
   AuthenticatedOnboardedFoodShoppingListsIndexRoute: typeof AuthenticatedOnboardedFoodShoppingListsIndexRoute
 }
 
@@ -779,6 +800,8 @@ const AuthenticatedOnboardedFoodShoppingListsRouteRouteChildren: AuthenticatedOn
   {
     AuthenticatedOnboardedFoodShoppingListsListIdRoute:
       AuthenticatedOnboardedFoodShoppingListsListIdRoute,
+    AuthenticatedOnboardedFoodShoppingListsImportRoute:
+      AuthenticatedOnboardedFoodShoppingListsImportRoute,
     AuthenticatedOnboardedFoodShoppingListsIndexRoute:
       AuthenticatedOnboardedFoodShoppingListsIndexRoute,
   }

@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute, Link, Outlet, useMatchRoute, useNavigate } from '@tanstack/react-router';
-import { CheckIcon, ListTodoIcon, PlusIcon } from 'lucide-react';
+import { CheckIcon, CookingPotIcon, ListTodoIcon, PlusIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import z from 'zod';
 
@@ -15,6 +15,7 @@ import {
   Button,
   Checkbox,
   Empty,
+  EmptyContent,
   EmptyDescription,
   EmptyHeader,
   EmptyMedia,
@@ -63,7 +64,9 @@ function ShoppingListsLayout() {
 
   // Which pane the small screen is showing. Two columns side by side don't fit under `md`, so the
   // master column steps aside once a list is open and the detail offers a way back.
-  const isDetail = Boolean(matchRoute({ fuzzy: true, to: '/food/shopping-lists/$listId' }));
+  const isDetail =
+    Boolean(matchRoute({ fuzzy: true, to: '/food/shopping-lists/$listId' })) ||
+    Boolean(matchRoute({ to: '/food/shopping-lists/import' }));
 
   const { mutateAsync: createList, isPending: isCreating } = useMutation({
     mutationFn: async () => parseResponse($createList({ json: {} })),
@@ -114,6 +117,12 @@ function ShoppingListsLayout() {
               />
               Show completed
             </Label>
+            <Button asChild size="sm" variant="outline">
+              <Link search={{ target: 'new' }} to="/food/shopping-lists/import">
+                <CookingPotIcon />
+                From meal plan
+              </Link>
+            </Button>
             <Button loading={isCreating} onClick={handleCreate} size="sm">
               <PlusIcon />
               New list
@@ -121,8 +130,10 @@ function ShoppingListsLayout() {
           </div>
         </div>
 
-        {/* Nothing to put beside, so nothing beside it. Guarded on `isDetail` too: marking the only
-            list done filters it out of the master column while its detail is still open. */}
+        {/* Nothing to put beside, so nothing beside it. A completed list doesn't count while the
+            filter hides it — the detail route redirects out rather than lingering in an empty shell.
+            `!isDetail` is load-bearing: importing from the meal plan is exactly what you do when the
+            household has no lists, and without it that route renders into nothing. */}
         {lists.length === 0 && !isDetail ? (
           <Empty className="min-h-[60vh]">
             <EmptyHeader>
@@ -130,14 +141,20 @@ function ShoppingListsLayout() {
                 <ListTodoIcon />
               </EmptyMedia>
               <EmptyTitle>No shopping lists yet</EmptyTitle>
-              {/* No call to action here: "New list" sits in the header row above, always visible, and
-                  two identical buttons on one screen is one too many. */}
-              <EmptyDescription>Start one with “New list” and add what you need to buy.</EmptyDescription>
+              <EmptyDescription>Start one and add what you need to buy.</EmptyDescription>
             </EmptyHeader>
+            <EmptyContent>
+              <Button loading={isCreating} onClick={handleCreate}>
+                <PlusIcon />
+                New list
+              </Button>
+            </EmptyContent>
           </Empty>
         ) : (
           <div className="md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] md:gap-6">
             <aside className={cn(isDetail && 'hidden md:block')}>
+              {/* Only reachable with a detail route open — importing with no lists yet. */}
+              {lists.length === 0 && <p className="px-3 py-2 text-muted-foreground text-sm">No lists yet.</p>}
               <ul className="space-y-1">
                 {lists.map((list) => (
                   <li key={list.id}>

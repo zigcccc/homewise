@@ -13,6 +13,8 @@ const $reopenList = client['shopping-lists'][':id'].reopen.$post;
 const $createSection = client['shopping-lists'][':id'].sections.$post;
 const $patchSection = client['shopping-lists'][':id'].sections[':sectionId'].$patch;
 const $deleteSection = client['shopping-lists'][':id'].sections[':sectionId'].$delete;
+const $mealPlanPreview = client['shopping-lists']['meal-plan-preview'].$get;
+const $importFromMealPlan = client['shopping-lists'].import.$post;
 const $createItem = client['shopping-lists'][':id'].items.$post;
 const $patchItem = client['shopping-lists'][':id'].items[':itemId'].$patch;
 const $deleteItem = client['shopping-lists'][':id'].items[':itemId'].$delete;
@@ -25,11 +27,24 @@ export {
   $deleteItem,
   $deleteList,
   $deleteSection,
+  $importFromMealPlan,
   $patchItem,
   $patchList,
   $patchSection,
   $reopenList,
 };
+
+/** What a stretch of the meal plan says you need to buy. */
+export type MealPlanPreview = InferResponseType<typeof $mealPlanPreview, 200>;
+/** One ingredient the planned recipes call for, with its amounts already added up. */
+export type MealPlanPreviewLine = MealPlanPreview['lines'][number];
+
+export function mealPlanPreviewQueryOptions(query: InferRequestType<typeof $mealPlanPreview>['query']) {
+  return queryOptions({
+    queryKey: ['shopping-lists', 'meal-plan-preview', query],
+    queryFn: async () => parseResponse($mealPlanPreview({ query })),
+  });
+}
 
 /** A list as the master column shows it: label, completion, and the "3 of 12" counts. */
 export type ShoppingListSummary = InferResponseType<typeof $listLists, 200>[number];
