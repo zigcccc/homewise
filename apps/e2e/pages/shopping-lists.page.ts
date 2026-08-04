@@ -1,8 +1,15 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 
+import { API_URL } from '../playwright.config';
+import { Drag } from './drag';
+
 /** The household's shopping lists (`/food/shopping-lists`) — master column plus the open list. */
 export class ShoppingListsPage {
-  constructor(private readonly page: Page) {}
+  private readonly drag: Drag;
+
+  constructor(private readonly page: Page) {
+    this.drag = new Drag(page);
+  }
 
   async goto() {
     await this.page.goto('/food/shopping-lists');
@@ -27,24 +34,61 @@ export class ShoppingListsPage {
    * that belongs to one spec.
    */
   listLink(listId: string): Locator {
-    // Exact href, not a substring: `…/1` is a prefix of `…/10`, so `*=` would match other specs' rows.
-    return this.page.locator(`a[href="/food/shopping-lists/${listId}"]`);
+    // Anchored on both ends, never `*=`: `…/1` is a prefix of `…/10`, so a substring match would find
+    // other specs' rows. The `?` alternative is for the retained `includeCompleted` filter, which the
+    // section carries onto its own links so a completed list can be opened at all.
+    const path = `/food/shopping-lists/${listId}`;
+
+    return this.page.locator(`a[href="${path}"], a[href^="${path}?"]`);
   }
 
   /**
-   * Creates a list, waits for the detail pane to open on it, and returns its id.
+   * Mints a list through the API and opens it.
+   *
+   * Through the API on purpose, for every spec that just needs *a* list of its own to work on. The
+   * button-driven path below races the index route's auto-select: the page opens whichever list is
+   * first, that navigation can land after the click, and the spec walks away holding another spec's
+   * list — which it then finds already has its ingredient on it. `createListFromUi` still covers the
+   * button, in the exclusive project where nothing else is creating lists at the same time.
+   */
+  async createList(): Promise<string> {
+    const response = await this.page.context().request.post(`${API_URL}/shopping-lists`, { data: {} });
+    expect(response.ok(), 'could not create a shopping list').toBe(true);
+
+    const listId = String((await response.json()).id);
+    await this.openList(listId);
+
+    return listId;
+  }
+
+  /**
+   * Creates a list by clicking `New list`, waits for the detail pane to open on it, and returns its
+   * id. Only safe where the household isn't being changed concurrently — see `createList`.
    *
    * Waits for the id to *change*, not merely for a detail URL: on a wide screen the index route
    * auto-selects the first list, so the URL already matches before the click and a plain
-   * `waitForURL` would hand back whichever list happened to be open — another spec's, in parallel.
+   * `waitForURL` would hand back whichever list happened to be open.
    */
-  async createList(): Promise<string> {
-    const before = this.currentListId();
-    await this.page.getByRole('button', { name: 'New list' }).click();
+  async createListFromUi(): Promise<string> {
+    // Every id already on screen, not just the one currently open. On a wide screen the index route
+    // auto-selects a list, and that navigation can land *after* the click — so "wait for the id to
+    // change" would happily return the auto-selected list, which belongs to another spec.
+    const before = new Set(
+      await this.page
+        .locator('a[href^="/food/shopping-lists/"]')
+        .evaluateAll((links) =>
+          links.map((link) => /\/food\/shopping-lists\/(\d+)/.exec(link.getAttribute('href') ?? '')?.[1])
+        )
+    );
+    before.add(this.currentListId());
+
+    // `.first()` is the header row's button. The empty state has one too, and both are on screen
+    // whenever the household has no lists — they do the same thing, so either would serve.
+    await this.page.getByRole('button', { name: 'New list' }).first().click();
     await this.page.waitForURL((url) => {
       const id = /\/food\/shopping-lists\/(\d+)/.exec(url.pathname)?.[1];
 
-      return id !== undefined && id !== before;
+      return id !== undefined && !before.has(id);
     });
 
     return this.listIdFromUrl();
@@ -59,9 +103,68 @@ export class ShoppingListsPage {
     return /\/food\/shopping-lists\/(\d+)/.exec(this.page.url())?.[1];
   }
 
+  /**
+   * Opens a list by id, with the filter left at its default.
+   *
+   * Deliberately *not* `?includeCompleted=true`: that would leave every spec reached through here
+   * running with the filter on, and "a list marked done drops out of the column" is then untestable.
+   * `deleteListIfPresent` sets it, because that one does have to reach a finished list.
+   */
   async openList(listId: string) {
     await this.page.goto(`/food/shopping-lists/${listId}`);
     await expect(this.page.getByRole('button', { name: 'List actions' })).toBeVisible();
+  }
+
+  /**
+   * The import screen, over an explicit range. Driven by URL because the range lives in the search
+   * params — which is the point of putting it there: a range is shareable and survives a refresh.
+   */
+  async gotoImport({ from, target, to }: { from: string; target?: string; to: string }) {
+    const search = new URLSearchParams({ from, to, ...(target ? { target } : {}) });
+    await this.page.goto(`/food/shopping-lists/import?${search.toString()}`);
+    await expect(this.page.getByRole('heading', { level: 2, name: 'From the meal plan' })).toBeVisible();
+  }
+
+  /**
+   * One row of the import preview, identified by its own include checkbox — the master column's
+   * entries are `listitem`s too, and can carry the same words.
+   */
+  previewRow(name: string): Locator {
+    return this.page
+      .getByRole('listitem')
+      .filter({ has: this.page.getByRole('checkbox', { name: `Include ${name}` }) });
+  }
+
+  async excludeFromImport(name: string) {
+    await this.page.getByRole('checkbox', { name: `Include ${name}` }).click();
+    await expect(this.page.getByRole('checkbox', { name: `Include ${name}`, checked: true })).toHaveCount(0);
+  }
+
+  /**
+   * Moves one end of the import range through the field, not through the URL.
+   *
+   * `gotoImport` would rebuild the page and prove nothing about what the range change does to a form
+   * that is already mounted. The field takes day-first text, like every date in this app.
+   */
+  async setImportRange(end: 'from' | 'to', isoDay: string) {
+    const [year, month, day] = isoDay.split('-');
+    const input = this.page.locator(`#import-${end}`);
+
+    await input.fill(`${day}. ${month}. ${year}`);
+    await input.press('Enter');
+    await expect(this.page).toHaveURL(new RegExp(`${end}=${isoDay}`));
+  }
+
+  /** Flips "Scale to who's eating" and waits for the amounts to follow. */
+  async toggleScaling(on: boolean) {
+    const toggle = this.page.getByRole('checkbox', { name: "Scale to who's eating" });
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('data-state', on ? 'checked' : 'unchecked');
+  }
+
+  async confirmImport() {
+    await this.page.getByRole('button', { name: /^Add \d+ items?$/ }).click();
+    await this.page.waitForURL(/\/food\/shopping-lists\/\d+/);
   }
 
   /** A section heading in the open list. */
@@ -69,9 +172,13 @@ export class ShoppingListsPage {
     return this.page.getByRole('heading', { level: 2, name: label });
   }
 
-  /** One row of the open list. Scoped to `listitem` so a section heading can't match instead. */
+  /**
+   * One row of the open list. Scoped inside a `section`, which only the list's own groups are — the
+   * master column and the import preview are `listitem`s too, and an ingredient name can appear in
+   * a list's inferred label.
+   */
   item(label: string): Locator {
-    return this.page.getByRole('listitem').filter({ hasText: label });
+    return this.page.locator('section').getByRole('listitem').filter({ hasText: label });
   }
 
   /**
@@ -83,6 +190,14 @@ export class ShoppingListsPage {
       .locator('section')
       .filter({ has: this.page.getByRole('heading', { level: 2, name: sectionLabel }) })
       .getByRole('listitem');
+  }
+
+  /** A section's `<ul>` — the drop target for a drag that isn't aimed at a particular row. */
+  sectionList(sectionLabel: string): Locator {
+    return this.page
+      .locator('section')
+      .filter({ has: this.page.getByRole('heading', { level: 2, name: sectionLabel }) })
+      .getByRole('list');
   }
 
   /** Items with no section render in the one `section` element that has no heading. */
@@ -117,7 +232,7 @@ export class ShoppingListsPage {
     await expect(this.item(name)).toBeVisible();
   }
 
-  private async openAddPicker() {
+  async openAddPicker() {
     await this.page.getByRole('button', { name: /^Add item/ }).click();
     await expect(this.page.getByPlaceholder('Search ingredients')).toBeVisible();
   }
@@ -141,9 +256,75 @@ export class ShoppingListsPage {
     return this.page.getByRole('checkbox', { name: `Tick ${label}`, checked: true });
   }
 
+  /** One row's actions menu. Exact, or "Actions for Onion" also matches "Actions for Onion soup". */
+  async openItemMenu(label: string) {
+    await this.page.getByRole('button', { exact: true, name: `Actions for ${label}` }).click();
+  }
+
   async removeItem(label: string) {
-    await this.page.getByRole('button', { name: `Remove ${label}` }).click();
+    await this.openItemMenu(label);
+    await this.page.getByRole('menuitem', { name: 'Remove item' }).click();
     await expect(this.item(label)).toHaveCount(0);
+  }
+
+  /** Opens a row's amount editor and leaves it open — for the specs that assert on it mid-edit. */
+  async openItemEditor(label: string) {
+    await this.openItemMenu(label);
+    await this.page.getByRole('menuitem', { name: 'Edit amount' }).click();
+    await expect(this.quantityField()).toBeVisible();
+  }
+
+  /**
+   * The other way in, which must work the same whether the row is an ingredient or a one-off.
+   *
+   * Anchored, not exact: the label button's accessible name picks up the amount beside it
+   * ("Onion 2 kg"), while the row's other two buttons — "Move Onion", "Actions for Onion" — carry
+   * the name in the middle, so a loose match would find three buttons.
+   */
+  async openItemEditorByName(label: string) {
+    await this.item(label)
+      .getByRole('button', { name: new RegExp(`^${label}`) })
+      .click();
+    await expect(this.quantityField()).toBeVisible();
+  }
+
+  quantityField(): Locator {
+    return this.page.getByRole('spinbutton', { name: 'Quantity' });
+  }
+
+  /** Commits the open row editor. It closes on success, which is what the wait is for. */
+  async saveItemEdit() {
+    await this.page.getByRole('button', { exact: true, name: 'Save' }).click();
+    await expect(this.quantityField()).toHaveCount(0);
+  }
+
+  async editItem(label: string, { note, quantity, unit }: { note?: string; quantity: number; unit: string }) {
+    await this.openItemEditor(label);
+    await this.quantityField().fill(String(quantity));
+
+    await this.page.getByRole('combobox', { name: 'Unit' }).click();
+    await this.page.getByRole('option', { exact: true, name: unit }).click();
+
+    if (note !== undefined) {
+      await this.page.getByRole('textbox', { name: 'Note' }).fill(note);
+    }
+
+    await this.saveItemEdit();
+  }
+
+  /**
+   * The pointer path onto `target`, which shares no code with `moveItem` below — a broken drag would
+   * otherwise sail straight past the menu-driven spec.
+   */
+  async dragItem(label: string, target: Locator) {
+    await this.drag.onto(this.page.getByRole('button', { exact: true, name: `Move ${label}` }), target);
+  }
+
+  /** Files a row under a different heading. `destination` is a section label, or "No section". */
+  async moveItem(label: string, destination: string) {
+    await this.openItemMenu(label);
+    await this.page.getByRole('menuitem', { name: 'Move to' }).click();
+    await this.page.getByRole('menuitem', { exact: true, name: destination }).click();
   }
 
   /** The "3 of 12 ticked" line under the open list's title — the master column shows it too. */
@@ -215,7 +396,8 @@ export class ShoppingListsPage {
    * every spec in the run.
    */
   async deleteListIfPresent(listId: string): Promise<boolean> {
-    await this.page.goto(`/food/shopping-lists/${listId}`);
+    // `includeCompleted=true`, or a finished list redirects out before it can be deleted.
+    await this.page.goto(`/food/shopping-lists/${listId}?includeCompleted=true`);
 
     const actions = this.page.getByRole('button', { name: 'List actions' });
     await actions.waitFor({ state: 'visible', timeout: 10_000 }).catch(() => {
@@ -239,14 +421,21 @@ export class ShoppingListsPage {
     await this.goto();
     await this.showCompleted(true);
 
-    // Re-read each time: deleting one re-renders the column, so a captured handle goes stale.
-    let link = this.page.locator('a[href^="/food/shopping-lists/"]').first();
-    while ((await link.count()) > 0) {
-      const href = await link.getAttribute('href');
-      await this.deleteListIfPresent(/\/food\/shopping-lists\/(\d+)/.exec(href ?? '')![1]!);
+    // Re-read each time: deleting one re-renders the column, so a captured handle goes stale. Only
+    // hrefs ending in an id — "From meal plan" points at `/food/shopping-lists/import`, same prefix.
+    for (;;) {
+      const hrefs = await this.page
+        .locator('a[href^="/food/shopping-lists/"]')
+        .evaluateAll((links) => links.map((link) => link.getAttribute('href') ?? ''));
+      const id = hrefs.map((href) => /\/food\/shopping-lists\/(\d+)/.exec(href)?.[1]).find(Boolean);
+
+      if (!id) {
+        return;
+      }
+
+      await this.deleteListIfPresent(id);
       await this.goto();
       await this.showCompleted(true);
-      link = this.page.locator('a[href^="/food/shopping-lists/"]').first();
     }
   }
 

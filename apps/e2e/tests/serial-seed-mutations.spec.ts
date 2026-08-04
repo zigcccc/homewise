@@ -240,7 +240,7 @@ test('shows the empty state with no lists, and returns to it when the last one i
   // No second column to fill when there is nothing to put beside it.
   await expect(lists.masterColumn()).toHaveCount(0);
 
-  const listId = await lists.createList();
+  const listId = await lists.createListFromUi();
   await expect(lists.listLink(listId)).toBeVisible();
 
   await lists.deleteList();
@@ -250,6 +250,99 @@ test('shows the empty state with no lists, and returns to it when the last one i
   await expect(page).not.toHaveURL(new RegExp(`/food/shopping-lists/${listId}$`));
   await expect(page.getByRole('button', { name: 'List actions' })).toHaveCount(0);
   await expect(page.getByText('No shopping lists yet')).toBeVisible();
+});
+
+/**
+ * Newest first, whether or not it's been shopped.
+ *
+ * Exclusive because asserting *which* list is first needs a household with a known set of them; the
+ * parallel project has several specs minting lists at once.
+ */
+test('lists the newest first, with completion no part of the order', async ({ page }) => {
+  const lists = new ShoppingListsPage(page);
+  await lists.deleteAllLists();
+
+  const older = await lists.createListFromUi();
+  await lists.markDone();
+
+  const newer = await lists.createListFromUi();
+
+  await lists.goto();
+  await lists.showCompleted(true);
+
+  // The older list is the completed one, so an order that sorted on `completedAt` — as this did,
+  // nulls-last, putting finished lists on top — would put it first.
+  await expect(lists.listLink(newer)).toBeVisible();
+  await expect(lists.listLink(older)).toBeVisible();
+  // Scoped to the master column: the header's "From meal plan" link shares the href prefix and
+  // comes first in the DOM. Matched with a trailing `(\?|$)` because the column's links carry the
+  // retained `includeCompleted` filter — and because `…/1` is a prefix of `…/10`.
+  await expect(lists.masterColumn().locator('a[href^="/food/shopping-lists/"]').first()).toHaveAttribute(
+    'href',
+    new RegExp(`^/food/shopping-lists/${newer}(\\?|$)`)
+  );
+
+  await lists.deleteAllLists();
+});
+
+/**
+ * The empty state replaces the master column, not the whole page.
+ *
+ * Building a list from the meal plan is exactly what you do when the household has none, and the
+ * header offers it right there — but the empty state used to short-circuit the `<Outlet />`, so
+ * that link led to a page with nothing on it. Exclusive for the same reason as the spec above: "no
+ * lists at all" is a whole-household precondition.
+ */
+test('still opens the meal-plan import when the household has no lists', async ({ page }) => {
+  const lists = new ShoppingListsPage(page);
+  await lists.deleteAllLists();
+  await expect(page.getByText('No shopping lists yet')).toBeVisible();
+
+  await page.getByRole('link', { name: 'From meal plan' }).click();
+
+  await expect(page.getByRole('heading', { level: 2, name: 'From the meal plan' })).toBeVisible();
+});
+
+/**
+ * Two people, one list: the one you have open is deleted under you mid-shop.
+ *
+ * Covers the outcome — the app is still usable and the surviving list is still listed — not a
+ * particular pane. **This is not a regression test for the root-boundary crash**: it passes with the
+ * route's `errorComponent` removed too, so whatever produced "Something went wrong!" during a loaded
+ * suite run is not what this reproduces. Kept because the scenario is worth holding still; the
+ * boundary itself remains unverified.
+ *
+ * Exclusive because it needs a known number of lists: the detail pane only outlives its subject
+ * while the household still has another one.
+ */
+test('keeps the app alive when the open list is deleted by another member', async ({ page, browser }) => {
+  const lists = new ShoppingListsPage(page);
+  await lists.deleteAllLists();
+
+  const keeper = await lists.createListFromUi();
+  const doomed = await lists.createListFromUi();
+  expect(keeper, 'createList handed back the same list twice').not.toBe(doomed);
+  await expect(lists.listLink(keeper)).toBeVisible();
+  await expect(lists.listLink(doomed)).toBeVisible();
+
+  const otherContext = await browser.newContext({ storageState: SECOND_USER_STORAGE_STATE });
+  const other = new ShoppingListsPage(await otherContext.newPage());
+
+  try {
+    await other.openList(doomed);
+    await other.deleteList();
+
+    // The observer never reloads. What matters is that the app is still standing — the root error
+    // boundary used to swallow it whole. Asserted on the invariant rather than on one string,
+    // because the pane may legitimately show either the route's own "this list is gone" or the
+    // layout's empty state, depending on what the household has left.
+    await expect(lists.listLink(keeper)).toBeVisible();
+    await expect(page.getByText('Something went wrong!')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'New list' }).first()).toBeEnabled();
+  } finally {
+    await otherContext.close();
+    await lists.deleteAllLists();
+  }
 });
 
 /**
