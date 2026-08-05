@@ -7,7 +7,7 @@ import { type SubmitHandler, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import z from 'zod';
 
-import { patchHouseholdModel } from '@homewise/server/households';
+import { currency, patchHouseholdModel } from '@homewise/server/households';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -75,6 +75,7 @@ function SettingsRoute() {
   const form = useForm({
     resolver: zodResolver(patchHouseholdModel),
     defaultValues: {
+      currency: household.currency,
       name: household.name,
       ownerId: household.ownerId,
     },
@@ -212,6 +213,38 @@ function SettingsRoute() {
                         </SelectContent>
                       </Select>
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={control}
+                name="currency"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Currency</FormLabel>
+                    <FormControl className="max-w-72">
+                      <Select name={field.name} onValueChange={field.onChange} value={field.value ?? 'EUR'}>
+                        <SelectTrigger className="w-72">
+                          <SelectValue placeholder="Select a currency" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectGroup>
+                            <SelectLabel>Currency</SelectLabel>
+                            {currency.options.map((code) => (
+                              <SelectItem key={code} value={code}>
+                                {code}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    {/* Deliberately not retroactive: each expense keeps the currency it was logged
+                        in, so this only decides what future ones are recorded as. */}
+                    <p className="text-muted-foreground text-sm">
+                      What new expenses are recorded in. Expenses already logged keep their own currency.
+                    </p>
                     <FormMessage />
                   </FormItem>
                 )}

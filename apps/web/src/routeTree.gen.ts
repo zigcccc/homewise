@@ -21,11 +21,13 @@ import { Route as AuthenticatedOnboardedUserProfileRouteImport } from './routes/
 import { Route as AuthenticatedOnboardingIndexRouteImport } from './routes/_authenticated/onboarding/index'
 import { Route as AuthenticatedOnboardingCreateHouseholdRouteImport } from './routes/_authenticated/onboarding/create-household'
 import { Route as AuthenticatedOnboardingInviteMembersRouteImport } from './routes/_authenticated/onboarding/invite-members'
-import { Route as AuthenticatedOnboardedExpensesMonthlyExpensesRouteImport } from './routes/_authenticated/_onboarded/expenses/monthly-expenses'
+import { Route as AuthenticatedOnboardedExpensesMonthlyExpensesRouteRouteImport } from './routes/_authenticated/_onboarded/expenses/monthly-expenses/route'
 import { Route as AuthenticatedOnboardedFoodIngredientsRouteRouteImport } from './routes/_authenticated/_onboarded/food/ingredients/route'
 import { Route as AuthenticatedOnboardedFoodShoppingListsRouteRouteImport } from './routes/_authenticated/_onboarded/food/shopping-lists/route'
 import { Route as AuthenticatedOnboardedManageHouseholdMembersRouteImport } from './routes/_authenticated/_onboarded/manage/household-members'
 import { Route as AuthenticatedOnboardedManageSettingsRouteImport } from './routes/_authenticated/_onboarded/manage/settings'
+import { Route as AuthenticatedOnboardedExpensesMonthlyExpensesIndexRouteImport } from './routes/_authenticated/_onboarded/expenses/monthly-expenses/index'
+import { Route as AuthenticatedOnboardedExpensesMonthlyExpensesCategoriesRouteImport } from './routes/_authenticated/_onboarded/expenses/monthly-expenses/categories'
 import { Route as AuthenticatedOnboardedFamilyKidsIndexRouteImport } from './routes/_authenticated/_onboarded/family/kids/index'
 import { Route as AuthenticatedOnboardedFamilyKidsProfileIdRouteRouteImport } from './routes/_authenticated/_onboarded/family/kids/$profileId/route'
 import { Route as AuthenticatedOnboardedFamilyPetsIndexRouteImport } from './routes/_authenticated/_onboarded/family/pets/index'
@@ -112,8 +114,8 @@ const AuthenticatedOnboardingInviteMembersRoute =
     path: '/invite-members',
     getParentRoute: () => AuthenticatedOnboardingRouteRoute,
   } as any)
-const AuthenticatedOnboardedExpensesMonthlyExpensesRoute =
-  AuthenticatedOnboardedExpensesMonthlyExpensesRouteImport.update({
+const AuthenticatedOnboardedExpensesMonthlyExpensesRouteRoute =
+  AuthenticatedOnboardedExpensesMonthlyExpensesRouteRouteImport.update({
     id: '/expenses/monthly-expenses',
     path: '/expenses/monthly-expenses',
     getParentRoute: () => AuthenticatedOnboardedRoute,
@@ -141,6 +143,20 @@ const AuthenticatedOnboardedManageSettingsRoute =
     id: '/manage/settings',
     path: '/manage/settings',
     getParentRoute: () => AuthenticatedOnboardedRoute,
+  } as any)
+const AuthenticatedOnboardedExpensesMonthlyExpensesIndexRoute =
+  AuthenticatedOnboardedExpensesMonthlyExpensesIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () =>
+      AuthenticatedOnboardedExpensesMonthlyExpensesRouteRoute,
+  } as any)
+const AuthenticatedOnboardedExpensesMonthlyExpensesCategoriesRoute =
+  AuthenticatedOnboardedExpensesMonthlyExpensesCategoriesRouteImport.update({
+    id: '/categories',
+    path: '/categories',
+    getParentRoute: () =>
+      AuthenticatedOnboardedExpensesMonthlyExpensesRouteRoute,
   } as any)
 const AuthenticatedOnboardedFamilyKidsIndexRoute =
   AuthenticatedOnboardedFamilyKidsIndexRouteImport.update({
@@ -274,18 +290,20 @@ export interface FileRoutesByFullPath {
   '/onboarding/create-household': typeof AuthenticatedOnboardingCreateHouseholdRoute
   '/onboarding/invite-members': typeof AuthenticatedOnboardingInviteMembersRoute
   '/onboarding/': typeof AuthenticatedOnboardingIndexRoute
+  '/expenses/monthly-expenses': typeof AuthenticatedOnboardedExpensesMonthlyExpensesRouteRouteWithChildren
   '/food/ingredients': typeof AuthenticatedOnboardedFoodIngredientsRouteRouteWithChildren
   '/food/shopping-lists': typeof AuthenticatedOnboardedFoodShoppingListsRouteRouteWithChildren
-  '/expenses/monthly-expenses': typeof AuthenticatedOnboardedExpensesMonthlyExpensesRoute
   '/manage/household-members': typeof AuthenticatedOnboardedManageHouseholdMembersRoute
   '/manage/settings': typeof AuthenticatedOnboardedManageSettingsRoute
   '/family/kids/$profileId': typeof AuthenticatedOnboardedFamilyKidsProfileIdRouteRouteWithChildren
   '/family/pets/$profileId': typeof AuthenticatedOnboardedFamilyPetsProfileIdRouteRouteWithChildren
   '/food/recipes/$recipeId': typeof AuthenticatedOnboardedFoodRecipesRecipeIdRouteRouteWithChildren
+  '/expenses/monthly-expenses/categories': typeof AuthenticatedOnboardedExpensesMonthlyExpensesCategoriesRoute
   '/food/ingredients/stores': typeof AuthenticatedOnboardedFoodIngredientsStoresRoute
   '/food/recipes/new': typeof AuthenticatedOnboardedFoodRecipesNewRoute
   '/food/shopping-lists/$listId': typeof AuthenticatedOnboardedFoodShoppingListsListIdRoute
   '/food/shopping-lists/import': typeof AuthenticatedOnboardedFoodShoppingListsImportRoute
+  '/expenses/monthly-expenses/': typeof AuthenticatedOnboardedExpensesMonthlyExpensesIndexRoute
   '/family/kids/': typeof AuthenticatedOnboardedFamilyKidsIndexRoute
   '/family/pets/': typeof AuthenticatedOnboardedFamilyPetsIndexRoute
   '/food/ingredients/': typeof AuthenticatedOnboardedFoodIngredientsIndexRoute
@@ -310,13 +328,14 @@ export interface FileRoutesByTo {
   '/onboarding/create-household': typeof AuthenticatedOnboardingCreateHouseholdRoute
   '/onboarding/invite-members': typeof AuthenticatedOnboardingInviteMembersRoute
   '/onboarding': typeof AuthenticatedOnboardingIndexRoute
-  '/expenses/monthly-expenses': typeof AuthenticatedOnboardedExpensesMonthlyExpensesRoute
   '/manage/household-members': typeof AuthenticatedOnboardedManageHouseholdMembersRoute
   '/manage/settings': typeof AuthenticatedOnboardedManageSettingsRoute
+  '/expenses/monthly-expenses/categories': typeof AuthenticatedOnboardedExpensesMonthlyExpensesCategoriesRoute
   '/food/ingredients/stores': typeof AuthenticatedOnboardedFoodIngredientsStoresRoute
   '/food/recipes/new': typeof AuthenticatedOnboardedFoodRecipesNewRoute
   '/food/shopping-lists/$listId': typeof AuthenticatedOnboardedFoodShoppingListsListIdRoute
   '/food/shopping-lists/import': typeof AuthenticatedOnboardedFoodShoppingListsImportRoute
+  '/expenses/monthly-expenses': typeof AuthenticatedOnboardedExpensesMonthlyExpensesIndexRoute
   '/family/kids': typeof AuthenticatedOnboardedFamilyKidsIndexRoute
   '/family/pets': typeof AuthenticatedOnboardedFamilyPetsIndexRoute
   '/food/ingredients': typeof AuthenticatedOnboardedFoodIngredientsIndexRoute
@@ -345,18 +364,20 @@ export interface FileRoutesById {
   '/_authenticated/onboarding/invite-members': typeof AuthenticatedOnboardingInviteMembersRoute
   '/_authenticated/_onboarded/': typeof AuthenticatedOnboardedIndexRoute
   '/_authenticated/onboarding/': typeof AuthenticatedOnboardingIndexRoute
+  '/_authenticated/_onboarded/expenses/monthly-expenses': typeof AuthenticatedOnboardedExpensesMonthlyExpensesRouteRouteWithChildren
   '/_authenticated/_onboarded/food/ingredients': typeof AuthenticatedOnboardedFoodIngredientsRouteRouteWithChildren
   '/_authenticated/_onboarded/food/shopping-lists': typeof AuthenticatedOnboardedFoodShoppingListsRouteRouteWithChildren
-  '/_authenticated/_onboarded/expenses/monthly-expenses': typeof AuthenticatedOnboardedExpensesMonthlyExpensesRoute
   '/_authenticated/_onboarded/manage/household-members': typeof AuthenticatedOnboardedManageHouseholdMembersRoute
   '/_authenticated/_onboarded/manage/settings': typeof AuthenticatedOnboardedManageSettingsRoute
   '/_authenticated/_onboarded/family/kids/$profileId': typeof AuthenticatedOnboardedFamilyKidsProfileIdRouteRouteWithChildren
   '/_authenticated/_onboarded/family/pets/$profileId': typeof AuthenticatedOnboardedFamilyPetsProfileIdRouteRouteWithChildren
   '/_authenticated/_onboarded/food/recipes/$recipeId': typeof AuthenticatedOnboardedFoodRecipesRecipeIdRouteRouteWithChildren
+  '/_authenticated/_onboarded/expenses/monthly-expenses/categories': typeof AuthenticatedOnboardedExpensesMonthlyExpensesCategoriesRoute
   '/_authenticated/_onboarded/food/ingredients/stores': typeof AuthenticatedOnboardedFoodIngredientsStoresRoute
   '/_authenticated/_onboarded/food/recipes/new': typeof AuthenticatedOnboardedFoodRecipesNewRoute
   '/_authenticated/_onboarded/food/shopping-lists/$listId': typeof AuthenticatedOnboardedFoodShoppingListsListIdRoute
   '/_authenticated/_onboarded/food/shopping-lists/import': typeof AuthenticatedOnboardedFoodShoppingListsImportRoute
+  '/_authenticated/_onboarded/expenses/monthly-expenses/': typeof AuthenticatedOnboardedExpensesMonthlyExpensesIndexRoute
   '/_authenticated/_onboarded/family/kids/': typeof AuthenticatedOnboardedFamilyKidsIndexRoute
   '/_authenticated/_onboarded/family/pets/': typeof AuthenticatedOnboardedFamilyPetsIndexRoute
   '/_authenticated/_onboarded/food/ingredients/': typeof AuthenticatedOnboardedFoodIngredientsIndexRoute
@@ -384,18 +405,20 @@ export interface FileRouteTypes {
     | '/onboarding/create-household'
     | '/onboarding/invite-members'
     | '/onboarding/'
+    | '/expenses/monthly-expenses'
     | '/food/ingredients'
     | '/food/shopping-lists'
-    | '/expenses/monthly-expenses'
     | '/manage/household-members'
     | '/manage/settings'
     | '/family/kids/$profileId'
     | '/family/pets/$profileId'
     | '/food/recipes/$recipeId'
+    | '/expenses/monthly-expenses/categories'
     | '/food/ingredients/stores'
     | '/food/recipes/new'
     | '/food/shopping-lists/$listId'
     | '/food/shopping-lists/import'
+    | '/expenses/monthly-expenses/'
     | '/family/kids/'
     | '/family/pets/'
     | '/food/ingredients/'
@@ -420,13 +443,14 @@ export interface FileRouteTypes {
     | '/onboarding/create-household'
     | '/onboarding/invite-members'
     | '/onboarding'
-    | '/expenses/monthly-expenses'
     | '/manage/household-members'
     | '/manage/settings'
+    | '/expenses/monthly-expenses/categories'
     | '/food/ingredients/stores'
     | '/food/recipes/new'
     | '/food/shopping-lists/$listId'
     | '/food/shopping-lists/import'
+    | '/expenses/monthly-expenses'
     | '/family/kids'
     | '/family/pets'
     | '/food/ingredients'
@@ -454,18 +478,20 @@ export interface FileRouteTypes {
     | '/_authenticated/onboarding/invite-members'
     | '/_authenticated/_onboarded/'
     | '/_authenticated/onboarding/'
+    | '/_authenticated/_onboarded/expenses/monthly-expenses'
     | '/_authenticated/_onboarded/food/ingredients'
     | '/_authenticated/_onboarded/food/shopping-lists'
-    | '/_authenticated/_onboarded/expenses/monthly-expenses'
     | '/_authenticated/_onboarded/manage/household-members'
     | '/_authenticated/_onboarded/manage/settings'
     | '/_authenticated/_onboarded/family/kids/$profileId'
     | '/_authenticated/_onboarded/family/pets/$profileId'
     | '/_authenticated/_onboarded/food/recipes/$recipeId'
+    | '/_authenticated/_onboarded/expenses/monthly-expenses/categories'
     | '/_authenticated/_onboarded/food/ingredients/stores'
     | '/_authenticated/_onboarded/food/recipes/new'
     | '/_authenticated/_onboarded/food/shopping-lists/$listId'
     | '/_authenticated/_onboarded/food/shopping-lists/import'
+    | '/_authenticated/_onboarded/expenses/monthly-expenses/'
     | '/_authenticated/_onboarded/family/kids/'
     | '/_authenticated/_onboarded/family/pets/'
     | '/_authenticated/_onboarded/food/ingredients/'
@@ -578,7 +604,7 @@ declare module '@tanstack/react-router' {
       id: '/_authenticated/_onboarded/expenses/monthly-expenses'
       path: '/expenses/monthly-expenses'
       fullPath: '/expenses/monthly-expenses'
-      preLoaderRoute: typeof AuthenticatedOnboardedExpensesMonthlyExpensesRouteImport
+      preLoaderRoute: typeof AuthenticatedOnboardedExpensesMonthlyExpensesRouteRouteImport
       parentRoute: typeof AuthenticatedOnboardedRoute
     }
     '/_authenticated/_onboarded/food/ingredients': {
@@ -608,6 +634,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/manage/settings'
       preLoaderRoute: typeof AuthenticatedOnboardedManageSettingsRouteImport
       parentRoute: typeof AuthenticatedOnboardedRoute
+    }
+    '/_authenticated/_onboarded/expenses/monthly-expenses/': {
+      id: '/_authenticated/_onboarded/expenses/monthly-expenses/'
+      path: '/'
+      fullPath: '/expenses/monthly-expenses/'
+      preLoaderRoute: typeof AuthenticatedOnboardedExpensesMonthlyExpensesIndexRouteImport
+      parentRoute: typeof AuthenticatedOnboardedExpensesMonthlyExpensesRouteRoute
+    }
+    '/_authenticated/_onboarded/expenses/monthly-expenses/categories': {
+      id: '/_authenticated/_onboarded/expenses/monthly-expenses/categories'
+      path: '/categories'
+      fullPath: '/expenses/monthly-expenses/categories'
+      preLoaderRoute: typeof AuthenticatedOnboardedExpensesMonthlyExpensesCategoriesRouteImport
+      parentRoute: typeof AuthenticatedOnboardedExpensesMonthlyExpensesRouteRoute
     }
     '/_authenticated/_onboarded/family/kids/': {
       id: '/_authenticated/_onboarded/family/kids/'
@@ -772,6 +812,24 @@ const AuthenticatedOnboardingRouteRouteWithChildren =
     AuthenticatedOnboardingRouteRouteChildren,
   )
 
+interface AuthenticatedOnboardedExpensesMonthlyExpensesRouteRouteChildren {
+  AuthenticatedOnboardedExpensesMonthlyExpensesCategoriesRoute: typeof AuthenticatedOnboardedExpensesMonthlyExpensesCategoriesRoute
+  AuthenticatedOnboardedExpensesMonthlyExpensesIndexRoute: typeof AuthenticatedOnboardedExpensesMonthlyExpensesIndexRoute
+}
+
+const AuthenticatedOnboardedExpensesMonthlyExpensesRouteRouteChildren: AuthenticatedOnboardedExpensesMonthlyExpensesRouteRouteChildren =
+  {
+    AuthenticatedOnboardedExpensesMonthlyExpensesCategoriesRoute:
+      AuthenticatedOnboardedExpensesMonthlyExpensesCategoriesRoute,
+    AuthenticatedOnboardedExpensesMonthlyExpensesIndexRoute:
+      AuthenticatedOnboardedExpensesMonthlyExpensesIndexRoute,
+  }
+
+const AuthenticatedOnboardedExpensesMonthlyExpensesRouteRouteWithChildren =
+  AuthenticatedOnboardedExpensesMonthlyExpensesRouteRoute._addFileChildren(
+    AuthenticatedOnboardedExpensesMonthlyExpensesRouteRouteChildren,
+  )
+
 interface AuthenticatedOnboardedFoodIngredientsRouteRouteChildren {
   AuthenticatedOnboardedFoodIngredientsStoresRoute: typeof AuthenticatedOnboardedFoodIngredientsStoresRoute
   AuthenticatedOnboardedFoodIngredientsIndexRoute: typeof AuthenticatedOnboardedFoodIngredientsIndexRoute
@@ -871,9 +929,9 @@ const AuthenticatedOnboardedFoodRecipesRecipeIdRouteRouteWithChildren =
 interface AuthenticatedOnboardedRouteChildren {
   AuthenticatedOnboardedUserProfileRoute: typeof AuthenticatedOnboardedUserProfileRoute
   AuthenticatedOnboardedIndexRoute: typeof AuthenticatedOnboardedIndexRoute
+  AuthenticatedOnboardedExpensesMonthlyExpensesRouteRoute: typeof AuthenticatedOnboardedExpensesMonthlyExpensesRouteRouteWithChildren
   AuthenticatedOnboardedFoodIngredientsRouteRoute: typeof AuthenticatedOnboardedFoodIngredientsRouteRouteWithChildren
   AuthenticatedOnboardedFoodShoppingListsRouteRoute: typeof AuthenticatedOnboardedFoodShoppingListsRouteRouteWithChildren
-  AuthenticatedOnboardedExpensesMonthlyExpensesRoute: typeof AuthenticatedOnboardedExpensesMonthlyExpensesRoute
   AuthenticatedOnboardedManageHouseholdMembersRoute: typeof AuthenticatedOnboardedManageHouseholdMembersRoute
   AuthenticatedOnboardedManageSettingsRoute: typeof AuthenticatedOnboardedManageSettingsRoute
   AuthenticatedOnboardedFamilyKidsProfileIdRouteRoute: typeof AuthenticatedOnboardedFamilyKidsProfileIdRouteRouteWithChildren
@@ -891,12 +949,12 @@ const AuthenticatedOnboardedRouteChildren: AuthenticatedOnboardedRouteChildren =
     AuthenticatedOnboardedUserProfileRoute:
       AuthenticatedOnboardedUserProfileRoute,
     AuthenticatedOnboardedIndexRoute: AuthenticatedOnboardedIndexRoute,
+    AuthenticatedOnboardedExpensesMonthlyExpensesRouteRoute:
+      AuthenticatedOnboardedExpensesMonthlyExpensesRouteRouteWithChildren,
     AuthenticatedOnboardedFoodIngredientsRouteRoute:
       AuthenticatedOnboardedFoodIngredientsRouteRouteWithChildren,
     AuthenticatedOnboardedFoodShoppingListsRouteRoute:
       AuthenticatedOnboardedFoodShoppingListsRouteRouteWithChildren,
-    AuthenticatedOnboardedExpensesMonthlyExpensesRoute:
-      AuthenticatedOnboardedExpensesMonthlyExpensesRoute,
     AuthenticatedOnboardedManageHouseholdMembersRoute:
       AuthenticatedOnboardedManageHouseholdMembersRoute,
     AuthenticatedOnboardedManageSettingsRoute:

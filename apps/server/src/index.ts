@@ -15,6 +15,8 @@ import { auth } from './lib/auth';
 import childDictionariesApp from './modules/child-dictionaries';
 import childProfilesApp from './modules/child-profiles';
 import contactsApp from './modules/contacts';
+import expenseCategoriesApp from './modules/expense-categories';
+import expensesApp from './modules/expenses';
 import householdsApp from './modules/households';
 import ingredientsApp from './modules/ingredients';
 import mealPlanApp from './modules/meal-plan';
@@ -83,6 +85,8 @@ const routes = app
   .route('/stores', storesApp)
   .route('/meal-plan', mealPlanApp)
   .route('/shopping-lists', shoppingListsApp)
+  .route('/expenses', expensesApp)
+  .route('/expense-categories', expenseCategoriesApp)
   .route('/realtime', realtimeApp);
 
 if (env.NODE_ENV === 'development') {

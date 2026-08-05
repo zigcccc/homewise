@@ -6,6 +6,10 @@ import * as schema from '#db/schema/core';
 export const householdMemberRole = createSelectSchema(schema.householdMemberRoleEnum);
 export type HouseholdMemberRole = z.infer<typeof householdMemberRole>;
 
+/** What the household counts money in. Mirrored from the DB enum; the web reads `.options` for its picker. */
+export const currency = createSelectSchema(schema.currencyEnum);
+export type Currency = z.infer<typeof currency>;
+
 export const insertHouseholdModel = createInsertSchema(schema.household, {
   name: (model) =>
     model
