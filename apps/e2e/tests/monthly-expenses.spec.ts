@@ -23,6 +23,9 @@ test.describe('monthly expenses', () => {
 
     try {
       await expect(expenses.total()).toBeHidden();
+      // The empty state names the month and carries its own way in, not just the header's button.
+      await expect(expenses.emptyStateTitle('Nothing logged for')).toBeVisible();
+      await expect(expenses.emptyStateCta()).toBeVisible();
 
       await expenses.add({ amount: '42,50', title });
       await expect(expenses.row(title)).toBeVisible();
@@ -109,6 +112,12 @@ test.describe('monthly expenses', () => {
       await expenses.search('Findme');
       await expect(expenses.row(wanted)).toBeVisible();
       await expect(expenses.row(other)).toBeHidden();
+
+      // A filtered-empty month says so, and offers no "add" — the rows exist, they just don't match.
+      await expenses.search('nothing matches this');
+      await expect(expenses.emptyStateTitle('No matching expenses')).toBeVisible();
+      await expect(expenses.emptyStateCta()).toBeHidden();
+      await expenses.search('Findme');
 
       // The total describes the month, not the filtered rows, so it doesn't move as you type.
       await expect(expenses.total()).toContainText('23,00');

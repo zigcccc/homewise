@@ -1,6 +1,6 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute, Link, Outlet, retainSearchParams } from '@tanstack/react-router';
-import { PlusIcon, SearchIcon } from 'lucide-react';
+import { PlusIcon, ReceiptIcon, SearchIcon } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { useDebounceCallback } from 'usehooks-ts';
 import z from 'zod';
@@ -15,6 +15,11 @@ import {
   Button,
   DataTable,
   Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
@@ -233,9 +238,29 @@ function MonthlyExpensesLayout() {
         <DataTable
           emptyContent={
             <Empty>
-              {isFiltered
-                ? 'No expenses match these filters.'
-                : `Nothing logged for ${monthLabel(searchParams.month, searchParams.year)} yet.`}
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <ReceiptIcon />
+                </EmptyMedia>
+                <EmptyTitle>
+                  {isFiltered
+                    ? 'No matching expenses'
+                    : `Nothing logged for ${monthLabel(searchParams.month, searchParams.year)}`}
+                </EmptyTitle>
+                <EmptyDescription>
+                  {isFiltered
+                    ? 'Try a different search term, or clear the category filter.'
+                    : 'Log what the household spent and the total and the breakdown build themselves.'}
+                </EmptyDescription>
+              </EmptyHeader>
+              {!isFiltered && (
+                <EmptyContent>
+                  <Button onClick={() => setAddOpen(true)}>
+                    <PlusIcon />
+                    Add expense
+                  </Button>
+                </EmptyContent>
+              )}
             </Empty>
           }
           table={table}

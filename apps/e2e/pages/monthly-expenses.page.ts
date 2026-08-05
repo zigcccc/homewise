@@ -51,6 +51,18 @@ export class MonthlyExpensesPage {
     return this.page.getByRole('button', { name: new RegExp(`^${category}`) });
   }
 
+  /**
+   * The empty state's own call to action. `nth(1)` because the header carries the same button and
+   * comes first in the DOM — which is also why `add()` deliberately takes `.first()`.
+   */
+  emptyStateCta(): Locator {
+    return this.page.getByRole('button', { name: 'Add expense', exact: true }).nth(1);
+  }
+
+  emptyStateTitle(text: string): Locator {
+    return this.page.getByRole('main').getByText(text, { exact: false });
+  }
+
   async add({ amount, category, title }: { amount: string; category?: string; title: string }) {
     await this.page.getByRole('button', { name: 'Add expense', exact: true }).first().click();
     const dialog = this.page.getByRole('dialog');
