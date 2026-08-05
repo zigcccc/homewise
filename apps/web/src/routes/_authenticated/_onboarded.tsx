@@ -51,10 +51,22 @@ function OnboardedRouteComponent() {
   return (
     <RealtimeProvider channel={realtimeChannel}>
       {householdId && <AppSidebar />}
-      <SidebarInset>
+      <SidebarInset className="overflow-hidden">
         <Actionbar.Provider>
           <Actionbar.Root />
-          <Outlet />
+          {/* The app's scrollport. Routes are unchanged by it — a `<main className="flex-1 …">` that
+              outgrows the viewport scrolls here instead of scrolling the document — but a route that
+              wants to scroll something *inside* itself now has a bounded ancestor to work from, which
+              is what lets the shopping lists give each of its two columns its own scrollbar.
+
+              The id is for scroll restoration: the router tracks any scrolled element, but keys it by a
+              generated `nth-child` path unless it finds this attribute, so without it a route-tree
+              change silently invalidates every cached position. It's also what
+              `scrollToTopSelectors` (see `main.tsx`) names — `window` no longer scrolls, so the
+              router's own scroll-to-top on navigation would otherwise have nothing to reset. */}
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto" data-scroll-restoration-id="app-content">
+            <Outlet />
+          </div>
         </Actionbar.Provider>
       </SidebarInset>
     </RealtimeProvider>

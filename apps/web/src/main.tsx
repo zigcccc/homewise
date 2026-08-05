@@ -32,6 +32,10 @@ const router = createRouter({
   defaultPreload: 'intent',
   defaultPreloadStaleTime: 0,
   scrollRestoration: true,
+  // The shell is viewport-height, so the element below is what scrolls — not `window`, which is all the
+  // router resets on its own. Without this, arriving at a page after scrolling down a long one lands you
+  // in the middle of it.
+  scrollToTopSelectors: ['[data-scroll-restoration-id="app-content"]'],
 });
 
 // After `createRouter` on purpose: the TanStack integration takes the router instance so pageload

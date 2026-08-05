@@ -319,7 +319,15 @@ function ShoppingListDetailRoute() {
         </DragDropProvider>
       )}
 
-      {!list.completedAt && <AddItemRow listId={id} />}
+      {/* Sticky rather than pinned: the row keeps its place at the end of the list, and only clings to
+          the bottom of the pane while that place is out of view. `sticky` alone gets that — an always-
+          fixed footer would eat height on the short lists that are most of them, and a second copy
+          swapped in on scroll would be a second combobox with its own half-typed state. */}
+      {!list.completedAt && (
+        <div className="sticky bottom-0 bg-background pt-2">
+          <AddItemRow listId={id} />
+        </div>
+      )}
 
       <CompleteListDialog
         onConfirm={handleComplete}

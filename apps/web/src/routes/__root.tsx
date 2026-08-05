@@ -28,7 +28,12 @@ function RootLayout() {
           },
         }}
       />
-      <SidebarProvider>
+      {/* The app is a shell, not a document: it ends at the viewport and the scrolling happens inside
+          it (see `_onboarded`). Without a bounded ancestor the wrapper's own `min-h-svh` lets the page
+          grow, and every route is then stuck with the one scrollbar the document gives it. The inset's
+          `m-2` margins come out of this height on their own — a stretched flex item's height is the
+          line's cross size minus its margins. */}
+      <SidebarProvider className="h-svh overflow-hidden">
         <Outlet />
       </SidebarProvider>
       <Suspense fallback={null}>

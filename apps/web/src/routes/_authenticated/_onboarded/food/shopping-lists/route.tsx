@@ -117,7 +117,10 @@ function ShoppingListsLayout() {
         </Breadcrumb>
       </Actionbar.Content>
 
-      <main className="flex-1 space-y-6 p-4">
+      {/* Bounded to the shell's scrollport from `md` up, so the two columns below each get their own
+          scrollbar and the actions stay put above them. Deliberately not below `md`: only one column
+          renders there, so a pinned header would cost a phone two rows of height and buy nothing. */}
+      <main className="flex flex-1 flex-col gap-6 p-4 md:h-full md:min-h-0 md:overflow-hidden">
         {/* Full width, whatever the columns below are doing — the actions belong to the page, not
             to the master column. */}
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -168,8 +171,11 @@ function ShoppingListsLayout() {
             </EmptyContent>
           </Empty>
         ) : (
-          <div className="md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] md:gap-6">
-            <aside className={cn(isDetail && 'hidden md:block')}>
+          <div className="md:grid md:min-h-0 md:flex-1 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] md:gap-6">
+            {/* Each column scrolls itself. `min-h-0` on the row above is what makes that possible: a
+                flex/grid item's default `min-height: auto` refuses to shrink below its content, so
+                without it both columns grow the page instead of overflowing. */}
+            <aside className={cn('md:h-full md:overflow-y-auto', isDetail && 'hidden md:block')}>
               {/* Only reachable with a detail route open — importing with no lists yet. */}
               {lists.length === 0 && <p className="px-3 py-2 text-muted-foreground text-sm">No lists yet.</p>}
               <ul className="space-y-1">
@@ -205,7 +211,13 @@ function ShoppingListsLayout() {
 
             {/* A layout column, not a `section` — the list's own headings are the real sections, and
                 a wrapper that also matched `section` would contain every one of them. */}
-            <div className={cn('min-w-0', !isDetail && 'hidden md:block')}>
+            {/* Test id because this column is a layout element with no role of its own — and it has to
+                stay that way: the comment above says why it can't be a `section`, and the aside next
+                to it is already `complementary`. */}
+            <div
+              className={cn('min-w-0 md:h-full md:overflow-y-auto', !isDetail && 'hidden md:block')}
+              data-testid="list-detail-pane"
+            >
               <Outlet />
             </div>
           </div>
