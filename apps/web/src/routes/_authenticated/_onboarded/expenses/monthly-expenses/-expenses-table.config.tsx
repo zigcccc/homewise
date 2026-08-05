@@ -38,8 +38,16 @@ import {
  * Every field an expense has is a column, and every column edits in place — that is what lets this
  * feature ship with no detail view. Each cell takes only the id it patches and the value it shows.
  */
-const inlineTriggerClassName =
-  'w-full justify-between border-transparent px-2 shadow-none not-disabled:cursor-pointer hover:bg-accent focus-visible:border-ring data-[state=open]:border-input data-[state=open]:bg-accent [&_svg]:opacity-0 hover:[&_svg]:opacity-60 focus-visible:[&_svg]:opacity-60 data-[state=open]:[&_svg]:opacity-60';
+/**
+ * Where an inline control stops growing.
+ *
+ * The table is `w-full` with auto layout, so whatever width the rows don't need is shared out among
+ * the columns — with only five short columns here that is a lot, and a control set to fill its cell
+ * becomes a 1300px box to type "Weekly shop" into. The cell keeps the slack; the control doesn't.
+ */
+const inlineControlClassName = 'max-w-xs';
+
+const inlineTriggerClassName = `${inlineControlClassName} w-full justify-between border-transparent px-2 shadow-none not-disabled:cursor-pointer hover:bg-accent focus-visible:border-ring data-[state=open]:border-input data-[state=open]:bg-accent [&_svg]:opacity-0 hover:[&_svg]:opacity-60 focus-visible:[&_svg]:opacity-60 data-[state=open]:[&_svg]:opacity-60`;
 
 const inlineTextClassName = 'h-9 w-full rounded-md border px-2 text-sm';
 
@@ -83,8 +91,8 @@ function InlineCell({
   return (
     // `min-w-0 flex-1` for the title cell, where this grid is a flex item beside the paid-back badge:
     // without them it shrinks to max-content and the editor opens as a box hugging the text instead
-    // of filling the column. Both are inert everywhere else.
-    <div className="grid min-w-0 flex-1 grid-cols-1">
+    // of growing to a usable width. Both are inert everywhere else.
+    <div className={`grid min-w-0 flex-1 grid-cols-1 ${inlineControlClassName}`}>
       <span className={inlineSizerClassName}>{display}</span>
       {editing ? (
         // Mounted only while editing, so `defaultValues` reseed on every open with no reset effect.
@@ -175,7 +183,7 @@ function RecordedAtCell({ expense }: { expense: Expense }) {
   return (
     // Same grid-over-sizer arrangement as the text cells: `DateField` carries `size={1}`, so the
     // rendered date is what has to hold the column open.
-    <div className="grid grid-cols-1">
+    <div className={`grid grid-cols-1 ${inlineControlClassName}`}>
       <span className={inlineDateSizerClassName}>{formatDate(expense.recordedAt)}</span>
       <div className="col-start-1 row-start-1">
         <DateField
@@ -268,5 +276,8 @@ export const expensesTableColumns = (onManageCategories: () => void) => [
     cell: (info) => <RowActions expense={info.row.original} />,
     header: '',
     id: 'actions',
+    // One icon button wide, hard against the right edge — without this the column takes a share of
+    // the table's leftover width and the button floats in the middle of it.
+    meta: { className: 'w-px text-right' },
   }),
 ];

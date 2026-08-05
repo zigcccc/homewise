@@ -2,6 +2,7 @@ import {
   type Table as CoreTable,
   flexRender,
   getCoreRowModel,
+  type RowData,
   type TableOptions,
   useReactTable,
 } from '@tanstack/react-table';
@@ -10,6 +11,21 @@ import { type ReactNode } from 'react';
 
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from './empty';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './table';
+
+declare module '@tanstack/react-table' {
+  // Both type parameters are unused here but have to be declared to match the interface being
+  // augmented — drop either one and the augmentation silently stops applying.
+  interface ColumnMeta<TData extends RowData, TValue> {
+    /**
+     * Classes for this column's `<th>` **and** every one of its `<td>`s.
+     *
+     * The table is `w-full` with auto layout, so leftover width is shared out among the columns and
+     * a column holding nothing but an icon button still gets a slice of it. `w-px` is the way out:
+     * a width below the content's own minimum collapses the column to exactly its content.
+     */
+    className?: string;
+  }
+}
 
 /**
  * Row identity for `useReactTable`, to pass as its `getRowId`. Not optional in practice: the default
@@ -67,7 +83,7 @@ export function DataTable<Data extends Record<string, unknown>>({
             <TableRow key={headerGroup.id}>
               {headerGroup.headers.map((header) => {
                 return (
-                  <TableHead key={header.id}>
+                  <TableHead className={header.column.columnDef.meta?.className} key={header.id}>
                     {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                   </TableHead>
                 );
@@ -80,7 +96,9 @@ export function DataTable<Data extends Record<string, unknown>>({
             rows.map((row) => (
               <TableRow data-state={row.getIsSelected() && 'selected'} key={row.id}>
                 {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+                  <TableCell className={cell.column.columnDef.meta?.className} key={cell.id}>
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </TableCell>
                 ))}
               </TableRow>
             ))

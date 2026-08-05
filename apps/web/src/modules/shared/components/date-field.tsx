@@ -101,11 +101,18 @@ export function DateField({
         'relative flex gap-2',
         // The calendar arrives with the box, on hover and while focused — the same fade the inline
         // selects give their chevron.
-        inline && '[&_svg]:opacity-0 focus-within:[&_svg]:opacity-60 hover:[&_svg]:opacity-60'
+        inline && '[&_svg]:opacity-0 focus-within:[&_svg]:opacity-60 hover:[&_svg]:opacity-60',
+        // Held open while the calendar is, or the field drops back to looking like plain text the
+        // moment the pointer moves off it and onto the popover it just opened.
+        inline && open && '[&_svg]:opacity-60'
       )}
     >
       <Input
-        className={cn('pr-10', inline && 'border-transparent shadow-none hover:bg-accent focus-visible:border-input')}
+        className={cn(
+          'pr-10',
+          inline && 'border-transparent shadow-none hover:bg-accent focus-visible:border-input',
+          inline && open && 'border-input bg-accent'
+        )}
         id={id}
         onBlur={(evt) => commitText(evt.target.value)}
         onChange={(evt) => setText(evt.target.value)}
