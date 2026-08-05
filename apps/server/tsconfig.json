@@ -6,7 +6,7 @@
     "moduleResolution": "Bundler",
     "lib": ["ESNext"],
     "jsx": "react-jsx",
-    // Nothing compiles this package — Vercel builds `src/index.ts` itself and every workspace
+    // `tsc` only ever type-checks here: esbuild produces the deployed bundle, and every workspace
     // consumer resolves the `exports` map to source. Non-relative imports are Node's own
     // `package.json#imports`, not `paths`, so they resolve without a project reference (and Vercel's
     // Node runtime supports neither path mappings nor project references).

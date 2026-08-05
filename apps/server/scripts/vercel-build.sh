@@ -19,8 +19,11 @@ else
   echo "▸ ${VERCEL_ENV:-non-preview} build: skipping migrate/seed (owned by CI)"
 fi
 
-# No compile step. `src/index.ts` is a Vercel Hono entrypoint, and @vercel/node builds it with
-# esbuild — so the deployed artifact is this source, not a dist/ we produced. Non-relative imports
-# are `package.json#imports` rather than tsconfig `paths` precisely because Vercel's Node runtime
-# supports the former and documents no support for the latter.
-echo "▸ no build step: Vercel compiles src/index.ts directly"
+# Bundle to `dist/index.js`, which `vercel.json`'s `outputDirectory` makes the deployed entrypoint.
+# That setting is load-bearing: without it @vercel/hono picks `src/index.ts`, and a *.ts entrypoint
+# routes into @vercel/node's vendored ts-node, which drives the TypeScript 5 compiler API. This repo
+# is on TypeScript 7, whose npm package exports only `{ version }` — the builder finds it, prints
+# "Using TypeScript 7.0.2 (local user-provided)", then dies on `ts.sys.readFile`. Shipping source is
+# not an option either way: that path transpiles per file without rewriting specifiers, so our
+# extensionless directory imports would only fail once a function cold-started.
+pnpm turbo run build --filter @homewise/server
