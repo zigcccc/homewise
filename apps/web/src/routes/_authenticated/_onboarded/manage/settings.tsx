@@ -224,10 +224,22 @@ function SettingsRoute() {
                   <FormItem>
                     <FormLabel>Currency</FormLabel>
                     <FormControl className="max-w-72">
-                      <Select name={field.name} onValueChange={field.onChange} value={field.value ?? 'EUR'}>
-                        <SelectTrigger className="w-72">
-                          <SelectValue placeholder="Select a currency" />
-                        </SelectTrigger>
+                      <Select
+                        disabled={household.ownerId !== user.id}
+                        name={field.name}
+                        onValueChange={field.onChange}
+                        value={field.value ?? 'EUR'}
+                      >
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <SelectTrigger className="w-72">
+                              <SelectValue placeholder="Select a currency" />
+                            </SelectTrigger>
+                          </TooltipTrigger>
+                          {household.ownerId !== user.id && (
+                            <TooltipContent>Only the household owner can change the currency</TooltipContent>
+                          )}
+                        </Tooltip>
                         <SelectContent>
                           <SelectGroup>
                             <SelectLabel>Currency</SelectLabel>
