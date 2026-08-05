@@ -220,6 +220,21 @@ export class ShoppingListsPage {
   }
 
   /**
+   * Puts one-off lines on a list through the API, for the specs that need *a lot* of them.
+   *
+   * Through the API because the picker is not what's under test there: driving it 25 times is 25
+   * round trips through a popover for rows nothing asserts on individually.
+   */
+  async addOneOffsViaApi(listId: string, titles: string[]) {
+    for (const title of titles) {
+      const response = await this.page.context().request.post(`${API_URL}/shopping-lists/${listId}/items`, {
+        data: { title },
+      });
+      expect(response.ok(), `could not add "${title}"`).toBe(true);
+    }
+  }
+
+  /**
    * Adds an existing library ingredient — the server files it under that ingredient's shop.
    *
    * Matched on the option's own name span rather than its accessible name: each row also renders a
@@ -484,6 +499,22 @@ export class ShoppingListsPage {
    */
   masterColumn(): Locator {
     return this.page.getByRole('complementary');
+  }
+
+  /** The column the open list renders into. Its own scrollport from `md` up. */
+  detailColumn(): Locator {
+    return this.page.getByTestId('list-detail-pane');
+  }
+
+  /** How far a column has been scrolled. `0` for one that doesn't scroll at all. */
+  async scrollTopOf(column: Locator) {
+    return column.evaluate((element) => element.scrollTop);
+  }
+
+  /** Scrolls a column to its bottom, and waits for it to actually have moved. */
+  async scrollToBottom(column: Locator) {
+    await column.evaluate((element) => element.scrollTo({ top: element.scrollHeight }));
+    await expect.poll(async () => this.scrollTopOf(column)).toBeGreaterThan(0);
   }
 
   backToAllLists(): Locator {
