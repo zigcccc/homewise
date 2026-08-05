@@ -57,6 +57,7 @@ export function DateField({
   id,
   inline = false,
   onChange,
+  required = false,
   value,
 }: {
   allowFuture?: boolean;
@@ -67,6 +68,14 @@ export function DateField({
    */
   inline?: boolean;
   onChange: (value: string) => void;
+  /**
+   * The date can't be cleared. Emptying the field puts the last value back instead of reporting `''`
+   * — which is what a column that requires a date would refuse anyway.
+   *
+   * For a field inside a form this is usually wrong: clearing it there should surface the schema's
+   * own message. It's for the editors that commit straight to the server and have nowhere to put one.
+   */
+  required?: boolean;
   value: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -76,8 +85,19 @@ export function DateField({
   // Local text so a half-typed date doesn't clobber the form value on every keystroke.
   const [text, setText] = useState(isValidSelection ? format(selected, DATE_DISPLAY_FORMAT) : '');
 
+  const restoreText = () => setText(isValidSelection ? format(selected, DATE_DISPLAY_FORMAT) : '');
+
   const commitText = (input: string) => {
     if (input.trim() === '') {
+      // A required date has no cleared state, so an empty field is just another value this can't
+      // take — put the last one back, exactly as unparseable text does below. Without this the
+      // editors that commit straight to the server send `''` and get a failure toast for what is an
+      // ordinary "select it all and retype" gesture.
+      if (required) {
+        restoreText();
+        return;
+      }
+
       onChange('');
       setText('');
       return;
@@ -92,7 +112,7 @@ export function DateField({
     }
 
     // Unparseable: restore the last good value rather than silently keeping bad text.
-    setText(isValidSelection ? format(selected, DATE_DISPLAY_FORMAT) : '');
+    restoreText();
   };
 
   return (

@@ -183,6 +183,47 @@ test.describe('monthly expenses', () => {
     }
   });
 
+  test('refuses to clear the date, and says nothing about it', async ({ page }) => {
+    const expenses = new MonthlyExpensesPage(page);
+    const title = `E2E Dated ${Date.now()}`;
+
+    await expenses.goto(12, YEAR);
+
+    try {
+      await expenses.add({ amount: '8', title });
+      const before = await expenses.dateInput(title).inputValue();
+
+      await expenses.clearDateInline(title);
+
+      // Emptying a required date is an ordinary "select all and retype" gesture, not an edit. The
+      // field puts the date back and nothing is sent — no round trip, and no failure toast either.
+      await expect(expenses.dateInput(title)).toHaveValue(before);
+      await expect(expenses.toasts()).not.toContainText('Something went wrong');
+    } finally {
+      await expenses.deleteIfPresent(title);
+    }
+  });
+
+  test('reports a malformed amount on the field instead of sending it', async ({ page }) => {
+    const expenses = new MonthlyExpensesPage(page);
+    const title = `E2E Bad amount ${Date.now()}`;
+
+    await expenses.goto(12, YEAR);
+
+    await expenses.openAddDialog();
+    const dialog = page.getByRole('dialog');
+    await dialog.getByLabel('Title').fill(title);
+    await dialog.getByLabel('Amount').fill('not a number');
+    await dialog.getByRole('button', { name: 'Add expense', exact: true }).click();
+
+    // The resolver refuses it, so the dialog stays open carrying what was typed and nothing is saved.
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toContainText('Enter an amount like');
+
+    await page.keyboard.press('Escape');
+    await expect(expenses.row(title)).toBeHidden();
+  });
+
   test('keeps a category filterable when everything in it was paid back', async ({ page }) => {
     const expenses = new MonthlyExpensesPage(page);
     const stamp = Date.now();

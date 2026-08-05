@@ -38,6 +38,7 @@ import {
  * Every field an expense has is a column, and every column edits in place — that is what lets this
  * feature ship with no detail view. Each cell takes only the id it patches and the value it shows.
  */
+
 /**
  * Where an inline control stops growing.
  *
@@ -191,6 +192,7 @@ function RecordedAtCell({ expense }: { expense: Expense }) {
           id={`expense-${expense.id}-recorded-at`}
           inline
           onChange={(recordedAt) => void saveOrToast({ recordedAt })}
+          required
           value={expense.recordedAt}
         />
       </div>

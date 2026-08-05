@@ -63,6 +63,12 @@ export class MonthlyExpensesPage {
     return this.page.getByRole('main').getByText(text, { exact: false });
   }
 
+  /** Opens the add dialog without filling it, for the specs that assert on its validation. */
+  async openAddDialog() {
+    await this.page.getByRole('button', { name: 'Add expense', exact: true }).first().click();
+    await expect(this.page.getByRole('dialog')).toBeVisible();
+  }
+
   async add({ amount, category, title }: { amount: string; category?: string; title: string }) {
     await this.page.getByRole('button', { name: 'Add expense', exact: true }).first().click();
     const dialog = this.page.getByRole('dialog');
@@ -166,6 +172,22 @@ export class MonthlyExpensesPage {
       .getByRole('button', { name: `Edit ${field.toLowerCase()}` })
       .click();
     await expect(this.page.getByRole('table').getByRole('textbox', { name: field })).toBeFocused();
+  }
+
+  dateInput(title: string): Locator {
+    return this.row(title).getByRole('textbox', { name: 'dd. mm. yyyy' });
+  }
+
+  /** Empties the date field and commits, which a required date has to refuse. */
+  async clearDateInline(title: string) {
+    await expect(this.row(title)).toBeVisible();
+    await this.dateInput(title).fill('');
+    await this.dateInput(title).press('Enter');
+  }
+
+  /** Sonner's live region, where a refused inline edit reports its reason. */
+  toasts(): Locator {
+    return this.page.getByRole('region', { name: /Notifications/ });
   }
 
   /** Cleanup helper: opens the sheet by URL and removes the category if it's still there. */
