@@ -19,11 +19,7 @@ else
   echo "▸ ${VERCEL_ENV:-non-preview} build: skipping migrate/seed (owned by CI)"
 fi
 
-# Bundle to `dist/index.js`, which `vercel.json`'s `outputDirectory` makes the deployed entrypoint.
-# That setting is load-bearing: without it @vercel/hono picks `src/index.ts`, and a *.ts entrypoint
-# routes into @vercel/node's vendored ts-node, which drives the TypeScript 5 compiler API. This repo
-# is on TypeScript 7, whose npm package exports only `{ version }` — the builder finds it, prints
-# "Using TypeScript 7.0.2 (local user-provided)", then dies on `ts.sys.readFile`. Shipping source is
-# not an option either way: that path transpiles per file without rewriting specifiers, so our
-# extensionless directory imports would only fail once a function cold-started.
+# Bundles to `dist/index.js`. `vercel.json`'s `outputDirectory` is what makes that the deployed
+# entrypoint — drop it and @vercel/hono picks `src/index.ts`, which its bundled ts-node compiles
+# through the TypeScript 5 API this repo's TypeScript 7 no longer exposes.
 pnpm turbo run build --filter @homewise/server
