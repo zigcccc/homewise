@@ -43,8 +43,10 @@ import {
  * Where an inline control stops growing.
  *
  * The table is `w-full` with auto layout, so whatever width the rows don't need is shared out among
- * the columns — with only five short columns here that is a lot, and a control set to fill its cell
- * becomes a 1300px box to type "Weekly shop" into. The cell keeps the slack; the control doesn't.
+ * the columns. An amount, a date and a category name are all short enough that a control filling the
+ * cell would be mostly empty box, so those keep the cap and let the cell hold the slack. The title
+ * is the exception (`fill`) — it is free text of no fixed length, and the column the table hands
+ * most of its leftover width to anyway.
  */
 const inlineControlClassName = 'max-w-xs';
 
@@ -75,6 +77,7 @@ function InlineCell({
   ariaLabel,
   display,
   displayClassName,
+  fill = false,
   onSave,
   schema,
   value,
@@ -83,6 +86,8 @@ function InlineCell({
   display: string;
   /** Styling for the resting value only — never for the editor, which has to stay legible. */
   displayClassName?: string;
+  /** Grow with the column instead of stopping at `inlineControlClassName`. */
+  fill?: boolean;
   onSave: (next: string) => Promise<unknown>;
   schema: Parameters<typeof InlineTextField>[0]['schema'];
   value: string;
@@ -93,18 +98,25 @@ function InlineCell({
     // `min-w-0 flex-1` for the title cell, where this grid is a flex item beside the paid-back badge:
     // without them it shrinks to max-content and the editor opens as a box hugging the text instead
     // of growing to a usable width. Both are inert everywhere else.
-    <div className={`grid min-w-0 flex-1 grid-cols-1 ${inlineControlClassName}`}>
+    <div className={cn('grid min-w-0 flex-1 grid-cols-1', !fill && inlineControlClassName)}>
       <span className={inlineSizerClassName}>{display}</span>
       {editing ? (
-        // Mounted only while editing, so `defaultValues` reseed on every open with no reset effect.
-        <InlineTextField
-          ariaLabel={ariaLabel}
-          className={`${inlineTextClassName} col-start-1 row-start-1`}
-          defaultValue={value}
-          onDone={() => setEditing(false)}
-          onSave={onSave}
-          schema={schema}
-        />
+        // The editor needs a wrapper of its own to be *placed*: `InlineTextField` puts the class it
+        // is given on the input, and its form is `display: contents`, so the grid item is a
+        // `FormItem` carrying no position. Auto-placement then steps over the sizer's row and drops
+        // the editor into a second one — a band of empty space above the input, with the paid-back
+        // badge floating in the middle of a cell twice its intended height.
+        <div className="col-start-1 row-start-1">
+          {/* Mounted only while editing, so `defaultValues` reseed on every open with no reset effect. */}
+          <InlineTextField
+            ariaLabel={ariaLabel}
+            className={inlineTextClassName}
+            defaultValue={value}
+            onDone={() => setEditing(false)}
+            onSave={onSave}
+            schema={schema}
+          />
+        </div>
       ) : (
         // Labelled rather than named by its content: the amount cell's text is a formatted currency
         // string, which is no way to find a control.
@@ -128,6 +140,7 @@ function TitleCell({ expense }: { expense: Expense }) {
     <InlineCell
       ariaLabel="Title"
       display={expense.title}
+      fill
       onSave={async (title) => save({ title })}
       schema={expenseTitle}
       value={expense.title}

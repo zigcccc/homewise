@@ -56,15 +56,21 @@ function StoreNameCell({ id, name }: { id: number; name: string }) {
     <div className="grid grid-cols-1">
       <span className={inlineNameSizerClassName}>{name}</span>
       {editing ? (
-        // Mounted only while editing, so `defaultValues` reseed on every open with no reset effect.
-        <InlineTextField
-          ariaLabel="Name"
-          className={`${inlineNameClassName} col-start-1 row-start-1`}
-          defaultValue={name}
-          onDone={() => setEditing(false)}
-          onSave={async (value) => save({ name: value })}
-          schema={createStoreModel.shape.name}
-        />
+        // The wrapper is what puts the editor in the sizer's cell: the class below lands on the
+        // input, and the form between them is `display: contents`, so the grid item is a `FormItem`
+        // with no position of its own. Auto-placed, it steps over the occupied row and opens a
+        // second one — 22px of empty space above the input, and the row grows as you click in.
+        <div className="col-start-1 row-start-1">
+          {/* Mounted only while editing, so `defaultValues` reseed on every open with no reset effect. */}
+          <InlineTextField
+            ariaLabel="Name"
+            className={inlineNameClassName}
+            defaultValue={name}
+            onDone={() => setEditing(false)}
+            onSave={async (value) => save({ name: value })}
+            schema={createStoreModel.shape.name}
+          />
+        </div>
       ) : (
         <button
           className={`${inlineNameClassName} col-start-1 row-start-1 flex cursor-pointer items-center border-transparent text-left hover:bg-accent`}
