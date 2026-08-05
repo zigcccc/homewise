@@ -5,10 +5,12 @@ import { and, eq, inArray } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 
-import { addDays, startOfISOWeek, todayISO } from '../lib/dates';
+import { addDays, endOfMonth, startOfISOWeek, startOfMonth, todayISO } from '../lib/dates';
 import * as schema from './schema/core';
 import {
   SEED_CHILD_MEMBER,
+  SEED_EXPENSE_CATEGORIES,
+  SEED_EXPENSES,
   SEED_HOUSEHOLD_NAME,
   SEED_INGREDIENTS,
   SEED_MEAL_PLAN,
@@ -397,6 +399,62 @@ async function seed() {
       console.log('▸ seeded preview meal plan');
     } else {
       console.log('▸ preview meal plan already present — skipping');
+    }
+
+    // 9. Expense categories, before the expenses that point at them (idempotent by household +
+    //    lower(name), matching the unique index).
+    const existingCategories = await db
+      .select()
+      .from(schema.expenseCategory)
+      .where(eq(schema.expenseCategory.householdId, household.id));
+    const categoryIdByName = new Map(existingCategories.map((row) => [row.name.toLowerCase(), row.id]));
+    const missingCategories = SEED_EXPENSE_CATEGORIES.filter(
+      (fixture) => !categoryIdByName.has(fixture.name.toLowerCase())
+    );
+
+    if (missingCategories.length > 0) {
+      const inserted = await db
+        .insert(schema.expenseCategory)
+        .values(missingCategories.map((fixture) => ({ householdId: household.id, name: fixture.name })))
+        .returning();
+
+      for (const row of inserted) {
+        categoryIdByName.set(row.name.toLowerCase(), row.id);
+      }
+      console.log(`▸ seeded ${inserted.length} expense categories`);
+    } else {
+      console.log('▸ expense categories already present — skipping');
+    }
+
+    // 10. A few expenses in *this* month, so the page opens on real numbers. Same reasoning as the
+    //     meal plan: the default view is the current month, so a literal date would leave it blank
+    //     the following month. The day is clamped to the month's length, so a 31 is safe in February.
+    const monthStart = startOfMonth(todayISO());
+    const daysInMonth = Number(endOfMonth(todayISO()).slice(8));
+    const dayFromDayOfMonth = (dayOfMonth: number) => addDays(monthStart, Math.min(dayOfMonth, daysInMonth) - 1);
+
+    const existingExpenses = await db
+      .select({ title: schema.expense.title })
+      .from(schema.expense)
+      .where(eq(schema.expense.householdId, household.id));
+    const seededTitles = new Set(existingExpenses.map((row) => row.title));
+    const missingExpenses = SEED_EXPENSES.filter((fixture) => !seededTitles.has(fixture.title));
+
+    if (missingExpenses.length > 0) {
+      await db.insert(schema.expense).values(
+        missingExpenses.map((fixture) => ({
+          householdId: household.id,
+          title: fixture.title,
+          categoryId: fixture.category ? (categoryIdByName.get(fixture.category.toLowerCase()) ?? null) : null,
+          amount: fixture.amount,
+          currency: household.currency,
+          recordedAt: dayFromDayOfMonth(fixture.dayOfMonth),
+          paidBackAt: fixture.paidBack ? new Date() : null,
+        }))
+      );
+      console.log(`▸ seeded ${missingExpenses.length} expenses`);
+    } else {
+      console.log('▸ expenses already present — skipping');
     }
 
     console.log('✓ seed complete');

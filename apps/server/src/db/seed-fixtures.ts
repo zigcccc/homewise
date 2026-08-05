@@ -120,3 +120,30 @@ export const SEED_MEAL_PLAN = {
   ],
   notes: [{ dayOffset: 5, note: 'Picnic — 8 adults, 2 children' }],
 } as const;
+
+/**
+ * The categories the seeded household files its spending under. Two of them, so the monthly breakdown
+ * has more than one slice to draw and the picker opens on something.
+ */
+export const SEED_EXPENSE_CATEGORIES = [{ name: 'Groceries' }, { name: 'Utilities' }] as const;
+
+/**
+ * A handful of expenses in the current month, so a preview environment opens the page on real numbers
+ * rather than an empty table with a zero total.
+ *
+ * `dayOfMonth` is **resolved against the current month at seed time** — never a literal date, for the
+ * same reason `SEED_MEAL_PLAN` uses week offsets. The page opens on today's month, so a hard-coded
+ * `2026-08-03` would leave that view blank the following month and make any assertion about it
+ * meaningless. It is clamped to the month's length, so 31 is safe in February.
+ *
+ * The e2e suite logs its own expenses in far-future months and only ever *reads* these — the monthly
+ * total is a shared aggregate, so a spec that wrote here would race every other worker.
+ */
+export const SEED_EXPENSES = [
+  { title: 'Weekly shop', amount: 87.4, category: 'Groceries', dayOfMonth: 3, paidBack: false },
+  { title: 'Electricity', amount: 62.15, category: 'Utilities', dayOfMonth: 8, paidBack: false },
+  /** Uncategorised — the default state, and the one the breakdown has to render as its own slice. */
+  { title: 'Parking', amount: 4.2, category: null, dayOfMonth: 11, paidBack: false },
+  /** Bought and returned: the total must exclude it while the row stays on the table. */
+  { title: 'Returned kettle', amount: 39.99, category: null, dayOfMonth: 12, paidBack: true },
+] as const;

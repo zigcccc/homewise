@@ -34,6 +34,18 @@ export const startOfISOWeek = (day: string) => {
   return toISODate(date);
 };
 
+/** The first day of the month containing `day`. */
+export const startOfMonth = (day: string) => `${day.slice(0, 7)}-01`;
+
+/** The last day of the month containing `day` — 28th through 31st, leap years included. */
+export const endOfMonth = (day: string) => {
+  const date = parseISODate(day);
+  // Day 0 of the *next* month is the last day of this one, which is what avoids a length table.
+  date.setUTCMonth(date.getUTCMonth() + 1, 0);
+
+  return toISODate(date);
+};
+
 /** Every day from `from` to `to`, both ends included. Empty when the range is inverted. */
 export const eachDayInclusive = (from: string, to: string) => {
   const days: string[] = [];
