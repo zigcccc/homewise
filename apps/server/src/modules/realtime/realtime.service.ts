@@ -1,9 +1,9 @@
 import { captureException } from '@sentry/hono/node';
 import * as Ably from 'ably';
 
-import { env } from '@/config/env';
+import { env } from '#config/env';
 
-import { HOUSEHOLD_EVENT_NAME, type HouseholdEventMessage } from './models';
+import { HOUSEHOLD_EVENT_NAME, type HouseholdEventMessage } from './realtime.model';
 
 /**
  * REST rather than Realtime: the server only ever publishes. A stateless HTTPS POST is what a

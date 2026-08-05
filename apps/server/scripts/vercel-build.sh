@@ -19,7 +19,7 @@ else
   echo "▸ ${VERCEL_ENV:-non-preview} build: skipping migrate/seed (owned by CI)"
 fi
 
-# Build through Turbo so it owns the build pipeline (dependency ordering + caching)
-# consistently across both apps — even though the server currently has no workspace
-# build deps of its own.
+# Bundles to `dist/index.js`. `vercel.json`'s `outputDirectory` is what makes that the deployed
+# entrypoint — drop it and @vercel/hono picks `src/index.ts`, which its bundled ts-node compiles
+# through the TypeScript 5 API this repo's TypeScript 7 no longer exposes.
 pnpm turbo run build --filter @homewise/server

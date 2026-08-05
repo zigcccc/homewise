@@ -1,7 +1,7 @@
 import { createInsertSchema, createSelectSchema, createUpdateSchema } from 'drizzle-zod';
 import z from 'zod';
 
-import * as schema from '@/db/schema';
+import * as schema from '#db/schema/core';
 
 export const householdMemberRole = createSelectSchema(schema.householdMemberRoleEnum);
 export type HouseholdMemberRole = z.infer<typeof householdMemberRole>;

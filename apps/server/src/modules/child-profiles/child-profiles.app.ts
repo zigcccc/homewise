@@ -1,11 +1,11 @@
 import { Hono } from 'hono';
 
-import { zValidator } from '@/lib/validation';
-import { withHousehold } from '@/middleware/household.middleware';
-import { type AppContext } from '@/types/app.type';
+import { zValidator } from '#lib/validation';
+import { withHousehold } from '#middleware/household.middleware';
+import { type AppContext } from '#types/app.type';
 
+import { childProfilePathParamsModel, createChildProfileModel, patchChildProfileModel } from './child-profiles.model';
 import { ChildProfilesService } from './child-profiles.service';
-import { childProfilePathParamsModel, createChildProfileModel, patchChildProfileModel } from './models';
 
 /**
  * Per-child profiles — the hub record for a child (general info + attached sub-features like the

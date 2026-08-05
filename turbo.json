@@ -19,31 +19,36 @@
     },
     "build": {
       "dependsOn": ["^build"],
+      // Read by the Vite build only. `envMode` is strict, so anything not named here is invisible to
+      // the build; platform vars like `VERCEL` arrive through turbo's own allowlist instead.
       "env": [
-        "DATABASE_URL",
-        "DATABASE_URL_UNPOOLED",
-        "HOMEWISE_DATABASE_URL",
-        "HOMEWISE_RESEND_API_KEY",
-        "VITE_API_URL",
-        "BETTER_AUTH_SECRET",
-        "BETTER_AUTH_URL",
-        "NODEJS_HELPERS",
-        "HOMEWISE_FILES_READ_WRITE_TOKEN",
-        "HOMEWISE_ABLY_API_KEY",
-        "HOMEWISE_REALTIME_NAMESPACE",
         "SENTRY_AUTH_TOKEN",
         "SENTRY_ORG",
         "SENTRY_PROJECT",
-        "SENTRY_DSN",
+        "VITE_API_URL",
         "VITE_SENTRY_DSN",
         "VITE_SENTRY_ENVIRONMENT",
         "VITE_SENTRY_RELEASE"
+      ],
+      // The server function's runtime variables. Neither build reads them, so they stay out of `env`
+      // and out of the cache key — otherwise rotating a secret would rebuild both apps.
+      "passThroughEnv": [
+        "BETTER_AUTH_SECRET",
+        "DATABASE_URL",
+        "DATABASE_URL_UNPOOLED",
+        "HOMEWISE_ABLY_API_KEY",
+        "HOMEWISE_FILES_READ_WRITE_TOKEN",
+        "HOMEWISE_REALTIME_NAMESPACE",
+        "HOMEWISE_RESEND_API_KEY",
+        "NODEJS_HELPERS",
+        "PREVIEW_WEB_ORIGIN",
+        "SENTRY_DSN"
       ],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": ["dist/**", ".vercel/**"]
     },
     "check-types": {
-      "dependsOn": ["^build"],
+      "dependsOn": [],
       "inputs": ["$TURBO_DEFAULT$", "../../packages/typescript-config/*.json", "!**/*.md"],
       "outputs": []
     },

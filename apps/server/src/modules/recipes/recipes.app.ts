@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
 
-import { zValidator } from '@/lib/validation';
-import { withHousehold } from '@/middleware/household.middleware';
-import { type AppContext } from '@/types/app.type';
+import { zValidator } from '#lib/validation';
+import { withHousehold } from '#middleware/household.middleware';
+import { type AppContext } from '#types/app.type';
 
 import {
   createRecipeModel,
@@ -10,7 +10,7 @@ import {
   patchRecipeModel,
   recipePathParamsModel,
   recipeTagPathParamsModel,
-} from './models';
+} from './recipes.model';
 import { RecipesService } from './recipes.service';
 
 /**

@@ -1,10 +1,10 @@
 import { and, asc, count, desc, eq, ilike, inArray, or } from 'drizzle-orm';
 
-import { db, schema } from '@/db';
-import { type Executor, emptyToNull, type Filters } from '@/db/utils';
-import { couldNotResolve, notFound, somethingWentWrong } from '@/lib/errors';
-import { IngredientsService } from '@/modules/ingredients/ingredients.service';
-import { MealPlanService } from '@/modules/meal-plan/meal-plan.service';
+import { db, schema } from '#db/core';
+import { type Executor, emptyToNull, type Filters } from '#db/utils';
+import { couldNotResolve, notFound, somethingWentWrong } from '#lib/errors';
+import { IngredientsService } from '#modules/ingredients/ingredients.service';
+import { MealPlanService } from '#modules/meal-plan/meal-plan.service';
 
 import {
   type CreateRecipe,
@@ -12,7 +12,7 @@ import {
   type PatchRecipe,
   type RecipeIngredient,
   type RecipeStep,
-} from './models';
+} from './recipes.model';
 
 /** An ingredient line once its `ingredientName`, if any, has been turned into a real library id. */
 type ResolvedRecipeIngredient = Omit<RecipeIngredient, 'ingredientId' | 'ingredientName'> & { ingredientId: number };

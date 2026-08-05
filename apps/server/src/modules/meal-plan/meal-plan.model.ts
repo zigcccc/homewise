@@ -1,7 +1,7 @@
 import z from 'zod';
 
-import { optionalText } from '@/lib/models';
-import { type HouseholdMemberRole, householdMemberRole } from '@/modules/households/models';
+import { optionalText } from '#lib/models';
+import { type HouseholdMemberRole, householdMemberRole } from '#modules/households/households.model';
 
 /**
  * Who eats off the plan. A pet doesn't, and an external member is by definition eating elsewhere —

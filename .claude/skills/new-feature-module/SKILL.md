@@ -34,15 +34,19 @@ attribution FKs use `onDelete: 'set null'` so content survives account deletion.
 constraint for any "one X per Y" rule — enforce it in the DB, not just in the service.
 
 Name relations for what they are (`child`, `creator`), never `member`. Export from
-`db/schema/index.ts` and add the inverse `many()` to `household.ts`.
+`db/schema/core.ts` and add the inverse `many()` to `household.ts`.
 
-**2. Models** — `modules/<feature>/models/<feature>.model.ts` + `index.ts` barrel
+**2. Models** — `modules/<feature>/<feature>.model.ts`
+
+One flat file beside the app and service — the module is a trio plus a one-line `index.ts`
+re-exporting the app. No `models/` folder, no barrel.
 
 Zod schemas with trimmed, length-bounded text. Dates use `z.iso.date()`. List query params get
 `.default().catch()`. Path params use `z.coerce.number<number>()`.
 
-Add a `"./<feature>"` subpath to `apps/server/package.json#exports` pointing at the barrel, so the web
-app imports models the same way it does `@homewise/server/households`.
+Add a `"./<feature>"` subpath to `apps/server/package.json#exports` pointing straight at
+`./src/modules/<feature>/<feature>.model.ts`, so the web app imports models the same way it does
+`@homewise/server/households`.
 
 **3. Service** — `modules/<feature>/<feature>.service.ts`
 
@@ -50,7 +54,7 @@ Static class. Every method takes `householdId: number` — no auth logic, no Hon
 query by `householdId`; throw `HTTPException(404)` rather than leaking cross-household ids. Reuse
 `HouseholdsService.readHouseholdMember` for member validation, and `memberDisplayName` /
 `toMemberResponse` for display names. Aggregate queries (counts) must be constrained to the ids just
-read, not the whole table. Date arithmetic comes from `@/lib/dates` — never re-derive it locally.
+read, not the whole table. Date arithmetic comes from `#lib/dates` — never re-derive it locally.
 
 Services carry the business logic, so they get the strictest review in the repo. Read a sibling
 (`recipes`, `ingredients`) for the *pattern* — then read what you wrote for the things copying
@@ -66,7 +70,7 @@ the chain unbroken — `AppType` inference depends on it. Register in `src/index
 
 Every mutating handler ends with `c.var.emit(...)` before its `c.json(...)` — one call per distinct
 effect, so other members' open tabs refresh. Add the entity to `householdEventEntity`
-(`modules/realtime/models`); the web's `invalidators` record then fails to compile until step 7's
+(`modules/realtime/realtime.model.ts`); the web's `invalidators` record then fails to compile until step 7's
 helper is mapped, which is what keeps the two halves in sync.
 
 **5. Migration**

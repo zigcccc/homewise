@@ -30,8 +30,8 @@ export VITE_SENTRY_RELEASE="${VERCEL_GIT_COMMIT_SHA:-}"
 # ship a release whose stack traces are unreadable minified frames. Both are worth stopping for.
 : "${SENTRY_AUTH_TOKEN:?SENTRY_AUTH_TOKEN must be set for Vercel builds (it gates the source-map upload)}"
 
-# Build through Turbo (not `pnpm build`) so workspace deps are built first:
-# `build` dependsOn `^build`, which compiles the server and emits the .d.ts that
-# the web's type-check consumes via the RPC client. Turbo lists VITE_API_URL in
-# build.env, so the value flows through and busts the cache per branch.
+# Build through Turbo (not `pnpm build`) for the env contract: `envMode` is strict, so a variable
+# reaches Vite only if `turbo.json`'s `build.env` names it — and being named is also what busts the
+# cache per branch when VITE_API_URL changes. Nothing here needs a workspace dep built first; the
+# server ships its source and the web resolves it directly.
 pnpm turbo run build --filter @homewise/web-app

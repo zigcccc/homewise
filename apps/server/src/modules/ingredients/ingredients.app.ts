@@ -1,16 +1,16 @@
 import { Hono } from 'hono';
 
-import { zValidator } from '@/lib/validation';
-import { withHousehold } from '@/middleware/household.middleware';
-import { type AppContext } from '@/types/app.type';
+import { zValidator } from '#lib/validation';
+import { withHousehold } from '#middleware/household.middleware';
+import { type AppContext } from '#types/app.type';
 
-import { IngredientsService } from './ingredients.service';
 import {
   createIngredientModel,
   ingredientPathParamsModel,
   listIngredientsQueryParamsModel,
   patchIngredientModel,
-} from './models';
+} from './ingredients.model';
+import { IngredientsService } from './ingredients.service';
 
 /**
  * The household's reusable ingredient library. Recipes attach these rows; shopping lists will too.

@@ -1,14 +1,14 @@
 import { and, eq } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 
-import { db, schema } from '@/db';
-import { emptyToNull } from '@/db/utils';
-import { notFound } from '@/lib/errors';
+import { db, schema } from '#db/core';
+import { emptyToNull } from '#db/utils';
+import { notFound } from '#lib/errors';
 
 import { HouseholdsService } from '../households/households.service';
 import { ImagesService } from '../images/images.service';
 import { MedicalService, medicalInfoWith } from '../medical/medical.service';
-import { type CreatePetProfile, type PatchPetProfile } from './models';
+import { type CreatePetProfile, type PatchPetProfile } from './pet-profiles.model';
 
 /** The `pet` join: a household member, shaped like the households module returns them. */
 const memberWith = {

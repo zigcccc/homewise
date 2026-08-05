@@ -4,10 +4,10 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { oneTimeToken, openAPI } from 'better-auth/plugins';
 import { render } from 'react-email';
 
-import { allowedOrigins, isAllowedOrigin } from '@/config/cors';
-import { env } from '@/config/env';
-import { db, schema } from '@/db';
-import { VerifyEmail } from '@/emails/VerifyEmail';
+import { allowedOrigins, isAllowedOrigin } from '#config/cors';
+import { env } from '#config/env';
+import { db, schema } from '#db/core';
+import { VerifyEmail } from '#emails/VerifyEmail';
 
 import { sendEmail } from './resend';
 

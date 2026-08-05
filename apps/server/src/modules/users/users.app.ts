@@ -1,9 +1,9 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 
-import { auth } from '@/lib/auth';
-import { zValidator } from '@/lib/validation';
-import { type AppContext } from '@/types/app.type';
+import { auth } from '#lib/auth';
+import { zValidator } from '#lib/validation';
+import { type AppContext } from '#types/app.type';
 
 import { ImagesService } from '../images/images.service';
 

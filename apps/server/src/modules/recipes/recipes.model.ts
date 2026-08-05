@@ -1,7 +1,7 @@
 import z from 'zod';
 
-import { optionalText } from '@/lib/models';
-import { ingredientName, measurementUnit } from '@/modules/ingredients/models';
+import { optionalText } from '#lib/models';
+import { ingredientName, measurementUnit } from '#modules/ingredients/ingredients.model';
 
 /** Meal types, mirrored from the DB enum. Reused by the web for labels and selects. */
 export const mealType = z.enum(['breakfast', 'lunch', 'dinner', 'dessert', 'snack', 'drink', 'side', 'baking']);

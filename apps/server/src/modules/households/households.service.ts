@@ -3,11 +3,11 @@ import { and, count, eq, inArray, isNull, or } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 import { render } from 'react-email';
 
-import { db, schema } from '@/db';
-import { JoinHousehold } from '@/emails/JoinHousehold';
-import { auth } from '@/lib/auth';
-import { notFound, somethingWentWrong } from '@/lib/errors';
-import { sendEmail } from '@/lib/resend';
+import { db, schema } from '#db/core';
+import { JoinHousehold } from '#emails/JoinHousehold';
+import { auth } from '#lib/auth';
+import { notFound, somethingWentWrong } from '#lib/errors';
+import { sendEmail } from '#lib/resend';
 
 import {
   type CreateHouseholdMember,
@@ -15,7 +15,7 @@ import {
   type InviteHouseholdMembers,
   type PatchHousehold,
   type PatchHouseholdMember,
-} from './models';
+} from './households.model';
 
 type MemberWithUser = {
   userId: string | null;

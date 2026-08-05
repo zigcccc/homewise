@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
 
-import { zValidator } from '@/lib/validation';
-import { withHousehold } from '@/middleware/household.middleware';
-import { type AppContext } from '@/types/app.type';
+import { zValidator } from '#lib/validation';
+import { withHousehold } from '#middleware/household.middleware';
+import { type AppContext } from '#types/app.type';
 
 import {
   completeShoppingListModel,
@@ -18,7 +18,7 @@ import {
   patchShoppingListModel,
   sectionPathParamsModel,
   shoppingListPathParamsModel,
-} from './models';
+} from './shopping-lists.model';
 import { ShoppingListsService } from './shopping-lists.service';
 
 /**
