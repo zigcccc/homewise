@@ -79,6 +79,38 @@ test.describe('monthly expenses', () => {
     }
   });
 
+  test('opens the title editor inside its cell, at the width of the column', async ({ page }) => {
+    const expenses = new MonthlyExpensesPage(page);
+    const title = `E2E Layout ${Date.now()}`;
+
+    await expenses.goto(4, YEAR);
+
+    try {
+      await expenses.add({ amount: '5', title });
+
+      const resting = await expenses.row(title).boundingBox();
+      await expenses.openInlineTitleEdit(title);
+      const editing = await expenses.row(title).boundingBox();
+
+      // The editor shares one grid cell with the hidden sizer holding the column open, so it must be
+      // *placed* there — auto-placed it steps over the sizer into a row of its own, and the row grows
+      // by a band of empty space with the paid-back badge stranded in the middle of it.
+      expect(editing!.height).toBeCloseTo(resting!.height, 0);
+
+      // And a title is free text, so its editor takes the column rather than stopping at the width
+      // the short columns are capped to.
+      const cell = await expenses.titleCell(title).boundingBox();
+      const editor = await expenses.titleInput().boundingBox();
+      // The cell less its own padding — anything materially short of that is the shared cap for the
+      // narrow columns leaking onto a column that shouldn't have one.
+      expect(editor!.width).toBeGreaterThan(cell!.width - 24);
+
+      await page.keyboard.press('Escape');
+    } finally {
+      await expenses.deleteIfPresent(title);
+    }
+  });
+
   test('keeps each month to itself', async ({ page }) => {
     const expenses = new MonthlyExpensesPage(page);
     const title = `E2E March ${Date.now()}`;

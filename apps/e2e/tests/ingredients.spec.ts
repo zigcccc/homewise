@@ -56,7 +56,14 @@ test.describe('ingredient library', () => {
       await ingredients.setDefaultUnitInline(name, 'tbsp');
       await expect(ingredients.row(name)).toContainText('tbsp');
 
-      await ingredients.renameInline(name, renamed);
+      // Opening the editor must not resize the row: it stacks into the same grid cell as the hidden
+      // sizer that holds the column open, and an unplaced one opens a second row of empty space
+      // above itself instead.
+      const resting = await ingredients.row(name).boundingBox();
+      await ingredients.openInlineRename(name, renamed);
+      expect((await ingredients.row(name).boundingBox())!.height).toBeCloseTo(resting!.height, 0);
+
+      await ingredients.commitInlineRename();
       await expect(ingredients.row(renamed)).toBeVisible();
 
       // Both inline edits survived the rename's refetch rather than being read back off a stale row.

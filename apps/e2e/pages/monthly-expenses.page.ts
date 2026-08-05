@@ -205,8 +205,14 @@ export class MonthlyExpensesPage {
     await this.titleInput().press('Enter');
   }
 
-  private titleInput(): Locator {
+  /** The open title editor. Public because the layout spec measures its box rather than typing in it. */
+  titleInput(): Locator {
     return this.page.getByRole('table').getByRole('textbox', { name: 'Title' });
+  }
+
+  /** The cell the title editor opens inside — the box the layout spec measures it against. */
+  titleCell(title: string): Locator {
+    return this.row(title).getByRole('cell').first();
   }
 
   async togglePaidBack(title: string) {
