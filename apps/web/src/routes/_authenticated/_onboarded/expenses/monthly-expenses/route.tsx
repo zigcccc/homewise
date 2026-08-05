@@ -5,6 +5,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { useDebounceCallback } from 'usehooks-ts';
 import z from 'zod';
 
+import { searchQueryParam } from '@homewise/server/models';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -74,10 +75,7 @@ const searchParamsModel = z.object({
     .optional()
     .catch(undefined)
     .transform((value) => value ?? currentYear()),
-  search: z
-    .string()
-    .transform((value) => (value === '' ? undefined : value))
-    .optional(),
+  search: searchQueryParam,
   /** A category id, or `none` for the expenses nobody has categorised. */
   category: z
     .union([z.literal('none'), z.number().int().positive()])

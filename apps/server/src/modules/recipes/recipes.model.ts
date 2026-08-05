@@ -1,17 +1,19 @@
+import { createInsertSchema, createSelectSchema, createUpdateSchema } from 'drizzle-zod';
 import z from 'zod';
 
-import { optionalText } from '#lib/models';
+import * as schema from '#db/schema/core';
+import { dbOwnedColumns, optionalText, searchQueryParam, sortDirection } from '#lib/models';
 import { ingredientName, measurementUnit } from '#modules/ingredients/ingredients.model';
 
-/** Meal types, mirrored from the DB enum. Reused by the web for labels and selects. */
-export const mealType = z.enum(['breakfast', 'lunch', 'dinner', 'dessert', 'snack', 'drink', 'side', 'baking']);
+/** Meal types, straight off the DB enum. Reused by the web for labels and selects. */
+export const mealType = createSelectSchema(schema.mealTypeEnum);
 export type MealType = z.infer<typeof mealType>;
 
-const title = (model: z.ZodString) =>
-  model
-    .trim()
-    .min(1, { error: 'Title must contain at least 1 character' })
-    .max(160, { error: 'Title must contain at most 160 characters' });
+const recipeTitle = z
+  .string()
+  .trim()
+  .min(1, { error: 'Title must contain at least 1 character' })
+  .max(160, { error: 'Title must contain at most 160 characters' });
 
 /** Friendly URL: trims, prepends `https://` when no scheme is given, then validates. Empty clears. */
 const sourceUrl = z
@@ -98,38 +100,33 @@ const tags = z
   .max(20, { error: 'A recipe can have at most 20 tags' })
   .optional();
 
-export const createRecipeModel = z.object({
-  title: title(z.string()),
-  description: optionalText(2000, 'Description'),
-  mealType: mealType.nullish(),
-  cuisine: optionalText(64, 'Cuisine'),
-  servings: positiveCount(100, 'Servings'),
-  prepTimeMinutes: minutes('Prep time'),
+/** `createdBy` is stamped from the session, and the two flags are patch-only toggles. */
+const serverOwnedRecipeColumns = { ...dbOwnedColumns, archived: true, createdBy: true, isFavorite: true } as const;
+
+/** Everything a form clears with `''` or omits outright — none of it the column's own shape. */
+const recipePayloadFields = {
   cookTimeMinutes: minutes('Cook time'),
+  cuisine: optionalText(64, 'Cuisine'),
+  description: optionalText(2000, 'Description'),
+  ingredients,
+  prepTimeMinutes: minutes('Prep time'),
+  servings: positiveCount(100, 'Servings'),
   sourceName: optionalText(160, 'Source'),
   sourceUrl,
-  ingredients,
   steps,
   tags,
-});
+};
+
+export const createRecipeModel = createInsertSchema(schema.recipe, { title: () => recipeTitle })
+  .omit(serverOwnedRecipeColumns)
+  /** No meal type is a legitimate resting state — plenty of recipes aren't one meal in particular. */
+  .partial({ mealType: true })
+  .extend(recipePayloadFields);
 export type CreateRecipe = z.infer<typeof createRecipeModel>;
 
-export const patchRecipeModel = z.object({
-  title: title(z.string()).optional(),
-  description: optionalText(2000, 'Description'),
-  mealType: mealType.nullish(),
-  cuisine: optionalText(64, 'Cuisine'),
-  servings: positiveCount(100, 'Servings'),
-  prepTimeMinutes: minutes('Prep time'),
-  cookTimeMinutes: minutes('Cook time'),
-  sourceName: optionalText(160, 'Source'),
-  sourceUrl,
-  isFavorite: z.boolean().optional(),
-  archived: z.boolean().optional(),
-  ingredients,
-  steps,
-  tags,
-});
+export const patchRecipeModel = createUpdateSchema(schema.recipe, { title: () => recipeTitle })
+  .omit({ ...dbOwnedColumns, createdBy: true })
+  .extend(recipePayloadFields);
 export type PatchRecipe = z.infer<typeof patchRecipeModel>;
 
 export const recipePathParamsModel = z.object({ id: z.coerce.number<number>().int().positive() });
@@ -139,22 +136,14 @@ export const recipeTagPathParamsModel = z.object({ tagId: z.coerce.number<number
 export const recipeSortKey = z.enum(['title', 'createdAt', 'updatedAt']);
 export type RecipeSortKey = z.infer<typeof recipeSortKey>;
 
-export const recipeSortDirection = z.enum(['asc', 'desc']);
-export type RecipeSortDirection = z.infer<typeof recipeSortDirection>;
-
 export const listRecipesQueryParamsModel = z.object({
-  /** Case-insensitive match across the title, description, cuisine — and the ingredients it uses. */
-  search: z
-    .string()
-    .trim()
-    .transform((value) => (value === '' ? undefined : value))
-    .optional()
-    .catch(undefined),
+  /** Matched across the title, description, cuisine — and the ingredients it uses. */
+  search: searchQueryParam,
   mealType: mealType.optional().catch(undefined),
   tagId: z.coerce.number<number>().int().positive().optional().catch(undefined),
   favoritesOnly: z.stringbool().default(false).catch(false),
   includeArchived: z.stringbool().default(false).catch(false),
   sortKey: recipeSortKey.default('title').catch('title'),
-  sortDirection: recipeSortDirection.default('asc').catch('asc'),
+  sortDirection: sortDirection.default('asc').catch('asc'),
 });
 export type ListRecipesQueryParams = z.infer<typeof listRecipesQueryParamsModel>;

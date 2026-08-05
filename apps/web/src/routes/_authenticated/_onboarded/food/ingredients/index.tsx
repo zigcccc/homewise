@@ -5,7 +5,8 @@ import { useState } from 'react';
 import { useDebounceCallback } from 'usehooks-ts';
 import z from 'zod';
 
-import { ingredientCategory, ingredientSortDirection, ingredientSortKey } from '@homewise/server/ingredients';
+import { ingredientCategory, ingredientSortKey } from '@homewise/server/ingredients';
+import { searchQueryParam, sortDirection } from '@homewise/server/models';
 import {
   Button,
   DataTable,
@@ -38,10 +39,7 @@ import { listStoresQueryOptions, StoreSelectItems } from '@/modules/stores';
 import { ingredientsTableColumns } from './-ingredients-table.config';
 
 const searchParamsModel = z.object({
-  search: z
-    .string()
-    .transform((value) => (value === '' ? undefined : value))
-    .optional(),
+  search: searchQueryParam,
   category: ingredientCategory.optional().catch(undefined),
   /** A shop id, or `none` for the ingredients with no shop assigned yet. */
   store: z
@@ -49,7 +47,7 @@ const searchParamsModel = z.object({
     .optional()
     .catch(undefined),
   sortKey: ingredientSortKey.default('name').catch('name'),
-  sortDirection: ingredientSortDirection.default('asc').catch('asc'),
+  sortDirection: sortDirection.default('asc').catch('asc'),
 });
 
 type SearchParams = z.infer<typeof searchParamsModel>;

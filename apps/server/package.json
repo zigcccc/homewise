@@ -20,6 +20,10 @@
       "types": "./src/db/seed-fixtures.ts",
       "import": "./src/db/seed-fixtures.ts"
     },
+    "./models": {
+      "types": "./src/lib/models.ts",
+      "import": "./src/lib/models.ts"
+    },
     "./households": {
       "types": "./src/modules/households/households.model.ts",
       "import": "./src/modules/households/households.model.ts"

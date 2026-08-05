@@ -5,7 +5,8 @@ import { useState } from 'react';
 import { useDebounceCallback } from 'usehooks-ts';
 import z from 'zod';
 
-import { childDictionaryEntrySortDirection, childDictionaryEntrySortKey } from '@homewise/server/child-dictionaries';
+import { childDictionaryEntrySortKey } from '@homewise/server/child-dictionaries';
+import { searchQueryParam, sortDirection } from '@homewise/server/models';
 import {
   Button,
   Checkbox,
@@ -38,12 +39,9 @@ import { getChildProfileQueryOptions } from '@/modules/child-profiles';
 import { createEntriesTableColumns, EntryForm } from './-components/entries-table.config';
 
 const searchParamsModel = z.object({
-  search: z
-    .string()
-    .transform((value) => (value === '' ? undefined : value))
-    .optional(),
+  search: searchQueryParam,
   sortKey: childDictionaryEntrySortKey.default('childPhrase').catch('childPhrase'),
-  sortDirection: childDictionaryEntrySortDirection.default('asc').catch('asc'),
+  sortDirection: sortDirection.default('asc').catch('asc'),
   includeArchived: z.boolean().default(false).catch(false),
 });
 

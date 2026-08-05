@@ -5,7 +5,8 @@ import { useState } from 'react';
 import { useDebounceCallback } from 'usehooks-ts';
 import z from 'zod';
 
-import { storeSortDirection, storeSortKey } from '@homewise/server/stores';
+import { searchQueryParam, sortDirection } from '@homewise/server/models';
+import { storeSortKey } from '@homewise/server/stores';
 import {
   Button,
   DataTable,
@@ -27,12 +28,9 @@ import { listStoresQueryOptions, StoreFormDialog } from '@/modules/stores';
 import { storesTableColumns } from './-stores-table.config';
 
 const searchParamsModel = z.object({
-  search: z
-    .string()
-    .transform((value) => (value === '' ? undefined : value))
-    .optional(),
+  search: searchQueryParam,
   sortKey: storeSortKey.default('name').catch('name'),
-  sortDirection: storeSortDirection.default('asc').catch('asc'),
+  sortDirection: sortDirection.default('asc').catch('asc'),
 });
 
 type SearchParams = z.infer<typeof searchParamsModel>;
