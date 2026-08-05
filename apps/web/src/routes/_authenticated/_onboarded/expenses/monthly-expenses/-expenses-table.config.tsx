@@ -13,6 +13,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@homewise/ui/core';
+import { cn } from '@homewise/ui/lib';
 
 import { parseResponse } from '@/api/client';
 import { type ExpenseCategoryChoice, ExpenseCategoryCombobox } from '@/modules/expense-categories';
@@ -27,6 +28,7 @@ import {
   ConfirmDeleteDialog,
   DateField,
   formatAmount,
+  formatDate,
   InlineTextField,
   parseAmount,
   serverMessage,
@@ -40,19 +42,38 @@ const inlineTriggerClassName =
   'w-full justify-between border-transparent px-2 shadow-none not-disabled:cursor-pointer hover:bg-accent focus-visible:border-ring data-[state=open]:border-input data-[state=open]:bg-accent [&_svg]:opacity-0 hover:[&_svg]:opacity-60 focus-visible:[&_svg]:opacity-60 data-[state=open]:[&_svg]:opacity-60';
 
 const inlineTextClassName = 'h-9 w-full rounded-md border px-2 text-sm';
+
+/**
+ * A hidden copy of the value, sharing the controls' horizontal box, that holds the column open. An
+ * `<input>` contributes nothing to an auto-layout table's width once it carries `size={1}`, so
+ * without this the column would collapse the moment the editor opened.
+ */
 const inlineSizerClassName = 'invisible col-start-1 row-start-1 border px-2 text-sm';
-const inlineButtonClassName = `${inlineTextClassName} col-start-1 row-start-1 border-transparent text-left hover:bg-accent`;
+
+/**
+ * The date's sizer mirrors `DateField`'s own box instead: its `Input` is `pl-3`, and `pr-10` holds
+ * the space the absolutely-positioned calendar button sits in. Measure it as `px-2` and the button
+ * ends up on top of the date.
+ */
+const inlineDateSizerClassName = 'invisible col-start-1 row-start-1 border pr-10 pl-3 text-sm';
+
+// `flex items-center` because the resting box is `h-9` and its text would otherwise sit at the top,
+// half a line above where the editor puts it.
+const inlineButtonClassName = `${inlineTextClassName} col-start-1 row-start-1 flex items-center border-transparent text-left hover:bg-accent`;
 
 /** Click-to-edit text, over a sizer that stops the column resizing as the editor opens and closes. */
 function InlineCell({
   ariaLabel,
   display,
+  displayClassName,
   onSave,
   schema,
   value,
 }: {
   ariaLabel: string;
   display: string;
+  /** Styling for the resting value only — never for the editor, which has to stay legible. */
+  displayClassName?: string;
   onSave: (next: string) => Promise<unknown>;
   schema: Parameters<typeof InlineTextField>[0]['schema'];
   value: string;
@@ -60,7 +81,10 @@ function InlineCell({
   const [editing, setEditing] = useState(false);
 
   return (
-    <div className="grid grid-cols-1">
+    // `min-w-0 flex-1` for the title cell, where this grid is a flex item beside the paid-back badge:
+    // without them it shrinks to max-content and the editor opens as a box hugging the text instead
+    // of filling the column. Both are inert everywhere else.
+    <div className="grid min-w-0 flex-1 grid-cols-1">
       <span className={inlineSizerClassName}>{display}</span>
       {editing ? (
         // Mounted only while editing, so `defaultValues` reseed on every open with no reset effect.
@@ -77,7 +101,7 @@ function InlineCell({
         // string, which is no way to find a control.
         <button
           aria-label={`Edit ${ariaLabel.toLowerCase()}`}
-          className={inlineButtonClassName}
+          className={cn(inlineButtonClassName, displayClassName)}
           onClick={() => setEditing(true)}
           type="button"
         >
@@ -104,19 +128,19 @@ function TitleCell({ expense }: { expense: Expense }) {
 
 function AmountCell({ expense }: { expense: Expense }) {
   const { save } = useInlineExpensePatch(expense.id);
-  const display = formatAmount(expense.amount, expense.currency);
 
   return (
-    <div className={expense.paidBackAt ? 'text-muted-foreground line-through' : undefined}>
-      <InlineCell
-        ariaLabel="Amount"
-        display={display}
-        // Non-null: `expenseAmountText` only passes for something `parseAmount` can read.
-        onSave={async (amount) => save({ amount: parseAmount(amount)! })}
-        schema={expenseAmountText}
-        value={String(expense.amount)}
-      />
-    </div>
+    <InlineCell
+      ariaLabel="Amount"
+      display={formatAmount(expense.amount, expense.currency)}
+      // The strike belongs to the resting value, not the cell: struck out around the wrapper it also
+      // crosses through whatever you're typing into the editor.
+      displayClassName={expense.paidBackAt ? 'text-muted-foreground line-through' : undefined}
+      // Non-null: `expenseAmountText` only passes for something `parseAmount` can read.
+      onSave={async (amount) => save({ amount: parseAmount(amount)! })}
+      schema={expenseAmountText}
+      value={String(expense.amount)}
+    />
   );
 }
 
@@ -149,12 +173,20 @@ function RecordedAtCell({ expense }: { expense: Expense }) {
   const { saveOrToast } = useInlineExpensePatch(expense.id);
 
   return (
-    <DateField
-      allowFuture
-      id={`expense-${expense.id}-recorded-at`}
-      onChange={(recordedAt) => void saveOrToast({ recordedAt })}
-      value={expense.recordedAt}
-    />
+    // Same grid-over-sizer arrangement as the text cells: `DateField` carries `size={1}`, so the
+    // rendered date is what has to hold the column open.
+    <div className="grid grid-cols-1">
+      <span className={inlineDateSizerClassName}>{formatDate(expense.recordedAt)}</span>
+      <div className="col-start-1 row-start-1">
+        <DateField
+          allowFuture
+          id={`expense-${expense.id}-recorded-at`}
+          inline
+          onChange={(recordedAt) => void saveOrToast({ recordedAt })}
+          value={expense.recordedAt}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -211,10 +243,6 @@ const columnHelper = createColumnHelper<Expense>();
 
 /** Takes the manage-categories handler because the picker in every row offers a way in to the sheet. */
 export const expensesTableColumns = (onManageCategories: () => void) => [
-  columnHelper.accessor('recordedAt', {
-    cell: (info) => <RecordedAtCell expense={info.row.original} />,
-    header: 'Date',
-  }),
   columnHelper.accessor('title', {
     cell: (info) => (
       <div className="flex items-center gap-2">
@@ -224,13 +252,17 @@ export const expensesTableColumns = (onManageCategories: () => void) => [
     ),
     header: 'Title',
   }),
-  columnHelper.accessor('category', {
-    cell: (info) => <CategoryCell expense={info.row.original} onManage={onManageCategories} />,
-    header: 'Category',
-  }),
   columnHelper.accessor('amount', {
     cell: (info) => <AmountCell expense={info.row.original} />,
     header: 'Amount',
+  }),
+  columnHelper.accessor('recordedAt', {
+    cell: (info) => <RecordedAtCell expense={info.row.original} />,
+    header: 'Date',
+  }),
+  columnHelper.accessor('category', {
+    cell: (info) => <CategoryCell expense={info.row.original} onManage={onManageCategories} />,
+    header: 'Category',
   }),
   columnHelper.display({
     cell: (info) => <RowActions expense={info.row.original} />,

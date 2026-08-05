@@ -176,8 +176,10 @@ export class ExpensesService {
         spent: Number(row.spent),
         paidBack: Number(row.paidBack),
       })),
-      // A category whose every expense was paid back sums to zero; it isn't a slice of anything.
-      byCategory: byCategory.map((row) => ({ ...row, amount: Number(row.amount) })).filter((row) => row.amount > 0),
+      // Zero slices are kept. A category whose every expense was paid back still sums to nothing,
+      // but the expenses are right there in the table — dropping the slice would take the only way
+      // of filtering to them with it. Categories with no expenses at all aren't in the GROUP BY.
+      byCategory: byCategory.map((row) => ({ ...row, amount: Number(row.amount) })),
     };
   }
 

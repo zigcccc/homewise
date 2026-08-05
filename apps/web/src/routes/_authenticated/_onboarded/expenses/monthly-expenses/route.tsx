@@ -184,12 +184,6 @@ function MonthlyExpensesLayout() {
           </Button>
         </div>
 
-        <CategoryBreakdown
-          onSelect={(category) => setSearchParam('category', category)}
-          selected={searchParams.category}
-          summary={summary}
-        />
-
         <div className="flex flex-wrap items-center gap-2">
           <Select onValueChange={(value) => setSearchParam('month', Number(value))} value={String(searchParams.month)}>
             <SelectTrigger aria-label="Month" className="w-36">
@@ -233,6 +227,12 @@ function MonthlyExpensesLayout() {
               <SearchIcon />
             </InputGroupAddon>
           </InputGroup>
+
+          <CategoryBreakdown
+            onSelect={(category) => setSearchParam('category', category)}
+            selected={searchParams.category}
+            summary={summary}
+          />
         </div>
 
         <DataTable

@@ -30,6 +30,9 @@ test.describe('monthly expenses', () => {
       await expenses.add({ amount: '42,50', title });
       await expect(expenses.row(title)).toBeVisible();
       await expect(expenses.row(title)).toContainText('42,50');
+
+      // What you're looking for reads first, then what it cost. The last column holds the row menu.
+      await expect(page.getByRole('columnheader')).toHaveText(['Title', 'Amount', 'Date', 'Category', '']);
       // The month had nothing in it, so the total is this expense and nothing else.
       await expect(expenses.total()).toContainText('42,50');
 
@@ -177,6 +180,31 @@ test.describe('monthly expenses', () => {
       await expenses.deleteIfPresent(inCategory);
       await expenses.deleteIfPresent(uncategorised);
       await expenses.deleteCategoryIfPresent(category, 7, YEAR);
+    }
+  });
+
+  test('keeps a category filterable when everything in it was paid back', async ({ page }) => {
+    const expenses = new MonthlyExpensesPage(page);
+    const stamp = Date.now();
+    const title = `E2E Refunded ${stamp}`;
+    const category = `E2E Zeroed ${stamp}`;
+
+    await expenses.goto(11, YEAR);
+
+    try {
+      await expenses.add({ amount: '30', category, title });
+      await expenses.togglePaidBack(title);
+
+      // The slice nets to zero, but the expense is still sitting in the table — so the chip has to
+      // stay, or there's no way left to filter down to it.
+      await expect(expenses.breakdownChip(category)).toBeVisible();
+      await expect(expenses.breakdownChip(category)).toContainText('0,00');
+
+      await expenses.breakdownChip(category).click();
+      await expect(expenses.row(title)).toBeVisible();
+    } finally {
+      await expenses.deleteIfPresent(title);
+      await expenses.deleteCategoryIfPresent(category, 11, YEAR);
     }
   });
 

@@ -3,6 +3,7 @@ import { CalendarIcon } from 'lucide-react';
 import { useState } from 'react';
 
 import { Button, Calendar, Input, Popover, PopoverContent, PopoverTrigger } from '@homewise/ui/core';
+import { cn } from '@homewise/ui/lib';
 
 import { DATE_DISPLAY_FORMAT } from '../helpers';
 
@@ -54,11 +55,17 @@ function parseDayFirst(input: string, allowFuture: boolean) {
 export function DateField({
   allowFuture = false,
   id,
+  inline = false,
   onChange,
   value,
 }: {
   allowFuture?: boolean;
   id: string;
+  /**
+   * Table treatment: reads as plain text until hovered or focused, so a column of dates doesn't
+   * become a column of form controls. Same bargain the inline selects make.
+   */
+  inline?: boolean;
   onChange: (value: string) => void;
   value: string;
 }) {
@@ -89,9 +96,16 @@ export function DateField({
   };
 
   return (
-    <div className="relative flex gap-2">
+    <div
+      className={cn(
+        'relative flex gap-2',
+        // The calendar arrives with the box, on hover and while focused — the same fade the inline
+        // selects give their chevron.
+        inline && '[&_svg]:opacity-0 focus-within:[&_svg]:opacity-60 hover:[&_svg]:opacity-60'
+      )}
+    >
       <Input
-        className="pr-10"
+        className={cn('pr-10', inline && 'border-transparent shadow-none hover:bg-accent focus-visible:border-input')}
         id={id}
         onBlur={(evt) => commitText(evt.target.value)}
         onChange={(evt) => setText(evt.target.value)}
@@ -102,6 +116,10 @@ export function DateField({
           }
         }}
         placeholder="dd. mm. yyyy"
+        // An `<input>` reports its default 20-character width as its max-content contribution no
+        // matter what `w-full` says, which in an auto-layout table hands this column far more room
+        // than a date needs and squeezes every other one. `InlineTextField` does the same.
+        size={1}
         value={text}
       />
       <Popover onOpenChange={setOpen} open={open}>
