@@ -643,4 +643,41 @@ test.describe('shopping lists', () => {
       await lists.deleteListIfPresent(listId);
     }
   });
+
+  test('scrolls each column on its own', async ({ page }) => {
+    const lists = new ShoppingListsPage(page);
+
+    // Short on purpose: the whole question is what a column past the fold does to everything else.
+    await page.setViewportSize({ height: 600, width: 1280 });
+
+    const listId = await lists.createList();
+
+    try {
+      await lists.addOneOffsViaApi(
+        listId,
+        Array.from({ length: 25 }, (_, index) => `Scroll ${listId}-${index}`)
+      );
+      await lists.openList(listId);
+
+      // Sticky, not merely last: with the end of the list far below the fold, the way to add to it
+      // is still on screen.
+      await expect(page.getByRole('button', { name: /^Add item/ })).toBeInViewport();
+
+      await lists.scrollToBottom(lists.detailColumn());
+
+      // The document itself never scrolls — the shell ends at the viewport. This is what fails if
+      // the columns go back to sharing the page's single scrollbar.
+      expect(await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight)).toBe(true);
+      expect(await page.evaluate(() => window.scrollY)).toBe(0);
+
+      // So the page's own actions, and the column of lists beside it, stay exactly where they were.
+      await expect(page.getByRole('heading', { level: 1, name: 'Shopping lists' })).toBeInViewport();
+      await expect(page.getByRole('button', { name: 'New list' })).toBeInViewport();
+      await expect(lists.masterColumn()).toBeInViewport();
+      expect(await lists.scrollTopOf(lists.masterColumn())).toBe(0);
+    } finally {
+      await page.setViewportSize({ height: 900, width: 1280 });
+      await lists.deleteListIfPresent(listId);
+    }
+  });
 });
