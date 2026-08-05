@@ -45,6 +45,19 @@ export function monthRange(month: number, year: number) {
   return { from: format(startOfMonth(anchor), ISO_DAY_FORMAT), to: format(endOfMonth(anchor), ISO_DAY_FORMAT) };
 }
 
+/**
+ * The date a new expense opens on: today while you're looking at this month, the 1st of whatever
+ * month you're looking at otherwise — so logging into the month on screen needs no date fix.
+ *
+ * Local time like everything else here. `toISOString()` would hand anyone east of UTC yesterday's
+ * date for the first hours of every day, and get the month comparison wrong on the 1st.
+ */
+export function defaultRecordedAt(from: string) {
+  const today = format(new Date(), ISO_DAY_FORMAT);
+
+  return today.slice(0, 7) === from.slice(0, 7) ? today : from;
+}
+
 /** "August 2026" — how the page names the window it's showing. */
 export const monthLabel = (month: number, year: number) => format(new Date(year, month - 1, 1), 'LLLL yyyy');
 

@@ -37,6 +37,7 @@ import { listExpenseCategoriesQueryOptions } from '@/modules/expense-categories'
 import {
   currentMonth,
   currentYear,
+  defaultRecordedAt,
   ExpenseFormDialog,
   type ExpensesSummary,
   expensesSummaryQueryOptions,
@@ -275,16 +276,6 @@ function MonthlyExpensesLayout() {
   );
 }
 
-/**
- * Logging into the month you're looking at shouldn't need a date fix, but logging into *this* month
- * should still default to today rather than the 1st.
- */
-function defaultRecordedAt(from: string) {
-  const today = new Date().toISOString().slice(0, 10);
-
-  return today.slice(0, 7) === from.slice(0, 7) ? today : from;
-}
-
 function MonthTotals({ summary }: { summary: ExpensesSummary }) {
   if (summary.totals.length === 0) {
     return <p className="text-muted-foreground text-sm">Nothing spent yet.</p>;
@@ -330,8 +321,10 @@ function CategoryBreakdown({
         const isSelected = selected === value;
 
         return (
+          // The server groups by category *and* currency, so one category spending in two of them
+          // comes back as two slices sharing a categoryId. The key has to carry both.
           <Button
-            key={value}
+            key={`${value}-${slice.currency}`}
             onClick={() => onSelect(isSelected ? undefined : value)}
             size="sm"
             variant={isSelected ? 'default' : 'outline'}
