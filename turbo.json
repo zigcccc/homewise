@@ -19,22 +19,16 @@
     },
     "build": {
       "dependsOn": ["^build"],
+      // `apps/web` is the only package that builds — the server ships its source and Vercel compiles
+      // it, and its preview migrate/seed runs outside turbo. So this list is exactly what a Vite
+      // build reads: the `VITE_*` four the bundle inlines, plus the three the Sentry plugin needs.
+      // `envMode` is strict, so anything dropped from here is invisible to the build — but platform
+      // vars like `VERCEL` arrive through turbo's own allowlist and must not be added (verified).
       "env": [
-        "DATABASE_URL",
-        "DATABASE_URL_UNPOOLED",
-        "HOMEWISE_DATABASE_URL",
-        "HOMEWISE_RESEND_API_KEY",
-        "VITE_API_URL",
-        "BETTER_AUTH_SECRET",
-        "BETTER_AUTH_URL",
-        "NODEJS_HELPERS",
-        "HOMEWISE_FILES_READ_WRITE_TOKEN",
-        "HOMEWISE_ABLY_API_KEY",
-        "HOMEWISE_REALTIME_NAMESPACE",
         "SENTRY_AUTH_TOKEN",
         "SENTRY_ORG",
         "SENTRY_PROJECT",
-        "SENTRY_DSN",
+        "VITE_API_URL",
         "VITE_SENTRY_DSN",
         "VITE_SENTRY_ENVIRONMENT",
         "VITE_SENTRY_RELEASE"
