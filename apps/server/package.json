@@ -94,6 +94,7 @@
     "emails:preview": "email dev --port 4000"
   },
   "dependencies": {
+    "@date-fns/utc": "catalog:",
     "@hono/node-server": "catalog:",
     "@hono/zod-validator": "catalog:",
     "@neondatabase/serverless": "catalog:",
@@ -103,6 +104,7 @@
     "@vercel/functions": "catalog:",
     "ably": "catalog:",
     "better-auth": "catalog:",
+    "date-fns": "catalog:",
     "dotenv": "catalog:",
     "drizzle-orm": "catalog:",
     "drizzle-zod": "catalog:",

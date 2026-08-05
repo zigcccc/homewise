@@ -2,7 +2,7 @@ import { and, asc, desc, eq, gte, ilike, isNull, lte, sql } from 'drizzle-orm';
 
 import { db, schema } from '#db/core';
 import { type Executor, type Filters, writesAnything } from '#db/utils';
-import { addDays, endOfMonth, startOfMonth, todayISO } from '#lib/dates';
+import { clampRange, endOfMonth, startOfMonth, todayISO } from '#lib/dates';
 import { notFound, somethingWentWrong } from '#lib/errors';
 import { ExpenseCategoriesService } from '#modules/expense-categories/expense-categories.service';
 import { HouseholdsService } from '#modules/households/households.service';
@@ -24,20 +24,11 @@ import {
  * not, so the totals are `sum()` aggregates read back through `::text` and parsed once.
  */
 export class ExpensesService {
-  /**
-   * The window a read covers: the current month when none was given, clamped rather than refused when
-   * the range is inverted or absurdly long. A malformed link should show a sane month, not a 400.
-   */
+  /** The window a read covers, defaulting to the whole of the current month. */
   private static resolveRange({ from, to }: { from?: string; to?: string }) {
     const start = from ?? startOfMonth(todayISO());
-    const latestEnd = addDays(start, MAX_EXPENSE_RANGE_DAYS - 1);
-    const requestedEnd = to ?? endOfMonth(start);
 
-    if (requestedEnd < start) {
-      return { from: start, to: start };
-    }
-
-    return { from: start, to: requestedEnd > latestEnd ? latestEnd : requestedEnd };
+    return clampRange(start, to ?? endOfMonth(start), MAX_EXPENSE_RANGE_DAYS);
   }
 
   /** Resolves an expense, scoped to its household so ids from elsewhere 404. */
@@ -62,8 +53,7 @@ export class ExpensesService {
    */
   private static async readExpenseWithRelations(householdId: number, expenseId: number) {
     const expense = await db.query.expense.findFirst({
-      where: (fields, { and: andWhere, eq: eqWhere }) =>
-        andWhere(eqWhere(fields.householdId, householdId), eqWhere(fields.id, expenseId)),
+      where: and(eq(schema.expense.householdId, householdId), eq(schema.expense.id, expenseId)),
       with: { category: { columns: { id: true, name: true } } },
     });
 
@@ -136,7 +126,7 @@ export class ExpensesService {
    */
   public static async summary(householdId: number, params: ExpensesSummaryQueryParams) {
     const { from, to } = ExpensesService.resolveRange(params);
-    const where = and(...ExpensesService.rangeFilters(householdId, from, to));
+    const inWindow = and(...ExpensesService.rangeFilters(householdId, from, to));
 
     // Two spellings of one aggregate, and the difference matters: the `::text` one is what crosses
     // the wire (a `numeric` is exact in Postgres and a double is not), but ordering by it would sort
@@ -152,7 +142,7 @@ export class ExpensesService {
           paidBack: sql<string>`coalesce(sum(${schema.expense.amount}) filter (where ${schema.expense.paidBackAt} is not null), 0)::text`,
         })
         .from(schema.expense)
-        .where(where)
+        .where(inWindow)
         .groupBy(schema.expense.currency),
       db
         .select({
@@ -163,7 +153,7 @@ export class ExpensesService {
         })
         .from(schema.expense)
         .leftJoin(schema.expenseCategory, eq(schema.expense.categoryId, schema.expenseCategory.id))
-        .where(where)
+        .where(inWindow)
         .groupBy(schema.expense.categoryId, schema.expenseCategory.name, schema.expense.currency)
         .orderBy(desc(spentSum)),
     ]);
@@ -176,9 +166,6 @@ export class ExpensesService {
         spent: Number(row.spent),
         paidBack: Number(row.paidBack),
       })),
-      // Zero slices are kept. A category whose every expense was paid back still sums to nothing,
-      // but the expenses are right there in the table — dropping the slice would take the only way
-      // of filtering to them with it. Categories with no expenses at all aren't in the GROUP BY.
       byCategory: byCategory.map((row) => ({ ...row, amount: Number(row.amount) })),
     };
   }
