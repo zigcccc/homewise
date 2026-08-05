@@ -1,10 +1,10 @@
 import { Hono } from 'hono';
 
-import { zValidator } from '@/lib/validation';
-import { withHousehold } from '@/middleware/household.middleware';
-import { type AppContext } from '@/types/app.type';
+import { zValidator } from '#lib/validation';
+import { withHousehold } from '#middleware/household.middleware';
+import { type AppContext } from '#types/app.type';
 
-import { createPetProfileModel, patchPetProfileModel, petProfilePathParamsModel } from './models';
+import { createPetProfileModel, patchPetProfileModel, petProfilePathParamsModel } from './pet-profiles.model';
 import { PetProfilesService } from './pet-profiles.service';
 
 /**

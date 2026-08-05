@@ -2,6 +2,15 @@
   "name": "@homewise/server",
   "type": "module",
   "types": "./src/index.ts",
+  "imports": {
+    "#config/*": "./src/config/*.ts",
+    "#db/*": "./src/db/*.ts",
+    "#emails/*": "./src/emails/*.tsx",
+    "#lib/*": "./src/lib/*.ts",
+    "#middleware/*": "./src/middleware/*.ts",
+    "#modules/*": "./src/modules/*.ts",
+    "#types/*": "./src/types/*.ts"
+  },
   "exports": {
     ".": {
       "types": "./src/index.ts",
@@ -12,52 +21,52 @@
       "import": "./src/db/seed-fixtures.ts"
     },
     "./households": {
-      "types": "./src/modules/households/models/index.ts",
-      "import": "./src/modules/households/models/index.ts"
+      "types": "./src/modules/households/households.model.ts",
+      "import": "./src/modules/households/households.model.ts"
     },
     "./child-dictionaries": {
-      "types": "./src/modules/child-dictionaries/models/index.ts",
-      "import": "./src/modules/child-dictionaries/models/index.ts"
+      "types": "./src/modules/child-dictionaries/child-dictionaries.model.ts",
+      "import": "./src/modules/child-dictionaries/child-dictionaries.model.ts"
     },
     "./child-profiles": {
-      "types": "./src/modules/child-profiles/models/index.ts",
-      "import": "./src/modules/child-profiles/models/index.ts"
+      "types": "./src/modules/child-profiles/child-profiles.model.ts",
+      "import": "./src/modules/child-profiles/child-profiles.model.ts"
     },
     "./pet-profiles": {
-      "types": "./src/modules/pet-profiles/models/index.ts",
-      "import": "./src/modules/pet-profiles/models/index.ts"
+      "types": "./src/modules/pet-profiles/pet-profiles.model.ts",
+      "import": "./src/modules/pet-profiles/pet-profiles.model.ts"
     },
     "./contacts": {
-      "types": "./src/modules/contacts/models/index.ts",
-      "import": "./src/modules/contacts/models/index.ts"
+      "types": "./src/modules/contacts/contacts.model.ts",
+      "import": "./src/modules/contacts/contacts.model.ts"
     },
     "./medical": {
-      "types": "./src/modules/medical/models/index.ts",
-      "import": "./src/modules/medical/models/index.ts"
+      "types": "./src/modules/medical/medical.model.ts",
+      "import": "./src/modules/medical/medical.model.ts"
     },
     "./recipes": {
-      "types": "./src/modules/recipes/models/index.ts",
-      "import": "./src/modules/recipes/models/index.ts"
+      "types": "./src/modules/recipes/recipes.model.ts",
+      "import": "./src/modules/recipes/recipes.model.ts"
     },
     "./ingredients": {
-      "types": "./src/modules/ingredients/models/index.ts",
-      "import": "./src/modules/ingredients/models/index.ts"
+      "types": "./src/modules/ingredients/ingredients.model.ts",
+      "import": "./src/modules/ingredients/ingredients.model.ts"
     },
     "./stores": {
-      "types": "./src/modules/stores/models/index.ts",
-      "import": "./src/modules/stores/models/index.ts"
+      "types": "./src/modules/stores/stores.model.ts",
+      "import": "./src/modules/stores/stores.model.ts"
     },
     "./shopping-lists": {
-      "types": "./src/modules/shopping-lists/models/index.ts",
-      "import": "./src/modules/shopping-lists/models/index.ts"
+      "types": "./src/modules/shopping-lists/shopping-lists.model.ts",
+      "import": "./src/modules/shopping-lists/shopping-lists.model.ts"
     },
     "./meal-plan": {
-      "types": "./src/modules/meal-plan/models/index.ts",
-      "import": "./src/modules/meal-plan/models/index.ts"
+      "types": "./src/modules/meal-plan/meal-plan.model.ts",
+      "import": "./src/modules/meal-plan/meal-plan.model.ts"
     },
     "./realtime": {
-      "types": "./src/modules/realtime/models/index.ts",
-      "import": "./src/modules/realtime/models/index.ts"
+      "types": "./src/modules/realtime/realtime.model.ts",
+      "import": "./src/modules/realtime/realtime.model.ts"
     }
   },
   "scripts": {
@@ -66,7 +75,6 @@
     "db:migrations:create": "drizzle-kit generate",
     "db:migrations:apply": "drizzle-kit migrate",
     "dev": "tsx watch ./src/index.ts",
-    "build": "tsc && tsc-alias -f",
     "build:vercel": "bash ./scripts/vercel-build.sh",
     "db:seed": "tsx ./src/db/seed.ts",
     "check-types": "tsc --noEmit",
@@ -99,7 +107,6 @@
     "drizzle-kit": "catalog:",
     "pg": "catalog:",
     "react-email": "catalog:",
-    "tsc-alias": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",
     "zod": "catalog:"

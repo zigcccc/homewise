@@ -1,12 +1,12 @@
 import { Hono } from 'hono';
 
-import { zValidator } from '@/lib/validation';
-import { withHousehold } from '@/middleware/household.middleware';
-import { type AppContext } from '@/types/app.type';
+import { zValidator } from '#lib/validation';
+import { withHousehold } from '#middleware/household.middleware';
+import { type AppContext } from '#types/app.type';
 
-import { createContactModel } from '../contacts/models';
+import { createContactModel } from '../contacts/contacts.model';
+import { medicalInfoContactPathParamsModel, medicalInfoPathParamsModel, patchMedicalInfoModel } from './medical.model';
 import { MedicalService } from './medical.service';
-import { medicalInfoContactPathParamsModel, medicalInfoPathParamsModel, patchMedicalInfoModel } from './models';
 
 /**
  * Per-profile medical records. A record's lifecycle belongs to its child/pet profile (created and

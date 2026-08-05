@@ -1,10 +1,10 @@
 import { and, eq } from 'drizzle-orm';
 
-import { db, schema } from '@/db';
-import { type Executor, emptyToNull } from '@/db/utils';
-import { notFound, somethingWentWrong } from '@/lib/errors';
+import { db, schema } from '#db/core';
+import { type Executor, emptyToNull } from '#db/utils';
+import { notFound, somethingWentWrong } from '#lib/errors';
 
-import { type ContactLink, type CreateContact, type PatchContact } from './models';
+import { type ContactLink, type CreateContact, type PatchContact } from './contacts.model';
 
 /** Standalone household contacts (address-book entries). Owner features attach them via join tables. */
 export class ContactsService {

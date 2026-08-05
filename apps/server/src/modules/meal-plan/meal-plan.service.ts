@@ -1,11 +1,11 @@
 import { and, asc, eq, gte, inArray, lte, ne } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 
-import { db, schema } from '@/db';
-import { type Executor, emptyToNull } from '@/db/utils';
-import { addDays, eachDayInclusive, startOfISOWeek, todayISO } from '@/lib/dates';
-import { notFound, somethingWentWrong } from '@/lib/errors';
-import { HouseholdsService } from '@/modules/households/households.service';
+import { db, schema } from '#db/core';
+import { type Executor, emptyToNull } from '#db/utils';
+import { addDays, eachDayInclusive, startOfISOWeek, todayISO } from '#lib/dates';
+import { notFound, somethingWentWrong } from '#lib/errors';
+import { HouseholdsService } from '#modules/households/households.service';
 
 import {
   type CreatePlannedMeal,
@@ -13,7 +13,7 @@ import {
   MEAL_LABEL_ERROR,
   type MealPlanRangeQueryParams,
   type PatchPlannedMeal,
-} from './models';
+} from './meal-plan.model';
 
 /** Appending: clamped to the end of the day's list by `resequenceDay`. */
 const APPEND = Number.MAX_SAFE_INTEGER;

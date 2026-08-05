@@ -1,12 +1,12 @@
 import { and, asc, count, eq, gte, inArray, isNotNull, isNull, lte, ne, sql } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 
-import { db, schema } from '@/db';
-import { type Executor, emptyToNull, isUniqueViolation, writesAnything } from '@/db/utils';
-import { addDays, todayISO } from '@/lib/dates';
-import { alreadyExists, couldNotResolve, notFound, somethingWentWrong } from '@/lib/errors';
-import { type Amount, formatAmount, scaleAmount, sumAmounts } from '@/modules/ingredients/units';
-import { MAX_RANGE_DAYS, MEAL_ROLES } from '@/modules/meal-plan/models';
+import { db, schema } from '#db/core';
+import { type Executor, emptyToNull, isUniqueViolation, writesAnything } from '#db/utils';
+import { addDays, todayISO } from '#lib/dates';
+import { alreadyExists, couldNotResolve, notFound, somethingWentWrong } from '#lib/errors';
+import { type Amount, formatAmount, scaleAmount, sumAmounts } from '#modules/ingredients/units';
+import { MAX_RANGE_DAYS, MEAL_ROLES } from '#modules/meal-plan/meal-plan.model';
 
 import {
   type CompleteShoppingList,
@@ -21,7 +21,7 @@ import {
   type PatchSection,
   type PatchShoppingList,
   UNTITLED_LIST_LABEL,
-} from './models';
+} from './shopping-lists.model';
 
 /** Appending is "place me past everyone", resolved by the clamp in `resequence`. */
 const APPEND = Number.MAX_SAFE_INTEGER;

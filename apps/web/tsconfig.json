@@ -8,6 +8,11 @@
     "noEmit": true,
     // This is a leaf app (noEmit, nothing consumes its .d.ts). Turning off declaration emit that the
     // shared base enables avoids serializing the enormous inferred Hono RPC `client` type (TS7056).
+    //
+    // There is deliberately no `references` to ../server. `@homewise/server` resolves through its
+    // `exports` map to source, and that source's non-relative imports are Node's own
+    // `package.json#imports` — resolved from the server's own package.json no matter which project
+    // is compiling. A reference would only re-impose `composite`, which forbids the two lines below.
     "declaration": false,
     "declarationMap": false,
     "jsx": "react-jsx",
@@ -16,6 +21,5 @@
     "paths": {
       "@/*": ["./src/*"]
     }
-  },
-  "references": [{ "path": "../server/" }]
+  }
 }

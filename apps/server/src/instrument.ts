@@ -12,9 +12,9 @@ import { env } from './config/env';
  * `fetch`) get auto-instrumented, not third-party libraries.
  *
  * That cost is zero here. The library we'd most want instrumented is the Postgres driver, and
- * Sentry only patches `pg` — which production never loads, because `db/index.ts` switches to
+ * Sentry only patches `pg` — which production never loads, because `db/core.ts` switches to
  * `@neondatabase/serverless` there. So `--import` would buy DB spans in development only. We wrap
- * the pool ourselves instead (see `db/index.ts`), which covers both drivers.
+ * the pool ourselves instead (see `db/core.ts`), which covers both drivers.
  */
 Sentry.init({
   dsn: env.SENTRY_DSN,

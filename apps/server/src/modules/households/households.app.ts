@@ -1,12 +1,11 @@
 import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 
-import { zValidator } from '@/lib/validation';
-import { withHousehold, withHouseholdOwner } from '@/middleware/household.middleware';
-import { type AppContext } from '@/types/app.type';
+import { zValidator } from '#lib/validation';
+import { withHousehold, withHouseholdOwner } from '#middleware/household.middleware';
+import { type AppContext } from '#types/app.type';
 
 import { ErrorsService } from '../errors/errors.service';
-import { HouseholdsService } from './households.service';
 import {
   acceptHouseholdInvitePathParamsModel,
   acceptHouseholdInviteQueryParamsModel,
@@ -22,7 +21,8 @@ import {
   patchHouseholdMemberPathParamsModel,
   patchHouseholdModel,
   readHouseholdInviteQueryParamsModel,
-} from './models';
+} from './households.model';
+import { HouseholdsService } from './households.service';
 
 /** Routes scoped to the caller's own household — `c.var.household` is guaranteed by `withHousehold`. */
 const myHouseholdApp = new Hono<AppContext>()

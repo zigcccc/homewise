@@ -57,10 +57,13 @@ Requires Node.js >=24 and Docker (local dev Postgres on 8765; the E2E suite spin
 
 ### Backend (`apps/server`)
 
-Hono.js app with a module-based structure. Each feature module lives in `src/modules/<feature>/` and contains:
+Hono.js app with a module-based structure. Each feature module lives in `src/modules/<feature>/` and is a **flat trio** — no sub-folders:
 - `<feature>.app.ts` — Hono router with route definitions
 - `<feature>.service.ts` — Business logic and DB queries
-- `models/` — Zod schemas and TypeScript types
+- `<feature>.model.ts` — Zod schemas and TypeScript types
+- `index.ts` — one line, `export { default } from './<feature>.app'`, so `src/index.ts` can mount it as `./modules/<feature>`
+
+Barrels earn their place only there. Everything else names its file — see the imports section below.
 
 Middleware chain: Logger → CORS → Auth session guard → Routes.
 
@@ -70,11 +73,20 @@ Auth is handled by **better-auth** (`src/lib/auth.ts`), using the Drizzle adapte
 
 `src/lib/` holds the pure, domain-free helpers every module may reach for: `models.ts` (`optionalText`), `dates.ts` (UTC `YYYY-MM-DD` arithmetic), `validation.ts`. `src/db/utils.ts` holds the DB-scoped ones (`Executor`, `emptyToNull`, `isUniqueViolation`).
 
+#### Imports: `#subpaths`, not tsconfig `paths`
+
+The server's non-relative imports are Node's own `package.json#imports` (`#lib/dates`, `#db/schema/core`) — **not** `@/*` path aliases like the web's. Don't "fix" this by adding `paths` back, and don't carry the web's barrel convention across: `apps/web` keeps `modules/<domain>/<mechanism>/index.ts` because `@/*` still resolves a folder, and the server deliberately does not.
+
+- **Every specifier names a file.** Node does no directory resolution and, unlike `tsc`, will not fall through an array of fallback targets — so there is no folder-barrel to import: `#db/core`, `#db/schema/core`, `#modules/ingredients/ingredients.model`. An `index.ts` that only re-exports one sibling is a file and a hop for nothing; an `index.ts` that genuinely defines something (the db client, the schema barrel over 11 files) is named `core.ts` instead. `src/index.ts` is the exception and must keep its name — it is the Vercel Hono entrypoint.
+- **Adding a top-level directory under `src/` means adding a line to the `imports` map.** It is one wildcard per directory and stays that size.
+- **This is what lets the server ship no build and no declarations.** The web resolves `@homewise/server` to *source*, and `#imports` resolve from the server's own package.json whichever project is compiling — so `apps/web/tsconfig.json` needs no `references`, the server needs no `composite`, and with declaration emit off, `TS7056` and the zod `$strip` portability error cannot occur. `paths` would re-impose the whole chain, and Vercel's Node runtime documents support for neither path mappings nor project references.
+- **Nothing compiles `apps/server`.** There is no `build` script and no `dist`; Vercel builds `src/index.ts` (a documented Hono entrypoint) with esbuild, which is also what transpiles the `.tsx` email templates. `tsc` is only ever run as `--noEmit`.
+
 #### Services are the cornerstone — hold them to it
 
 Business logic lives in services, so they get the strictest reading of any file in the repo. Before finishing one, re-read it against `recipes.service.ts` / `ingredients.service.ts` and check all of:
 
-- **Nothing generic in a feature module.** If a helper has nothing domain-specific in it — date arithmetic, string shaping, clamping — it belongs in `src/lib/`, not beside the feature that happened to need it first. Date maths in particular is already there: import from `@/lib/dates`, never re-derive `startOfISOWeek`/`addDays` locally (that mistake shipped once *and* got copy-pasted into `db/seed.ts`).
+- **Nothing generic in a feature module.** If a helper has nothing domain-specific in it — date arithmetic, string shaping, clamping — it belongs in `src/lib/`, not beside the feature that happened to need it first. Date maths in particular is already there: import from `#lib/dates`, never re-derive `startOfISOWeek`/`addDays` locally (that mistake shipped once *and* got copy-pasted into `db/seed.ts`).
 - **No dead parameters.** `executor: Executor = db` is only warranted when a transaction genuinely reaches that method. The `read*Row` helpers take one because mutations call them inside a `tx`; the `read*WithRelations` ones do not.
 - **No explicit return types, no hand-written response shapes.** See Key Conventions — the RPC contract is *derived* from inference, so a second hand-written source of truth can silently disagree with it.
 - **Copying a sibling module copies its warts.** Read siblings for the *pattern*, not to paste. When you do spot a smell, grep for it — it is almost never in only the file you're looking at.
@@ -93,7 +105,7 @@ Household-scoped routes mount `withHousehold` (`src/middleware/household.middlew
 `withHousehold` also owns realtime dispatch: it exposes `c.var.emit(...)`, buffers what a request emits, and publishes **one** batched message to the household's Ably channel after the handler succeeds. Subscribers turn that into TanStack Query invalidations, so a member with the app open sees another member's change without refreshing.
 
 - **Every mutating handler under `withHousehold` calls `c.var.emit(...)`** — one call per distinct effect. `POST /recipes` emits `recipe` *and* `ingredient`, because saving a recipe also mints library rows; `POST /medical-info/:id/contacts` emits `contact` and `medical_info`. A handler that mutates and doesn't emit is a bug that only shows up as a stale second browser.
-- The payload is `{ entity, id, parentId?, operation }` (`modules/realtime/models`) — **never the entity itself**. `parentId` is only for entities the client caches under their parent (a dictionary entry's `dictionaryId`). Add an entity to the enum and the web's `invalidators` record fails to compile until it's mapped.
+- The payload is `{ entity, id, parentId?, operation }` (`modules/realtime/realtime.model.ts`) — **never the entity itself**. `parentId` is only for entities the client caches under their parent (a dictionary entry's `dictionaryId`). Add an entity to the enum and the web's `invalidators` record fails to compile until it's mapped.
 - **Never derive a household id anywhere but `c.var.household`.** Channel names come from `RealtimeService.channelName`, and the token's capability is minted against that same string, so a tab is cryptographically confined to one household's channel — clients get `subscribe` only, never `publish`. Routes outside `withHousehold` (households, members, invites, `/users/me`) don't emit yet.
 - Nothing is emitted when a request fails: a thrown `HTTPException` never reaches the flush, and a validator's 400 leaves `c.res.ok` false.
 - `HOMEWISE_ABLY_API_KEY` is **required** — the server refuses to boot without it, like `DATABASE_URL`. There is deliberately no "run without realtime" path: a household whose members silently stop seeing each other's changes is broken in a way nobody reports. (A *runtime* publish failure is different — it's logged and swallowed, so the broker can never fail a mutation that already committed.) `HOMEWISE_REALTIME_NAMESPACE` prefixes every channel (`local`, `pr-27`, `production`, a per-run `test-…`); household ids repeat across databases, so without it one Ably app would deliver production events to a dev machine.

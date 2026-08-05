@@ -1,10 +1,9 @@
 import { Hono } from 'hono';
 
-import { zValidator } from '@/lib/validation';
-import { withHousehold } from '@/middleware/household.middleware';
-import { type AppContext } from '@/types/app.type';
+import { zValidator } from '#lib/validation';
+import { withHousehold } from '#middleware/household.middleware';
+import { type AppContext } from '#types/app.type';
 
-import { MealPlanService } from './meal-plan.service';
 import {
   createPlannedMealModel,
   mealPlanDayPathParamsModel,
@@ -12,7 +11,8 @@ import {
   patchPlannedMealModel,
   plannedMealPathParamsModel,
   putDayNoteModel,
-} from './models';
+} from './meal-plan.model';
+import { MealPlanService } from './meal-plan.service';
 
 /**
  * The household's meal plan. Fully collaborative — planning lunch is a two-person job.

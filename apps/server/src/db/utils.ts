@@ -1,6 +1,6 @@
 import { type SQL } from 'drizzle-orm';
 
-import { type db } from '@/db';
+import { type db } from '#db/core';
 
 /**
  * A `db` handle or an open transaction, so a service method can either run on its own or join a

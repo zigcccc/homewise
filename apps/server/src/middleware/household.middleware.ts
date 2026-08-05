@@ -2,11 +2,11 @@ import { setTag } from '@sentry/hono/node';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
 
-import { notFound } from '@/lib/errors';
-import { type HouseholdSummary, HouseholdsService } from '@/modules/households/households.service';
-import { type HouseholdEvent } from '@/modules/realtime/models';
-import { RealtimeService } from '@/modules/realtime/realtime.service';
-import { type AppContext } from '@/types/app.type';
+import { notFound } from '#lib/errors';
+import { type HouseholdSummary, HouseholdsService } from '#modules/households/households.service';
+import { type HouseholdEvent } from '#modules/realtime/realtime.model';
+import { RealtimeService } from '#modules/realtime/realtime.service';
+import { type AppContext } from '#types/app.type';
 
 export type HouseholdContext = {
   Variables: AppContext['Variables'] & {

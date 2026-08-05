@@ -10,7 +10,7 @@ import { logger } from 'hono/logger';
 
 import { corsConfig } from './config/cors';
 import { env } from './config/env';
-import { closeDb } from './db';
+import { closeDb } from './db/core';
 import { auth } from './lib/auth';
 import childDictionariesApp from './modules/child-dictionaries';
 import childProfilesApp from './modules/child-profiles';
@@ -70,22 +70,20 @@ const app = base
     return next();
   });
 
-// App routes, one statement each rather than chained: chaining folds every module into a single
-// inferred type that past ~70 routes exceeds what TypeScript will serialize (TS7056). Adding a
-// module means mounting it here and adding it to the `AppType` union below.
-const usersRoutes = app.route('/users', usersApp);
-const householdsRoutes = app.route('/households', householdsApp);
-const childProfilesRoutes = app.route('/child-profiles', childProfilesApp);
-const childDictionariesRoutes = app.route('/child-dictionaries', childDictionariesApp);
-const petProfilesRoutes = app.route('/pet-profiles', petProfilesApp);
-const contactsRoutes = app.route('/contacts', contactsApp);
-const medicalRoutes = app.route('/medical-info', medicalApp);
-const recipesRoutes = app.route('/recipes', recipesApp);
-const ingredientsRoutes = app.route('/ingredients', ingredientsApp);
-const storesRoutes = app.route('/stores', storesApp);
-const mealPlanRoutes = app.route('/meal-plan', mealPlanApp);
-const shoppingListsRoutes = app.route('/shopping-lists', shoppingListsApp);
-const realtimeRoutes = app.route('/realtime', realtimeApp);
+const routes = app
+  .route('/users', usersApp)
+  .route('/households', householdsApp)
+  .route('/child-profiles', childProfilesApp)
+  .route('/child-dictionaries', childDictionariesApp)
+  .route('/pet-profiles', petProfilesApp)
+  .route('/contacts', contactsApp)
+  .route('/medical-info', medicalApp)
+  .route('/recipes', recipesApp)
+  .route('/ingredients', ingredientsApp)
+  .route('/stores', storesApp)
+  .route('/meal-plan', mealPlanApp)
+  .route('/shopping-lists', shoppingListsApp)
+  .route('/realtime', realtimeApp);
 
 if (env.NODE_ENV === 'development') {
   console.log('Serving app on port 5173...');
@@ -103,24 +101,7 @@ if (env.NODE_ENV === 'development') {
   process.on('SIGTERM', shutdown);
 }
 
-/**
- * The contract the web's RPC client is typed against. A union, not an intersection: `hc` is
- * `UnionToIntersection<Client<T>>` and `Client<T>` distributes, so an intersection infers no schema
- * and silently yields an `unknown` client.
- */
-export type AppType =
-  | typeof usersRoutes
-  | typeof householdsRoutes
-  | typeof childProfilesRoutes
-  | typeof childDictionariesRoutes
-  | typeof petProfilesRoutes
-  | typeof contactsRoutes
-  | typeof medicalRoutes
-  | typeof recipesRoutes
-  | typeof ingredientsRoutes
-  | typeof storesRoutes
-  | typeof mealPlanRoutes
-  | typeof shoppingListsRoutes
-  | typeof realtimeRoutes;
+/** The contract the web's RPC client is typed against. */
+export type AppType = typeof routes;
 
 export default app;

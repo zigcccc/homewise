@@ -1,13 +1,13 @@
 import { and, eq } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 
-import { db, schema } from '@/db';
-import { emptyToNull } from '@/db/utils';
-import { notFound } from '@/lib/errors';
+import { db, schema } from '#db/core';
+import { emptyToNull } from '#db/utils';
+import { notFound } from '#lib/errors';
 
+import { type CreateContact } from '../contacts/contacts.model';
 import { ContactsService } from '../contacts/contacts.service';
-import { type CreateContact } from '../contacts/models';
-import { type PatchMedicalInfo } from './models';
+import { type PatchMedicalInfo } from './medical.model';
 
 /**
  * Query fragment for loading a profile's medical info with its linked contacts. Spread into a profile's

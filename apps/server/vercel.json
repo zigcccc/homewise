@@ -5,6 +5,5 @@
     "deploymentEnabled": false
   },
   "installCommand": "pnpm install",
-  "buildCommand": "pnpm run build:vercel",
-  "outputDirectory": "dist"
+  "buildCommand": "pnpm run build:vercel"
 }

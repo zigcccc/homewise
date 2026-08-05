@@ -1,14 +1,14 @@
 import { and, asc, desc, eq, ilike, or } from 'drizzle-orm';
 
-import { db, schema } from '@/db';
-import { emptyToNull, type Filters } from '@/db/utils';
-import { notFound, somethingWentWrong } from '@/lib/errors';
+import { db, schema } from '#db/core';
+import { emptyToNull, type Filters } from '#db/utils';
+import { notFound, somethingWentWrong } from '#lib/errors';
 
 import {
   type CreateChildDictionaryEntry,
   type ListChildDictionaryEntriesQueryParams,
   type PatchChildDictionaryEntry,
-} from './models';
+} from './child-dictionaries.model';
 
 /** The `creator` join: the user account that added an entry. Null once that account is deleted. */
 const creatorWith = { columns: { id: true, name: true, image: true } } as const;

@@ -1,6 +1,6 @@
 import { type CreateEmailOptions, Resend } from 'resend';
 
-import { env } from '@/config/env';
+import { env } from '#config/env';
 
 const client = new Resend(env.HOMEWISE_RESEND_API_KEY);
 

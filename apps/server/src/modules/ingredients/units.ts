@@ -1,4 +1,4 @@
-import { type MeasurementUnit } from './models';
+import { type MeasurementUnit } from './ingredients.model';
 
 /**
  * A quantity as a shopping list carries one: a number, or `null` for "however much".

@@ -1,17 +1,17 @@
 import { Hono } from 'hono';
 
-import { zValidator } from '@/lib/validation';
-import { withHousehold } from '@/middleware/household.middleware';
-import { type AppContext } from '@/types/app.type';
+import { zValidator } from '#lib/validation';
+import { withHousehold } from '#middleware/household.middleware';
+import { type AppContext } from '#types/app.type';
 
-import { ChildDictionariesService } from './child-dictionaries.service';
 import {
   childDictionaryEntryPathParamsModel,
   childDictionaryPathParamsModel,
   createChildDictionaryEntryModel,
   listChildDictionaryEntriesQueryParamsModel,
   patchChildDictionaryEntryModel,
-} from './models';
+} from './child-dictionaries.model';
+import { ChildDictionariesService } from './child-dictionaries.service';
 
 /**
  * Per-child "baby words" dictionaries. A dictionary's lifecycle belongs to its child profile

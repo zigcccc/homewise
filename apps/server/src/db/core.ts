@@ -3,8 +3,8 @@ import { startSpan } from '@sentry/hono/node';
 import { drizzle } from 'drizzle-orm/neon-serverless';
 import { Pool as PgPool } from 'pg';
 
-import { env } from '@/config/env';
-import * as schema from '@/db/schema';
+import { env } from '#config/env';
+import * as schema from '#db/schema/core';
 
 const Pool = env.NODE_ENV === 'production' ? NeonPool : (PgPool as unknown as typeof NeonPool);
 

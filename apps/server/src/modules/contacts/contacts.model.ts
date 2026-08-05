@@ -1,6 +1,6 @@
 import z from 'zod';
 
-import { optionalText } from '@/lib/models';
+import { optionalText } from '#lib/models';
 
 /** Contact categories, mirrored from the DB enum. Reused by the web for labels and selects. */
 export const contactType = z.enum(['medical', 'business', 'family', 'other']);

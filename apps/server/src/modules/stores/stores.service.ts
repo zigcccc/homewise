@@ -1,11 +1,11 @@
 import { and, asc, count, desc, eq, ilike, inArray, ne, or, sql } from 'drizzle-orm';
 
-import { db, schema } from '@/db';
-import { type Executor, emptyToNull, type Filters, isUniqueViolation, writesAnything } from '@/db/utils';
-import { alreadyExists, couldNotResolve, notFound, somethingWentWrong } from '@/lib/errors';
-import { ShoppingListsService } from '@/modules/shopping-lists/shopping-lists.service';
+import { db, schema } from '#db/core';
+import { type Executor, emptyToNull, type Filters, isUniqueViolation, writesAnything } from '#db/utils';
+import { alreadyExists, couldNotResolve, notFound, somethingWentWrong } from '#lib/errors';
+import { ShoppingListsService } from '#modules/shopping-lists/shopping-lists.service';
 
-import { type CreateStore, type ListStoresQueryParams, type PatchStore } from './models';
+import { type CreateStore, type ListStoresQueryParams, type PatchStore } from './stores.model';
 
 /**
  * The shops a household buys at. An ingredient points at one, and a shopping list files that

@@ -3,17 +3,19 @@
   "compilerOptions": {
     "target": "ESNext",
     "module": "ESNext",
-    "incremental": true,
-    "composite": true,
     "moduleResolution": "Bundler",
     "lib": ["ESNext"],
     "jsx": "react-jsx",
-    "outDir": "./dist",
-    "noEmit": false,
-    "rootDir": ".",
-    "paths": {
-      "@/*": ["./src/*"]
-    }
+    // Nothing compiles this package — Vercel builds `src/index.ts` itself and every workspace
+    // consumer resolves the `exports` map to source. Non-relative imports are Node's own
+    // `package.json#imports`, not `paths`, so they resolve without a project reference (and Vercel's
+    // Node runtime supports neither path mappings nor project references).
+    "noEmit": true,
+    // Turning off what the shared base enables. `declaration` is what serializes the inferred Hono
+    // `AppType` into a .d.ts nothing reads — the sole source of TS7056 and the zod `$strip`
+    // portability errors.
+    "declaration": false,
+    "declarationMap": false
   },
   "include": ["./src", "drizzle.config.ts"]
 }

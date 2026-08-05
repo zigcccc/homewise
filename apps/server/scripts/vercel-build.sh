@@ -19,7 +19,8 @@ else
   echo "▸ ${VERCEL_ENV:-non-preview} build: skipping migrate/seed (owned by CI)"
 fi
 
-# Build through Turbo so it owns the build pipeline (dependency ordering + caching)
-# consistently across both apps — even though the server currently has no workspace
-# build deps of its own.
-pnpm turbo run build --filter @homewise/server
+# No compile step. `src/index.ts` is a Vercel Hono entrypoint, and @vercel/node builds it with
+# esbuild — so the deployed artifact is this source, not a dist/ we produced. Non-relative imports
+# are `package.json#imports` rather than tsconfig `paths` precisely because Vercel's Node runtime
+# supports the former and documents no support for the latter.
+echo "▸ no build step: Vercel compiles src/index.ts directly"

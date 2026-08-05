@@ -1,6 +1,6 @@
 import z from 'zod';
 
-import { measurementUnit } from '@/modules/ingredients/models';
+import { measurementUnit } from '#modules/ingredients/ingredients.model';
 
 /** Shown when a list has a label but nothing to infer one from. */
 export const UNTITLED_LIST_LABEL = 'Shopping list';

@@ -1,6 +1,6 @@
 import z from 'zod';
 
-import { optionalText } from '@/lib/models';
+import { optionalText } from '#lib/models';
 
 /** Aisle categories, mirrored from the DB enum. Reused by the web for labels and selects. */
 export const ingredientCategory = z.enum([

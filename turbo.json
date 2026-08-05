@@ -43,7 +43,7 @@
       "outputs": ["dist/**", ".vercel/**"]
     },
     "check-types": {
-      "dependsOn": ["^build"],
+      "dependsOn": [],
       "inputs": ["$TURBO_DEFAULT$", "../../packages/typescript-config/*.json", "!**/*.md"],
       "outputs": []
     },

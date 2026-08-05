@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 
-import { withHousehold } from '@/middleware/household.middleware';
-import { type AppContext } from '@/types/app.type';
+import { withHousehold } from '#middleware/household.middleware';
+import { type AppContext } from '#types/app.type';
 
 import { RealtimeService } from './realtime.service';
 

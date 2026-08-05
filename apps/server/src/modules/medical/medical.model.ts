@@ -1,6 +1,6 @@
 import z from 'zod';
 
-import { optionalText } from '@/lib/models';
+import { optionalText } from '#lib/models';
 
 /** Empty string clears the value. Stored on the medical record itself. */
 export const patchMedicalInfoModel = z.object({

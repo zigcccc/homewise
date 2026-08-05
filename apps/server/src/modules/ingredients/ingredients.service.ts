@@ -1,18 +1,18 @@
 import { and, asc, count, desc, eq, ilike, inArray, isNull, ne, or, sql } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 
-import { db, schema } from '@/db';
-import { type Executor, emptyToNull, type Filters, isUniqueViolation, writesAnything } from '@/db/utils';
-import { alreadyExists, couldNotResolve, notFound, somethingWentWrong } from '@/lib/errors';
-import { ShoppingListsService } from '@/modules/shopping-lists/shopping-lists.service';
-import { StoresService } from '@/modules/stores/stores.service';
+import { db, schema } from '#db/core';
+import { type Executor, emptyToNull, type Filters, isUniqueViolation, writesAnything } from '#db/utils';
+import { alreadyExists, couldNotResolve, notFound, somethingWentWrong } from '#lib/errors';
+import { ShoppingListsService } from '#modules/shopping-lists/shopping-lists.service';
+import { StoresService } from '#modules/stores/stores.service';
 
 import {
   type CreateIngredient,
   type ListIngredientsQueryParams,
   type MeasurementUnit,
   type PatchIngredient,
-} from './models';
+} from './ingredients.model';
 
 /**
  * A name to find-or-create in the library, plus the unit it was used with — a recipe line, in

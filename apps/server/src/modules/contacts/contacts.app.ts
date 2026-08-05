@@ -1,11 +1,11 @@
 import { Hono } from 'hono';
 
-import { zValidator } from '@/lib/validation';
-import { withHousehold } from '@/middleware/household.middleware';
-import { type AppContext } from '@/types/app.type';
+import { zValidator } from '#lib/validation';
+import { withHousehold } from '#middleware/household.middleware';
+import { type AppContext } from '#types/app.type';
 
+import { contactPathParamsModel, patchContactModel } from './contacts.model';
 import { ContactsService } from './contacts.service';
-import { contactPathParamsModel, patchContactModel } from './models';
 
 /**
  * Standalone household contacts. Creation happens through an owner (e.g. medical info) so the link is

@@ -1,6 +1,6 @@
 import z from 'zod';
 
-import { optionalText } from '@/lib/models';
+import { optionalText } from '#lib/models';
 
 const name = (model: z.ZodString) =>
   model

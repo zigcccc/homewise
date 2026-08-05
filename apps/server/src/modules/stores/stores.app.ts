@@ -1,10 +1,10 @@
 import { Hono } from 'hono';
 
-import { zValidator } from '@/lib/validation';
-import { withHousehold } from '@/middleware/household.middleware';
-import { type AppContext } from '@/types/app.type';
+import { zValidator } from '#lib/validation';
+import { withHousehold } from '#middleware/household.middleware';
+import { type AppContext } from '#types/app.type';
 
-import { createStoreModel, listStoresQueryParamsModel, patchStoreModel, storePathParamsModel } from './models';
+import { createStoreModel, listStoresQueryParamsModel, patchStoreModel, storePathParamsModel } from './stores.model';
 import { StoresService } from './stores.service';
 
 /**
