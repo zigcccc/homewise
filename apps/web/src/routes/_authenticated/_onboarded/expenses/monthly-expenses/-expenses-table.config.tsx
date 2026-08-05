@@ -73,7 +73,14 @@ function InlineCell({
           schema={schema}
         />
       ) : (
-        <button className={inlineButtonClassName} onClick={() => setEditing(true)} type="button">
+        // Labelled rather than named by its content: the amount cell's text is a formatted currency
+        // string, which is no way to find a control.
+        <button
+          aria-label={`Edit ${ariaLabel.toLowerCase()}`}
+          className={inlineButtonClassName}
+          onClick={() => setEditing(true)}
+          type="button"
+        >
           {display}
         </button>
       )}

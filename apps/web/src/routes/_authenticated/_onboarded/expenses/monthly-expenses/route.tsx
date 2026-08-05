@@ -1,7 +1,7 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute, Link, Outlet, retainSearchParams } from '@tanstack/react-router';
 import { PlusIcon, SearchIcon } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useDebounceCallback } from 'usehooks-ts';
 import z from 'zod';
 
@@ -134,7 +134,10 @@ function MonthlyExpensesLayout() {
   // a stale keystroke and get overwritten by it.
   const debouncedSearch = useDebounceCallback((value: string) => setSearchParam('search', value || undefined), 400);
 
-  const openCategories = () => void navigate({ to: '/expenses/monthly-expenses/categories' });
+  // Both of these have to be stable references. A fresh arrow each render defeats the `useMemo`, so
+  // the table rebuilds its column definitions on every realtime refetch — and an inline editor open
+  // at the time is torn down mid-edit.
+  const openCategories = useCallback(() => void navigate({ to: '/expenses/monthly-expenses/categories' }), [navigate]);
 
   const columns = useMemo(() => expensesTableColumns(openCategories), [openCategories]);
   const table = useDataTable({ columns, data: expenses.expenses });
@@ -265,7 +268,8 @@ function MonthTotals({ summary }: { summary: ExpensesSummary }) {
   return (
     <div className="text-sm">
       {summary.totals.map((total) => (
-        <p key={total.currency}>
+        // A labelled number has no role of its own, so there is nothing semantic to select it by.
+        <p data-testid="month-total" key={total.currency}>
           <span className="text-muted-foreground">Total </span>
           <span className="font-medium">{formatAmount(total.spent, total.currency)}</span>
           {total.paidBack > 0 && (
