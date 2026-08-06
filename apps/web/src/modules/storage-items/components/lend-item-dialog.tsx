@@ -9,6 +9,7 @@ import { createContactModel } from '@homewise/server/contacts';
 import { clearableDate } from '@homewise/server/models';
 import {
   Button,
+  ComboboxFieldTrigger,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -154,29 +155,39 @@ function LendForm({ item, onDone }: { item: StorageItem; onDone: () => void }) {
             render={() => (
               <FormItem>
                 <FormLabel>Who has it</FormLabel>
-                <FormControl>
-                  <div className="flex flex-wrap items-center gap-2">
-                    {borrowerName && <span className="font-medium text-sm">{borrowerName}</span>}
-                    <AddContactCombobox
-                      contacts={contacts}
-                      linkedIds={new Set()}
-                      onCreate={() => setCreateOpen(true)}
-                      onLink={async (id) => {
-                        form.setValue('contactId', id, { shouldDirty: true });
-                        form.setValue('newContact', undefined, { shouldDirty: true });
-                        form.clearErrors('contactId');
-                      }}
-                      typeLabels={contactTypeLabels}
-                    />
-                  </div>
-                </FormControl>
+                <AddContactCombobox
+                  contacts={contacts}
+                  onCreate={() => setCreateOpen(true)}
+                  onLink={async (id) => {
+                    form.setValue('contactId', id, { shouldDirty: true });
+                    form.setValue('newContact', undefined, { shouldDirty: true });
+                    form.clearErrors('contactId');
+                  }}
+                  // `FormControl` sits inside the trigger, not around the picker: it's a Slot that
+                  // clones its child with the id `FormLabel` points at, and a wrapper `div` would
+                  // take that id and leave the label attached to nothing.
+                  trigger={
+                    <FormControl>
+                      <ComboboxFieldTrigger>
+                        {borrowerName ? (
+                          <span className="truncate">{borrowerName}</span>
+                        ) : (
+                          <span className="text-muted-foreground">Choose someone</span>
+                        )}
+                      </ComboboxFieldTrigger>
+                    </FormControl>
+                  }
+                  typeLabels={contactTypeLabels}
+                />
                 <FormDescription>Anyone in the household's address book, or someone new.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
           />
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          {/* `items-start`, or the shorter column stretches and centres its rows against the taller
+              one — which reads as two fields that don't line up. */}
+          <div className="grid items-start gap-4 sm:grid-cols-2">
             <FormField
               control={form.control}
               name="borrowedOn"

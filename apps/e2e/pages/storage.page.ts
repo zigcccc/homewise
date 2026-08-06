@@ -239,7 +239,7 @@ export class StorageItemsPage {
     await this.page.getByRole('menuitem', { name: 'Lend it out' }).click();
 
     const lendDialog = this.page.getByRole('dialog').filter({ hasText: 'Lend' });
-    await lendDialog.getByRole('button', { name: 'Add contact' }).click();
+    await lendDialog.getByRole('button', { name: 'Who has it' }).click();
     // A `ComboboxAction`, not an option — it opens a dialog rather than picking a value.
     await this.page.getByRole('button', { name: 'Create new contact' }).click();
 
