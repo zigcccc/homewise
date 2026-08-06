@@ -21,6 +21,8 @@
   },
   "devDependencies": {
     "@homewise/typescript-config": "workspace:*",
+    "@types/geojson": "catalog:",
+    "@types/leaflet": "catalog:",
     "@types/node": "catalog:",
     "@types/react-dom": "catalog:",
     "typescript": "catalog:"
@@ -41,10 +43,12 @@
     "class-variance-authority": "catalog:",
     "clsx": "catalog:",
     "cmdk": "catalog:",
+    "leaflet": "catalog:",
     "lucide-react": "catalog:",
     "react": "catalog:",
     "react-day-picker": "catalog:",
     "react-dom": "catalog:",
+    "react-leaflet": "catalog:",
     "react-hook-form": "catalog:",
     "tailwind-merge": "catalog:"
   }
