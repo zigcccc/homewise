@@ -25,13 +25,19 @@ export const storageItemName = z
   .min(1, { error: 'Name must contain at least 1 character' })
   .max(96, { error: 'Name must contain at most 96 characters' });
 
-/** An item is written as multipart because of the photo, and multipart sends numbers as strings. */
-const locationId = z.coerce.number<number>().int().positive({ error: 'Pick a storage location' });
-const quantity = z.coerce
-  .number<number>()
+/**
+ * The quantity bounds on their own, so the web's number field validates against the same contract —
+ * it holds a real number, where the wire holds the string multipart makes of it.
+ */
+export const storageItemQuantity = z
+  .number()
   .int({ error: 'Quantity must be a whole number' })
   .min(1, { error: 'Quantity must be at least 1' })
   .max(100_000, { error: 'Quantity must be at most 100000' });
+
+/** An item is written as multipart because of the photo, and multipart sends numbers as strings. */
+const locationId = z.coerce.number<number>().int().positive({ error: 'Pick a storage location' });
+const quantity = z.coerce.number<number>().pipe(storageItemQuantity);
 
 /**
  * The loan columns are driven by the lend/return endpoints, `photoUrl` by the upload, and `createdBy`
