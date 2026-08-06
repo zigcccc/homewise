@@ -211,7 +211,7 @@ function StorageLocationRoute() {
             onValueChange={(value) => setSearchParam('loanStatus', searchParamsModel.shape.loanStatus.parse(value))}
             value={searchParams.loanStatus}
           >
-            <SelectTrigger className="w-36">
+            <SelectTrigger aria-label="Filter by status" className="w-36">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -227,7 +227,7 @@ function StorageLocationRoute() {
             onValueChange={(value) => setSearchParam('sortKey', searchParamsModel.shape.sortKey.parse(value))}
             value={searchParams.sortKey}
           >
-            <SelectTrigger className="w-36">
+            <SelectTrigger aria-label="Sort by" className="w-36">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

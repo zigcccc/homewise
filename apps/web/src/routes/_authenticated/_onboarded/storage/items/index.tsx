@@ -139,7 +139,7 @@ function StorageItemsRoute() {
             onValueChange={(value) => setSearchParam('locationId', value === 'all' ? undefined : Number(value))}
             value={searchParams.locationId?.toString() ?? 'all'}
           >
-            <SelectTrigger className="w-44">
+            <SelectTrigger aria-label="Filter by location" className="w-44">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -156,7 +156,7 @@ function StorageItemsRoute() {
             onValueChange={(value) => setSearchParam('loanStatus', searchParamsModel.shape.loanStatus.parse(value))}
             value={searchParams.loanStatus}
           >
-            <SelectTrigger className="w-36">
+            <SelectTrigger aria-label="Filter by status" className="w-36">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -172,7 +172,7 @@ function StorageItemsRoute() {
             onValueChange={(value) => setSearchParam('sortKey', searchParamsModel.shape.sortKey.parse(value))}
             value={searchParams.sortKey}
           >
-            <SelectTrigger className="w-36">
+            <SelectTrigger aria-label="Sort by" className="w-36">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
