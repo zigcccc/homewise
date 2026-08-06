@@ -78,8 +78,10 @@ export const avatarFile = z
 /**
  * A money amount as the API speaks it: major units, positive, at most two decimals.
  *
- * The decimals are checked with `toFixed` rather than `.multipleOf(0.01)` — 0.01 has no exact binary
- * representation, so the modulo check rejects perfectly ordinary values like 8.29.
+ * The decimals are checked with `toFixed`, which says "at most two" directly. Do not rewrite it as a
+ * hand-rolled `value % 0.01`: 0.01 has no exact binary representation, so that refuses perfectly
+ * ordinary prices — `8.29 % 0.01` is 0.00999…, not 0. (Zod's own `.multipleOf` is decimal-aware and
+ * gets this right; the trap is only in doing the modulo yourself.)
  *
  * And refused rather than rounded: the column behind this is `numeric(12,2)`, which would quietly turn
  * 1.005 into 1.01 and never mention it. The ceiling is that column's, too.
