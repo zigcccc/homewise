@@ -27,6 +27,30 @@ export function listStorageLocationsQueryOptions(query: ListStorageLocationsQuer
   });
 }
 
+/** A location as a picker shows one: what it's called, and nothing that moves. */
+export type StorageLocationOption = Pick<StorageLocation, 'id' | 'name'>;
+
+/**
+ * Strips a location down to what a picker renders.
+ *
+ * The counts are the point of removing them. Every item written anywhere in the household moves an
+ * `itemCount`, which invalidates this list and hands back a new array — so anything reading the full
+ * location re-renders on a number it never shows. Projected down to id and name, an unchanged set of
+ * locations survives that refetch as the **same** value (TanStack applies structural sharing to a
+ * `select` result), and nothing downstream so much as re-renders.
+ *
+ * That matters more than it sounds: `DataTable` renders cells through `flexRender`, which treats a
+ * column's `cell` function as a component *type* — so a column array rebuilt from changing data
+ * remounts every cell in the table, closing whatever menu or inline editor was open in one.
+ */
+export const toLocationOptions = (locations: StorageLocation[]): StorageLocationOption[] =>
+  locations.map(({ id, name }) => ({ id, name }));
+
+/** The household's locations, for a picker. Shares its cache entry with the full list above. */
+export function listStorageLocationOptionsQueryOptions() {
+  return queryOptions({ ...listStorageLocationsQueryOptions(), select: toLocationOptions });
+}
+
 export function getStorageLocationQueryOptions(id: number) {
   return queryOptions({
     queryKey: ['storage-locations', id],

@@ -69,6 +69,7 @@ import {
   invalidateStorageLocations,
   LocationFormDialog,
   LocationMap,
+  listStorageLocationsQueryOptions,
   type StorageLocation,
 } from '@/modules/storage-locations';
 
@@ -90,6 +91,9 @@ export const Route = createFileRoute('/_authenticated/_onboarded/storage/locatio
     await Promise.all([
       context.queryClient.ensureQueryData(getStorageLocationQueryOptions(locationId)),
       context.queryClient.ensureQueryData(listStorageItemsQueryOptions({ ...deps, locationId })),
+      // The item rows' "Move to" menu reads every other location the household has; without this it
+      // suspends on first render and blanks the page it was opened from.
+      context.queryClient.ensureQueryData(listStorageLocationsQueryOptions()),
     ]);
   },
   component: StorageLocationRoute,

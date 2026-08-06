@@ -32,7 +32,7 @@ import {
 
 import { parseResponse } from '@/api/client';
 import { serverMessage } from '@/modules/shared';
-import { invalidateStorageLocations, listStorageLocationsQueryOptions } from '@/modules/storage-locations';
+import { invalidateStorageLocations, listStorageLocationOptionsQueryOptions } from '@/modules/storage-locations';
 
 import {
   $createStorageItem,
@@ -102,7 +102,7 @@ export function ItemFormDialog({
 
 function ItemForm({ item, locationId, onDone }: { item?: StorageItem; locationId?: number; onDone: () => void }) {
   const queryClient = useQueryClient();
-  const { data: locations } = useSuspenseQuery(listStorageLocationsQueryOptions());
+  const { data: locations } = useSuspenseQuery(listStorageLocationOptionsQueryOptions());
 
   const form = useForm<ItemFormValues>({
     resolver: zodResolver(itemFormModel),

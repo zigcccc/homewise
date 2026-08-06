@@ -22,7 +22,7 @@ import {
 
 import { parseResponse } from '@/api/client';
 import { ConfirmDeleteDialog, formatDate, InlineCell, serverMessage, todayISODay } from '@/modules/shared';
-import { invalidateStorageLocations, listStorageLocationsQueryOptions } from '@/modules/storage-locations';
+import { invalidateStorageLocations, listStorageLocationOptionsQueryOptions } from '@/modules/storage-locations';
 
 import { LOAN_STATUS_LABELS, resolveLoanStatus } from '../helpers/loan';
 import { useInlineItemPatch } from '../hooks/use-inline-item-patch';
@@ -133,7 +133,9 @@ function LoanCell({ loan }: { loan: StorageItem['loan'] }) {
 
 function ItemRowActions({ item }: { item: StorageItem }) {
   const queryClient = useQueryClient();
-  const { data: locations } = useSuspenseQuery(listStorageLocationsQueryOptions());
+  // The options projection, not the full list: an item written anywhere moves every location's
+  // count, and this menu would re-render on numbers it never shows.
+  const { data: locations } = useSuspenseQuery(listStorageLocationOptionsQueryOptions());
   const { saveOrToast } = useInlineItemPatch(item.id);
   const [editOpen, setEditOpen] = useState(false);
   const [lendOpen, setLendOpen] = useState(false);

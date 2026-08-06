@@ -42,7 +42,7 @@ import {
   LOAN_FILTER_LABELS,
   listStorageItemsQueryOptions,
 } from '@/modules/storage-items';
-import { listStorageLocationsQueryOptions } from '@/modules/storage-locations';
+import { listStorageLocationOptionsQueryOptions, listStorageLocationsQueryOptions } from '@/modules/storage-locations';
 
 const searchParamsModel = z.object({
   search: searchQueryParam,
@@ -76,7 +76,9 @@ function StorageItemsRoute() {
   const [addOpen, setAddOpen] = useState(false);
 
   const { data: items } = useSuspenseQuery(listStorageItemsQueryOptions(searchParams));
-  const { data: locations } = useSuspenseQuery(listStorageLocationsQueryOptions());
+  // Names only — the filter never shows a count, and reading one would re-render this whole page
+  // every time anybody in the household stored something.
+  const { data: locations } = useSuspenseQuery(listStorageLocationOptionsQueryOptions());
 
   const setSearchParam = <Key extends keyof SearchParams>(key: Key, value: SearchParams[Key]) =>
     navigate({ to: '.', search: { ...searchParams, [key]: value } });
