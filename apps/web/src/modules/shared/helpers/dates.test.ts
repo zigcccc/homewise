@@ -212,6 +212,20 @@ describe('ageInYears', () => {
     expect(ageInYears('2020-08-07')).toBe(5);
   });
 
+  it('returns null for a date in the future rather than a negative age', () => {
+    // `DateField` refuses one, but stored data can still carry it — and "-3 years old" is a worse
+    // thing to render on a kid's card than no age at all.
+    freezeAt('2026-08-06T12:00:00');
+
+    expect(ageInYears('2029-01-01')).toBeNull();
+  });
+
+  it('counts a birth date of today as zero', () => {
+    freezeAt('2026-08-06T12:00:00');
+
+    expect(ageInYears('2026-08-06')).toBe(0);
+  });
+
   it.each([
     ['null', null],
     ['undefined', undefined],

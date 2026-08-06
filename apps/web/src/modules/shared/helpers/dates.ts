@@ -101,8 +101,9 @@ export function parseDayFirst(input: string, allowFuture: boolean) {
 export const todayISODay = () => format(new Date(), ISO_DAY_FORMAT);
 
 /**
- * Whole years since `since` — how old a kid or a pet is. `null` when the date is absent or
- * unparseable, so a profile with no birth date simply doesn't show an age.
+ * Whole years since `since` — how old a kid or a pet is. `null` when the date is absent, unparseable
+ * or in the future, so a profile without a usable birth date shows no age rather than a negative one.
+ * `DateField` won't accept a future date, but stored data can still carry one.
  */
 export function ageInYears(since: string | null | undefined) {
   if (!since) {
@@ -111,7 +112,7 @@ export function ageInYears(since: string | null | undefined) {
 
   const date = parseISO(since);
 
-  return isValid(date) ? differenceInYears(new Date(), date) : null;
+  return isValid(date) && !isFuture(date) ? differenceInYears(new Date(), date) : null;
 }
 
 /**

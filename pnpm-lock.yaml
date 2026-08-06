@@ -105,6 +105,9 @@ catalogs:
     '@tanstack/router-plugin':
       specifier: ^1.168.23
       version: 1.168.23
+    '@testing-library/dom':
+      specifier: ^10.4.1
+      version: 10.4.1
     '@testing-library/react':
       specifier: ^16.3.2
       version: 16.3.2
@@ -485,6 +488,9 @@ importers:
       '@tanstack/react-router-devtools':
         specifier: 'catalog:'
         version: 1.167.0(@tanstack/react-router@1.170.18(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/router-core@1.171.15)(csstype@3.2.3)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      '@testing-library/dom':
+        specifier: 'catalog:'
+        version: 10.4.1
       '@testing-library/react':
         specifier: 'catalog:'
         version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
