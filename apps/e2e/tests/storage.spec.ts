@@ -114,6 +114,16 @@ test.describe('storage', () => {
       // The notes survived the rename's refetch rather than being read back off a stale row.
       await expect(items.row(renamed)).toContainText('Third shelf, blue crate');
 
+      // Quantity edits in place too, and refuses what the column would.
+      const quantity = await items.setQuantityInline(renamed, '7');
+      await expect(items.row(renamed)).toContainText('7');
+
+      await items.setQuantityInline(renamed, 'lots');
+      // A refused value keeps the editor open carrying what was typed, rather than losing it.
+      await expect(quantity).toHaveValue('lots');
+      await quantity.press('Escape');
+      await expect(items.row(renamed)).toContainText('7');
+
       // The global search is the point of this page — one term, every location.
       await items.search(renamed);
       await expect(items.row(renamed)).toBeVisible();
@@ -206,6 +216,39 @@ test.describe('storage', () => {
       await expect(items.row(name)).toContainText('Here');
       await expect(items.row(name)).not.toContainText(borrower);
     } finally {
+      await items.goto();
+      await items.search('');
+      await items.deleteIfPresent(name);
+    }
+  });
+
+  test('keeps the page behind the lend dialog while the dialog loads', async ({ page }) => {
+    const items = new StorageItemsPage(page);
+    const name = `E2E Loading ${Date.now()}`;
+
+    // The address book is *delayed*, not faked — the real server still answers it. Nothing else in
+    // the suite touches the network, and this is why it's worth the exception: the defect is a
+    // window rather than an end state, and Playwright's auto-waiting would sit through it. Without a
+    // Suspense boundary of its own the dialog suspends to the *route's*, and for as long as this
+    // request is in flight the whole page behind it is replaced by a spinner.
+    await page.route('**/contacts', async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      await route.continue();
+    });
+
+    try {
+      await items.goto();
+      await items.add({ location: GARAGE.name, name });
+
+      await items.openRowMenu(name);
+      await page.getByRole('menuitem', { name: 'Lend it out' }).click();
+
+      // The dialog is up straight away carrying its own loading state, and the page it was opened
+      // from is still underneath it.
+      await expect(page.getByRole('dialog').filter({ hasText: 'Lend' })).toBeVisible({ timeout: 1000 });
+      await expect(page.locator('h1')).toBeVisible();
+    } finally {
+      await page.unroute('**/contacts');
       await items.goto();
       await items.search('');
       await items.deleteIfPresent(name);

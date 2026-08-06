@@ -148,21 +148,21 @@ export function AppSidebar() {
           <SidebarGroupLabel>Storage</SidebarGroupLabel>
           <SidebarMenu>
             <SidebarMenuItem>
-              <Link to="/storage/items">
-                {({ isActive }) => (
-                  <SidebarMenuButton isActive={isActive} tooltip="Items">
-                    <PackageOpenIcon className="size-4" />
-                    <span>Items</span>
-                  </SidebarMenuButton>
-                )}
-              </Link>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
               <Link to="/storage/locations">
                 {({ isActive }) => (
                   <SidebarMenuButton isActive={isActive} tooltip="Storage locations">
                     <MapPinIcon className="size-4" />
                     <span>Locations</span>
+                  </SidebarMenuButton>
+                )}
+              </Link>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <Link to="/storage/items">
+                {({ isActive }) => (
+                  <SidebarMenuButton isActive={isActive} tooltip="Items">
+                    <PackageOpenIcon className="size-4" />
+                    <span>Items</span>
                   </SidebarMenuButton>
                 )}
               </Link>

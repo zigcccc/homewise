@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { type SubmitHandler, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import z from 'zod';
@@ -23,6 +23,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  Spinner,
 } from '@homewise/ui/core';
 
 import { parseResponse } from '@/api/client';
@@ -92,7 +93,12 @@ export function LendItemDialog({
           <DialogTitle>Lend "{item.name}"</DialogTitle>
           <DialogDescription>Record who has it and when it's due back, so you know who to ask.</DialogDescription>
         </DialogHeader>
-        <LendForm item={item} onDone={() => onOpenChange(false)} />
+        {/* A dialog that loads its own data must catch its own suspense. `useSuspenseQuery` inside the
+            form would otherwise reach the *route's* boundary and replace the whole page behind this
+            dialog with a spinner while it fetches. */}
+        <Suspense fallback={<Spinner className="min-h-48" />}>
+          <LendForm item={item} onDone={() => onOpenChange(false)} />
+        </Suspense>
       </DialogContent>
     </Dialog>
   );

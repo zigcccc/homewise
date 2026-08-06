@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { createColumnHelper } from '@tanstack/react-table';
-import { HandCoinsIcon, MoreHorizontal, MoveRightIcon, PencilIcon, TrashIcon, UndoIcon } from 'lucide-react';
+import { HandCoinsIcon, ImageIcon, MoreHorizontal, MoveRightIcon, PencilIcon, TrashIcon, UndoIcon } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -25,6 +25,7 @@ import { ConfirmDeleteDialog, formatDate, InlineCell, serverMessage, todayISODay
 import { invalidateStorageLocations, listStorageLocationOptionsQueryOptions } from '@/modules/storage-locations';
 
 import { LOAN_STATUS_LABELS, resolveLoanStatus } from '../helpers/loan';
+import { quantityText } from '../helpers/quantity';
 import { useInlineItemPatch } from '../hooks/use-inline-item-patch';
 import {
   $deleteStorageItem,
@@ -47,6 +48,9 @@ export function createStorageItemColumns({ showLocation }: { showLocation: boole
     columnHelper.accessor('photoUrl', {
       header: '',
       cell: (info) => <PhotoCell name={info.row.original.name} url={info.getValue()} />,
+      // A width under the content's own minimum collapses the column to exactly the thumbnail,
+      // instead of handing a picture column its share of the table's leftover width.
+      meta: { className: 'w-px' },
     }),
     columnHelper.accessor('name', {
       header: 'Item',
@@ -54,7 +58,8 @@ export function createStorageItemColumns({ showLocation }: { showLocation: boole
     }),
     columnHelper.accessor('quantity', {
       header: 'Qty',
-      cell: (info) => <span className="tabular-nums">{info.getValue()}</span>,
+      cell: (info) => <QuantityCell id={info.row.original.id} quantity={info.getValue()} />,
+      meta: { className: 'w-px' },
     }),
     ...(showLocation
       ? [
@@ -89,10 +94,32 @@ export function createStorageItemColumns({ showLocation }: { showLocation: boole
 
 function PhotoCell({ name, url }: { name: string; url: string | null }) {
   if (!url) {
-    return <div className="size-10 rounded-md border border-dashed" />;
+    // Most items never get a photo, so the empty state is the common one and has to look deliberate
+    // rather than like a picture that failed to load.
+    return (
+      <div aria-hidden className="flex size-10 items-center justify-center rounded-md bg-muted text-muted-foreground">
+        <ImageIcon className="size-4" />
+      </div>
+    );
   }
 
   return <img alt={name} className="size-10 rounded-md border object-cover" src={url} />;
+}
+
+function QuantityCell({ id, quantity }: { id: number; quantity: number }) {
+  const { save } = useInlineItemPatch(id);
+
+  return (
+    <InlineCell
+      ariaLabel="Quantity"
+      display={String(quantity)}
+      displayClassName="tabular-nums"
+      maxWidthClassName="max-w-20"
+      onSave={async (value) => save({ quantity: Number(value) })}
+      schema={quantityText}
+      value={String(quantity)}
+    />
+  );
 }
 
 function ItemNameCell({ id, name, notes }: { id: number; name: string; notes: string | null }) {

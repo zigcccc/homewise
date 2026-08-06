@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
+import { Suspense } from 'react';
 import { type SubmitHandler, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import z from 'zod';
@@ -27,6 +28,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Spinner,
   Textarea,
 } from '@homewise/ui/core';
 
@@ -94,7 +96,12 @@ export function ItemFormDialog({
               : 'Something you keep somewhere — a photo of the box beats any label.'}
           </DialogDescription>
         </DialogHeader>
-        <ItemForm item={item} locationId={locationId} onDone={() => onOpenChange(false)} />
+        {/* A dialog that loads its own data must catch its own suspense. `useSuspenseQuery` inside the
+            form would otherwise reach the *route's* boundary and replace the whole page behind this
+            dialog with a spinner while it fetches. */}
+        <Suspense fallback={<Spinner className="min-h-64" />}>
+          <ItemForm item={item} locationId={locationId} onDone={() => onOpenChange(false)} />
+        </Suspense>
       </DialogContent>
     </Dialog>
   );

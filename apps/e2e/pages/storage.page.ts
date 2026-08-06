@@ -211,6 +211,19 @@ export class StorageItemsPage {
     return this.page.getByRole('table').getByRole('textbox', { name: 'Item name' });
   }
 
+  /** Edits a row's quantity in place — the same click-type-Enter bargain the name cell makes. */
+  async setQuantityInline(name: string, quantity: string) {
+    await expect(this.row(name)).toBeVisible();
+    await this.row(name).getByRole('button', { name: 'Edit quantity' }).click();
+
+    const input = this.page.getByRole('table').getByRole('textbox', { name: 'Quantity' });
+    await expect(input).toBeFocused();
+    await input.fill(quantity);
+    await input.press('Enter');
+
+    return input;
+  }
+
   async moveTo(name: string, location: string) {
     await this.openRowMenu(name);
     await this.moveToFromOpenMenu(location);
