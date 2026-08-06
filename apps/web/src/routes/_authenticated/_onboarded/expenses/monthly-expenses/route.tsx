@@ -36,20 +36,23 @@ import {
 
 import { listExpenseCategoriesQueryOptions } from '@/modules/expense-categories';
 import {
-  currentMonth,
-  currentYear,
   defaultRecordedAt,
   ExpenseFormDialog,
   type ExpensesSummary,
   expensesSummaryQueryOptions,
   listExpensesQueryOptions,
+} from '@/modules/expenses';
+import { getMyHouseholdQueryOptions } from '@/modules/households';
+import {
+  Actionbar,
+  currentMonth,
+  currentYear,
+  formatAmount,
   monthLabel,
   monthOptions,
   monthRange,
   yearOptions,
-} from '@/modules/expenses';
-import { getMyHouseholdQueryOptions } from '@/modules/households';
-import { Actionbar, formatAmount } from '@/modules/shared';
+} from '@/modules/shared';
 
 import { expensesTableColumns } from './-expenses-table.config';
 
@@ -111,6 +114,30 @@ export const Route = createFileRoute('/_authenticated/_onboarded/expenses/monthl
   },
   component: MonthlyExpensesLayout,
   pendingComponent: () => <Spinner />,
+  /**
+   * Scoped here so a month that fails to load says so in the page body, rather than letting the
+   * rejection reach the root boundary and replace the whole app — sidebar included — with
+   * "Something went wrong!". The categories sheet renders into this route's `Outlet`, so it's
+   * covered by the same one.
+   */
+  errorComponent: () => (
+    <main className="flex-1 p-4">
+      <Empty className="min-h-64">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <ReceiptIcon />
+          </EmptyMedia>
+          <EmptyTitle>Couldn't load this month</EmptyTitle>
+          <EmptyDescription>The request didn't come back. Try again in a moment.</EmptyDescription>
+        </EmptyHeader>
+        <EmptyContent>
+          <Button onClick={() => window.location.reload()} variant="outline">
+            Reload
+          </Button>
+        </EmptyContent>
+      </Empty>
+    </main>
+  ),
 });
 
 /**

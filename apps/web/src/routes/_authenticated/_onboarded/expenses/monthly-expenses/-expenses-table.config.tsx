@@ -13,7 +13,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@homewise/ui/core';
-import { cn } from '@homewise/ui/lib';
 
 import { parseResponse } from '@/api/client';
 import { type ExpenseCategoryChoice, ExpenseCategoryCombobox } from '@/modules/expense-categories';
@@ -29,7 +28,8 @@ import {
   DateField,
   formatAmount,
   formatDate,
-  InlineTextField,
+  InlineCell,
+  InlineCellSizer,
   parseAmount,
   serverMessage,
 } from '@/modules/shared';
@@ -40,138 +40,63 @@ import {
  */
 
 /**
- * Where an inline control stops growing.
- *
- * The table is `w-full` with auto layout, so whatever width the rows don't need is shared out among
- * the columns. An amount, a date and a category name are all short enough that a control filling the
- * cell would be mostly empty box, so those keep the cap and let the cell hold the slack. The title
- * is the exception (`fill`) — it is free text of no fixed length, and the column the table hands
- * most of its leftover width to anyway.
+ * Where an inline control stops growing. The table is `w-full` with auto layout, so whatever width
+ * the rows don't need is shared out among the columns — an amount, a date and a category name are
+ * all short enough that a control filling the cell would be mostly empty box. The title is the
+ * exception (`fill`): free text of no fixed length, in the column the table hands the slack to.
  */
 const inlineControlClassName = 'max-w-xs';
 
 const inlineTriggerClassName = `${inlineControlClassName} w-full justify-between border-transparent px-2 shadow-none not-disabled:cursor-pointer hover:bg-accent focus-visible:border-ring data-[state=open]:border-input data-[state=open]:bg-accent [&_svg]:opacity-0 hover:[&_svg]:opacity-60 focus-visible:[&_svg]:opacity-60 data-[state=open]:[&_svg]:opacity-60`;
 
-const inlineTextClassName = 'h-9 w-full rounded-md border px-2 text-sm';
-
-/**
- * A hidden copy of the value, sharing the controls' horizontal box, that holds the column open. An
- * `<input>` contributes nothing to an auto-layout table's width once it carries `size={1}`, so
- * without this the column would collapse the moment the editor opened.
- */
-const inlineSizerClassName = 'invisible col-start-1 row-start-1 border px-2 text-sm';
-
-/**
- * The date's sizer mirrors `DateField`'s own box instead: its `Input` is `pl-3`, and `pr-10` holds
- * the space the absolutely-positioned calendar button sits in. Measure it as `px-2` and the button
- * ends up on top of the date.
- */
-const inlineDateSizerClassName = 'invisible col-start-1 row-start-1 border pr-10 pl-3 text-sm';
-
-// `flex items-center` because the resting box is `h-9` and its text would otherwise sit at the top,
-// half a line above where the editor puts it.
-const inlineButtonClassName = `${inlineTextClassName} col-start-1 row-start-1 flex items-center border-transparent text-left hover:bg-accent`;
-
-/** Click-to-edit text, over a sizer that stops the column resizing as the editor opens and closes. */
-function InlineCell({
-  ariaLabel,
-  display,
-  displayClassName,
-  fill = false,
-  onSave,
-  schema,
-  value,
-}: {
-  ariaLabel: string;
-  display: string;
-  /** Styling for the resting value only — never for the editor, which has to stay legible. */
-  displayClassName?: string;
-  /** Grow with the column instead of stopping at `inlineControlClassName`. */
-  fill?: boolean;
-  onSave: (next: string) => Promise<unknown>;
-  schema: Parameters<typeof InlineTextField>[0]['schema'];
-  value: string;
-}) {
-  const [editing, setEditing] = useState(false);
-
-  return (
-    // `min-w-0 flex-1` for the title cell, where this grid is a flex item beside the paid-back badge:
-    // without them it shrinks to max-content and the editor opens as a box hugging the text instead
-    // of growing to a usable width. Both are inert everywhere else.
-    <div className={cn('grid min-w-0 flex-1 grid-cols-1', !fill && inlineControlClassName)}>
-      <span className={inlineSizerClassName}>{display}</span>
-      {editing ? (
-        // The editor needs a wrapper of its own to be *placed*: `InlineTextField` puts the class it
-        // is given on the input, and its form is `display: contents`, so the grid item is a
-        // `FormItem` carrying no position. Auto-placement then steps over the sizer's row and drops
-        // the editor into a second one — a band of empty space above the input, with the paid-back
-        // badge floating in the middle of a cell twice its intended height.
-        <div className="col-start-1 row-start-1">
-          {/* Mounted only while editing, so `defaultValues` reseed on every open with no reset effect. */}
-          <InlineTextField
-            ariaLabel={ariaLabel}
-            className={inlineTextClassName}
-            defaultValue={value}
-            onDone={() => setEditing(false)}
-            onSave={onSave}
-            schema={schema}
-          />
-        </div>
-      ) : (
-        // Labelled rather than named by its content: the amount cell's text is a formatted currency
-        // string, which is no way to find a control.
-        <button
-          aria-label={`Edit ${ariaLabel.toLowerCase()}`}
-          className={cn(inlineButtonClassName, displayClassName)}
-          onClick={() => setEditing(true)}
-          type="button"
-        >
-          {display}
-        </button>
-      )}
-    </div>
-  );
-}
-
-function TitleCell({ expense }: { expense: Expense }) {
-  const { save } = useInlineExpensePatch(expense.id);
+function TitleCell({ id, title }: { id: number; title: string }) {
+  const { save } = useInlineExpensePatch(id);
 
   return (
     <InlineCell
       ariaLabel="Title"
-      display={expense.title}
+      display={title}
       fill
-      onSave={async (title) => save({ title })}
+      onSave={async (next) => save({ title: next })}
       schema={expenseTitle}
-      value={expense.title}
+      value={title}
     />
   );
 }
 
-function AmountCell({ expense }: { expense: Expense }) {
-  const { save } = useInlineExpensePatch(expense.id);
+function AmountCell({
+  amount,
+  currency,
+  id,
+  paidBack,
+}: {
+  amount: number;
+  currency: Expense['currency'];
+  id: number;
+  paidBack: boolean;
+}) {
+  const { save } = useInlineExpensePatch(id);
 
   return (
     <InlineCell
       ariaLabel="Amount"
-      display={formatAmount(expense.amount, expense.currency)}
+      display={formatAmount(amount, currency)}
       // The strike belongs to the resting value, not the cell: struck out around the wrapper it also
       // crosses through whatever you're typing into the editor.
-      displayClassName={expense.paidBackAt ? 'text-muted-foreground line-through' : undefined}
+      displayClassName={paidBack ? 'text-muted-foreground line-through' : undefined}
+      maxWidthClassName={inlineControlClassName}
       // Non-null: `expenseAmountText` only passes for something `parseAmount` can read.
-      onSave={async (amount) => save({ amount: parseAmount(amount)! })}
+      onSave={async (next) => save({ amount: parseAmount(next)! })}
       schema={expenseAmountText}
-      value={String(expense.amount)}
+      value={String(amount)}
     />
   );
 }
 
-function CategoryCell({ expense, onManage }: { expense: Expense; onManage: () => void }) {
-  const { saveOrToast } = useInlineExpensePatch(expense.id);
+function CategoryCell({ category, id, onManage }: { category: Expense['category']; id: number; onManage: () => void }) {
+  const { saveOrToast } = useInlineExpensePatch(id);
 
-  const value: ExpenseCategoryChoice = expense.category
-    ? { kind: 'existing', id: expense.category.id }
-    : { kind: 'none' };
+  const value: ExpenseCategoryChoice = category ? { kind: 'existing', id: category.id } : { kind: 'none' };
 
   return (
     <ExpenseCategoryCombobox
@@ -191,25 +116,29 @@ function CategoryCell({ expense, onManage }: { expense: Expense; onManage: () =>
   );
 }
 
-function RecordedAtCell({ expense }: { expense: Expense }) {
-  const { saveOrToast } = useInlineExpensePatch(expense.id);
+function RecordedAtCell({ id, recordedAt }: { id: number; recordedAt: string }) {
+  const { saveOrToast } = useInlineExpensePatch(id);
 
   return (
-    // Same grid-over-sizer arrangement as the text cells: `DateField` carries `size={1}`, so the
-    // rendered date is what has to hold the column open.
-    <div className={`grid grid-cols-1 ${inlineControlClassName}`}>
-      <span className={inlineDateSizerClassName}>{formatDate(expense.recordedAt)}</span>
-      <div className="col-start-1 row-start-1">
-        <DateField
-          allowFuture
-          id={`expense-${expense.id}-recorded-at`}
-          inline
-          onChange={(recordedAt) => void saveOrToast({ recordedAt })}
-          required
-          value={expense.recordedAt}
-        />
-      </div>
-    </div>
+    <InlineCellSizer
+      className={inlineControlClassName}
+      // The raw value is the fallback only in principle — the column is a validated `date` — but the
+      // sizer is what holds the width, so it must never come out empty.
+      display={formatDate(recordedAt) ?? recordedAt}
+      // `DateField`'s own box, not the text cells': its `Input` is `pl-3`, and `pr-10` holds the
+      // space the absolutely-positioned calendar button sits in. Measured as `px-2` the button
+      // would end up on top of the date.
+      sizerClassName="invisible col-start-1 row-start-1 border pr-10 pl-3 text-sm"
+    >
+      <DateField
+        allowFuture
+        ariaLabel="Date"
+        inline
+        onChange={(next) => void saveOrToast({ recordedAt: next })}
+        required
+        value={recordedAt}
+      />
+    </InlineCellSizer>
   );
 }
 
@@ -269,25 +198,34 @@ export const expensesTableColumns = (onManageCategories: () => void) => [
   columnHelper.accessor('title', {
     cell: (info) => (
       <div className="flex items-center gap-2">
-        <TitleCell expense={info.row.original} />
+        <TitleCell id={info.row.original.id} title={info.getValue()} />
         {info.row.original.paidBackAt && <Badge variant="secondary">Paid back</Badge>}
       </div>
     ),
     header: 'Title',
   }),
   columnHelper.accessor('amount', {
-    cell: (info) => <AmountCell expense={info.row.original} />,
+    cell: (info) => (
+      <AmountCell
+        amount={info.getValue()}
+        currency={info.row.original.currency}
+        id={info.row.original.id}
+        paidBack={Boolean(info.row.original.paidBackAt)}
+      />
+    ),
     header: 'Amount',
   }),
   columnHelper.accessor('recordedAt', {
-    cell: (info) => <RecordedAtCell expense={info.row.original} />,
+    cell: (info) => <RecordedAtCell id={info.row.original.id} recordedAt={info.getValue()} />,
     header: 'Date',
   }),
   columnHelper.accessor('category', {
-    cell: (info) => <CategoryCell expense={info.row.original} onManage={onManageCategories} />,
+    cell: (info) => <CategoryCell category={info.getValue()} id={info.row.original.id} onManage={onManageCategories} />,
     header: 'Category',
   }),
   columnHelper.display({
+    // The one cell that genuinely needs the row: the delete dialog names the expense, the menu
+    // label does too, and the paid-back toggle reads the stamp.
     cell: (info) => <RowActions expense={info.row.original} />,
     header: '',
     id: 'actions',

@@ -30,6 +30,7 @@ import {
   DialogTrigger,
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -252,11 +253,12 @@ function SettingsRoute() {
                         </SelectContent>
                       </Select>
                     </FormControl>
-                    {/* Deliberately not retroactive: each expense keeps the currency it was logged
-                        in, so this only decides what future ones are recorded as. */}
-                    <p className="text-muted-foreground text-sm">
+                    {/* `FormDescription` rather than a bare <p>, so `FormControl`'s aria-describedby
+                        has something to point at. Deliberately not retroactive: each expense keeps
+                        the currency it was logged in. */}
+                    <FormDescription className="text-xs">
                       What new expenses are recorded in. Expenses already logged keep their own currency.
-                    </p>
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

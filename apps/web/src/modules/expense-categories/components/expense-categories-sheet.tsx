@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
-import { PencilIcon, PlusIcon, TrashIcon } from 'lucide-react';
+import { PencilIcon, PlusIcon, TagsIcon, TrashIcon } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -7,6 +7,11 @@ import { createExpenseCategoryModel } from '@homewise/server/expense-categories'
 import {
   Button,
   Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
   Sheet,
   SheetContent,
   SheetDescription,
@@ -71,28 +76,58 @@ function CategoryList() {
     onSuccess: () => invalidateExpenseCategories(queryClient),
   });
 
+  const editor = (
+    // Mounted only while adding, so `defaultValues` reseed on every open with no reset effect.
+    <InlineTextField
+      ariaLabel="New category name"
+      cancellable
+      className="h-9 w-full rounded-md border px-2 text-sm"
+      defaultValue=""
+      onDone={() => setAdding(false)}
+      onSave={async (name) => create(name)}
+      placeholder="Category name"
+      schema={createExpenseCategoryModel.shape.name}
+    />
+  );
+
+  // Nothing filed yet: the same empty state the rest of the app uses, with the primary action in it
+  // rather than a ghost button under a one-line notice.
+  if (categories.length === 0) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-4 pt-0">
+        {adding ? (
+          editor
+        ) : (
+          <Empty>
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <TagsIcon />
+              </EmptyMedia>
+              <EmptyTitle>No categories yet</EmptyTitle>
+              <EmptyDescription>
+                Add the ones this household actually thinks in — "Groceries", "Kindergarten", "The dog".
+              </EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+              <Button onClick={() => setAdding(true)}>
+                <PlusIcon />
+                Add category
+              </Button>
+            </EmptyContent>
+          </Empty>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-4 pt-0">
-      {categories.length === 0 && !adding && (
-        <Empty className="border-none">No categories yet. Add the first one below.</Empty>
-      )}
-
       {categories.map((category) => (
         <CategoryRow category={category} key={category.id} />
       ))}
 
       {adding ? (
-        // Mounted only while adding, so `defaultValues` reseed on every open with no reset effect.
-        <InlineTextField
-          ariaLabel="New category name"
-          cancellable
-          className="h-9 w-full rounded-md border px-2 text-sm"
-          defaultValue=""
-          onDone={() => setAdding(false)}
-          onSave={async (name) => create(name)}
-          placeholder="Category name"
-          schema={createExpenseCategoryModel.shape.name}
-        />
+        editor
       ) : (
         <Button className="justify-start" onClick={() => setAdding(true)} variant="ghost">
           <PlusIcon />

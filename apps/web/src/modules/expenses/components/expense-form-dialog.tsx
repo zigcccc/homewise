@@ -156,7 +156,7 @@ function ExpenseForm({ defaultRecordedAt, onDone }: { defaultRecordedAt: string;
               <FormItem>
                 <FormLabel>Date</FormLabel>
                 <FormControl>
-                  <DateField allowFuture id="expense-recorded-at" onChange={field.onChange} value={field.value} />
+                  <DateField allowFuture onChange={field.onChange} value={field.value} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

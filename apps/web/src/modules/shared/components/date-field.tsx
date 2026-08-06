@@ -1,6 +1,6 @@
 import { format, isFuture, isValid, parse, parseISO } from 'date-fns';
 import { CalendarIcon } from 'lucide-react';
-import { useState } from 'react';
+import { type ComponentProps, useState } from 'react';
 
 import { Button, Calendar, Input, Popover, PopoverContent, PopoverTrigger } from '@homewise/ui/core';
 import { cn } from '@homewise/ui/lib';
@@ -54,14 +54,19 @@ function parseDayFirst(input: string, allowFuture: boolean) {
  */
 export function DateField({
   allowFuture = false,
-  id,
+  ariaLabel,
   inline = false,
   onChange,
   required = false,
   value,
+  ...inputProps
 }: {
   allowFuture?: boolean;
-  id: string;
+  /**
+   * A name for the input where no `<label>` points at it — the table cells, which have a column
+   * header and nothing else. Inside a form, use `FormLabel` and leave this alone.
+   */
+  ariaLabel?: string;
   /**
    * Table treatment: reads as plain text until hovered or focused, so a column of dates doesn't
    * become a column of form controls. Same bargain the inline selects make.
@@ -77,7 +82,14 @@ export function DateField({
    */
   required?: boolean;
   value: string;
-}) {
+  /**
+   * Everything else lands on the `Input`, and `FormControl` is why that matters: it clones its child
+   * with the `id` its `FormLabel` points at, plus `aria-describedby` and `aria-invalid`. Declaring
+   * an `id` prop of our own instead made the child's value win the Radix `Slot` merge and override
+   * the generated one — so every in-form call site had to re-point its label by hand, and the one
+   * that forgot shipped a `<label>` attached to nothing.
+   */
+} & Omit<ComponentProps<typeof Input>, 'onChange' | 'value'>) {
   const [open, setOpen] = useState(false);
   const selected = value ? parseISO(value) : undefined;
   const isValidSelection = selected && isValid(selected);
@@ -128,12 +140,12 @@ export function DateField({
       )}
     >
       <Input
+        aria-label={ariaLabel}
         className={cn(
           'pr-10',
           inline && 'border-transparent shadow-none hover:bg-accent focus-visible:border-input',
           inline && open && 'border-input bg-accent'
         )}
-        id={id}
         onBlur={(evt) => commitText(evt.target.value)}
         onChange={(evt) => setText(evt.target.value)}
         onKeyDown={(evt) => {
@@ -148,6 +160,7 @@ export function DateField({
         // than a date needs and squeezes every other one. `InlineTextField` does the same.
         size={1}
         value={text}
+        {...inputProps}
       />
       <Popover onOpenChange={setOpen} open={open}>
         <PopoverTrigger asChild>

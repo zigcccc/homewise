@@ -33,7 +33,7 @@ import {
   measurementUnitLabels,
   useInlineIngredientPatch,
 } from '@/modules/ingredients';
-import { ConfirmDeleteDialog, InlineTextField, SELECT_NONE, serverMessage } from '@/modules/shared';
+import { ConfirmDeleteDialog, InlineCell, SELECT_NONE, serverMessage } from '@/modules/shared';
 import { StoreCombobox } from '@/modules/stores';
 
 const $deleteIngredient = client.ingredients[':id'].$delete;
@@ -159,57 +159,19 @@ function IngredientDefaultUnitCell({ defaultUnit, id }: { defaultUnit: Measureme
   );
 }
 
-/**
- * The resting and editing halves of the name cell have to be the same box down to the border, or
- * clicking in nudges the text and resizes the column. `Input` supplies `h-9`, `w-full` and a 1px
- * border; the button matches with a transparent one.
- */
-const inlineNameClassName = 'h-9 w-full rounded-md border px-2 text-sm';
-
-/**
- * A hidden copy of the name, sharing the controls' horizontal box, that holds the column open. An
- * `<input>` reports its default 20-character width as its max-content contribution to an auto-layout
- * table no matter what `width` says — `size={1}` drops that to nothing, and this puts the name's own
- * width back, so the column measures the same whichever state the cell is in.
- */
-const inlineNameSizerClassName = 'invisible col-start-1 row-start-1 border px-2 text-sm';
-
 /** Click to rename in place. The dialog stays the way to reach the fields the table doesn't show. */
 function IngredientNameCell({ id, name }: { id: number; name: string }) {
-  const [editing, setEditing] = useState(false);
   const { save } = useInlineIngredientPatch(id);
 
   return (
-    // Both states stack into the one grid cell, over the sizer that fixes the column's width. The
-    // single `1fr` track means they fill the column when it's wider than the name.
-    <div className="grid grid-cols-1">
-      <span className={inlineNameSizerClassName}>{name}</span>
-      {editing ? (
-        // The wrapper is what puts the editor in the sizer's cell: the class below lands on the
-        // input, and the form between them is `display: contents`, so the grid item is a `FormItem`
-        // with no position of its own. Auto-placed, it steps over the occupied row and opens a
-        // second one — 22px of empty space above the input, and the row grows as you click in.
-        <div className="col-start-1 row-start-1">
-          {/* Mounted only while editing, so `defaultValues` reseed on every open with no reset effect. */}
-          <InlineTextField
-            ariaLabel="Name"
-            className={inlineNameClassName}
-            defaultValue={name}
-            onDone={() => setEditing(false)}
-            onSave={async (value) => save({ name: value })}
-            schema={createIngredientModel.shape.name}
-          />
-        </div>
-      ) : (
-        <button
-          className={`${inlineNameClassName} col-start-1 row-start-1 flex cursor-pointer items-center border-transparent text-left hover:bg-accent`}
-          onClick={() => setEditing(true)}
-          type="button"
-        >
-          {name}
-        </button>
-      )}
-    </div>
+    <InlineCell
+      ariaLabel="Name"
+      display={name}
+      fill
+      onSave={async (value) => save({ name: value })}
+      schema={createIngredientModel.shape.name}
+      value={name}
+    />
   );
 }
 
