@@ -63,7 +63,7 @@ const spar = section(10, 'Spar');
 const hofer = section(20, 'Hofer');
 
 describe('toSectionsWithItems', () => {
-  it('files each item under its section', () => {
+  it('should file each item under its section', () => {
     const result = toSectionsWithItems(detail([spar, hofer], [item(1, 10), item(2, 20), item(3, 10)]));
 
     expect(result.map(({ items, section }) => [section?.label, items.map((row) => row.id)])).toEqual([
@@ -72,20 +72,18 @@ describe('toSectionsWithItems', () => {
     ]);
   });
 
-  it('sorts the ungrouped bucket last', () => {
+  it('should sort the ungrouped bucket last', () => {
     // A heading you chose comes before the odds and ends that haven't found one.
     const result = toSectionsWithItems(detail([spar], [item(1, null), item(2, 10)]));
 
     expect(result.map(({ section }) => section?.label ?? null)).toEqual(['Spar', null]);
   });
 
-  it('omits the ungrouped bucket when nothing is in it', () => {
-    const result = toSectionsWithItems(detail([spar], [item(1, 10)]));
-
-    expect(result).toHaveLength(1);
+  it('should omit the ungrouped bucket when nothing is in it', () => {
+    expect(toSectionsWithItems(detail([spar], [item(1, 10)]))).toHaveLength(1);
   });
 
-  it('keeps a section that holds no items', () => {
+  it('should keep a section that holds no items', () => {
     // An empty shop still has to render — it is where you drop the next thing.
     const result = toSectionsWithItems(detail([spar, hofer], [item(1, 10)]));
 
@@ -95,11 +93,11 @@ describe('toSectionsWithItems', () => {
     ]);
   });
 
-  it('handles a list with nothing on it', () => {
+  it('should handle a list with nothing on it', () => {
     expect(toSectionsWithItems(detail([], []))).toEqual([]);
   });
 
-  it('preserves the order items arrived in within a section', () => {
+  it('should preserve the order items arrived in within a section', () => {
     const result = toSectionsWithItems(detail([spar], [item(3, 10), item(1, 10), item(2, 10)]));
 
     expect(result[0]?.items.map((row) => row.id)).toEqual([3, 1, 2]);
@@ -109,45 +107,47 @@ describe('toSectionsWithItems', () => {
 describe('arrangeItems', () => {
   const items = [item(1, 10), item(2, 10), item(3, 20)];
   // dnd-kit addresses groups by string; `sectionGroupId` is what turns a section id into one, so the
-  // arrangements below are keyed the way a real drag keys them rather than by a literal that agrees today.
+  // arrangements below are keyed the way a real drag keys them rather than by a literal.
   const inSpar = sectionGroupId(10);
   const inHofer = sectionGroupId(20);
 
-  it('re-files an item into the section the arrangement puts it in', () => {
+  it('should re-file an item into the section the arrangement puts it in', () => {
     const arranged = arrangeItems(items, { [inSpar]: [1], [inHofer]: [3, 2] });
 
     expect(arranged.find((row) => row.id === 2)?.sectionId).toBe(20);
   });
 
-  it('renders in the arrangement’s order, not the list’s', () => {
+  it('should render in the arrangement’s order rather than the list’s', () => {
     const arranged = arrangeItems(items, { [inSpar]: [2, 1], [inHofer]: [3] });
 
     expect(arranged.map((row) => row.id)).toEqual([2, 1, 3]);
   });
 
-  it('keeps an item the arrangement never saw', () => {
-    // A row another member added while the drag was in flight. Dropping it would make it vanish from
-    // the pane until the drop lands.
+  it('should keep an item the arrangement never saw', () => {
+    // GIVEN: a row another member added while the drag was in flight
     const withNewRow = [...items, item(4, 10, 'Added mid-drag')];
+
+    // WHEN: the in-flight arrangement is applied
     const arranged = arrangeItems(withNewRow, { [inSpar]: [1, 2], [inHofer]: [3] });
 
+    // THEN: it should keep its place rather than vanishing until the drop
     expect(arranged.map((row) => row.id)).toEqual([1, 2, 3, 4]);
   });
 
-  it('ignores an id the list no longer holds', () => {
+  it('should ignore an id the list no longer holds', () => {
     // The mirror case: another member deleted a row mid-drag.
     const arranged = arrangeItems(items, { [inSpar]: [1, 99], [inHofer]: [3, 2] });
 
     expect(arranged.map((row) => row.id)).toEqual([1, 3, 2]);
   });
 
-  it('maps the ungrouped group back to a null section', () => {
+  it('should map the ungrouped group back to a null section', () => {
     const arranged = arrangeItems(items, { [UNGROUPED_GROUP]: [1], [inSpar]: [2], [inHofer]: [3] });
 
     expect(arranged.find((row) => row.id === 1)?.sectionId).toBeNull();
   });
 
-  it('does not mutate the items it was given', () => {
+  it('should not mutate the items it was given', () => {
     const before = JSON.stringify(items);
 
     arrangeItems(items, { [inSpar]: [1], [inHofer]: [3, 2] });
@@ -155,39 +155,52 @@ describe('arrangeItems', () => {
     expect(JSON.stringify(items)).toBe(before);
   });
 
-  it('round-trips an arrangement taken from the current grouping', () => {
+  it('should round-trip an arrangement taken from the current grouping', () => {
+    // GIVEN: the arrangement the pane is already rendering
     const grouped = toSectionsWithItems(detail([spar, hofer], items));
+
+    // WHEN: it is applied back
     const arranged = arrangeItems(items, itemArrangement(grouped));
 
+    // THEN: nothing should move
     expect(arranged.map((row) => [row.id, row.sectionId])).toEqual(items.map((row) => [row.id, row.sectionId]));
   });
 });
 
 describe('remainingCount', () => {
-  it('counts what is still in the shop rather than the basket', () => {
+  it('should count what is still in the shop rather than the basket', () => {
     expect(remainingCount(summary(10, 3))).toBe(7);
     expect(remainingCount(summary(10, 10))).toBe(0);
   });
 });
 
 describe('applyItemPatch', () => {
-  it('rewrites just the item it names', () => {
+  it('should rewrite just the item it names', () => {
+    // GIVEN: a cached list of two items
     const queryClient = new QueryClient();
-    const list = detail([spar], [item(1, 10, 'Milk'), item(2, 10, 'Eggs')]);
-    queryClient.setQueryData(getShoppingListQueryOptions(1).queryKey, list);
+    queryClient.setQueryData(
+      getShoppingListQueryOptions(1).queryKey,
+      detail([spar], [item(1, 10, 'Milk'), item(2, 10, 'Eggs')])
+    );
 
+    // WHEN: one of them is patched
     applyItemPatch(queryClient, 1, 1, { label: 'Oat milk' });
 
-    const updated = queryClient.getQueryData(getShoppingListQueryOptions(1).queryKey);
-    expect(updated?.items.map((row) => row.label)).toEqual(['Oat milk', 'Eggs']);
+    // THEN: only that item should change
+    expect(queryClient.getQueryData(getShoppingListQueryOptions(1).queryKey)?.items.map((row) => row.label)).toEqual([
+      'Oat milk',
+      'Eggs',
+    ]);
   });
 
-  it('does nothing when the list is not cached', () => {
-    // The optimistic half of ticking something off, and it must not invent a cache entry.
+  it('should do nothing when the list is not cached', () => {
+    // GIVEN: an empty cache, because nobody has the list open
     const queryClient = new QueryClient();
 
+    // WHEN: an optimistic patch arrives
     applyItemPatch(queryClient, 1, 1, { label: 'Oat milk' });
 
+    // THEN: it should not invent a cache entry
     expect(queryClient.getQueryData(getShoppingListQueryOptions(1).queryKey)).toBeUndefined();
   });
 });

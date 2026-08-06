@@ -3,70 +3,82 @@ import { describe, expect, it } from 'vitest';
 import { emptyToNull, isUniqueViolation, writesAnything } from '#db/utils';
 
 describe('emptyToNull', () => {
-  it('turns a cleared field into NULL', () => {
+  it('should turn a cleared field into NULL', () => {
     expect(emptyToNull('')).toBeNull();
   });
 
-  it('passes an explicit null through', () => {
+  it('should pass an explicit null through', () => {
     expect(emptyToNull(null)).toBeNull();
   });
 
-  it('leaves an omitted field omitted', () => {
-    // Distinct from `''`: "don't touch this column", not "clear it".
+  it('should leave an omitted field omitted', () => {
+    // Distinct from '': "don't touch this column", not "clear it".
     expect(emptyToNull(undefined)).toBeUndefined();
   });
 
-  it('leaves real text alone, whitespace included', () => {
-    expect(emptyToNull('notes')).toBe('notes');
-    expect(emptyToNull(' ')).toBe(' ');
+  it.each([
+    ['real text', 'notes'],
+    ['a single space, which is a value the user typed', ' '],
+  ])('should leave %s alone', (_what, value) => {
+    expect(emptyToNull(value)).toBe(value);
   });
 });
 
 describe('writesAnything', () => {
-  it('is false for a PATCH that named no fields', () => {
-    // `PATCH {}` reaches the update with every key undefined, and drizzle throws rather than no-opping.
-    expect(writesAnything({})).toBe(false);
-    expect(writesAnything({ name: undefined, notes: undefined })).toBe(false);
+  it.each([
+    ['a PATCH that named no fields', {}],
+    ['a patch whose every key is undefined', { name: undefined, notes: undefined }],
+  ])('should be false for %s', (_what, patch) => {
+    // GIVEN: a patch with nothing for drizzle to write
+    // WHEN: it is checked
+    // THEN: it should report false — drizzle throws "No values to set" rather than no-opping
+    expect(writesAnything(patch)).toBe(false);
   });
 
-  it('is true when any field has a value', () => {
+  it('should be true when any field has a value', () => {
     expect(writesAnything({ name: 'Flour', notes: undefined })).toBe(true);
   });
 
-  it('counts null and empty string as values', () => {
-    expect(writesAnything({ notes: null })).toBe(true);
-    expect(writesAnything({ notes: '' })).toBe(true);
+  it.each([
+    ['null', { notes: null }],
+    ['an empty string', { notes: '' }],
+  ])('should count %s as a value', (_what, patch) => {
+    // Clearing a field is a write.
+    expect(writesAnything(patch)).toBe(true);
   });
 });
 
 describe('isUniqueViolation', () => {
-  it('recognises the SQLSTATE at the top level', () => {
+  it('should recognise the SQLSTATE at the top level', () => {
     expect(isUniqueViolation(Object.assign(new Error('duplicate key'), { code: '23505' }))).toBe(true);
   });
 
-  it('finds it under a drizzle wrapper that carries no code of its own', () => {
-    // The shape that made this return false for every real duplicate: DrizzleQueryError wraps the
-    // driver error and has no `code`, so a top-level-only check never saw one.
+  it('should find the code under a drizzle wrapper that carries none of its own', () => {
+    // GIVEN: the shape drizzle actually raises — a wrapper with the driver error on `cause`
     const wrapped = Object.assign(new Error('Failed query'), {
       cause: Object.assign(new Error('duplicate key value violates unique constraint'), { code: '23505' }),
     });
 
+    // WHEN: it is checked
+    // THEN: it should be recognised — a top-level-only check answered false for every real duplicate
     expect(isUniqueViolation(wrapped)).toBe(true);
   });
 
-  it('keeps walking past more than one wrapper', () => {
-    const deep = { cause: { cause: { cause: { code: '23505' } } } };
-
-    expect(isUniqueViolation(deep)).toBe(true);
+  it('should keep walking past more than one wrapper', () => {
+    expect(isUniqueViolation({ cause: { cause: { cause: { code: '23505' } } } })).toBe(true);
   });
 
-  it('is false for a different SQLSTATE', () => {
-    // 23503 is a foreign-key violation — a real error, but not a duplicate, and it must not answer 409.
-    expect(isUniqueViolation({ code: '23503' })).toBe(false);
-    expect(isUniqueViolation({ cause: { code: '23502' } })).toBe(false);
+  it.each([
+    ['a foreign-key violation', { code: '23503' }],
+    ['a not-null violation on the cause', { cause: { code: '23502' } }],
+  ])('should be false for %s', (_what, error) => {
+    // GIVEN: a real database error that is not a duplicate
+    // WHEN: it is checked
+    // THEN: it should report false, so it surfaces as a 500 rather than a misleading 409
+    expect(isUniqueViolation(error)).toBe(false);
   });
 
-  it('is false for an error carrying no code anywhere', () => {
+  it('should be false for an error carrying no code anywhere', () => {
     expect(isUniqueViolation(new Error('boom'))).toBe(false);
     expect(isUniqueViolation({ cause: { cause: new Error('boom') } })).toBe(false);
   });
@@ -76,11 +88,12 @@ describe('isUniqueViolation', () => {
     ['undefined', undefined],
     ['a string', 'duplicate key value violates unique constraint "x"'],
     ['a number', 23505],
-  ])('is false for %s', (_what, value) => {
+  ])('should be false for %s', (_what, value) => {
+    // Something thrown that isn't an object must not make the check itself throw.
     expect(isUniqueViolation(value)).toBe(false);
   });
 
-  it('does not match a numeric code', () => {
+  it('should not match a numeric code', () => {
     // The comparison is strict, and every driver reports SQLSTATE as a string.
     expect(isUniqueViolation({ code: 23505 })).toBe(false);
   });

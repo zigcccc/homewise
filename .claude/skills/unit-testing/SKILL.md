@@ -148,7 +148,39 @@ ever see it throw, fix the environment; do not weaken the guard.
 
 ## Writing the test
 
-- **Name the behaviour, not the function.** "refuses to delete a shared avatar" beats "returns early".
+**Every case is named `it('should …')`.** No exceptions — "should" is what forces the name to state
+an outcome rather than label a code path.
+
+**GIVEN / WHEN / THEN comments go above the lines they describe**, so the three phases are visible
+without reading the assertions:
+
+```ts
+it('should roll the new upload back when the row vanished mid-request', async () => {
+  // GIVEN: a resolved picture change, whose replacement blob is already uploaded
+  const { commit, rollback, update } = trackedUpdate();
+
+  // WHEN: the write matches no row, because another member deleted the profile
+  await expect(ImagesService.commitManagedImage(update, async () => false)).resolves.toBe(false);
+
+  // THEN: the fresh blob should be dropped rather than left orphaned
+  expect(rollback).toHaveBeenCalledOnce();
+  expect(commit).not.toHaveBeenCalled();
+});
+```
+
+Two ways that relaxes:
+
+- **When setup, action and assertion are one expression, the three sit together at the top** — there
+  are no separate lines to hang them on.
+- **When the test is a single assertion whose name already says it, drop them.** Three comments
+  restating `expect(formatMinutes(60)).toBe('1 h')` are noise. They earn their place when a test has
+  structure, a non-obvious setup, or a "why" the name can't carry.
+
+Write them about the *domain*, not the code: "the last day of January" beats "addDays is called with
+2026-01-31". For `it.each`, they describe the table rather than one row.
+
+- **Name the behaviour, not the function.** "should refuse to delete a shared avatar" beats "should
+  return early".
 - **Build fixtures that satisfy the real type.** A factory ending in `satisfies SomeResponse` — never
   `as unknown as SomeResponse`. The cast is what lets a fixture drift from the contract it claims to
   stand for, and it hides the compiler error that would have told you (a fixture using `name` where

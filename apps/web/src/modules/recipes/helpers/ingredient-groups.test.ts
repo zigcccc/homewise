@@ -39,28 +39,31 @@ const shape = (groups: ReturnType<typeof groupBySection>) =>
   groups.map(({ lines, section }) => [section, lines.map((row) => row.ingredient.name)]);
 
 describe('groupBySection', () => {
-  it('groups lines under their heading', () => {
+  it('should group lines under their heading', () => {
+    // GIVEN: two lines under one heading and one under another
     const groups = groupBySection([
       line('Flour', 'For the dough'),
       line('Water', 'For the dough'),
       line('Walnuts', 'For the filling'),
     ]);
 
+    // THEN: each heading should carry its own lines
     expect(shape(groups)).toEqual([
       ['For the dough', ['Flour', 'Water']],
       ['For the filling', ['Walnuts']],
     ]);
   });
 
-  it('merges only adjacent lines', () => {
-    // A list that returns to an earlier heading legitimately yields two groups with the same name:
-    // the cook's ordering is the source of truth, not the section name.
+  it('should merge only adjacent lines', () => {
+    // GIVEN: a list that returns to an earlier heading
     const groups = groupBySection([
       line('Flour', 'For the dough'),
       line('Walnuts', 'For the filling'),
       line('Water', 'For the dough'),
     ]);
 
+    // THEN: it should yield two groups with the same name — the cook's ordering is the source of
+    // truth, not the section name
     expect(shape(groups)).toEqual([
       ['For the dough', ['Flour']],
       ['For the filling', ['Walnuts']],
@@ -68,28 +71,24 @@ describe('groupBySection', () => {
     ]);
   });
 
-  it('treats lines with no heading as their own group', () => {
-    const groups = groupBySection([line('Salt', null), line('Pepper', null)]);
-
-    expect(shape(groups)).toEqual([[null, ['Salt', 'Pepper']]]);
+  it('should treat lines with no heading as their own group', () => {
+    expect(shape(groupBySection([line('Salt', null), line('Pepper', null)]))).toEqual([[null, ['Salt', 'Pepper']]]);
   });
 
-  it('keeps an unheaded run separate from a headed one', () => {
-    const groups = groupBySection([line('Salt', null), line('Flour', 'For the dough')]);
-
-    expect(shape(groups)).toEqual([
+  it('should keep an unheaded run separate from a headed one', () => {
+    expect(shape(groupBySection([line('Salt', null), line('Flour', 'For the dough')]))).toEqual([
       [null, ['Salt']],
       ['For the dough', ['Flour']],
     ]);
   });
 
-  it('preserves the saved order within a group', () => {
-    const groups = groupBySection([line('Water', 'Dough'), line('Flour', 'Dough')]);
-
-    expect(shape(groups)).toEqual([['Dough', ['Water', 'Flour']]]);
+  it('should preserve the saved order within a group', () => {
+    expect(shape(groupBySection([line('Water', 'Dough'), line('Flour', 'Dough')]))).toEqual([
+      ['Dough', ['Water', 'Flour']],
+    ]);
   });
 
-  it('handles a recipe with no ingredients', () => {
+  it('should handle a recipe with no ingredients', () => {
     expect(groupBySection([])).toEqual([]);
   });
 });

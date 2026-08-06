@@ -14,26 +14,21 @@ const day = (date: string, ids: number[]) => ({ day: date, meals: ids.map((id) =
 describe('resolveMealMove', () => {
   const days = [day('2026-08-03', [1, 2, 3]), day('2026-08-04', [4])];
 
-  it('reports the day and index a card was dropped into', () => {
+  it('should report the day and index a card was dropped into', () => {
+    // GIVEN: meal 2 has moved to the end of the next day
     const after = { '2026-08-03': [1, 3], '2026-08-04': [4, 2] };
 
+    // THEN: its new day and index should be reported
     expect(resolveMealMove(days, after, 2)).toEqual({ position: 1, toDay: '2026-08-04' });
   });
 
-  it('reports a reorder within the same day', () => {
+  it('should report a reorder within the same day', () => {
     const after = { '2026-08-03': [2, 1, 3], '2026-08-04': [4] };
 
     expect(resolveMealMove(days, after, 1)).toEqual({ position: 1, toDay: '2026-08-03' });
   });
 
-  it('reports nothing when the card ended where it started', () => {
-    // A drag that changed nothing must not cost a request — or a toast when that request fails.
-    const after = { '2026-08-03': [1, 2, 3], '2026-08-04': [4] };
-
-    expect(resolveMealMove(days, after, 2)).toBeNull();
-  });
-
-  it('reports the index the card landed on in its new day', () => {
+  it('should report the index the card landed on in its new day', () => {
     expect(resolveMealMove(days, { '2026-08-03': [2, 3], '2026-08-04': [1, 4] }, 1)).toEqual({
       position: 0,
       toDay: '2026-08-04',
@@ -44,19 +39,28 @@ describe('resolveMealMove', () => {
     });
   });
 
-  it('reports a move into an empty day', () => {
+  it('should report nothing when the card ended where it started', () => {
+    // GIVEN: an arrangement identical to the one the day already had
+    const after = { '2026-08-03': [1, 2, 3], '2026-08-04': [4] };
+
+    // THEN: nothing should be reported — a drag that changed nothing must not cost a request, or a
+    // failure toast when that request fails
+    expect(resolveMealMove(days, after, 2)).toBeNull();
+  });
+
+  it('should report a move into an empty day', () => {
     const withEmpty = [...days, day('2026-08-05', [])];
     const after = { '2026-08-03': [1, 2], '2026-08-04': [4], '2026-08-05': [3] };
 
     expect(resolveMealMove(withEmpty, after, 3)).toEqual({ position: 0, toDay: '2026-08-05' });
   });
 
-  it('reports nothing for an id that appears in no day', () => {
-    // A cancelled or stale drop, and the reason the loop can't assume it will find the card.
+  it('should report nothing for an id that appears in no day', () => {
+    // A cancelled or stale drop, and why the loop can't assume it will find the card.
     expect(resolveMealMove(days, { '2026-08-03': [1, 2, 3], '2026-08-04': [4] }, 99)).toBeNull();
   });
 
-  it('reports a move even when the card was not in any day before', () => {
+  it('should report a move even when the card was not in any day before', () => {
     const after = { '2026-08-03': [1, 2, 3, 9], '2026-08-04': [4] };
 
     expect(resolveMealMove(days, after, 9)).toEqual({ position: 3, toDay: '2026-08-03' });
@@ -66,59 +70,50 @@ describe('resolveMealMove', () => {
 describe('unassignedMembers', () => {
   const members = [{ id: 1 }, { id: 2 }, { id: 3 }];
 
-  it('names the members nothing feeds', () => {
-    const meals = [{ members: [{ id: 1 }] }];
-
-    expect(unassignedMembers(meals, members)).toEqual([{ id: 2 }, { id: 3 }]);
+  it('should name the members nothing feeds', () => {
+    expect(unassignedMembers([{ members: [{ id: 1 }] }], members)).toEqual([{ id: 2 }, { id: 3 }]);
   });
 
-  it('treats a meal with no members as feeding everyone', () => {
+  it('should treat a meal with no members as feeding everyone', () => {
     // "Pasta" with nobody named on it is dinner for the household, so nobody is still waiting.
-    const meals = [{ members: [] }];
-
-    expect(unassignedMembers(meals, members)).toEqual([]);
+    expect(unassignedMembers([{ members: [] }], members)).toEqual([]);
   });
 
-  it('lets a members-less meal cover a day that also holds a targeted one', () => {
-    const meals = [{ members: [{ id: 1 }] }, { members: [] }];
-
-    expect(unassignedMembers(meals, members)).toEqual([]);
+  it('should let a members-less meal cover a day that also holds a targeted one', () => {
+    expect(unassignedMembers([{ members: [{ id: 1 }] }, { members: [] }], members)).toEqual([]);
   });
 
-  it('adds up across several meals', () => {
-    const meals = [{ members: [{ id: 1 }] }, { members: [{ id: 2 }] }];
-
-    expect(unassignedMembers(meals, members)).toEqual([{ id: 3 }]);
+  it('should add up across several meals', () => {
+    expect(unassignedMembers([{ members: [{ id: 1 }] }, { members: [{ id: 2 }] }], members)).toEqual([{ id: 3 }]);
   });
 
-  it('returns everyone for a day with no meals at all', () => {
-    // The caller distinguishes this from a partly-planned day — an empty card already reads as unplanned.
+  it('should return everyone for a day with no meals at all', () => {
+    // The caller tells this apart from a partly-planned day — an empty card already reads as unplanned.
     expect(unassignedMembers([], members)).toEqual(members);
   });
 
-  it('returns nothing when everyone is fed', () => {
-    const meals = [{ members: [{ id: 1 }, { id: 2 }, { id: 3 }] }];
-
-    expect(unassignedMembers(meals, members)).toEqual([]);
+  it('should return nothing when everyone is fed', () => {
+    expect(unassignedMembers([{ members: [{ id: 1 }, { id: 2 }, { id: 3 }] }], members)).toEqual([]);
   });
 });
 
 describe('stillNeedsAMeal', () => {
-  it('is singular for one person', () => {
+  it('should be singular for one person', () => {
     expect(stillNeedsAMeal(['Robbie'])).toBe('Robbie still needs a meal');
   });
 
-  it('is plural for two', () => {
+  it('should be plural for two', () => {
     expect(stillNeedsAMeal(['Žiga', 'Ana'])).toBe('Žiga and Ana still need a meal');
   });
 
-  it('uses a conjunction list for three or more', () => {
+  it('should use a conjunction list for three or more', () => {
     expect(stillNeedsAMeal(['Žiga', 'Ana', 'Robbie'])).toBe('Žiga, Ana, and Robbie still need a meal');
   });
 });
 
 describe('eligibleMembers', () => {
-  it('keeps the roles that eat off the plan', () => {
+  it('should keep only the roles that eat off the plan', () => {
+    // GIVEN: one member of every role, plus one with none
     const members = [
       { id: 1, role: 'adult' as const },
       { id: 2, role: 'child' as const },
@@ -127,44 +122,44 @@ describe('eligibleMembers', () => {
       { id: 5, role: null },
     ];
 
+    // THEN: only the adult and the child should survive
     expect(eligibleMembers(members).map(({ id }) => id)).toEqual([1, 2]);
   });
 
-  it('drops a member with no role rather than throwing', () => {
+  it('should drop a member with no role rather than throwing', () => {
     expect(eligibleMembers([{ role: null }])).toEqual([]);
   });
 });
 
 describe('groupIntoWeeks', () => {
-  it('puts one ISO week in one group', () => {
-    const days = ['2026-08-03', '2026-08-04', '2026-08-05'].map((date) => ({ day: date }));
-    const weeks = groupIntoWeeks(days);
+  it('should put one ISO week in one group', () => {
+    const weeks = groupIntoWeeks(['2026-08-03', '2026-08-04', '2026-08-05'].map((date) => ({ day: date })));
 
     expect(weeks).toHaveLength(1);
     expect(weeks[0]).toMatchObject({ end: '2026-08-05', start: '2026-08-03' });
   });
 
-  it('splits on the Monday, not on a seven-day count', () => {
-    // Sunday the 9th belongs to the week that began on the 3rd; Monday the 10th starts the next.
-    const days = ['2026-08-08', '2026-08-09', '2026-08-10'].map((date) => ({ day: date }));
-    const weeks = groupIntoWeeks(days);
+  it('should split on the Monday rather than on a seven-day count', () => {
+    // GIVEN: Saturday, Sunday and the Monday after
+    const weeks = groupIntoWeeks(['2026-08-08', '2026-08-09', '2026-08-10'].map((date) => ({ day: date })));
 
+    // THEN: the Sunday should stay with the week that began on the 3rd, and the Monday start a new one
     expect(weeks).toHaveLength(2);
     expect(weeks[0]?.start).toBe('2026-08-03');
     expect(weeks[1]?.start).toBe('2026-08-10');
   });
 
-  it('carries the end forward as days are added', () => {
-    const days = ['2026-08-03', '2026-08-09'].map((date) => ({ day: date }));
+  it('should carry the end forward as days are added', () => {
+    const weeks = groupIntoWeeks(['2026-08-03', '2026-08-09'].map((date) => ({ day: date })));
 
-    expect(groupIntoWeeks(days)[0]).toMatchObject({ end: '2026-08-09', start: '2026-08-03' });
+    expect(weeks[0]).toMatchObject({ end: '2026-08-09', start: '2026-08-03' });
   });
 
-  it('handles an empty range', () => {
+  it('should handle an empty range', () => {
     expect(groupIntoWeeks([])).toEqual([]);
   });
 
-  it('groups four weeks into four', () => {
+  it('should group four weeks into four', () => {
     const days = Array.from({ length: 28 }, (_, index) => ({
       day: `2026-08-${String(3 + index).padStart(2, '0')}`,
     })).filter(({ day }) => day <= '2026-08-30');

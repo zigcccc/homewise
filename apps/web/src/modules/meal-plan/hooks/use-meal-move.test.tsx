@@ -101,7 +101,7 @@ function setup() {
 }
 
 describe('moveMeal', () => {
-  it('sends the day and index it was asked for', async () => {
+  it('should send the day and index it was asked for', async () => {
     const { move, sent } = setup();
 
     await move({ id: 2, position: 0, toDay: '2026-08-04' });
@@ -109,7 +109,7 @@ describe('moveMeal', () => {
     expect(sent()).toEqual([{ id: 2, position: 0, toDay: '2026-08-04' }]);
   });
 
-  it('leaves the index out when the menu named only a day', async () => {
+  it('should leave the index out when the menu named only a day', async () => {
     const { move, sent } = setup();
 
     await move({ id: 1, toDay: '2026-08-04' });
@@ -117,17 +117,20 @@ describe('moveMeal', () => {
     expect(sent()).toEqual([{ id: 1, toDay: '2026-08-04' }]);
   });
 
-  it('moves the card in the cache before the request goes out', async () => {
-    // Without this the plan re-renders from the old server data and the card visibly snaps back to
-    // where it started, because dnd-kit has already moved the DOM node.
+  it('should move the card in the cache before the request goes out', async () => {
+    // GIVEN: a plan with three cards on the first day
     const { history, move } = setup();
 
+    // WHEN: one is moved to the front of the second day
     await move({ id: 2, position: 0, toDay: '2026-08-04' });
 
+    // THEN: the cache should have held the moved layout at some point — without it the plan
+    // re-renders from the old server data and the card visibly snaps back, because dnd-kit has
+    // already moved the DOM node
     expect(history).toContainEqual({ '2026-08-03': [1, 3], '2026-08-04': [2, 4] });
   });
 
-  it('appends to the target day when no index was named', async () => {
+  it('should append to the target day when no index was named', async () => {
     const { history, move } = setup();
 
     await move({ id: 1, toDay: '2026-08-04' });
@@ -135,23 +138,27 @@ describe('moveMeal', () => {
     expect(history).toContainEqual({ '2026-08-03': [2, 3], '2026-08-04': [4, 1] });
   });
 
-  it('writes into the window the hook was given', async () => {
-    // The cache is keyed by `from`/`to`, so writing to any other key leaves the card sitting still
-    // until the refetch lands.
+  it('should write into the window the hook was given', async () => {
+    // GIVEN: a hook holding one from/to window
     const { history, move } = setup();
 
+    // WHEN: a card is moved
     await move({ id: 4, position: 0, toDay: '2026-08-03' });
 
+    // THEN: that window's cache entry should be the one that changed — the cache is keyed by
+    // from/to, so writing anywhere else leaves the card sitting still until the refetch
     expect(history).toContainEqual({ '2026-08-03': [4, 1, 2, 3], '2026-08-04': [] });
   });
 
-  it('puts the card back when the request fails', async () => {
-    // The branch E2E can't reach without faking a response: the move is undone, so the plan doesn't
-    // keep showing a change the server never accepted.
+  it('should put the card back when the request fails', async () => {
+    // GIVEN: a plan at rest
     const { layout, move } = setup();
 
+    // WHEN: a move is made and its request fails
     await move({ id: 2, position: 0, toDay: '2026-08-04' });
 
+    // THEN: the optimistic write should be undone, so the plan doesn't keep showing a change the
+    // server never accepted
     expect(layout()).toEqual(AT_REST);
   });
 });
