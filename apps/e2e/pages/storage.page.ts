@@ -213,10 +213,18 @@ export class StorageItemsPage {
 
   async moveTo(name: string, location: string) {
     await this.openRowMenu(name);
+    await this.moveToFromOpenMenu(location);
+  }
 
-    // Opened with the keyboard rather than a hover. A Radix submenu opens on pointer-enter, so a
-    // pointer-driven open depends on the menu still being under the cursor — and this page refetches
-    // on every realtime event, which repositions it. `ArrowRight` is the same affordance, unmoved.
+  /**
+   * The second half of a move, for the spec that needs something to happen to the table between
+   * opening the menu and using it.
+   *
+   * Opened with the keyboard rather than a hover: a Radix submenu opens on pointer-enter, so a
+   * pointer-driven open depends on the menu still sitting under the cursor — and a list that another
+   * member is adding to moves it. `ArrowRight` is the same affordance, unmoved.
+   */
+  async moveToFromOpenMenu(location: string) {
     const trigger = this.page.getByRole('menuitem', { name: 'Move to' });
     await trigger.press('ArrowRight');
 
@@ -283,9 +291,10 @@ export class StorageItemsPage {
     await this.page.getByRole('option', { name: status, exact: true }).click();
   }
 
-  private async openRowMenu(name: string) {
+  async openRowMenu(name: string) {
     // Settle on the row before reaching into it, so the click can't land mid-rerender.
     await expect(this.row(name)).toBeVisible();
     await this.row(name).getByRole('button', { name: 'Open menu' }).click();
+    await expect(this.page.getByRole('menuitem', { name: 'Move to' })).toBeVisible();
   }
 }

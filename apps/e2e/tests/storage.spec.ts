@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
 
 import { SEED_STORAGE_ITEMS, SEED_STORAGE_LOCATIONS } from '@homewise/server/seed-fixtures';
 
@@ -6,6 +6,20 @@ import { StorageItemsPage, StorageLocationsPage } from '../pages/storage.page';
 import { API_URL } from '../playwright.config';
 
 const [GARAGE, CELLAR] = SEED_STORAGE_LOCATIONS;
+
+/**
+ * Stores something as another member would, without touching this page. Anything done through the UI
+ * would close the menu the spec is trying to prove survives.
+ */
+async function addItemOutOfBand(page: Page, name: string) {
+  const locations = await page.context().request.get(`${API_URL}/storage-locations`);
+  const garageId = (await locations.json()).find((row: { name: string }) => row.name === GARAGE.name).id;
+  const created = await page.context().request.post(`${API_URL}/storage-items`, {
+    multipart: { locationId: String(garageId), name },
+  });
+  expect(created.ok()).toBe(true);
+}
+
 const OVERDUE_ITEM = SEED_STORAGE_ITEMS.find((item) => item.name === 'Camping tent');
 
 test.describe('storage', () => {
@@ -136,7 +150,20 @@ test.describe('storage', () => {
       await items.add({ location: GARAGE.name, name });
       await expect(items.row(name)).toContainText(GARAGE.name);
 
-      await items.moveTo(name, CELLAR.name);
+      // Another member stores something while the menu is open. Every location's item count moves,
+      // which refetches the list the "Move to" menu reads — and if that reaches the table's columns,
+      // `flexRender` remounts every cell and this menu closes under the user's hand.
+      await items.openRowMenu(name);
+      const refetched = page.waitForResponse(
+        (response) => response.url().includes('/storage-items?') && response.request().method() === 'GET'
+      );
+      await addItemOutOfBand(page, `E2E Bystander ${Date.now()}`);
+      await refetched;
+
+      // The menu is asserted on rather than the row: it's modal, so the table behind it is
+      // `aria-hidden` and out of reach while it's open — which is also the whole point.
+      await expect(page.getByRole('menuitem', { name: 'Move to' })).toBeVisible();
+      await items.moveToFromOpenMenu(CELLAR.name);
       await expect(items.row(name)).toContainText(CELLAR.name);
 
       // It really left the one and arrived in the other, not just relabelled a cell.
@@ -255,12 +282,7 @@ test.describe('storage', () => {
       // Another member adds an item that sorts above this one. It goes through the API rather than
       // the UI because clicking anything on the page would blur the editor and commit it early —
       // and realtime refetching the list under an open editor is the case being covered.
-      const locations = await page.context().request.get(`${API_URL}/storage-locations`);
-      const garageId = (await locations.json()).find((row: { name: string }) => row.name === GARAGE.name).id;
-      const response = await page.context().request.post(`${API_URL}/storage-items`, {
-        multipart: { locationId: String(garageId), name: neighbour },
-      });
-      expect(response.ok()).toBe(true);
+      await addItemOutOfBand(page, neighbour);
       await expect(items.row(neighbour)).toBeVisible();
 
       await items.commitInlineRename();
