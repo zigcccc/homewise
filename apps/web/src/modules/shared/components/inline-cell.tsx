@@ -15,6 +15,22 @@ const boxClassName = 'h-9 w-full rounded-md border px-2 text-sm';
 const restingClassName = `${boxClassName} col-start-1 row-start-1 flex items-center border-transparent text-left hover:bg-accent`;
 
 /**
+ * A `Select` or `Combobox` trigger that reads as table text until you reach for it — the same bargain
+ * `InlineCell` makes for text, for the cells whose value is picked rather than typed.
+ *
+ * Pass it as `className` to `SelectTrigger`, or to any combobox that forwards one. The border and
+ * chevron arrive on hover, focus and while open; the descendant `[&_svg]` selectors outrank the
+ * chevron's own `opacity-50`.
+ *
+ * Everything stays inside the cell's `p-2`: column widths come from content in an auto-layout table,
+ * so a control that overflows widens the column and shoves the table sideways the moment you touch
+ * it. Staying inside also leaves room for the focus ring, which would otherwise be drawn over the
+ * table border in the first column.
+ */
+export const inlineTriggerClassName =
+  'w-full justify-between border-transparent px-2 shadow-none not-disabled:cursor-pointer hover:bg-accent focus-visible:border-ring data-[state=open]:border-input data-[state=open]:bg-accent [&_svg]:opacity-0 hover:[&_svg]:opacity-60 focus-visible:[&_svg]:opacity-60 data-[state=open]:[&_svg]:opacity-60';
+
+/**
  * A hidden copy of the value, sharing the controls' horizontal box, that holds the column open.
  *
  * An `<input>` reports its default 20-character width as its max-content contribution to an

@@ -33,7 +33,7 @@ import {
   measurementUnitLabels,
   useInlineIngredientPatch,
 } from '@/modules/ingredients';
-import { ConfirmDeleteDialog, InlineCell, SELECT_NONE, serverMessage } from '@/modules/shared';
+import { ConfirmDeleteDialog, InlineCell, inlineTriggerClassName, SELECT_NONE, serverMessage } from '@/modules/shared';
 import { StoreCombobox } from '@/modules/stores';
 
 const $deleteIngredient = client.ingredients[':id'].$delete;
@@ -76,19 +76,6 @@ export const ingredientsTableColumns = [
   }),
 ];
 
-/**
- * An editable cell should read as table text until you reach for it, or a library of staples turns
- * into a wall of form controls. The border and chevron arrive on hover, focus and while open — the
- * descendant `[&_svg]` selectors outrank the chevron's own `opacity-50`.
- *
- * Every inline control stays inside the cell's own `p-2`: column widths come from the content in an
- * auto-layout table, so a control that overflows its cell widens the column and shoves the rest of
- * the table sideways the moment you touch it. Staying inside also leaves room for the focus ring,
- * which would otherwise be drawn over the table border in the first column.
- */
-const inlineSelectTriggerClassName =
-  'w-full justify-between border-transparent px-2 shadow-none not-disabled:cursor-pointer hover:bg-accent focus-visible:border-ring data-[state=open]:border-input data-[state=open]:bg-accent [&_svg]:opacity-0 hover:[&_svg]:opacity-60 focus-visible:[&_svg]:opacity-60 data-[state=open]:[&_svg]:opacity-60';
-
 function IngredientCategoryCell({ category, id }: { category: IngredientCategory; id: number }) {
   const { isPending, saveOrToast } = useInlineIngredientPatch(id);
 
@@ -98,7 +85,7 @@ function IngredientCategoryCell({ category, id }: { category: IngredientCategory
       onValueChange={(value) => saveOrToast({ category: ingredientCategory.parse(value) })}
       value={category}
     >
-      <SelectTrigger aria-label="Category" className={inlineSelectTriggerClassName}>
+      <SelectTrigger aria-label="Category" className={inlineTriggerClassName}>
         <span>{ingredientCategoryLabels[category]}</span>
       </SelectTrigger>
       <SelectContent>
@@ -121,7 +108,7 @@ function IngredientStoreCell({ id, store }: { id: number; store: Ingredient['sto
 
   return (
     <StoreCombobox
-      className={inlineSelectTriggerClassName}
+      className={inlineTriggerClassName}
       disabled={isPending}
       noneLabel="—"
       onChange={(choice) =>
@@ -147,7 +134,7 @@ function IngredientDefaultUnitCell({ defaultUnit, id }: { defaultUnit: Measureme
       }
       value={defaultUnit ?? SELECT_NONE}
     >
-      <SelectTrigger aria-label="Default unit" className={inlineSelectTriggerClassName}>
+      <SelectTrigger aria-label="Default unit" className={inlineTriggerClassName}>
         <span className={defaultUnit ? undefined : 'text-muted-foreground'}>
           {defaultUnit ? measurementUnitLabels[defaultUnit] : '—'}
         </span>

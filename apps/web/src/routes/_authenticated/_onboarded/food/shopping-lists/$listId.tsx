@@ -23,18 +23,12 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
   Spinner,
 } from '@homewise/ui/core';
 
 import { parseResponse } from '@/api/client';
 import { listIngredientsQueryOptions } from '@/modules/ingredients';
-import { ConfirmDeleteDialog, InlineTextField, serverMessage } from '@/modules/shared';
+import { ConfirmDeleteDialog, InlineTextField, RouteError, serverMessage } from '@/modules/shared';
 import {
   $completeList,
   $createSection,
@@ -71,28 +65,16 @@ export const Route = createFileRoute('/_authenticated/_onboarded/food/shopping-l
   component: ShoppingListDetailRoute,
   pendingComponent: () => <Spinner />,
   /**
-   * A list can vanish while you're looking at it — another member deletes it, and the realtime
-   * invalidation refetches its detail straight into a 404. Without a boundary here that rejection
-   * reaches the root one and replaces the entire app with "Something went wrong!", taking the
-   * sidebar and the list of lists with it.
-   *
-   * Scoped to this route, so only the pane that lost its subject says so.
+   * A list can genuinely vanish while you're looking at it — another member deletes it, and the
+   * realtime invalidation refetches its detail straight into a 404 — so this one names what
+   * happened and offers somewhere to go, rather than the default reload.
    */
   errorComponent: () => (
-    <Empty className="min-h-64">
-      <EmptyHeader>
-        <EmptyMedia variant="icon">
-          <ListXIcon />
-        </EmptyMedia>
-        <EmptyTitle>This list is gone</EmptyTitle>
-        <EmptyDescription>It was deleted, or finished and filtered out.</EmptyDescription>
-      </EmptyHeader>
-      <EmptyContent>
-        <Button asChild variant="outline">
-          <Link to="/food/shopping-lists">Back to your lists</Link>
-        </Button>
-      </EmptyContent>
-    </Empty>
+    <RouteError description="It was deleted, or finished and filtered out." icon={ListXIcon} title="This list is gone">
+      <Button asChild variant="outline">
+        <Link to="/food/shopping-lists">Back to your lists</Link>
+      </Button>
+    </RouteError>
   ),
 });
 

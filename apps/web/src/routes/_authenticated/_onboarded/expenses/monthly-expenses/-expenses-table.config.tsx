@@ -30,6 +30,7 @@ import {
   formatDate,
   InlineCell,
   InlineCellSizer,
+  inlineTriggerClassName,
   parseAmount,
   serverMessage,
 } from '@/modules/shared';
@@ -46,8 +47,6 @@ import {
  * exception (`fill`): free text of no fixed length, in the column the table hands the slack to.
  */
 const inlineControlClassName = 'max-w-xs';
-
-const inlineTriggerClassName = `${inlineControlClassName} w-full justify-between border-transparent px-2 shadow-none not-disabled:cursor-pointer hover:bg-accent focus-visible:border-ring data-[state=open]:border-input data-[state=open]:bg-accent [&_svg]:opacity-0 hover:[&_svg]:opacity-60 focus-visible:[&_svg]:opacity-60 data-[state=open]:[&_svg]:opacity-60`;
 
 function TitleCell({ id, title }: { id: number; title: string }) {
   const { save } = useInlineExpensePatch(id);
@@ -100,7 +99,7 @@ function CategoryCell({ category, id, onManage }: { category: Expense['category'
 
   return (
     <ExpenseCategoryCombobox
-      className={inlineTriggerClassName}
+      className={`${inlineControlClassName} ${inlineTriggerClassName}`}
       noneLabel="—"
       onChange={async (choice) => {
         if (choice.kind === 'new') {

@@ -4,4 +4,5 @@ export * from './date-field';
 export * from './external-link';
 export * from './inline-cell';
 export * from './inline-text-field';
+export * from './route-error';
 export * from './unsaved-changes-dialog';
