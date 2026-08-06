@@ -1,48 +1,11 @@
-import { format, isFuture, isValid, parse, parseISO } from 'date-fns';
+import { format, isValid, parseISO } from 'date-fns';
 import { CalendarIcon } from 'lucide-react';
 import { type ComponentProps, useState } from 'react';
 
 import { Button, Calendar, Input, Popover, PopoverContent, PopoverTrigger } from '@homewise/ui/core';
 import { cn } from '@homewise/ui/lib';
 
-import { DATE_DISPLAY_FORMAT } from '../helpers';
-
-/**
- * Accepted typing formats, tried in order — the display format first, so what the field renders is
- * always something it takes back. Day-first throughout: `new Date()` would read "03. 07. 2026" as
- * 7 March (US month-first), which is the wrong reading here.
- */
-const DATE_INPUT_FORMATS = [
-  DATE_DISPLAY_FORMAT,
-  'd. M. yyyy',
-  'dd.MM.yyyy',
-  'd.M.yyyy',
-  'dd/MM/yyyy',
-  'd/M/yyyy',
-  'dd-MM-yyyy',
-  'd-M-yyyy',
-  'yyyy-MM-dd',
-  'd MMMM yyyy',
-  'd MMM yyyy',
-];
-
-/**
- * Parses day-first input. Returns undefined for anything unparseable or out of range (31. 02.), and
- * — unless `allowFuture` — for anything ahead of today, matching the calendar's `after` limit.
- */
-function parseDayFirst(input: string, allowFuture: boolean) {
-  const trimmed = input.trim();
-
-  for (const dateFormat of DATE_INPUT_FORMATS) {
-    const parsed = parse(trimmed, dateFormat, new Date());
-
-    if (isValid(parsed) && (allowFuture || !isFuture(parsed))) {
-      return parsed;
-    }
-  }
-
-  return undefined;
-}
+import { DATE_DISPLAY_FORMAT, parseDayFirst } from '../helpers';
 
 /**
  * ShadCN date-picker (input + calendar popover) bound to the `YYYY-MM-DD` string the API expects.

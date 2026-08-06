@@ -45,6 +45,8 @@ catalog:
   '@tanstack/react-router-devtools': ^1.167.0
   '@tanstack/react-table': ^8.21.3
   '@tanstack/router-plugin': ^1.168.23
+  '@testing-library/dom': ^10.4.1
+  '@testing-library/react': ^16.3.2
   '@types/node': ^25.9.5
   '@types/pg': ^8.20.0
   '@types/react': ^19.2.17
@@ -67,6 +69,7 @@ catalog:
   esbuild: ^0.28.1
   hono: ^4.12.32
   husky: ^9.1.7
+  jsdom: ^30.0.1
   knip: ^6.29.0
   lucide-react: 1.27.0
   pg: ^8.22.0
@@ -86,6 +89,7 @@ catalog:
   typescript: 7.0.2
   usehooks-ts: ^3.1.1
   vite: ^8.1.5
+  vitest: ^4.1.10
   zod: ^4.4.3
 
 onlyBuiltDependencies:

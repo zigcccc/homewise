@@ -2,6 +2,8 @@ import { captureException } from '@sentry/hono/node';
 import { del, list, put } from '@vercel/blob';
 import sharp from 'sharp';
 
+import { env } from '#config/env';
+
 type PutImageOptions =
   | {
       width: number;
@@ -43,7 +45,7 @@ export type ManagedImageUpdate =
   | { changed: true; value: string | null; commit: () => Promise<void>; rollback: () => Promise<void> };
 
 export class ImagesService {
-  private static token = process.env.HOMEWISE_FILES_READ_WRITE_TOKEN;
+  private static token = env.HOMEWISE_FILES_READ_WRITE_TOKEN;
 
   private static async resizeImage(file: File, width: number, height: number) {
     const buffer = Buffer.from(await file.arrayBuffer());

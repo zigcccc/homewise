@@ -1,9 +1,7 @@
-import { move } from '@dnd-kit/helpers';
-import { DragDropProvider, type DragEndEvent } from '@dnd-kit/react';
-import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
+import { DragDropProvider } from '@dnd-kit/react';
+import { useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
-import { toast } from 'sonner';
 import z from 'zod';
 
 import {
@@ -23,23 +21,21 @@ import {
   Spinner,
 } from '@homewise/ui/core';
 
-import { parseResponse } from '@/api/client';
 import { getMyHouseholdQueryOptions } from '@/modules/households';
 import {
-  $patchMeal,
   currentWeekStart,
   eligibleMembers,
   groupIntoWeeks,
-  invalidateMealPlan,
   mealPlanRangeQueryOptions,
   rangeFor,
   rangeLabel,
   shiftWeeks,
   toDaysWithMeals,
   toWeekStart,
+  useMealMove,
 } from '@/modules/meal-plan';
 import { listRecipesQueryOptions } from '@/modules/recipes';
-import { Actionbar, serverMessage } from '@/modules/shared';
+import { Actionbar } from '@/modules/shared';
 
 import { MealPlanDayRow } from './-components/meal-plan-day';
 
@@ -83,7 +79,6 @@ export const Route = createFileRoute('/_authenticated/_onboarded/food/meal-plan/
 function MealPlanRoute() {
   const searchParams = Route.useSearch();
   const navigate = Route.useNavigate();
-  const queryClient = useQueryClient();
   const range = rangeFor(searchParams.from, searchParams.weeks);
 
   const { data: plan } = useSuspenseQuery(mealPlanRangeQueryOptions(range));
@@ -94,90 +89,7 @@ function MealPlanRoute() {
   const members = eligibleMembers(household?.members ?? []);
   const visibleDays = days.map((day) => day.day);
 
-  const moveMeal = useMutation({
-    mutationFn: async ({ id, position, toDay }: { id: number; position?: number; toDay: string }) =>
-      parseResponse($patchMeal({ param: { id: String(id) }, json: { day: toDay, position } })),
-
-    /**
-     * Written into the cache before the request goes out.
-     *
-     * dnd-kit's optimistic sorting has already moved the DOM node by the time the drop fires. Without
-     * this, React re-renders from the old server data first and the card visibly snaps back to where
-     * it started, then jumps again when the refetch lands.
-     */
-    async onMutate({ id, position, toDay }) {
-      const key = mealPlanRangeQueryOptions(range).queryKey;
-      await queryClient.cancelQueries({ queryKey: key });
-
-      const previous = queryClient.getQueryData(key);
-
-      queryClient.setQueryData(key, (old) => {
-        if (!old) {
-          return old;
-        }
-
-        const moved = old.meals.find((meal) => meal.id === id);
-
-        if (!moved) {
-          return old;
-        }
-
-        const rest = old.meals.filter((meal) => meal.id !== id);
-        const target = rest.filter((meal) => meal.day === toDay);
-        const at = position ?? target.length;
-        target.splice(Math.min(Math.max(at, 0), target.length), 0, { ...moved, day: toDay });
-
-        return {
-          ...old,
-          meals: [...rest.filter((meal) => meal.day !== toDay), ...target].map((meal, index) => ({
-            ...meal,
-            position: index,
-          })),
-        };
-      });
-
-      return { key, previous };
-    },
-    onError: (error, _variables, context) => {
-      if (context) {
-        queryClient.setQueryData(context.key, context.previous);
-      }
-      toast.error(serverMessage(error, 'Could not move that meal.'));
-    },
-    onSettled: () => invalidateMealPlan(queryClient),
-  });
-
-  /**
-   * A drop landed. `move()` gives back the day → meal-ids record with the card relocated, so the
-   * meal's new day is whichever key now contains it, and its new position is its index there.
-   */
-  const handleDragEnd = (event: DragEndEvent) => {
-    const draggedId = event.operation.source?.id;
-
-    if (event.canceled || draggedId === undefined) {
-      return;
-    }
-
-    const before: Record<string, number[]> = Object.fromEntries(
-      days.map((day) => [day.day, day.meals.map((meal) => meal.id)])
-    );
-    const after = move(before, event);
-
-    for (const [day, ids] of Object.entries(after)) {
-      const position = ids.indexOf(Number(draggedId));
-
-      if (position !== -1) {
-        const from = days.find((candidate) => candidate.meals.some((meal) => meal.id === Number(draggedId)));
-
-        // A drag that ended where it started is not a move.
-        if (from?.day !== day || from.meals.findIndex((meal) => meal.id === Number(draggedId)) !== position) {
-          moveMeal.mutate({ id: Number(draggedId), position, toDay: day });
-        }
-
-        return;
-      }
-    }
-  };
+  const { moveMeal, onDragEnd } = useMealMove(range, days);
 
   const searchFor = (from: string, weeks: SearchParams['weeks']) => ({ from, weeks });
 
@@ -246,7 +158,7 @@ function MealPlanRoute() {
           </div>
         </div>
 
-        <DragDropProvider onDragEnd={handleDragEnd}>
+        <DragDropProvider onDragEnd={onDragEnd}>
           {/* Cards only — the title and week nav stay full-bleed, as on every other list page. */}
           <div className="space-y-6 lg:max-w-2/3">
             {groupIntoWeeks(days).map((week) => (
@@ -260,7 +172,7 @@ function MealPlanRoute() {
                       day={day}
                       key={day.day}
                       members={members}
-                      onMoveMeal={(id, toDay) => moveMeal.mutate({ id, toDay })}
+                      onMoveMeal={(id, toDay) => moveMeal({ id, toDay })}
                       recipes={recipes}
                       visibleDays={visibleDays}
                     />

@@ -33,3 +33,25 @@ services:
       interval: 2s
       timeout: 3s
       retries: 15
+
+  # Isolated database for the vitest unit suite. Its own port and its own profile,
+  # so a `pnpm test` and a `pnpm test:e2e` can run at the same time without either
+  # one writing into the other's data — and neither ever touches the dev DB on 8765.
+  # Unlike postgres-test this one is never seeded: unit tests build their own rows.
+  postgres-unit:
+    image: postgres:17.6
+    restart: unless-stopped
+    container_name: homewise-unit-db
+    profiles:
+      - unit
+    ports:
+      - "8767:5432"
+    environment:
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_USER=user
+      - POSTGRES_DB=homewise_unit
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d homewise_unit"]
+      interval: 2s
+      timeout: 3s
+      retries: 15

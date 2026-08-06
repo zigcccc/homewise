@@ -32,6 +32,15 @@ const envModel = z
      */
     HOMEWISE_ABLY_API_KEY: z.string().min(1),
     /**
+     * Vercel blob token. Required for the same reason as the two above: every profile picture, kid
+     * and pet photo goes through it, so without one the app boots fine and then fails the first time
+     * anyone uploads anything — as an opaque error from the storage SDK, far from the cause.
+     *
+     * `.min(1)` because a declared-but-empty variable is the realistic mistake, and an empty token
+     * reaches the SDK as a credential rather than as "unset".
+     */
+    HOMEWISE_FILES_READ_WRITE_TOKEN: z.string().min(1),
+    /**
      * Channel prefix isolating one deployment's realtime traffic from another's. Household ids
      * repeat across databases — local, each PR preview and production all have a household `1` —
      * so without a prefix a single Ably app would deliver production events to a dev machine.

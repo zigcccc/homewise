@@ -1,4 +1,15 @@
-import { endOfMonth, format, getMonth, getYear, isValid, parseISO, startOfMonth } from 'date-fns';
+import {
+  differenceInYears,
+  endOfMonth,
+  format,
+  getMonth,
+  getYear,
+  isFuture,
+  isValid,
+  parse,
+  parseISO,
+  startOfMonth,
+} from 'date-fns';
 
 /**
  * Everything the web does with a date: how one is rendered, and the month/year arithmetic the views
@@ -48,8 +59,61 @@ export const formatDate = (value: string | Date | null | undefined) => formatWit
 /** "06. 04. 2099 @ 14:08" — for the timestamps where the time of day is the point. */
 export const formatDateTime = (value: string | Date | null | undefined) => formatWith(value, DATE_TIME_DISPLAY_FORMAT);
 
+/**
+ * Accepted typing formats, tried in order — the display format first, so what a field renders is
+ * always something it takes back. Day-first throughout: `new Date()` would read "03. 07. 2026" as
+ * 7 March (US month-first), which is the wrong reading here.
+ */
+const DATE_INPUT_FORMATS = [
+  DATE_DISPLAY_FORMAT,
+  'd. M. yyyy',
+  'dd.MM.yyyy',
+  'd.M.yyyy',
+  'dd/MM/yyyy',
+  'd/M/yyyy',
+  'dd-MM-yyyy',
+  'd-M-yyyy',
+  'yyyy-MM-dd',
+  'd MMMM yyyy',
+  'd MMM yyyy',
+];
+
+/**
+ * Parses day-first input — the counterpart of `formatDate`, and here beside it so the pair can't
+ * drift. Returns undefined for anything unparseable or out of range (31. 02.), and — unless
+ * `allowFuture` — for anything ahead of today, matching the calendar's `after` limit.
+ */
+export function parseDayFirst(input: string, allowFuture: boolean) {
+  const trimmed = input.trim();
+
+  for (const dateFormat of DATE_INPUT_FORMATS) {
+    const parsed = parse(trimmed, dateFormat, new Date());
+
+    if (isValid(parsed) && (allowFuture || !isFuture(parsed))) {
+      return parsed;
+    }
+  }
+
+  return undefined;
+}
+
 /** Today as the API spells a day. Local, so it can't hand anyone east of UTC yesterday's date. */
 export const todayISODay = () => format(new Date(), ISO_DAY_FORMAT);
+
+/**
+ * Whole years since `since` — how old a kid or a pet is. `null` when the date is absent, unparseable
+ * or in the future, so a profile without a usable birth date shows no age rather than a negative one.
+ * `DateField` won't accept a future date, but stored data can still carry one.
+ */
+export function ageInYears(since: string | null | undefined) {
+  if (!since) {
+    return null;
+  }
+
+  const date = parseISO(since);
+
+  return isValid(date) && !isFuture(date) ? differenceInYears(new Date(), date) : null;
+}
 
 /**
  * Months are **1–12** throughout, not date-fns' 0–11: these numbers go in the URL, where `?month=8`

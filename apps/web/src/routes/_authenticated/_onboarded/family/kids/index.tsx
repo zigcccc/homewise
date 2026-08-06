@@ -1,6 +1,5 @@
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { differenceInYears, parseISO } from 'date-fns';
 import { BabyIcon, PlusIcon, UsersIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -32,7 +31,7 @@ import {
 import { client, parseResponse } from '@/api/client';
 import { listChildProfilesQueryOptions } from '@/modules/child-profiles';
 import { getMyHouseholdQueryOptions } from '@/modules/households';
-import { Actionbar } from '@/modules/shared';
+import { Actionbar, ageInYears } from '@/modules/shared';
 
 export const Route = createFileRoute('/_authenticated/_onboarded/family/kids/')({
   async loader({ context }) {
@@ -44,15 +43,6 @@ export const Route = createFileRoute('/_authenticated/_onboarded/family/kids/')(
   component: KidsRoute,
   pendingComponent: () => <Spinner />,
 });
-
-/** Whole years since the date of birth, or null when no date is set. */
-function ageInYears(dateOfBirth: string | null) {
-  if (!dateOfBirth) {
-    return null;
-  }
-
-  return differenceInYears(new Date(), parseISO(dateOfBirth));
-}
 
 function KidsRoute() {
   const navigate = Route.useNavigate();

@@ -31,7 +31,7 @@ jobs:
   # Re-run the quality gate so a direct push to main can't deploy unchecked code
   # (PRs are covered by ci.yml).
   verify:
-    name: Lint & typecheck
+    name: Lint, typecheck & unit tests
     runs-on: ubuntu-latest
     env:
       HUSKY: 0
@@ -58,6 +58,21 @@ jobs:
 
       - name: Type check
         run: pnpm check-types
+
+      # Pre-pulled with retries because a Docker Hub reset inside the vitest
+      # globalSetup would abort the run — and here that blocks a deploy.
+      - name: Pull unit Postgres image
+        run: |
+          for attempt in 1 2 3; do
+            docker compose -f apps/server/docker-compose.yaml pull postgres-unit && exit 0
+            echo "::warning::docker pull failed (attempt $attempt/3), retrying…"
+            sleep $((attempt * 15))
+          done
+          exit 1
+
+      # No secrets needed: externals are mocked and the unit DB is stood up locally.
+      - name: Unit tests (Vitest)
+        run: pnpm test
 
       - name: Unused code & dependencies (Knip)
         run: pnpm knip

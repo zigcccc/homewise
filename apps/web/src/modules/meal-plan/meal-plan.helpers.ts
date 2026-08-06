@@ -75,6 +75,38 @@ const nameList = new Intl.ListFormat('en', { style: 'long', type: 'conjunction' 
 export const stillNeedsAMeal = (names: string[]) =>
   `${nameList.format(names)} still ${names.length === 1 ? 'needs' : 'need'} a meal`;
 
+/**
+ * Where a dropped meal ended up, or `null` when nothing actually moved.
+ *
+ * `after` is the day → meal-ids record dnd-kit's `move()` produced, so the meal's new day is
+ * whichever key now holds it and its new position is its index there. `null` covers both a drag that
+ * ended where it started — which is not a move and must not cost a request — and an id that appears
+ * in no day at all, which a cancelled or stale drop can produce.
+ */
+export function resolveMealMove<T extends { day: string; meals: { id: number }[] }>(
+  days: T[],
+  after: Record<string, number[]>,
+  draggedId: number
+) {
+  for (const [day, ids] of Object.entries(after)) {
+    const position = ids.indexOf(draggedId);
+
+    if (position === -1) {
+      continue;
+    }
+
+    const from = days.find((candidate) => candidate.meals.some((meal) => meal.id === draggedId));
+
+    if (from?.day === day && from.meals.findIndex((meal) => meal.id === draggedId) === position) {
+      return null;
+    }
+
+    return { position, toDay: day };
+  }
+
+  return null;
+}
+
 /** Splits a flat run of days into weeks, so the list can carry a header per week. */
 export function groupIntoWeeks<T extends { day: string }>(days: T[]) {
   const weeks: { start: string; end: string; days: T[] }[] = [];
