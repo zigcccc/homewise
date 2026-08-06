@@ -128,6 +128,37 @@
   [role='button']:not([aria-disabled='true']) {
     cursor: pointer;
   }
+
+  /* Leaflet ships its own skin (grey chrome, its own font stack, its own popup box). These pull it
+     onto the app's tokens instead — they belong here rather than in `packages/ui` because that
+     package has no stylesheet of its own. Shipped with the map component; see its header comment. */
+  .leaflet-container {
+    @apply !bg-card !font-[inherit];
+  }
+  .leaflet-container a {
+    @apply !text-inherit;
+  }
+  /* The pin is our own SVG, handed to Leaflet as markup — its default icon chrome has to go. */
+  .leaflet-div-icon {
+    @apply !border-none !bg-transparent;
+  }
+  .leaflet-popup-content-wrapper,
+  .leaflet-popup-content,
+  .leaflet-popup-content p {
+    @apply ![all:unset];
+  }
+  .leaflet-popup {
+    @apply !animate-none;
+  }
+  .leaflet-popup-close-button {
+    @apply ring-offset-background focus:ring-ring bg-secondary rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:outline-hidden;
+  }
+  .leaflet-popup-tip-container {
+    @apply hidden;
+  }
+  .leaflet-control-attribution {
+    @apply !bg-muted rounded-md !px-[4px] !py-[2px] text-[10px] !leading-none !text-inherit;
+  }
 }
 
 @layer base {
