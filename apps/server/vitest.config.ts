@@ -17,6 +17,7 @@ export default defineConfig({
       BETTER_AUTH_SECRET: 'unit-test-secret',
       DATABASE_URL: UNIT_DATABASE_URL,
       HOMEWISE_ABLY_API_KEY: 'unit.test:key',
+      HOMEWISE_FILES_READ_WRITE_TOKEN: 'unit-test-blob-token',
       HOMEWISE_RESEND_API_KEY: 'unit-test-resend-key',
       NODE_ENV: 'test',
     },
