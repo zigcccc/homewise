@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   verify:
-    name: Lint & typecheck
+    name: Lint, typecheck & unit tests
     runs-on: ubuntu-latest
     env:
       HUSKY: 0
@@ -43,6 +43,25 @@ jobs:
 
       - name: Type check
         run: pnpm check-types
+
+      # Same pre-pull rationale as the e2e job below: Docker Hub resets anonymous
+      # pulls from the shared runner IPs, and a failed pull inside the vitest
+      # globalSetup aborts the run before a test executes. Naming the service is
+      # what enables its `unit` profile.
+      - name: Pull unit Postgres image
+        run: |
+          for attempt in 1 2 3; do
+            docker compose -f apps/server/docker-compose.yaml pull postgres-unit && exit 0
+            echo "::warning::docker pull failed (attempt $attempt/3), retrying…"
+            sleep $((attempt * 15))
+          done
+          exit 1
+
+      # No secrets: every external service is mocked, so the vars `src/config/env.ts`
+      # demands are satisfied with placeholders in vitest.config.ts. DATABASE_URL is
+      # supplied by the vitest globalSetup (the unit DB on :8767).
+      - name: Unit tests (Vitest)
+        run: pnpm test
 
       - name: Unused code & dependencies (Knip)
         run: pnpm knip

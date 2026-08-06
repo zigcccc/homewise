@@ -10,6 +10,8 @@
     "format": "biome check --write .",
     "knip": "knip",
     "check-types": "turbo run check-types",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "test:e2e": "pnpm --filter @homewise/e2e test",
     "db:migrations:create": "turbo run db:migrations:create",
     "db:migrations:apply": "turbo run db:migrations:apply",
@@ -26,7 +28,8 @@
     "husky": "catalog:",
     "knip": "catalog:",
     "turbo": "^2.10.7",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   },
   "packageManager": "pnpm@11.17.0+sha512.cca3cea332ad254bb84145f966d19f4879615210346fc92c79a047f23a0d7b3cca3c3792f0076ba1f1831d277efbcf0a9119b31a9a60eca7fb3d6231f331ef72",
   "engines": {

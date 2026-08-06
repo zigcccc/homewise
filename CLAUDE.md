@@ -48,10 +48,14 @@ pnpm --filter @homewise/e2e test:ui        # Interactive Playwright UI (watch/de
 pnpm --filter @homewise/e2e test:report    # Open the last HTML report
 pnpm --filter @homewise/e2e db:test:up     # Start only the test Postgres (:8766)
 pnpm --filter @homewise/e2e db:test:down   # Remove the test Postgres
-# No unit-test runner is configured yet — Playwright E2E is the only test layer.
+
+# Unit testing (Vitest — apps/server + apps/web)
+pnpm test                       # Full unit suite. Spins up an isolated unit Postgres (:8767), migrates it, removes it after.
+pnpm test:watch                 # Watch mode
+pnpm exec vitest run --project server   # One project only (`server` | `web`)
 ```
 
-Requires Node.js >=24 and Docker (local dev Postgres on 8765; the E2E suite spins up its own throwaway Postgres on 8766).
+Requires Node.js >=24 and Docker (local dev Postgres on 8765; the E2E suite spins up its own throwaway Postgres on 8766, the unit suite its own on 8767 — three separate containers on three ports, so neither suite can write into the other's data or into the dev DB).
 
 ## Architecture
 
@@ -224,7 +228,7 @@ Better Auth manages its own tables (`user`, `session`, `account`). Domain tables
 
 ### End-to-end testing (`apps/e2e`)
 
-Playwright drives the **real** app (web + server) end-to-end. Tests live in the dedicated `@homewise/e2e` workspace — **not** inside `apps/web`. E2E is the only test layer right now (no unit runner).
+Playwright drives the **real** app (web + server) end-to-end. Tests live in the dedicated `@homewise/e2e` workspace — **not** inside `apps/web`. E2E is the **default** test layer: anything reachable through the running app is covered here, and the Vitest unit suite covers only what isn't (see below).
 
 - **Structure**: `tests/*.spec.ts` are the specs; `tests/auth.setup.ts` is a `setup` project that logs the seed users in once and saves `storageState`, so specs start already authenticated. `pages/*.page.ts` are **Page Object Models** — selectors and actions live there so specs read as intent; `support/` holds config + `global-setup`/`global-teardown`.
 - **Three project phases run in order** (`setup` → `parallel` → `exclusive`), sequenced by `dependencies`. Nearly everything belongs in `parallel`, which is `fullyParallel` — that's why specs must use uniquely-named rows. The handful that mutate a *shared seed row* (household name, user name, ownership) are quarantined into `serial-seed-mutations.spec.ts`, the single `exclusive` file, which runs alone at the end. Put a spec there only if it can't be made self-contained; a new spec needs no config change.
@@ -239,6 +243,30 @@ Playwright drives the **real** app (web + server) end-to-end. Tests live in the 
 - **When a deliberate change makes a spec fail**, update the spec (or its Page Object) to the new intended behavior — never delete it or `.skip` it just to go green. A red E2E on a PR is a required signal, not noise. Locally, `test:report` opens the HTML report; on CI the report + traces upload as an artifact on failure.
 
 See the **`new-feature-module`** skill for how a new feature's E2E flow gets added.
+
+### Unit testing (Vitest — `apps/server`, `apps/web`)
+
+**E2E is the default; a unit test has to earn its place.** The bar is that the behaviour is hard or impossible to reach through the running app. Three things clear it: **parsing/formatting** with a clear input and a clear expected output; **defence paths no user can reach** (`isUniqueViolation` walking a `DrizzleQueryError` cause chain, `commitManagedImage` rolling back an upload after a concurrent delete); and a **network-free hook** whose logic the UI can't practically exercise. Everything else is E2E's job.
+
+Two things are **never** unit-tested, because reaching for a test on them means the code is in the wrong place:
+- **A server route handler.** If a route holds logic E2E can't reach, that logic belongs in a service — extract it, then test the service.
+- **A React component.** If a component holds logic worth testing, it belongs in a hook or a helper — extract it, then test that. `parseDayFirst` came out of `date-field.tsx` for exactly this reason.
+
+**Only external services may be mocked** — Resend, `@vercel/blob`, Ably, Sentry. **Nothing we own is ever mocked**: not the database, not a service, not a sibling helper, and **not our own API**. Two consequences follow, and both are load-bearing rather than incidental:
+- The DB gets a **real Postgres**, never a stub. The defence paths worth covering are assertions about the *pg driver's error shape*, so a substitute would undermine the tests it exists to enable.
+- **A hook's *request* is not unit-testable** — faking that response is mocking something we own. What surrounds it is: `use-meal-move.test.tsx` renders the hook against a real `QueryClient` and asserts what it decided to send (read off the mutation cache, not the network) and the optimistic write it made first. The pure cores come out too (`moveMealInRange`, `resolveMealMove`), and the request itself is left to fail against no server.
+- **Don't drive a third-party interaction library from a unit test.** dnd-kit resolves a cross-day move off `source.manager` — a live drag operation with measured shapes — so a synthetic drop event silently returns the list unchanged and the test passes while proving nothing. Assert what the hook does with the *result*, and let `meal-plan.spec.ts` prove a real drag arrives.
+
+Mechanics:
+- **Tests are colocated** — `src/lib/dates.test.ts` beside `src/lib/dates.ts`, one `*.test.ts` convention whether or not the test touches the database. esbuild bundles only what `src/index.ts` reaches, so they never enter `dist`.
+- **One entry point.** `pnpm test` runs both projects and always brings up the unit Postgres; a warm `docker compose up -d --wait` costs about a second, which isn't worth a second command to avoid.
+- **`apps/server/vitest.config.ts` sets `test.env`** with every var `#config/env` demands. Without them that module calls `process.exit(1)` and vitest reports a dead worker rather than a readable failure. The credentials are deliberately nonsense — a real key would only mean a test run could reach a real service.
+- **`vitest.setup.ts` refuses to run unless `DATABASE_URL` is the :8767 unit URL.** `env.ts` calls `dotenv.config()`, so a worker's environment isn't purely what the config handed it; this makes "the config's value wins" a checked fact. The failure it prevents is a test suite truncating the dev database.
+- **Isolation is unique-per-test data**, the same discipline the E2E specs use — each file creates its own household. `globalSetup` truncates everything up front so a killed run doesn't poison the next.
+- **`apps/web/vitest.config.ts` is written fresh, not extended from `vite.config.ts`** — that config's `tanstackRouter` plugin would regenerate `routeTree.gen.ts` on every test run.
+- **Not a turbo task**, same as E2E. Knip needs no configuration: its Vitest plugin already picks up the configs and test files.
+
+See the **`unit-testing`** skill for the full recipe, including how to add a DB-touching test.
 
 ## Key Conventions
 
@@ -262,7 +290,7 @@ See the **`new-feature-module`** skill for how a new feature's E2E flow gets add
 - **Dependencies use `catalog:`** — add the version to `pnpm-workspace.yaml`'s catalog and reference `catalog:` from each `package.json`. Never pin a raw version in a workspace package.
 - **A `TooltipTrigger asChild` around an enabled `DropdownMenuItem` swallows its `onClick`.** The household-members table gets away with the pattern only because its items are disabled whenever the tooltip content renders. For an always-enabled menu item, drop the tooltip.
 - **Verify against the running app, not just the type-checker.** Boot the server and exercise the endpoints (including the negative cases: wrong role, cross-household id, duplicate, malformed input). Cover UI behavior with an **E2E flow**, not by hand-driving the browser — don't manually verify in the browser unless the user explicitly asks (it's slow; the tests are fast and repeatable). Type-checking passing is not evidence a feature works — a swallowed `onClick` and a US-vs-European date parse both type-check fine. Clean up any test data you create.
-- **Before finishing, run all three**: `pnpm check-types`, `pnpm lint` (zero diagnostics), and `pnpm knip`. Each catches a category the others miss — knip is the only one that flags a dependency declared in a `package.json` that nothing in that package actually imports.
+- **Before finishing, run all four**: `pnpm check-types`, `pnpm lint` (zero diagnostics), `pnpm knip`, and `pnpm test`. Each catches a category the others miss — knip is the only one that flags a dependency declared in a `package.json` that nothing in that package actually imports.
 - **Every user-facing feature ships with an E2E flow.** When you add or materially change a feature, add or extend a Playwright spec in `apps/e2e` that drives its happy path through the real UI (see the E2E testing section and the `new-feature-module` skill). The feature isn't done until it has one.
 - **Run the full E2E suite as the final gate — once, not continuously.** After `check-types`/`lint`/`knip` are green, run `pnpm test:e2e` as the last step before telling the user you're done. The E2E flow **is** how you confirm the feature works and nothing regressed — don't hand-drive the browser to verify (it's slow and error-prone; that's exactly what these tests replace). Do **not** run the suite repeatedly while developing — it's slow and needs Docker; it's a final verification, not an inner-loop tool. Report the result honestly: if it fails, say so with the output rather than declaring done.
 - **Always use react-hook-form for forms and form fields** — never track field values with `useState`. Use `useForm` with `zodResolver(<server model>)`, explicit `defaultValues`, and the shared `Form`/`FormField`/`FormItem`/`FormControl`/`FormLabel`/`FormMessage` components from `@homewise/ui/core/form`. Reuse the exported Zod model that matches the endpoint (e.g. `patchHouseholdMemberModel`) as the resolver so validation and the request payload stay aligned. This applies even to single-field dialogs.
