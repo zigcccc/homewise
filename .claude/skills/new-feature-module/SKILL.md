@@ -114,8 +114,9 @@ compile until you do. Mutations still invalidate locally as well; the acting tab
 **8. Routes** — `routes/_authenticated/_onboarded/<area>/<feature>/`
 
 `index.tsx` (list) and `$id.tsx` (detail). Both need a loader, a
-`pendingComponent: () => <Spinner />` **and an `errorComponent`** — without the last one a loader
-rejection replaces the whole app, sidebar included, with the root boundary's "Something went wrong!".
+`pendingComponent: () => <Spinner />` **and an `errorComponent`** — `<RouteError title="…" />` from
+`@/modules/shared`; without one a loader rejection replaces the whole app, sidebar included, with the
+root boundary's "Something went wrong!".
 Filter/sort state goes in `validateSearch` + `loaderDeps`, using `searchQueryParam` from
 `@homewise/server/models` rather than a local copy. Table columns and row-action dialogs go in a
 co-located `-<feature>.config.tsx`, mirroring `-household-members.config.tsx`; each cell takes the id
