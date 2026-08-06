@@ -19,8 +19,13 @@ export type Executor = typeof db | Parameters<Parameters<typeof db.transaction>[
  */
 export type Filters = (SQL | undefined)[];
 
-/** Optional text fields come in as '' when a user clears them; store that as NULL. */
-export const emptyToNull = (value: string | undefined) => (value === '' ? null : value);
+/**
+ * Optional text fields come in as '' when a user clears them; store that as NULL.
+ *
+ * `null` is accepted as well as returned: the payload models derive from the columns, so a nullable
+ * one takes an explicit `null` for the same "clear it" the empty string means.
+ */
+export const emptyToNull = (value: string | null | undefined) => (value === '' ? null : value);
 
 /**
  * Whether a patch has anything for drizzle to write.

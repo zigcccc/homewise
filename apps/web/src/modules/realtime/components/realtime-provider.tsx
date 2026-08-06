@@ -17,6 +17,8 @@ import { CLIENT_ID } from '@/api/client';
 import { invalidateChildDictionaryEntries } from '@/modules/child-dictionaries';
 import { invalidateChildProfile, invalidateChildProfiles } from '@/modules/child-profiles';
 import { invalidateContacts } from '@/modules/contacts';
+import { invalidateExpenseCategories } from '@/modules/expense-categories';
+import { invalidateExpenses } from '@/modules/expenses';
 import { invalidateIngredients } from '@/modules/ingredients';
 import { invalidateMealPlan } from '@/modules/meal-plan';
 import { invalidatePetProfile, invalidatePetProfiles } from '@/modules/pet-profiles';
@@ -61,6 +63,15 @@ const invalidators: Record<HouseholdEventEntity, (queryClient: QueryClient, even
     invalidateContacts(queryClient);
     // Contacts are shown on the profiles they're attached to, and deleting one drops those links.
     invalidateProfiles(queryClient);
+  },
+  // Keyed by date range, like the meal plan below: no id in the event can address a single cache
+  // entry, so the whole domain goes and only the month someone is looking at refetches.
+  expense: (queryClient) => invalidateExpenses(queryClient),
+  expense_category: (queryClient) => {
+    invalidateExpenseCategories(queryClient);
+    // The expense table shows the category's name off the join, so a rename relabels rows there and
+    // a delete clears the cell on every expense that pointed at it — and moves them in the breakdown.
+    invalidateExpenses(queryClient);
   },
   ingredient: (queryClient) => invalidateIngredients(queryClient),
   // Keyed by date range, so no id in the event can address a single cache entry — the whole domain

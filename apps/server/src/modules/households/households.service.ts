@@ -106,6 +106,25 @@ export class HouseholdsService {
     return household;
   }
 
+  /**
+   * What this household counts money in. Read at write time by anything that persists an amount, so
+   * the currency is copied onto the row rather than joined — changing the setting decides what future
+   * rows are logged in and leaves past ones reading as they were.
+   */
+  public static async readCurrency(householdId: number) {
+    const [household] = await db
+      .select({ currency: schema.household.currency })
+      .from(schema.household)
+      .where(eq(schema.household.id, householdId))
+      .limit(1);
+
+    if (!household) {
+      throw notFound('Household');
+    }
+
+    return household.currency;
+  }
+
   public static async create(data: InsertHousehold) {
     return await db.transaction(async (tx) => {
       const [createdHousehold] = await db.insert(schema.household).values(data).returning();

@@ -41,8 +41,20 @@ Name relations for what they are (`child`, `creator`), never `member`. Export fr
 One flat file beside the app and service — the module is a trio plus a one-line `index.ts`
 re-exporting the app. No `models/` folder, no barrel.
 
-Zod schemas with trimmed, length-bounded text. Dates use `z.iso.date()`. List query params get
-`.default().catch()`. Path params use `z.coerce.number<number>()`.
+**Derive them from the table.** `createInsertSchema`/`createUpdateSchema` for anything that writes a
+row, `createSelectSchema(schema.xEnum)` for every enum — never a hand-written `z.enum([...])` mirror.
+`.omit(dbOwnedColumns)` plus whatever else the server owns. See CLAUDE.md → "Models derive from the
+schema" for the three drizzle-zod traps before you write one; the callback-vs-bare-schema distinction
+in particular produces a PATCH model that type-checks and then rejects every partial update.
+
+Hand-write only a payload that is a *command over* a row rather than the row itself (a boolean that
+drives a stored timestamp, a position that triggers a resequence, an array that is a join table), and
+say so in a comment.
+
+Trimmed, length-bounded text; `clearableDate` for a date a form can blank; `moneyAmount` for money
+(drizzle-zod gives a `numeric` column no decimal or positivity check). `search` and `sortDirection`
+come from `#lib/models` — only the sort key is per-entity, and it gets `.default().catch()`. Path
+params use `z.coerce.number<number>()`.
 
 Add a `"./<feature>"` subpath to `apps/server/package.json#exports` pointing straight at
 `./src/modules/<feature>/<feature>.model.ts`, so the web app imports models the same way it does
@@ -101,10 +113,14 @@ compile until you do. Mutations still invalidate locally as well; the acting tab
 
 **8. Routes** — `routes/_authenticated/_onboarded/<area>/<feature>/`
 
-`index.tsx` (list) and `$id.tsx` (detail). Both need a loader and a
-`pendingComponent: () => <Spinner />`. Filter/sort state goes in `validateSearch` + `loaderDeps`.
-Table columns and row-action dialogs go in a co-located `-<feature>.config.tsx`, mirroring
-`-household-members.config.tsx`.
+`index.tsx` (list) and `$id.tsx` (detail). Both need a loader, a
+`pendingComponent: () => <Spinner />` **and an `errorComponent`** — `<RouteError title="…" />` from
+`@/modules/shared`; without one a loader rejection replaces the whole app, sidebar included, with the
+root boundary's "Something went wrong!".
+Filter/sort state goes in `validateSearch` + `loaderDeps`, using `searchQueryParam` from
+`@homewise/server/models` rather than a local copy. Table columns and row-action dialogs go in a
+co-located `-<feature>.config.tsx`, mirroring `-household-members.config.tsx`; each cell takes the id
+it patches and `info.getValue()`, not `info.row.original`.
 
 Derive every payload type from the RPC client, narrowing responses to `, 200`. Forms use
 `useForm` + `zodResolver(<server model>)`. Destructive actions use `ConfirmDeleteDialog` from
@@ -121,7 +137,13 @@ type has collapsed to `any`, because `any` is assignable to everything. Probe on
 response per CLAUDE.md → Key Conventions; deeply nested arrays are where it breaks.
 
 Give the empty state real intent: distinguish "nothing here yet" from "nothing matches your filter",
-and point at the action that fixes it.
+and point at the action that fixes it. Use the **full** `Empty` composition with a default-variant
+button inside `EmptyContent` — a one-line `<Empty>` with a ghost button beside it reads as unfinished
+next to every other empty state in the app.
+
+A click-to-edit cell is `InlineCell` from `@/modules/shared`, never a fresh copy of the
+sizer/placed-editor arrangement. A custom control inside `FormControl` must not declare its own `id`.
+Both are in CLAUDE.md, and both have already shipped as bugs.
 
 **9. Sidebar** — add a `SidebarGroup` in `routes/_authenticated/-components/AppSidebar.tsx`, replacing
 the stubbed `<Link to="/">` placeholder if one exists.

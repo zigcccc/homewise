@@ -33,7 +33,7 @@ import {
   measurementUnitLabels,
   useInlineIngredientPatch,
 } from '@/modules/ingredients';
-import { ConfirmDeleteDialog, InlineTextField, SELECT_NONE, serverMessage } from '@/modules/shared';
+import { ConfirmDeleteDialog, InlineCell, inlineTriggerClassName, SELECT_NONE, serverMessage } from '@/modules/shared';
 import { StoreCombobox } from '@/modules/stores';
 
 const $deleteIngredient = client.ingredients[':id'].$delete;
@@ -76,19 +76,6 @@ export const ingredientsTableColumns = [
   }),
 ];
 
-/**
- * An editable cell should read as table text until you reach for it, or a library of staples turns
- * into a wall of form controls. The border and chevron arrive on hover, focus and while open — the
- * descendant `[&_svg]` selectors outrank the chevron's own `opacity-50`.
- *
- * Every inline control stays inside the cell's own `p-2`: column widths come from the content in an
- * auto-layout table, so a control that overflows its cell widens the column and shoves the rest of
- * the table sideways the moment you touch it. Staying inside also leaves room for the focus ring,
- * which would otherwise be drawn over the table border in the first column.
- */
-const inlineSelectTriggerClassName =
-  'w-full justify-between border-transparent px-2 shadow-none not-disabled:cursor-pointer hover:bg-accent focus-visible:border-ring data-[state=open]:border-input data-[state=open]:bg-accent [&_svg]:opacity-0 hover:[&_svg]:opacity-60 focus-visible:[&_svg]:opacity-60 data-[state=open]:[&_svg]:opacity-60';
-
 function IngredientCategoryCell({ category, id }: { category: IngredientCategory; id: number }) {
   const { isPending, saveOrToast } = useInlineIngredientPatch(id);
 
@@ -98,7 +85,7 @@ function IngredientCategoryCell({ category, id }: { category: IngredientCategory
       onValueChange={(value) => saveOrToast({ category: ingredientCategory.parse(value) })}
       value={category}
     >
-      <SelectTrigger aria-label="Category" className={inlineSelectTriggerClassName}>
+      <SelectTrigger aria-label="Category" className={inlineTriggerClassName}>
         <span>{ingredientCategoryLabels[category]}</span>
       </SelectTrigger>
       <SelectContent>
@@ -121,7 +108,7 @@ function IngredientStoreCell({ id, store }: { id: number; store: Ingredient['sto
 
   return (
     <StoreCombobox
-      className={inlineSelectTriggerClassName}
+      className={inlineTriggerClassName}
       disabled={isPending}
       noneLabel="—"
       onChange={(choice) =>
@@ -147,7 +134,7 @@ function IngredientDefaultUnitCell({ defaultUnit, id }: { defaultUnit: Measureme
       }
       value={defaultUnit ?? SELECT_NONE}
     >
-      <SelectTrigger aria-label="Default unit" className={inlineSelectTriggerClassName}>
+      <SelectTrigger aria-label="Default unit" className={inlineTriggerClassName}>
         <span className={defaultUnit ? undefined : 'text-muted-foreground'}>
           {defaultUnit ? measurementUnitLabels[defaultUnit] : '—'}
         </span>
@@ -159,51 +146,19 @@ function IngredientDefaultUnitCell({ defaultUnit, id }: { defaultUnit: Measureme
   );
 }
 
-/**
- * The resting and editing halves of the name cell have to be the same box down to the border, or
- * clicking in nudges the text and resizes the column. `Input` supplies `h-9`, `w-full` and a 1px
- * border; the button matches with a transparent one.
- */
-const inlineNameClassName = 'h-9 w-full rounded-md border px-2 text-sm';
-
-/**
- * A hidden copy of the name, sharing the controls' horizontal box, that holds the column open. An
- * `<input>` reports its default 20-character width as its max-content contribution to an auto-layout
- * table no matter what `width` says — `size={1}` drops that to nothing, and this puts the name's own
- * width back, so the column measures the same whichever state the cell is in.
- */
-const inlineNameSizerClassName = 'invisible col-start-1 row-start-1 border px-2 text-sm';
-
 /** Click to rename in place. The dialog stays the way to reach the fields the table doesn't show. */
 function IngredientNameCell({ id, name }: { id: number; name: string }) {
-  const [editing, setEditing] = useState(false);
   const { save } = useInlineIngredientPatch(id);
 
   return (
-    // Both states stack into the one grid cell, over the sizer that fixes the column's width. The
-    // single `1fr` track means they fill the column when it's wider than the name.
-    <div className="grid grid-cols-1">
-      <span className={inlineNameSizerClassName}>{name}</span>
-      {editing ? (
-        // Mounted only while editing, so `defaultValues` reseed on every open with no reset effect.
-        <InlineTextField
-          ariaLabel="Name"
-          className={`${inlineNameClassName} col-start-1 row-start-1`}
-          defaultValue={name}
-          onDone={() => setEditing(false)}
-          onSave={async (value) => save({ name: value })}
-          schema={createIngredientModel.shape.name}
-        />
-      ) : (
-        <button
-          className={`${inlineNameClassName} col-start-1 row-start-1 flex cursor-pointer items-center border-transparent text-left hover:bg-accent`}
-          onClick={() => setEditing(true)}
-          type="button"
-        >
-          {name}
-        </button>
-      )}
-    </div>
+    <InlineCell
+      ariaLabel="Name"
+      display={name}
+      fill
+      onSave={async (value) => save({ name: value })}
+      schema={createIngredientModel.shape.name}
+      value={name}
+    />
   );
 }
 

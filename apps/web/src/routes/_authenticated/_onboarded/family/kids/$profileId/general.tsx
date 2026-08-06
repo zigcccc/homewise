@@ -172,9 +172,9 @@ function GeneralTab() {
                   name="dateOfBirth"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel htmlFor="dateOfBirth">Date of birth</FormLabel>
+                      <FormLabel>Date of birth</FormLabel>
                       <FormControl>
-                        <DateField id="dateOfBirth" onChange={field.onChange} value={field.value ?? ''} />
+                        <DateField onChange={field.onChange} value={field.value ?? ''} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

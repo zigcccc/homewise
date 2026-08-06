@@ -2,7 +2,9 @@ import { relations } from 'drizzle-orm';
 import { boolean, integer, pgEnum, pgTable, text } from 'drizzle-orm/pg-core';
 
 import { baseDbEntityFields } from './__shared/base';
+import { currencyEnum } from './__shared/currency';
 import { childProfile } from './child-profile';
+import { expense, expenseCategory } from './expense';
 import { plannedDayNote, plannedMeal, plannedMealMember } from './meal-plan';
 import { petProfile } from './pet-profile';
 import { ingredient, recipe, recipeTag } from './recipe';
@@ -18,6 +20,11 @@ export const household = pgTable('household', {
   ownerId: text('owner_id')
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),
+  /**
+   * What this household's money is counted in. Every expense copies it at write time, so changing it
+   * here decides what *future* rows are logged in and leaves past months reading as they were.
+   */
+  currency: currencyEnum().notNull().default('EUR'),
 });
 
 export const householdMember = pgTable('household_member', {
@@ -55,6 +62,8 @@ export const householdMemberRelations = relations(householdMember, ({ many, one 
 export const householdRelations = relations(household, ({ many, one }) => ({
   childProfiles: many(childProfile),
   petProfiles: many(petProfile),
+  expenseCategories: many(expenseCategory),
+  expenses: many(expense),
   ingredients: many(ingredient),
   invites: many(householdInvite),
   members: many(householdMember),

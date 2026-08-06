@@ -150,9 +150,9 @@ export function EntryForm({
           name="firstHeardOn"
           render={({ field }) => (
             <FormItem>
-              <FormLabel htmlFor="firstHeardOn">First heard on (optional)</FormLabel>
+              <FormLabel>First heard on (optional)</FormLabel>
               <FormControl>
-                <DateField id="firstHeardOn" onChange={field.onChange} value={field.value ?? ''} />
+                <DateField onChange={field.onChange} value={field.value ?? ''} />
               </FormControl>
               <FormMessage />
             </FormItem>

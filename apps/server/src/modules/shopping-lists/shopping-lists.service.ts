@@ -3,7 +3,7 @@ import { HTTPException } from 'hono/http-exception';
 
 import { db, schema } from '#db/core';
 import { type Executor, emptyToNull, isUniqueViolation, writesAnything } from '#db/utils';
-import { addDays, todayISO } from '#lib/dates';
+import { addDays, clampRange, todayISO } from '#lib/dates';
 import { alreadyExists, couldNotResolve, notFound, somethingWentWrong } from '#lib/errors';
 import { type Amount, formatAmount, scaleAmount, sumAmounts } from '#modules/ingredients/units';
 import { MAX_RANGE_DAYS, MEAL_ROLES } from '#modules/meal-plan/meal-plan.model';
@@ -753,21 +753,11 @@ export class ShoppingListsService {
     return ShoppingListsService.read(householdId, listId);
   }
 
-  /** The window an import reads, clamped the way `MealPlanService.listRange` clamps its own. */
+  /** The window an import reads: a week from today by default, under the meal plan's own cap. */
   private static importRange({ from, to }: MealPlanPreviewQueryParams) {
     const start = from ?? todayISO();
-    const requested = to ?? addDays(start, IMPORT_DEFAULT_DAYS - 1);
-    const maxTo = addDays(start, MAX_RANGE_DAYS - 1);
 
-    let end = requested;
-    if (end < start) {
-      end = start;
-    }
-    if (end > maxTo) {
-      end = maxTo;
-    }
-
-    return { from: start, to: end };
+    return clampRange(start, to ?? addDays(start, IMPORT_DEFAULT_DAYS - 1), MAX_RANGE_DAYS);
   }
 
   /**

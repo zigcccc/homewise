@@ -220,7 +220,9 @@ export class IngredientsPage {
 
   private async openNameEditor(name: string) {
     await expect(this.row(name)).toBeVisible();
-    await this.row(name).getByRole('button', { name, exact: true }).click();
+    // The resting cell is labelled by what it does, not by the value it shows — every inline cell in
+    // the app is, so a screen reader announces a control rather than a bare noun.
+    await this.row(name).getByRole('button', { name: 'Edit name' }).click();
     await expect(this.nameInput()).toBeFocused();
   }
 

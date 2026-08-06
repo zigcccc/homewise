@@ -2,17 +2,24 @@ import { createInsertSchema, createSelectSchema, createUpdateSchema } from 'driz
 import z from 'zod';
 
 import * as schema from '#db/schema/core';
+import { dbOwnedColumns } from '#lib/models';
 
 export const householdMemberRole = createSelectSchema(schema.householdMemberRoleEnum);
 export type HouseholdMemberRole = z.infer<typeof householdMemberRole>;
 
-export const insertHouseholdModel = createInsertSchema(schema.household, {
-  name: (model) =>
+/** What the household counts money in. Mirrored from the DB enum; the web reads `.options` for its picker. */
+export const currency = createSelectSchema(schema.currencyEnum);
+export type Currency = z.infer<typeof currency>;
+
+const householdColumns = {
+  name: (model: z.ZodString) =>
     model
       .trim()
       .min(3, { error: 'Household name must contain at least 3 characters' })
       .max(64, { error: 'Household name must contain at most 64 characters' }),
-}).omit({
+};
+
+export const insertHouseholdModel = createInsertSchema(schema.household, householdColumns).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
@@ -22,29 +29,32 @@ export type InsertHousehold = z.infer<typeof insertHouseholdModel>;
 export const createHouseholdModel = insertHouseholdModel.omit({ ownerId: true });
 export type CreateHousehold = z.infer<typeof createHouseholdModel>;
 
-export const patchHouseholdModel = createUpdateSchema(schema.household, {
-  name: (model) =>
-    model
-      .trim()
-      .min(3, { error: 'Household name must contain at least 3 characters' })
-      .max(64, { error: 'Household name must contain at most 64 characters' }),
-}).omit({ createdAt: true, updatedAt: true, id: true });
+export const patchHouseholdModel = createUpdateSchema(schema.household, householdColumns).omit({
+  createdAt: true,
+  updatedAt: true,
+  id: true,
+});
 export type PatchHousehold = z.infer<typeof patchHouseholdModel>;
 
-const memberName = (model: z.ZodString) =>
-  model
-    .trim()
-    .min(1, { error: 'Name must contain at least 1 character' })
-    .max(64, { error: 'Name must contain at most 64 characters' });
+/**
+ * All three columns are nullable — a member row created by an invite has none of them until the
+ * invitee fills them in — but a member added by hand is being described right now, so the API asks
+ * for a name and a role and takes `''` for the optional nickname.
+ */
+const memberName = z
+  .string()
+  .trim()
+  .min(1, { error: 'Name must contain at least 1 character' })
+  .max(64, { error: 'Name must contain at most 64 characters' });
 
-const memberNickname = (model: z.ZodString) =>
-  model.trim().max(64, { error: 'Nickname must contain at most 64 characters' });
+const memberNickname = z.string().trim().max(64, { error: 'Nickname must contain at most 64 characters' }).optional();
 
-export const createHouseholdMemberModel = z.object({
-  name: memberName(z.string()),
-  nickname: memberNickname(z.string()).optional(),
-  role: householdMemberRole,
-});
+/** A member is linked to a user by accepting an invite, never by naming an id in the payload. */
+const serverOwnedMemberColumns = { ...dbOwnedColumns, userId: true } as const;
+
+export const createHouseholdMemberModel = createInsertSchema(schema.householdMember)
+  .omit(serverOwnedMemberColumns)
+  .extend({ name: memberName, nickname: memberNickname, role: householdMemberRole });
 export type CreateHouseholdMember = z.infer<typeof createHouseholdMemberModel>;
 
 export const createHouseholdMembersModel = z.object({
@@ -53,19 +63,8 @@ export const createHouseholdMembersModel = z.object({
 export type CreateHouseholdMembers = z.infer<typeof createHouseholdMembersModel>;
 
 export const patchHouseholdMemberModel = createUpdateSchema(schema.householdMember)
-  .omit({
-    createdAt: true,
-    householdId: true,
-    id: true,
-    name: true,
-    nickname: true,
-    updatedAt: true,
-    userId: true,
-  })
-  .extend({
-    name: memberName(z.string()).optional(),
-    nickname: memberNickname(z.string()).optional(),
-  });
+  .omit(serverOwnedMemberColumns)
+  .extend({ name: memberName.optional(), nickname: memberNickname });
 export type PatchHouseholdMember = z.infer<typeof patchHouseholdMemberModel>;
 
 export const patchHouseholdMemberPathParamsModel = z.object({ id: z.coerce.number<number>() });

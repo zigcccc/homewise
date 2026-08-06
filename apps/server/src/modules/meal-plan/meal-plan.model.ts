@@ -55,6 +55,11 @@ const hasLabel = (data: { recipeId?: number | null; title?: string }) =>
 
 const labelError = { error: MEAL_LABEL_ERROR, path: ['title'] };
 
+/**
+ * These two stay hand-written rather than deriving from `planned_meal`: `memberIds` is a join table,
+ * and `position` is a slot request the service resequences a day around. The payload is a command,
+ * not the row — the same reason the shopping-list item models aren't derived either.
+ */
 export const createPlannedMealModel = z
   .object({
     day: planDay,

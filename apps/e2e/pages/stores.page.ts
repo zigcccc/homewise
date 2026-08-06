@@ -62,7 +62,9 @@ export class StoresPage {
   /** Renames a row in place: click the name, type, Enter. */
   async renameInline(from: string, to: string) {
     await expect(this.row(from)).toBeVisible();
-    await this.row(from).getByRole('button', { name: from, exact: true }).click();
+    // The resting cell is labelled by what it does, not by the value it shows — every inline cell in
+    // the app is, so a screen reader announces a control rather than a bare noun.
+    await this.row(from).getByRole('button', { name: 'Edit name' }).click();
     await expect(this.nameInput()).toBeFocused();
     await this.nameInput().fill(to);
     await this.nameInput().press('Enter');

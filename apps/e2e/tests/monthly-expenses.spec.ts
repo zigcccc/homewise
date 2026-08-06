@@ -1,0 +1,398 @@
+import { expect, test } from '@playwright/test';
+
+import { MonthlyExpensesPage } from '../pages/monthly-expenses.page';
+import { API_URL } from '../playwright.config';
+
+/**
+ * Every spec works in a **far-future month of its own**.
+ *
+ * The usual defence in this suite — a uniquely-named row — isn't enough here, because the header
+ * total and the category breakdown are aggregates over the whole month. Two workers logging into the
+ * same month would each see the other's rows in their total. `SEED_EXPENSES` lives in the current
+ * month and is only ever read.
+ */
+const YEAR = new Date().getFullYear() + 5;
+
+test.describe('monthly expenses', () => {
+  test('adds an expense, totals it, edits it in place and deletes it', async ({ page }) => {
+    const expenses = new MonthlyExpensesPage(page);
+    const title = `E2E Expense ${Date.now()}`;
+    const renamed = `${title} renamed`;
+
+    await expenses.goto(1, YEAR);
+
+    try {
+      await expect(expenses.total()).toBeHidden();
+      // The empty state names the month and carries its own way in, not just the header's button.
+      await expect(expenses.emptyStateTitle('Nothing logged for')).toBeVisible();
+      await expect(expenses.emptyStateCta()).toBeVisible();
+
+      // Every field in the dialog is reachable by its label — including Date, whose control isn't a
+      // plain input and so has to let `FormControl` give it the id `FormLabel` points at.
+      await expenses.openAddDialog();
+      await expect(page.getByRole('dialog').getByLabel('Date')).toBeVisible();
+      await page.keyboard.press('Escape');
+
+      await expenses.add({ amount: '42,50', title });
+      await expect(expenses.row(title)).toBeVisible();
+      await expect(expenses.row(title)).toContainText('42,50');
+
+      // What you're looking for reads first, then what it cost. The last column holds the row menu.
+      await expect(page.getByRole('columnheader')).toHaveText(['Title', 'Amount', 'Date', 'Category', '']);
+      // The month had nothing in it, so the total is this expense and nothing else.
+      await expect(expenses.total()).toContainText('42,50');
+
+      await expenses.editInline(title, 'Title', renamed);
+      await expect(expenses.row(renamed)).toBeVisible();
+
+      await expenses.editInline(renamed, 'Amount', '10');
+      await expect(expenses.row(renamed)).toContainText('10,00');
+      await expect(expenses.total()).toContainText('10,00');
+    } finally {
+      await expenses.deleteIfPresent(renamed);
+      await expenses.deleteIfPresent(title);
+    }
+
+    await expect(expenses.row(renamed)).toBeHidden();
+  });
+
+  test('marks an expense paid back, which keeps the row but drops it from the total', async ({ page }) => {
+    const expenses = new MonthlyExpensesPage(page);
+    const kept = `E2E Kept ${Date.now()}`;
+    const returned = `E2E Returned ${Date.now()}`;
+
+    await expenses.goto(2, YEAR);
+
+    try {
+      await expenses.add({ amount: '20', title: kept });
+      await expenses.add({ amount: '30', title: returned });
+      await expect(expenses.total()).toContainText('50,00');
+
+      await expenses.togglePaidBack(returned);
+
+      // Still listed, badged, and no longer counted — that's the whole point of the flag.
+      await expect(expenses.row(returned)).toBeVisible();
+      await expect(expenses.row(returned)).toContainText('Paid back');
+      await expect(expenses.total()).toContainText('20,00');
+      await expect(expenses.total()).toContainText('30,00 € paid back');
+
+      await expenses.togglePaidBack(returned);
+      await expect(expenses.row(returned)).not.toContainText('Paid back');
+      await expect(expenses.total()).toContainText('50,00');
+    } finally {
+      await expenses.deleteIfPresent(kept);
+      await expenses.deleteIfPresent(returned);
+    }
+  });
+
+  test('opens the title editor inside its cell, at the width of the column', async ({ page }) => {
+    const expenses = new MonthlyExpensesPage(page);
+    const title = `E2E Layout ${Date.now()}`;
+
+    await expenses.goto(4, YEAR);
+
+    try {
+      await expenses.add({ amount: '5', title });
+
+      const resting = await expenses.row(title).boundingBox();
+      await expenses.openInlineTitleEdit(title);
+      const editing = await expenses.row(title).boundingBox();
+
+      // The editor shares one grid cell with the hidden sizer holding the column open, so it must be
+      // *placed* there — auto-placed it steps over the sizer into a row of its own, and the row grows
+      // by a band of empty space with the paid-back badge stranded in the middle of it.
+      expect(editing!.height).toBeCloseTo(resting!.height, 0);
+
+      // And a title is free text, so its editor takes the column rather than stopping at the width
+      // the short columns are capped to.
+      const cell = await expenses.titleCell(title).boundingBox();
+      const editor = await expenses.titleInput().boundingBox();
+      // The cell less its own padding — anything materially short of that is the shared cap for the
+      // narrow columns leaking onto a column that shouldn't have one.
+      expect(editor!.width).toBeGreaterThan(cell!.width - 24);
+
+      await page.keyboard.press('Escape');
+    } finally {
+      await expenses.deleteIfPresent(title);
+    }
+  });
+
+  test('keeps each month to itself', async ({ page }) => {
+    const expenses = new MonthlyExpensesPage(page);
+    const title = `E2E March ${Date.now()}`;
+
+    await expenses.goto(3, YEAR);
+
+    try {
+      await expenses.add({ amount: '15', title });
+      await expect(expenses.row(title)).toBeVisible();
+
+      await expenses.selectMonth(4);
+      await expect(expenses.row(title)).toBeHidden();
+      await expect(page).toHaveURL(/month=4/);
+
+      await expenses.selectMonth(3);
+      await expect(expenses.row(title)).toBeVisible();
+    } finally {
+      await expenses.deleteIfPresent(title);
+    }
+  });
+
+  test('searches within the month', async ({ page }) => {
+    const expenses = new MonthlyExpensesPage(page);
+    const stamp = Date.now();
+    const wanted = `E2E Findme ${stamp}`;
+    const other = `E2E Other ${stamp}`;
+
+    await expenses.goto(5, YEAR);
+
+    try {
+      await expenses.add({ amount: '11', title: wanted });
+      await expenses.add({ amount: '12', title: other });
+
+      await expenses.search('Findme');
+      await expect(expenses.row(wanted)).toBeVisible();
+      await expect(expenses.row(other)).toBeHidden();
+
+      // A filtered-empty month says so, and offers no "add" — the rows exist, they just don't match.
+      await expenses.search('nothing matches this');
+      await expect(expenses.emptyStateTitle('No matching expenses')).toBeVisible();
+      await expect(expenses.emptyStateCta()).toBeHidden();
+      await expenses.search('Findme');
+
+      // The total describes the month, not the filtered rows, so it doesn't move as you type.
+      await expect(expenses.total()).toContainText('23,00');
+
+      await expenses.search('');
+      await expect(expenses.row(other)).toBeVisible();
+    } finally {
+      await expenses.deleteIfPresent(wanted);
+      await expenses.deleteIfPresent(other);
+    }
+  });
+
+  test('creates a category from the picker and files the expense under it', async ({ page }) => {
+    const expenses = new MonthlyExpensesPage(page);
+    const stamp = Date.now();
+    const title = `E2E Categorised ${stamp}`;
+    const category = `E2E Cat ${stamp}`;
+
+    await expenses.goto(6, YEAR);
+
+    try {
+      // The category doesn't exist yet — it's found-or-created by the same write that saves the
+      // expense, so abandoning the dialog would have left nothing behind.
+      await expenses.add({ amount: '25', category, title });
+
+      await expect(expenses.row(title)).toContainText(category);
+      await expect(expenses.breakdownChip(category)).toBeVisible();
+      await expect(expenses.breakdownChip(category)).toContainText('25,00');
+    } finally {
+      await expenses.deleteIfPresent(title);
+      await expenses.deleteCategoryIfPresent(category, 6, YEAR);
+    }
+  });
+
+  test('filters the month by a category from the breakdown', async ({ page }) => {
+    const expenses = new MonthlyExpensesPage(page);
+    const stamp = Date.now();
+    const inCategory = `E2E Filed ${stamp}`;
+    const uncategorised = `E2E Loose ${stamp}`;
+    const category = `E2E Filter ${stamp}`;
+
+    await expenses.goto(7, YEAR);
+
+    try {
+      await expenses.add({ amount: '40', category, title: inCategory });
+      await expenses.add({ amount: '5', title: uncategorised });
+
+      await expenses.breakdownChip(category).click();
+      await expect(expenses.row(inCategory)).toBeVisible();
+      await expect(expenses.row(uncategorised)).toBeHidden();
+      // The breakdown still lists every slice while one is selected — otherwise you couldn't switch.
+      await expect(expenses.breakdownChip('Uncategorised')).toBeVisible();
+
+      await page.getByRole('button', { name: 'Clear filter' }).click();
+      await expect(expenses.row(uncategorised)).toBeVisible();
+    } finally {
+      await expenses.deleteIfPresent(inCategory);
+      await expenses.deleteIfPresent(uncategorised);
+      await expenses.deleteCategoryIfPresent(category, 7, YEAR);
+    }
+  });
+
+  test('refuses to clear the date, and says nothing about it', async ({ page }) => {
+    const expenses = new MonthlyExpensesPage(page);
+    const title = `E2E Dated ${Date.now()}`;
+
+    await expenses.goto(12, YEAR);
+
+    try {
+      await expenses.add({ amount: '8', title });
+      const before = await expenses.dateInput(title).inputValue();
+
+      await expenses.clearDateInline(title);
+
+      // Emptying a required date is an ordinary "select all and retype" gesture, not an edit. The
+      // field puts the date back and nothing is sent — no round trip, and **no notification at all**,
+      // which is stronger than "not that one": any toast here would mean something was attempted.
+      await expect(expenses.dateInput(title)).toHaveValue(before);
+      await expect(expenses.toastMessages()).toHaveCount(0);
+    } finally {
+      await expenses.deleteIfPresent(title);
+    }
+  });
+
+  test('reports a malformed amount on the field instead of sending it', async ({ page }) => {
+    const expenses = new MonthlyExpensesPage(page);
+    const title = `E2E Bad amount ${Date.now()}`;
+
+    await expenses.goto(12, YEAR);
+
+    await expenses.openAddDialog();
+    const dialog = page.getByRole('dialog');
+    await dialog.getByLabel('Title').fill(title);
+    await dialog.getByLabel('Amount').fill('not a number');
+    await dialog.getByRole('button', { name: 'Add expense', exact: true }).click();
+
+    // The resolver refuses it, so the dialog stays open carrying what was typed and nothing is saved.
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toContainText('Enter an amount like');
+
+    await page.keyboard.press('Escape');
+    await expect(expenses.row(title)).toBeHidden();
+  });
+
+  test('keeps a category filterable when everything in it was paid back', async ({ page }) => {
+    const expenses = new MonthlyExpensesPage(page);
+    const stamp = Date.now();
+    const title = `E2E Refunded ${stamp}`;
+    const category = `E2E Zeroed ${stamp}`;
+
+    await expenses.goto(11, YEAR);
+
+    try {
+      await expenses.add({ amount: '30', category, title });
+      await expenses.togglePaidBack(title);
+
+      // The slice nets to zero, but the expense is still sitting in the table — so the chip has to
+      // stay, or there's no way left to filter down to it.
+      await expect(expenses.breakdownChip(category)).toBeVisible();
+      await expect(expenses.breakdownChip(category)).toContainText('0,00');
+
+      await expenses.breakdownChip(category).click();
+      await expect(expenses.row(title)).toBeVisible();
+    } finally {
+      await expenses.deleteIfPresent(title);
+      await expenses.deleteCategoryIfPresent(category, 11, YEAR);
+    }
+  });
+
+  test('manages categories in a sheet the URL drives', async ({ page }) => {
+    const expenses = new MonthlyExpensesPage(page);
+    const stamp = Date.now();
+    const title = `E2E Sheet ${stamp}`;
+    const category = `E2E Managed ${stamp}`;
+    const renamed = `${category} renamed`;
+
+    await expenses.goto(8, YEAR);
+
+    try {
+      await expenses.add({ amount: '9', title });
+      // A search term, so closing the sheet has something more than the month to preserve.
+      await expenses.search(title);
+
+      await expenses.openCategoriesFromRow(title);
+      await expect(page).toHaveURL(/\/expenses\/monthly-expenses\/categories/);
+      // The month and the filters survive the trip — the whole reason for `retainSearchParams`.
+      await expect(page).toHaveURL(/month=8/);
+      await expect(page).toHaveURL(new RegExp(`year=${YEAR}`));
+      await expect(page).toHaveURL(/search=/);
+      // The table never unmounted; it's still there behind the panel.
+      await expect(expenses.rowBehindSheet(title)).toBeVisible();
+
+      await expenses.addCategory(category);
+      await expenses.renameCategory(category, renamed);
+      await expect(expenses.sheet().getByText(renamed, { exact: true })).toBeVisible();
+
+      await expenses.closeSheet();
+      await expect(page).toHaveURL(/month=8/);
+      await expect(page).not.toHaveURL(/categories/);
+
+      // The payoff of putting the panel in the URL: history moves through it.
+      await page.goBack();
+      await expect(expenses.sheet()).toBeVisible();
+      await page.goForward();
+      await expect(expenses.sheet()).toBeHidden();
+
+      // And it's reachable cold, with the page rendered behind it.
+      await page.goto(`/expenses/monthly-expenses/categories?month=8&year=${YEAR}`);
+      await expect(expenses.sheet()).toBeVisible();
+      await expect(expenses.rowBehindSheet(title)).toBeVisible();
+    } finally {
+      await expenses.deleteCategoryIfPresent(renamed, 8, YEAR);
+      await expenses.deleteCategoryIfPresent(category, 8, YEAR);
+      await expenses.closeSheet();
+      await expenses.deleteIfPresent(title);
+    }
+  });
+
+  test('deleting a category leaves its expenses, uncategorised', async ({ page }) => {
+    const expenses = new MonthlyExpensesPage(page);
+    const stamp = Date.now();
+    const title = `E2E Orphan ${stamp}`;
+    const category = `E2E Doomed ${stamp}`;
+
+    await expenses.goto(9, YEAR);
+
+    try {
+      await expenses.add({ amount: '18', category, title });
+      await expect(expenses.row(title)).toContainText(category);
+
+      await expenses.openCategoriesFromRow(title);
+      await expenses.deleteCategory(category);
+      await expenses.closeSheet();
+
+      // The expense survives its category — the FK is `set null`, not a cascade.
+      await expect(expenses.row(title)).toBeVisible();
+      await expect(expenses.row(title)).not.toContainText(category);
+      await expect(expenses.total()).toContainText('18,00');
+    } finally {
+      await expenses.deleteIfPresent(title);
+    }
+  });
+
+  test('keeps an open inline rename on its own row when the list shifts underneath it', async ({ page }) => {
+    const expenses = new MonthlyExpensesPage(page);
+    const stamp = Date.now();
+    const mine = `E2E Mine ${stamp}`;
+    const renamed = `E2E Mine ${stamp} renamed`;
+    const neighbour = `E2E Neighbour ${stamp}`;
+
+    await expenses.goto(10, YEAR);
+
+    try {
+      await expenses.add({ amount: '7', title: mine });
+      await expenses.openInlineTitleEdit(mine);
+
+      // Another member logs an expense dated later, which sorts above this one. Realtime refetches
+      // the list under the open editor, so every row below the new one moves down a place.
+      const response = await page.context().request.post(`${API_URL}/expenses`, {
+        data: { amount: 3, recordedAt: `${YEAR}-10-28`, title: neighbour },
+      });
+      expect(response.ok()).toBe(true);
+      await expect(expenses.row(neighbour)).toBeVisible();
+
+      await expenses.commitInlineTitleEdit(renamed);
+
+      // The edit has to land on the row it was opened on, not on whichever took that position.
+      await expect(expenses.row(renamed)).toBeVisible();
+      await expect(expenses.row(neighbour)).toBeVisible();
+      await expect(expenses.row(neighbour)).not.toContainText('renamed');
+    } finally {
+      await expenses.deleteIfPresent(renamed);
+      await expenses.deleteIfPresent(mine);
+      await expenses.deleteIfPresent(neighbour);
+    }
+  });
+});

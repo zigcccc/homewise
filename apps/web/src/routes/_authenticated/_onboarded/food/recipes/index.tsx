@@ -4,7 +4,8 @@ import { ClockIcon, PlusIcon, ScrollTextIcon, SearchIcon, StarIcon } from 'lucid
 import { useDebounceCallback } from 'usehooks-ts';
 import z from 'zod';
 
-import { mealType, recipeSortDirection, recipeSortKey } from '@homewise/server/recipes';
+import { type SortDirection, searchQueryParam, sortDirection } from '@homewise/server/models';
+import { mealType, recipeSortKey } from '@homewise/server/recipes';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -40,16 +41,13 @@ import { listRecipesQueryOptions, listRecipeTagsQueryOptions, mealTypeLabels } f
 import { Actionbar, formatMinutes, SELECT_ALL } from '@/modules/shared';
 
 const searchParamsModel = z.object({
-  search: z
-    .string()
-    .transform((value) => (value === '' ? undefined : value))
-    .optional(),
+  search: searchQueryParam,
   mealType: mealType.optional().catch(undefined),
   tagId: z.number().optional().catch(undefined),
   favoritesOnly: z.boolean().default(false).catch(false),
   includeArchived: z.boolean().default(false).catch(false),
   sortKey: recipeSortKey.default('title').catch('title'),
-  sortDirection: recipeSortDirection.default('asc').catch('asc'),
+  sortDirection: sortDirection.default('asc').catch('asc'),
 });
 
 type SearchParams = z.infer<typeof searchParamsModel>;
@@ -61,10 +59,7 @@ const sortKeyLabels: Record<z.infer<typeof recipeSortKey>, string> = {
 };
 
 /** Ascending reads differently per column: A → Z for a title, oldest-first for a date. */
-const sortDirectionLabels: Record<
-  z.infer<typeof recipeSortKey>,
-  Record<z.infer<typeof recipeSortDirection>, string>
-> = {
+const sortDirectionLabels: Record<z.infer<typeof recipeSortKey>, Record<SortDirection, string>> = {
   title: { asc: 'A → Z', desc: 'Z → A' },
   createdAt: { asc: 'Oldest first', desc: 'Newest first' },
   updatedAt: { asc: 'Oldest first', desc: 'Newest first' },

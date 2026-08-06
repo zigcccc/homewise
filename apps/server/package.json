@@ -20,6 +20,10 @@
       "types": "./src/db/seed-fixtures.ts",
       "import": "./src/db/seed-fixtures.ts"
     },
+    "./models": {
+      "types": "./src/lib/models.ts",
+      "import": "./src/lib/models.ts"
+    },
     "./households": {
       "types": "./src/modules/households/households.model.ts",
       "import": "./src/modules/households/households.model.ts"
@@ -64,6 +68,14 @@
       "types": "./src/modules/meal-plan/meal-plan.model.ts",
       "import": "./src/modules/meal-plan/meal-plan.model.ts"
     },
+    "./expenses": {
+      "types": "./src/modules/expenses/expenses.model.ts",
+      "import": "./src/modules/expenses/expenses.model.ts"
+    },
+    "./expense-categories": {
+      "types": "./src/modules/expense-categories/expense-categories.model.ts",
+      "import": "./src/modules/expense-categories/expense-categories.model.ts"
+    },
     "./realtime": {
       "types": "./src/modules/realtime/realtime.model.ts",
       "import": "./src/modules/realtime/realtime.model.ts"
@@ -82,6 +94,7 @@
     "emails:preview": "email dev --port 4000"
   },
   "dependencies": {
+    "@date-fns/utc": "catalog:",
     "@hono/node-server": "catalog:",
     "@hono/zod-validator": "catalog:",
     "@neondatabase/serverless": "catalog:",
@@ -91,6 +104,7 @@
     "@vercel/functions": "catalog:",
     "ably": "catalog:",
     "better-auth": "catalog:",
+    "date-fns": "catalog:",
     "dotenv": "catalog:",
     "drizzle-orm": "catalog:",
     "drizzle-zod": "catalog:",

@@ -1,8 +1,9 @@
 import { format, isFuture, isValid, parse, parseISO } from 'date-fns';
 import { CalendarIcon } from 'lucide-react';
-import { useState } from 'react';
+import { type ComponentProps, useState } from 'react';
 
 import { Button, Calendar, Input, Popover, PopoverContent, PopoverTrigger } from '@homewise/ui/core';
+import { cn } from '@homewise/ui/lib';
 
 import { DATE_DISPLAY_FORMAT } from '../helpers';
 
@@ -53,15 +54,42 @@ function parseDayFirst(input: string, allowFuture: boolean) {
  */
 export function DateField({
   allowFuture = false,
-  id,
+  ariaLabel,
+  inline = false,
   onChange,
+  required = false,
   value,
+  ...inputProps
 }: {
   allowFuture?: boolean;
-  id: string;
+  /**
+   * A name for the input where no `<label>` points at it — the table cells, which have a column
+   * header and nothing else. Inside a form, use `FormLabel` and leave this alone.
+   */
+  ariaLabel?: string;
+  /**
+   * Table treatment: reads as plain text until hovered or focused, so a column of dates doesn't
+   * become a column of form controls. Same bargain the inline selects make.
+   */
+  inline?: boolean;
   onChange: (value: string) => void;
+  /**
+   * The date can't be cleared. Emptying the field puts the last value back instead of reporting `''`
+   * — which is what a column that requires a date would refuse anyway.
+   *
+   * For a field inside a form this is usually wrong: clearing it there should surface the schema's
+   * own message. It's for the editors that commit straight to the server and have nowhere to put one.
+   */
+  required?: boolean;
   value: string;
-}) {
+  /**
+   * Everything else lands on the `Input`, and `FormControl` is why that matters: it clones its child
+   * with the `id` its `FormLabel` points at, plus `aria-describedby` and `aria-invalid`. Declaring
+   * an `id` prop of our own instead made the child's value win the Radix `Slot` merge and override
+   * the generated one — so every in-form call site had to re-point its label by hand, and the one
+   * that forgot shipped a `<label>` attached to nothing.
+   */
+} & Omit<ComponentProps<typeof Input>, 'onChange' | 'value'>) {
   const [open, setOpen] = useState(false);
   const selected = value ? parseISO(value) : undefined;
   const isValidSelection = selected && isValid(selected);
@@ -69,8 +97,19 @@ export function DateField({
   // Local text so a half-typed date doesn't clobber the form value on every keystroke.
   const [text, setText] = useState(isValidSelection ? format(selected, DATE_DISPLAY_FORMAT) : '');
 
+  const restoreText = () => setText(isValidSelection ? format(selected, DATE_DISPLAY_FORMAT) : '');
+
   const commitText = (input: string) => {
     if (input.trim() === '') {
+      // A required date has no cleared state, so an empty field is just another value this can't
+      // take — put the last one back, exactly as unparseable text does below. Without this the
+      // editors that commit straight to the server send `''` and get a failure toast for what is an
+      // ordinary "select it all and retype" gesture.
+      if (required) {
+        restoreText();
+        return;
+      }
+
       onChange('');
       setText('');
       return;
@@ -85,14 +124,28 @@ export function DateField({
     }
 
     // Unparseable: restore the last good value rather than silently keeping bad text.
-    setText(isValidSelection ? format(selected, DATE_DISPLAY_FORMAT) : '');
+    restoreText();
   };
 
   return (
-    <div className="relative flex gap-2">
+    <div
+      className={cn(
+        'relative flex gap-2',
+        // The calendar arrives with the box, on hover and while focused — the same fade the inline
+        // selects give their chevron.
+        inline && '[&_svg]:opacity-0 focus-within:[&_svg]:opacity-60 hover:[&_svg]:opacity-60',
+        // Held open while the calendar is, or the field drops back to looking like plain text the
+        // moment the pointer moves off it and onto the popover it just opened.
+        inline && open && '[&_svg]:opacity-60'
+      )}
+    >
       <Input
-        className="pr-10"
-        id={id}
+        aria-label={ariaLabel}
+        className={cn(
+          'pr-10',
+          inline && 'border-transparent shadow-none hover:bg-accent focus-visible:border-input',
+          inline && open && 'border-input bg-accent'
+        )}
         onBlur={(evt) => commitText(evt.target.value)}
         onChange={(evt) => setText(evt.target.value)}
         onKeyDown={(evt) => {
@@ -102,7 +155,12 @@ export function DateField({
           }
         }}
         placeholder="dd. mm. yyyy"
+        // An `<input>` reports its default 20-character width as its max-content contribution no
+        // matter what `w-full` says, which in an auto-layout table hands this column far more room
+        // than a date needs and squeezes every other one. `InlineTextField` does the same.
+        size={1}
         value={text}
+        {...inputProps}
       />
       <Popover onOpenChange={setOpen} open={open}>
         <PopoverTrigger asChild>

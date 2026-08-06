@@ -9,6 +9,9 @@ catalogs:
     '@biomejs/biome':
       specifier: ^2.5.5
       version: 2.5.5
+    '@date-fns/utc':
+      specifier: ^2.1.1
+      version: 2.1.1
     '@dnd-kit/abstract':
       specifier: ^0.5.0
       version: 0.5.0
@@ -282,6 +285,9 @@ importers:
 
   apps/server:
     dependencies:
+      '@date-fns/utc':
+        specifier: 'catalog:'
+        version: 2.1.1
       '@hono/node-server':
         specifier: 'catalog:'
         version: 2.0.12(hono@4.12.32)
@@ -309,6 +315,9 @@ importers:
       better-auth:
         specifier: 'catalog:'
         version: 1.6.25(@opentelemetry/api@1.9.1)(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@neondatabase/serverless@1.1.0)(@opentelemetry/api@1.9.1)(@types/pg@8.20.0)(kysely@0.29.4)(pg@8.22.0))(next@16.2.6(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.62.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(pg@8.22.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      date-fns:
+        specifier: 'catalog:'
+        version: 4.4.0
       dotenv:
         specifier: 'catalog:'
         version: 17.4.2
@@ -791,6 +800,9 @@ packages:
 
   '@date-fns/tz@1.5.0':
     resolution: {integrity: sha512-lwYN/vDPeNRULcepoE/LO2Pgx+7/RV+S9ARfbc9lr2DtGkOD7pAiruHvbR1RX3Qyf6ja47EWJDMsNK5vK08DJg==}
+
+  '@date-fns/utc@2.1.1':
+    resolution: {integrity: sha512-SlJDfG6RPeEX8wEVv6ZB3kak4MmbtyiI2qX/5zuKdordbrhB/iaJ58GVMZgJ6P1sJaM1gMgENFYYeg1JWrCFrA==}
 
   '@dnd-kit/abstract@0.5.0':
     resolution: {integrity: sha512-hi13iMJgjPX/KDYVKg5VeDIhmYiV6buc9bAX+tCLYf4QdyYjPbsXjn2sPo6m7fQ6SGJBEFgHJ2PemeKDUbwBaA==}
@@ -5143,6 +5155,8 @@ snapshots:
     optional: true
 
   '@date-fns/tz@1.5.0': {}
+
+  '@date-fns/utc@2.1.1': {}
 
   '@dnd-kit/abstract@0.5.0':
     dependencies:

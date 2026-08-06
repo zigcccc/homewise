@@ -9,7 +9,7 @@ import { Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMe
 
 import { parseResponse } from '@/api/client';
 import { invalidateIngredients } from '@/modules/ingredients';
-import { ConfirmDeleteDialog, InlineTextField, serverMessage } from '@/modules/shared';
+import { ConfirmDeleteDialog, InlineCell, serverMessage } from '@/modules/shared';
 import { $deleteStore, invalidateStores, type Store, StoreFormDialog, useInlineStorePatch } from '@/modules/stores';
 
 const columnHelper = createColumnHelper<Store>();
@@ -35,46 +35,18 @@ export const storesTableColumns = [
   }),
 ];
 
-/**
- * The resting and editing halves of the name cell have to be the same box down to the border, or
- * clicking in nudges the text and resizes the column.
- */
-const inlineNameClassName = 'h-9 w-full rounded-md border px-2 text-sm';
-
-/**
- * A hidden copy of the name that holds the column open: an `<input>` reports its default
- * 20-character width to an auto-layout table no matter what `width` says, and `size={1}` drops that
- * to nothing.
- */
-const inlineNameSizerClassName = 'invisible col-start-1 row-start-1 border px-2 text-sm';
-
 function StoreNameCell({ id, name }: { id: number; name: string }) {
-  const [editing, setEditing] = useState(false);
   const { save } = useInlineStorePatch(id);
 
   return (
-    <div className="grid grid-cols-1">
-      <span className={inlineNameSizerClassName}>{name}</span>
-      {editing ? (
-        // Mounted only while editing, so `defaultValues` reseed on every open with no reset effect.
-        <InlineTextField
-          ariaLabel="Name"
-          className={`${inlineNameClassName} col-start-1 row-start-1`}
-          defaultValue={name}
-          onDone={() => setEditing(false)}
-          onSave={async (value) => save({ name: value })}
-          schema={createStoreModel.shape.name}
-        />
-      ) : (
-        <button
-          className={`${inlineNameClassName} col-start-1 row-start-1 flex cursor-pointer items-center border-transparent text-left hover:bg-accent`}
-          onClick={() => setEditing(true)}
-          type="button"
-        >
-          {name}
-        </button>
-      )}
-    </div>
+    <InlineCell
+      ariaLabel="Name"
+      display={name}
+      fill
+      onSave={async (value) => save({ name: value })}
+      schema={createStoreModel.shape.name}
+      value={name}
+    />
   );
 }
 

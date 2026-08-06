@@ -3,7 +3,7 @@ import { HTTPException } from 'hono/http-exception';
 
 import { db, schema } from '#db/core';
 import { type Executor, emptyToNull } from '#db/utils';
-import { addDays, eachDayInclusive, startOfISOWeek, todayISO } from '#lib/dates';
+import { addDays, clampRange, eachDayInclusive, startOfISOWeek, todayISO } from '#lib/dates';
 import { notFound, somethingWentWrong } from '#lib/errors';
 import { HouseholdsService } from '#modules/households/households.service';
 
@@ -207,18 +207,8 @@ export class MealPlanService {
    * permanently blank rows — indistinguishable, on screen, from the plan having been deleted.
    */
   public static async listRange(householdId: number, params: MealPlanRangeQueryParams) {
-    const from = params.from ?? startOfISOWeek(todayISO());
-    const maxTo = addDays(from, MAX_RANGE_DAYS - 1);
-    const requested = params.to ?? addDays(from, 6);
-
-    // Never inverted, never longer than the cap.
-    let to = requested;
-    if (to < from) {
-      to = from;
-    }
-    if (to > maxTo) {
-      to = maxTo;
-    }
+    const start = params.from ?? startOfISOWeek(todayISO());
+    const { from, to } = clampRange(start, params.to ?? addDays(start, 6), MAX_RANGE_DAYS);
 
     const [meals, notes] = await Promise.all([
       db.query.plannedMeal.findMany({

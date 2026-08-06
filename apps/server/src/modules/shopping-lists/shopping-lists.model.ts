@@ -1,5 +1,8 @@
+import { createInsertSchema, createUpdateSchema } from 'drizzle-zod';
 import z from 'zod';
 
+import * as schema from '#db/schema/core';
+import { dbOwnedColumns } from '#lib/models';
 import { measurementUnit } from '#modules/ingredients/ingredients.model';
 
 /** Shown when a list has a label but nothing to infer one from. */
@@ -38,12 +41,19 @@ const note = z
 const quantity = z.number().positive().max(1_000_000).nullish();
 const id = z.number().int().positive();
 
+/** `completedAt` is stamped by the complete endpoint below, and `createdBy` comes off the session. */
+const serverOwnedListColumns = { ...dbOwnedColumns, completedAt: true, createdBy: true } as const;
+
 /** Optional, and expected to stay empty — a list is normally labelled from its sections. */
-export const createShoppingListModel = z.object({ name: shoppingListName.optional() });
+export const createShoppingListModel = createInsertSchema(schema.shoppingList)
+  .omit(serverOwnedListColumns)
+  .extend({ name: shoppingListName.optional() });
 export type CreateShoppingList = z.infer<typeof createShoppingListModel>;
 
 /** `null` clears the name and hands labelling back to the sections. */
-export const patchShoppingListModel = z.object({ name: shoppingListName.nullish() });
+export const patchShoppingListModel = createUpdateSchema(schema.shoppingList, {
+  name: () => shoppingListName,
+}).omit(serverOwnedListColumns);
 export type PatchShoppingList = z.infer<typeof patchShoppingListModel>;
 
 /**
@@ -56,12 +66,33 @@ export const completeShoppingListModel = z.object({
 });
 export type CompleteShoppingList = z.infer<typeof completeShoppingListModel>;
 
-export const createSectionModel = z.object({ name: shoppingListSectionName });
+/** `storeId` is inherited from the ingredients filed here, and `position` is the service's to assign. */
+const serverOwnedSectionColumns = {
+  createdAt: true,
+  id: true,
+  position: true,
+  shoppingListId: true,
+  storeId: true,
+  updatedAt: true,
+} as const;
+
+// The column is nullable — a section written by the importer takes its name from the shop — but one
+// the user touches has nothing else to call itself, so neither endpoint lets them clear it.
+export const createSectionModel = createInsertSchema(schema.shoppingListSection)
+  .omit(serverOwnedSectionColumns)
+  .extend({ name: shoppingListSectionName });
 export type CreateSection = z.infer<typeof createSectionModel>;
 
-export const patchSectionModel = z.object({ name: shoppingListSectionName.optional() });
+export const patchSectionModel = createUpdateSchema(schema.shoppingListSection)
+  .omit(serverOwnedSectionColumns)
+  .extend({ name: shoppingListSectionName.optional() });
 export type PatchSection = z.infer<typeof patchSectionModel>;
 
+/**
+ * An item payload is a *command*, not a row: `checked` drives the stored `checkedAt`/`checkedBy` pair
+ * and `position` drives a resequence of its section. Nothing here would come out of the table, so
+ * these two stay hand-written — unlike every model above, which is the row it writes.
+ */
 const itemFields = {
   /** An existing library row. Mutually exclusive with `title` in practice; `ingredientId` wins. */
   ingredientId: id.optional(),
