@@ -174,8 +174,13 @@ export class MonthlyExpensesPage {
     await expect(this.page.getByRole('table').getByRole('textbox', { name: field })).toBeFocused();
   }
 
+  /**
+   * The inline date editor, by its accessible name. There is no `<label>` in a table cell — the
+   * column header is the only thing naming this column — so the field carries an `aria-label`, and
+   * matching that rather than the placeholder is what keeps this locator honest.
+   */
   dateInput(title: string): Locator {
-    return this.row(title).getByRole('textbox', { name: 'dd. mm. yyyy' });
+    return this.row(title).getByRole('textbox', { name: 'Date' });
   }
 
   /** Empties the date field and commits, which a required date has to refuse. */
@@ -188,6 +193,11 @@ export class MonthlyExpensesPage {
   /** Sonner's live region, where a refused inline edit reports its reason. */
   toasts(): Locator {
     return this.page.getByRole('region', { name: /Notifications/ });
+  }
+
+  /** The individual toasts inside it — `toasts()` itself is a landmark that's always present. */
+  toastMessages(): Locator {
+    return this.toasts().locator('[data-sonner-toast]');
   }
 
   /** Cleanup helper: opens the sheet by URL and removes the category if it's still there. */

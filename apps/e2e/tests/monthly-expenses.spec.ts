@@ -27,6 +27,12 @@ test.describe('monthly expenses', () => {
       await expect(expenses.emptyStateTitle('Nothing logged for')).toBeVisible();
       await expect(expenses.emptyStateCta()).toBeVisible();
 
+      // Every field in the dialog is reachable by its label — including Date, whose control isn't a
+      // plain input and so has to let `FormControl` give it the id `FormLabel` points at.
+      await expenses.openAddDialog();
+      await expect(page.getByRole('dialog').getByLabel('Date')).toBeVisible();
+      await page.keyboard.press('Escape');
+
       await expenses.add({ amount: '42,50', title });
       await expect(expenses.row(title)).toBeVisible();
       await expect(expenses.row(title)).toContainText('42,50');
@@ -228,9 +234,10 @@ test.describe('monthly expenses', () => {
       await expenses.clearDateInline(title);
 
       // Emptying a required date is an ordinary "select all and retype" gesture, not an edit. The
-      // field puts the date back and nothing is sent — no round trip, and no failure toast either.
+      // field puts the date back and nothing is sent — no round trip, and **no notification at all**,
+      // which is stronger than "not that one": any toast here would mean something was attempted.
       await expect(expenses.dateInput(title)).toHaveValue(before);
-      await expect(expenses.toasts()).not.toContainText('Something went wrong');
+      await expect(expenses.toastMessages()).toHaveCount(0);
     } finally {
       await expenses.deleteIfPresent(title);
     }
