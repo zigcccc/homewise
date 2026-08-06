@@ -39,6 +39,48 @@ export function toDaysWithMeals(range: MealPlanRange): MealPlanDay[] {
   return range.days.map((day) => ({ ...day, meals: byDay.get(day.day) ?? [] }));
 }
 
+/**
+ * A range with one meal relocated, as the optimistic cache write needs it.
+ *
+ * Written into the cache before the request goes out. dnd-kit has already moved the DOM node by the
+ * time the drop fires, so without this React re-renders from the old server data first and the card
+ * visibly snaps back to where it started, then jumps again when the refetch lands.
+ *
+ * Every meal is re-stamped, not just the moved one, and **per day**: `position` means "index within
+ * the day" everywhere else — the server orders a day by it, and the Undo-restore sends it back to put
+ * a card in the same slot — so numbering it across the whole range would hand those a value from a
+ * different scale. Both days need it: the one the card left has a gap, the one it joined has a
+ * collision.
+ */
+export function moveMealInRange(
+  range: MealPlanRange,
+  { id, position, toDay }: { id: number; position?: number; toDay: string }
+): MealPlanRange {
+  const moved = range.meals.find((meal) => meal.id === id);
+
+  if (!moved) {
+    return range;
+  }
+
+  const rest = range.meals.filter((meal) => meal.id !== id);
+  const target = rest.filter((meal) => meal.day === toDay);
+  // `splice` clamps an out-of-range index to either end on its own, which is the behaviour wanted
+  // here: a stale drop names a slot the day no longer has.
+  target.splice(position ?? target.length, 0, { ...moved, day: toDay });
+
+  const nextPosition = new Map<string, number>();
+
+  return {
+    ...range,
+    meals: [...rest.filter((meal) => meal.day !== toDay), ...target].map((meal) => {
+      const index = nextPosition.get(meal.day) ?? 0;
+      nextPosition.set(meal.day, index + 1);
+
+      return { ...meal, position: index };
+    }),
+  };
+}
+
 export { $createMeal, $deleteMeal, $patchMeal, $putDayNote };
 
 export function mealPlanRangeQueryOptions(query: { from: string; to: string }) {

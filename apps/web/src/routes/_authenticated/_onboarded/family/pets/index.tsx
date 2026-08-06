@@ -1,6 +1,5 @@
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { differenceInYears, parseISO } from 'date-fns';
 import { PawPrintIcon, PlusIcon, UsersIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -33,7 +32,7 @@ import {
 import { client, parseResponse } from '@/api/client';
 import { getMyHouseholdQueryOptions } from '@/modules/households';
 import { invalidatePetProfilesList, listPetProfilesQueryOptions, petTypeLabels } from '@/modules/pet-profiles';
-import { Actionbar } from '@/modules/shared';
+import { Actionbar, ageInYears } from '@/modules/shared';
 
 export const Route = createFileRoute('/_authenticated/_onboarded/family/pets/')({
   async loader({ context }) {
@@ -45,15 +44,6 @@ export const Route = createFileRoute('/_authenticated/_onboarded/family/pets/')(
   component: PetsRoute,
   pendingComponent: () => <Spinner />,
 });
-
-/** Whole years since the date of birth, or null when no date is set. */
-function ageInYears(dateOfBirth: string | null) {
-  if (!dateOfBirth) {
-    return null;
-  }
-
-  return differenceInYears(new Date(), parseISO(dateOfBirth));
-}
 
 /** A "Dog · Golden Retriever" line — type, breed, or both. Null when neither is set. */
 function typeAndBreed(type: PetType | null, breed: string | null) {
