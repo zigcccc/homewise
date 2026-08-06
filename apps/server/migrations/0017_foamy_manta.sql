@@ -1,0 +1,2 @@
+ALTER TABLE "storage_item" DROP CONSTRAINT "storage_item_loan_check";--> statement-breakpoint
+ALTER TABLE "storage_item" ADD CONSTRAINT "storage_item_loan_check" CHECK (("storage_item"."borrowed_on" IS NULL AND "storage_item"."borrowed_by_contact_id" IS NULL AND "storage_item"."borrowed_by_name" IS NULL AND "storage_item"."due_on" IS NULL) OR ("storage_item"."borrowed_on" IS NOT NULL AND "storage_item"."borrowed_by_name" IS NOT NULL));

@@ -25,6 +25,8 @@ import petProfilesApp from './modules/pet-profiles';
 import realtimeApp from './modules/realtime';
 import recipesApp from './modules/recipes';
 import shoppingListsApp from './modules/shopping-lists';
+import storageItemsApp from './modules/storage-items';
+import storageLocationsApp from './modules/storage-locations';
 import storesApp from './modules/stores';
 import usersApp from './modules/users';
 import { type AppContext } from './types/app.type';
@@ -87,6 +89,8 @@ const routes = app
   .route('/shopping-lists', shoppingListsApp)
   .route('/expenses', expensesApp)
   .route('/expense-categories', expenseCategoriesApp)
+  .route('/storage-locations', storageLocationsApp)
+  .route('/storage-items', storageItemsApp)
   .route('/realtime', realtimeApp);
 
 if (env.NODE_ENV === 'development') {

@@ -17,6 +17,9 @@ import {
   SEED_ONBOARDING_USER,
   SEED_RECIPE,
   SEED_SECOND_USER,
+  SEED_STORAGE_CONTACT,
+  SEED_STORAGE_ITEMS,
+  SEED_STORAGE_LOCATIONS,
   SEED_STORES,
   SEED_USER,
 } from './seed-fixtures';
@@ -455,6 +458,104 @@ async function seed() {
       console.log(`▸ seeded ${missingExpenses.length} expenses`);
     } else {
       console.log('▸ expenses already present — skipping');
+    }
+
+    // 11. Storage locations, before the items that live in them (idempotent by household +
+    //     lower(name), matching the unique index).
+    const existingLocations = await db
+      .select()
+      .from(schema.storageLocation)
+      .where(eq(schema.storageLocation.householdId, household.id));
+    const locationIdByName = new Map(existingLocations.map((row) => [row.name.toLowerCase(), row.id]));
+    const missingLocations = SEED_STORAGE_LOCATIONS.filter(
+      (fixture) => !locationIdByName.has(fixture.name.toLowerCase())
+    );
+
+    if (missingLocations.length > 0) {
+      const inserted = await db
+        .insert(schema.storageLocation)
+        .values(
+          missingLocations.map((fixture) => ({
+            householdId: household.id,
+            name: fixture.name,
+            address: fixture.address,
+            latitude: fixture.latitude,
+            longitude: fixture.longitude,
+          }))
+        )
+        .returning();
+
+      for (const row of inserted) {
+        locationIdByName.set(row.name.toLowerCase(), row.id);
+      }
+      console.log(`▸ seeded ${inserted.length} storage locations`);
+    } else {
+      console.log('▸ storage locations already present — skipping');
+    }
+
+    // 12. The borrower the seeded loans point at. A loan names a household contact, so this has to
+    //     exist before the items do.
+    const [existingBorrower] = await db
+      .select()
+      .from(schema.contact)
+      .where(and(eq(schema.contact.householdId, household.id), eq(schema.contact.name, SEED_STORAGE_CONTACT.name)));
+
+    let borrower = existingBorrower;
+    if (!borrower) {
+      [borrower] = await db
+        .insert(schema.contact)
+        .values({
+          householdId: household.id,
+          name: SEED_STORAGE_CONTACT.name,
+          type: SEED_STORAGE_CONTACT.type,
+          phone: SEED_STORAGE_CONTACT.phone,
+        })
+        .returning();
+      console.log('▸ seeded storage borrower contact');
+    } else {
+      console.log('▸ storage borrower contact already present — skipping');
+    }
+
+    if (!borrower) {
+      throw new Error('Could not resolve the seeded storage borrower contact');
+    }
+
+    // 13. What's in those locations. The loan dates are offsets from today for the same reason the
+    //     meal plan's are: a literal date stops being overdue-or-not the moment it passes, which
+    //     would leave the overdue filter with nothing to find.
+    const existingItems = await db
+      .select({ name: schema.storageItem.name })
+      .from(schema.storageItem)
+      .where(eq(schema.storageItem.householdId, household.id));
+    const seededItemNames = new Set(existingItems.map((row) => row.name));
+    const missingItems = SEED_STORAGE_ITEMS.filter((fixture) => !seededItemNames.has(fixture.name));
+
+    if (missingItems.length > 0) {
+      const today = todayISO();
+      await db.insert(schema.storageItem).values(
+        missingItems.map((fixture) => {
+          const locationId = locationIdByName.get(fixture.location.toLowerCase());
+
+          if (locationId === undefined) {
+            throw new Error(`Storage item fixture names an unknown location: ${fixture.location}`);
+          }
+
+          return {
+            householdId: household.id,
+            locationId,
+            name: fixture.name,
+            notes: fixture.notes,
+            quantity: fixture.quantity,
+            borrowedByContactId: fixture.loan ? borrower.id : null,
+            borrowedByName: fixture.loan ? SEED_STORAGE_CONTACT.name : null,
+            borrowedOn: fixture.loan ? addDays(today, fixture.loan.borrowedOffsetDays) : null,
+            dueOn: fixture.loan ? addDays(today, fixture.loan.dueOffsetDays) : null,
+          };
+        })
+      );
+      console.log(`▸ seeded ${missingItems.length} storage items`);
+    } else {
+      console.log('▸ storage items already present — skipping');
     }
 
     console.log('✓ seed complete');
