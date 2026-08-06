@@ -26,8 +26,10 @@ because "there's no obvious place for it" usually means it's in the wrong place.
    `commitManagedImage` rolling back an upload when a concurrent delete removed the row,
    `cleanupOwnedImage` refusing to delete a shared avatar. This is the code most likely to be wrong,
    because nothing ever runs it.
-3. **A hook's decisions and its optimistic cache writes** — the frame between the gesture and the
-   refetch, which a spec never sees. Not its request; see the mocking rule.
+3. **Client state logic with no network in it** — a hook's decisions, an optimistic cache write, or
+   the cache helper it calls to make one (`arrangeItems`, `applyItemPatch`). This is the frame
+   between the gesture and the refetch, which a spec only ever sees the far side of. Not the request
+   itself; see the mocking rule.
 
 **Never drive a third-party interaction library from a unit test.** dnd-kit resolves a cross-day move
 off `source.manager`, a live drag operation carrying measured shapes and a pointer position. A
@@ -80,7 +82,8 @@ vitest.config.ts                    # root: lists the two projects
 apps/server/vitest.config.ts        # project `server` — test.env, globalSetup, setupFiles
 apps/server/vitest.global-setup.ts  # docker up :8767 → migrate → truncate; returns teardown
 apps/server/vitest.setup.ts         # per-worker guard: DATABASE_URL must be the unit DB
-apps/web/vitest.config.ts           # project `web` — node environment
+apps/web/vitest.config.ts           # project `web` — jsdom environment, setupFiles
+apps/web/vitest.setup.ts            # RTL cleanup after every test
 ```
 
 ```bash

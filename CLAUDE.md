@@ -246,7 +246,7 @@ See the **`new-feature-module`** skill for how a new feature's E2E flow gets add
 
 ### Unit testing (Vitest — `apps/server`, `apps/web`)
 
-**E2E is the default; a unit test has to earn its place.** The bar is that the behaviour is hard or impossible to reach through the running app. Three things clear it: **parsing/formatting** with a clear input and a clear expected output; **defence paths no user can reach** (`isUniqueViolation` walking a `DrizzleQueryError` cause chain, `commitManagedImage` rolling back an upload after a concurrent delete); and a **network-free hook** whose logic the UI can't practically exercise. Everything else is E2E's job.
+**E2E is the default; a unit test has to earn its place.** The bar is that the behaviour is hard or impossible to reach through the running app. Three things clear it: **parsing/formatting** with a clear input and a clear expected output; **defence paths no user can reach** (`isUniqueViolation` walking a `DrizzleQueryError` cause chain, `commitManagedImage` rolling back an upload after a concurrent delete); and **client state logic with no network in it** — a hook's decisions, an optimistic cache write, or the cache helper it calls to make one. Everything else is E2E's job.
 
 Two things are **never** unit-tested, because reaching for a test on them means the code is in the wrong place:
 - **A server route handler.** If a route holds logic E2E can't reach, that logic belongs in a service — extract it, then test the service.
