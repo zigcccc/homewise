@@ -135,6 +135,14 @@
   .leaflet-container {
     @apply !bg-card !font-[inherit];
   }
+  /* Leaflet stacks its panes (400) and its control corners (1000) with absolute z-indexes, and the
+     container itself opens no stacking context to hold them — so they land in the page's and outrank
+     every Radix layer, all of which sit at z-50. A map then paints over the dialog in front of it.
+     Isolating the container confines those numbers to the map's own box; the order inside it, which
+     is what they were written for, is untouched. */
+  .leaflet-container {
+    @apply isolate;
+  }
   .leaflet-container a {
     @apply !text-inherit;
   }
