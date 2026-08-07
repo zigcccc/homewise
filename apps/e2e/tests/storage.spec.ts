@@ -94,6 +94,20 @@ test.describe('storage', () => {
     }
   });
 
+  test('keeps a dialog above the map behind it', async ({ page }) => {
+    const locations = new StorageLocationsPage(page);
+    await locations.goto();
+
+    // The seeded garage is pinned, so the overview map is drawn.
+    await expect(page.locator('.leaflet-container').first()).toBeVisible();
+
+    // The dialog's overlay dims the map, zoom button and all. Leaflet's panes and controls carry
+    // z-indexes in the hundreds, so left unisolated they paint over that overlay and nothing dims.
+    const before = await locations.settledOverviewMapControl();
+    await locations.openAddDialog();
+    expect((await locations.settledOverviewMapControl()).equals(before)).toBe(false);
+  });
+
   test('adds, renames, searches and deletes an item', async ({ page }) => {
     const items = new StorageItemsPage(page);
     await items.goto();

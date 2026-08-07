@@ -5,6 +5,7 @@ import { SearchBox } from './search-box';
 /** The storage locations list (`/storage/locations`) and one location's detail page. */
 export class StorageLocationsPage {
   private readonly searchBox: SearchBox;
+  private overviewMapClip: { height: number; width: number; x: number; y: number } | null = null;
 
   constructor(private readonly page: Page) {
     this.searchBox = new SearchBox(page, 'Search locations and addresses');
@@ -29,13 +30,84 @@ export class StorageLocationsPage {
     await expect(this.page.getByRole('heading', { level: 1, name })).toBeVisible();
   }
 
+  /** Opens the create dialog and leaves it open. */
+  async openAddDialog(): Promise<Locator> {
+    await this.page.getByRole('button', { name: 'Add location', exact: true }).first().click();
+    const dialog = this.page.getByRole('dialog');
+    await expect(dialog).toBeVisible();
+
+    return dialog;
+  }
+
+  /**
+   * A shot of the overview map's zoom button, taken from the same coordinates every time. Comparing
+   * two of them is how a spec asks whether anything is drawn over the map: a dialog's overlay dims
+   * whatever it covers, so the button darkens — and a map that paints over that overlay leaves it
+   * pixel-identical. The button rather than the map itself because it is ours and opaque: tiles
+   * arrive from a CDN, and a spec that needs one to have landed is a spec that needs the internet.
+   *
+   * Asking the DOM instead does not work. Leaflet numbers its panes and control corners in the
+   * hundreds, so unless the container opens a stacking context they outrank every Radix layer at
+   * z-50 — but Radix also sets `pointer-events: none` on the page while a modal is open, and
+   * Chromium's hit testing then stops reporting the map whether or not the map is what you see.
+   * `elementFromPoint` and CDP's `getNodeForLocation` both answer "overlay" over a map that is
+   * visibly on top of the dialog. The compositor is the only witness, so this reads pixels.
+   */
+  async settledOverviewMapControl(): Promise<Buffer> {
+    // Until a tile has painted there is nothing over the overlay to measure — the map mounts lazily
+    // and an empty one sits below the dialog quite correctly. This is the one spec that needs the
+    // tile CDN to answer; a map that never draws fails it rather than quietly weakening it.
+    await expect(this.page.locator('.leaflet-tile-loaded').first()).toBeVisible();
+
+    let previous = await this.captureOverviewMapControl();
+
+    for (let attempt = 0; attempt < 25; attempt++) {
+      await this.page.waitForTimeout(200);
+      const next = await this.captureOverviewMapControl();
+
+      if (next.equals(previous)) {
+        return next;
+      }
+
+      previous = next;
+    }
+
+    throw new Error('The overview map never stopped changing, so two shots of it prove nothing.');
+  }
+
+  private async captureOverviewMapControl(): Promise<Buffer> {
+    // The create dialog carries a map of its own, so this has to name the one on the page. By
+    // attribute rather than by role: an open dialog `aria-hidden`s everything behind it, and a role
+    // query would stop finding the very button whose look is the thing being measured.
+    const box = await this.page.locator('.leaflet-container').first().locator('[aria-label="Zoom in"]').boundingBox();
+
+    if (!box) {
+      throw new Error('The overview map is not on the page.');
+    }
+
+    // Inset, so the clip holds the button's own fill and nothing of the map behind its edges.
+    const clip = {
+      height: Math.round(box.height) - 6,
+      width: Math.round(box.width) - 6,
+      x: Math.round(box.x) + 3,
+      y: Math.round(box.y) + 3,
+    };
+
+    if (this.overviewMapClip && JSON.stringify(clip) !== JSON.stringify(this.overviewMapClip)) {
+      throw new Error('The overview map moved between shots, so comparing them proves nothing.');
+    }
+
+    this.overviewMapClip = clip;
+
+    return this.page.screenshot({ animations: 'disabled', clip });
+  }
+
   /**
    * Creates a location. The map pin is deliberately left alone here — `addWithPin` covers it on its
    * own, and every other spec would pay for a tile fetch it never asserts on.
    */
   async add(name: string, address?: string) {
-    await this.page.getByRole('button', { name: 'Add location', exact: true }).first().click();
-    const dialog = this.page.getByRole('dialog');
+    const dialog = await this.openAddDialog();
     await dialog.getByLabel('Name', { exact: true }).fill(name);
 
     if (address) {
@@ -48,8 +120,7 @@ export class StorageLocationsPage {
 
   /** Submits the add dialog and leaves it open, for the paths the server refuses. */
   async addExpectingError(name: string) {
-    await this.page.getByRole('button', { name: 'Add location', exact: true }).first().click();
-    const dialog = this.page.getByRole('dialog');
+    const dialog = await this.openAddDialog();
     await dialog.getByLabel('Name', { exact: true }).fill(name);
     await dialog.getByRole('button', { name: 'Add location', exact: true }).click();
 
@@ -62,8 +133,7 @@ export class StorageLocationsPage {
    * a pin the form then saves, not that it produces a particular latitude.
    */
   async addWithPin(name: string) {
-    await this.page.getByRole('button', { name: 'Add location', exact: true }).first().click();
-    const dialog = this.page.getByRole('dialog');
+    const dialog = await this.openAddDialog();
     await dialog.getByLabel('Name', { exact: true }).fill(name);
 
     const map = dialog.locator('.leaflet-container');
