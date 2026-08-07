@@ -126,10 +126,15 @@ function MapView({
   maxZoom = 18,
   zoom = 15,
   ...props
-}: Omit<MapContainerProps, 'zoomControl'> & { center: LatLngExpression; ref?: Ref<LeafletMapInstance> }) {
+}: Omit<MapContainerProps, 'attributionControl' | 'zoomControl'> & {
+  center: LatLngExpression;
+  ref?: Ref<LeafletMapInstance>;
+}) {
   return (
     <LeafletMapContainer
-      attributionControl={false}
+      // Left on deliberately: CARTO's and OpenStreetMap's terms both ask for visible credit, and
+      // `MapTileLayer` is what fills it in. `zoomControl` below is ours (`MapZoomControl`); this
+      // one has no replacement, so switching it off would just drop the attribution on the floor.
       className={cn('size-full min-h-96 flex-1 rounded-md', className)}
       maxZoom={maxZoom}
       zoom={zoom}
@@ -173,9 +178,11 @@ function MapTileLayer({
 }: Partial<TileLayerProps> & { ref?: Ref<TileLayer> }) {
   const map = useMap();
 
-  if (map.attributionControl) {
-    map.attributionControl.setPrefix('');
-  }
+  // Drops Leaflet's "Leaflet | " credit, leaving the tile provider's. In an effect because it
+  // mutates the map: React may run a render twice or throw one away, and neither may reach the DOM.
+  useEffect(() => {
+    map.attributionControl?.setPrefix('');
+  }, [map]);
 
   return <LeafletTileLayer attribution={attribution} url={url} {...props} />;
 }

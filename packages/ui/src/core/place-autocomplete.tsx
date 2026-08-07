@@ -64,8 +64,10 @@ export type PlaceAutocompleteProps = Omit<PlaceSearchOptions, 'query'> &
   Omit<ComponentProps<'input'>, 'onChange' | 'value'> & {
     debounceMs?: number;
     defaultValue?: string;
+    /** Every keystroke, as an input's `onChange` is. Picking a place is `onPlaceSelect`. */
     onChange?: (value: string) => void;
-    onPlaceSelect?: (feature: PlaceFeature) => void;
+    /** The picked place, plus the one-line address the list rendered for it. */
+    onPlaceSelect?: (feature: PlaceFeature, address: string) => void;
     value?: string;
   };
 
@@ -157,6 +159,9 @@ function usePlaceSearch({ debounceMs, query, ...options }: { debounceMs: number 
       setResults([]);
       setIsLoading(false);
       setHasSearched(false);
+      // The error goes with the query that caused it. Left set, it keeps the dropdown open under an
+      // empty field, complaining about a lookup the user has already backspaced away.
+      setError(null);
       return;
     }
 
@@ -293,7 +298,7 @@ function PlaceAutocomplete({
                       onSelect={() => {
                         commit(address);
                         setSearchQuery('');
-                        onPlaceSelect?.(feature);
+                        onPlaceSelect?.(feature, address);
                       }}
                       value={String(feature.properties.osm_id)}
                     >
