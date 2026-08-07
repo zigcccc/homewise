@@ -13,11 +13,25 @@ const [GARAGE, CELLAR] = SEED_STORAGE_LOCATIONS;
  */
 async function addItemOutOfBand(page: Page, name: string) {
   const locations = await page.context().request.get(`${API_URL}/storage-locations`);
-  const garageId = (await locations.json()).find((row: { name: string }) => row.name === GARAGE.name).id;
+  expect(locations.ok(), 'Could not read the storage locations.').toBe(true);
+
+  const garage = (await locations.json()).find((row: { name: string }) => row.name === GARAGE.name);
+  expect(garage, `The seeded location "${GARAGE.name}" is missing.`).toBeDefined();
+
   const created = await page.context().request.post(`${API_URL}/storage-items`, {
-    multipart: { locationId: String(garageId), name },
+    multipart: { locationId: String(garage.id), name },
   });
   expect(created.ok()).toBe(true);
+}
+
+/** Removes something this file created behind the app's back, so a rerun starts where this one did. */
+async function deleteOutOfBand(page: Page, path: 'contacts' | 'storage-items', name: string) {
+  const list = await page.context().request.get(`${API_URL}/${path}`);
+  const row = (await list.json()).find((candidate: { name: string }) => candidate.name === name);
+
+  if (row) {
+    await page.context().request.delete(`${API_URL}/${path}/${row.id}`);
+  }
 }
 
 const OVERDUE_ITEM = SEED_STORAGE_ITEMS.find((item) => item.name === 'Camping tent');
@@ -30,8 +44,11 @@ test.describe('storage', () => {
     const locations = new StorageLocationsPage(page);
     await locations.goto();
 
-    const name = `E2E Location ${Date.now()}`;
-    const renamed = `${name} renamed`;
+    const stamp = Date.now();
+    // Disjoint, not `${name} renamed`: the card locator matches on substring, so a name the new one
+    // contains would go on matching it after the rename and resolve two elements if both existed.
+    const name = `E2E Location ${stamp}`;
+    const renamed = `E2E Renamed location ${stamp}`;
 
     try {
       await locations.add(name, 'Behind the house');
@@ -84,6 +101,12 @@ test.describe('storage', () => {
       await expect(page.locator('.leaflet-container')).toBeVisible();
       await expect(page.getByRole('link', { name: 'Directions' })).toBeVisible();
 
+      // Both tile providers ask for visible credit, and `attributionControl={false}` silently took
+      // it away once — the string was still passed to the tile layer, with nothing left to draw it.
+      const attribution = page.locator('.leaflet-control-attribution');
+      await expect(attribution.getByRole('link', { name: 'OpenStreetMap' })).toBeVisible();
+      await expect(attribution.getByRole('link', { name: 'CARTO' })).toBeVisible();
+
       await locations.goto();
       await locations.open(CELLAR.name);
       await expect(page.getByRole('link', { name: 'Directions' })).toBeHidden();
@@ -112,8 +135,10 @@ test.describe('storage', () => {
     const items = new StorageItemsPage(page);
     await items.goto();
 
-    const name = `E2E Item ${Date.now()}`;
-    const renamed = `${name} renamed`;
+    const stamp = Date.now();
+    // Disjoint names, for the reason the location spec above gives.
+    const name = `E2E Item ${stamp}`;
+    const renamed = `E2E Renamed item ${stamp}`;
 
     try {
       await items.add({ location: GARAGE.name, name, notes: 'Third shelf, blue crate', quantity: 3 });
@@ -168,6 +193,7 @@ test.describe('storage', () => {
     const items = new StorageItemsPage(page);
     const locations = new StorageLocationsPage(page);
     const name = `E2E Movable ${Date.now()}`;
+    const bystander = `E2E Bystander ${Date.now()}`;
 
     try {
       await items.goto();
@@ -181,7 +207,7 @@ test.describe('storage', () => {
       const refetched = page.waitForResponse(
         (response) => response.url().includes('/storage-items?') && response.request().method() === 'GET'
       );
-      await addItemOutOfBand(page, `E2E Bystander ${Date.now()}`);
+      await addItemOutOfBand(page, bystander);
       await refetched;
 
       // The menu is asserted on rather than the row: it's modal, so the table behind it is
@@ -202,6 +228,9 @@ test.describe('storage', () => {
       await items.goto();
       await items.search('');
       await items.deleteIfPresent(name);
+      // The bystander went in behind the app's back, so it comes out the same way — left behind it
+      // would accumulate one row per run in the household every other spec reads.
+      await deleteOutOfBand(page, 'storage-items', bystander);
     }
   });
 
@@ -233,6 +262,9 @@ test.describe('storage', () => {
       await items.goto();
       await items.search('');
       await items.deleteIfPresent(name);
+      // The loan minted a contact, and there is no Contacts page to remove it from. Left behind, it
+      // grows the address book this feature's combobox loads on every run.
+      await deleteOutOfBand(page, 'contacts', borrower);
     }
   });
 
@@ -245,14 +277,15 @@ test.describe('storage', () => {
     // window rather than an end state, and Playwright's auto-waiting would sit through it. Without a
     // Suspense boundary of its own the dialog suspends to the *route's*, and for as long as this
     // request is in flight the whole page behind it is replaced by a spinner.
-    await page.route('**/contacts', async (route) => {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      await route.continue();
-    });
-
     try {
       await items.goto();
       await items.add({ location: GARAGE.name, name });
+
+      // Installed after the setup, so nothing but the dialog's own request waits on it.
+      await page.route('**/contacts', async (route) => {
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+        await route.continue();
+      });
 
       await items.openRowMenu(name);
       await page.getByRole('menuitem', { name: 'Lend it out' }).click();
@@ -262,7 +295,9 @@ test.describe('storage', () => {
       await expect(page.getByRole('dialog').filter({ hasText: 'Lend' })).toBeVisible({ timeout: 1000 });
       await expect(page.locator('h1')).toBeVisible();
     } finally {
-      await page.unroute('**/contacts');
+      // The delayed request is still in flight; `ignoreErrors` is what stops its late `continue`
+      // landing on a page this cleanup has already navigated away from.
+      await page.unrouteAll({ behavior: 'ignoreErrors' });
       await items.goto();
       await items.search('');
       await items.deleteIfPresent(name);
@@ -282,11 +317,13 @@ test.describe('storage', () => {
 
     // Sorting both ways puts a different row first.
     const firstRow = page.getByRole('row').nth(1);
-    const ascending = await firstRow.textContent();
+    // `innerText`, because that is what `toHaveText` matches against — `textContent` returns the raw
+    // nodes with their original whitespace, so an unchanged row would compare unequal to itself.
+    const ascending = await firstRow.innerText();
 
     await page.getByRole('button', { name: 'A → Z' }).click();
     await expect(page.getByRole('button', { name: 'Z → A' })).toBeVisible();
-    await expect(firstRow).not.toHaveText(ascending ?? '');
+    await expect(firstRow).not.toHaveText(ascending);
   });
 
   test('deleting a location warns about what goes with it', async ({ page }) => {
