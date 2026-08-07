@@ -294,9 +294,21 @@ export class StorageItemsPage {
     return input;
   }
 
+  /**
+   * A move as a person makes one: hover the trigger, wait for the submenu, click a location. The
+   * keyboard variant below exists for one spec's particular need — it must not be the only coverage,
+   * because `ArrowRight` opens a Radix submenu that a pointer cannot reach whenever anything is
+   * intercepting hover, and a trigger that is silently `disabled` answers the keyboard no differently
+   * than the mouse. Both paths need driving.
+   */
   async moveTo(name: string, location: string) {
     await this.openRowMenu(name);
-    await this.moveToFromOpenMenu(location);
+
+    const trigger = this.page.getByRole('menuitem', { name: 'Move to' });
+    await expect(trigger).toBeEnabled();
+    await trigger.hover();
+
+    await this.clickSubmenuLocation(location);
   }
 
   /**
@@ -311,6 +323,10 @@ export class StorageItemsPage {
     const trigger = this.page.getByRole('menuitem', { name: 'Move to' });
     await trigger.press('ArrowRight');
 
+    await this.clickSubmenuLocation(location);
+  }
+
+  private async clickSubmenuLocation(location: string) {
     const submenu = this.page.getByRole('menu').filter({ has: this.page.getByRole('menuitem', { name: location }) });
     await expect(submenu).toBeVisible();
     await submenu.getByRole('menuitem', { name: location, exact: true }).click();

@@ -224,6 +224,14 @@ test.describe('storage', () => {
       await locations.goto();
       await locations.open(GARAGE.name);
       await expect(items.row(name)).toBeHidden();
+
+      // And back, this time hovering the submenu open the way a person does. The keyboard route
+      // above is the one the shifting-list case needs, but on its own it proved nothing about the
+      // pointer: a sub-trigger that never opens under the mouse still answers `ArrowRight`.
+      await items.goto();
+      await items.search(name);
+      await items.moveTo(name, GARAGE.name);
+      await expect(items.row(name)).toContainText(GARAGE.name);
     } finally {
       await items.goto();
       await items.search('');
