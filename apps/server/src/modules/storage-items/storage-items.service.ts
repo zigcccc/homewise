@@ -1,4 +1,5 @@
 import { and, asc, desc, eq, ilike, isNotNull, isNull, lt, or } from 'drizzle-orm';
+import { HTTPException } from 'hono/http-exception';
 
 import { db, schema } from '#db/core';
 import { emptyToNull, type Filters, writesAnything } from '#db/utils';
@@ -222,7 +223,11 @@ export class StorageItemsService {
    * Reports whether a contact was created, so the route knows to announce that too.
    */
   public static async lend(householdId: number, itemId: number, data: LendStorageItem) {
-    await StorageItemsService.readItemRow(householdId, itemId);
+    const item = await StorageItemsService.readItemRow(householdId, itemId);
+
+    if (item.borrowedOn !== null) {
+      throw new HTTPException(409, { message: `"${item.name}" is already out on loan.` });
+    }
 
     const createdContact = 'contact' in data;
 
@@ -231,7 +236,7 @@ export class StorageItemsService {
         ? await ContactsService.create(householdId, data.contact, tx)
         : await ContactsService.readContactRow(householdId, data.contactId, tx);
 
-      await tx
+      const [updated] = await tx
         .update(schema.storageItem)
         .set({
           borrowedByContactId: borrower.id,
@@ -240,7 +245,22 @@ export class StorageItemsService {
           borrowedOn: data.borrowedOn ?? todayISO(),
           dueOn: emptyToNull(data.dueOn) ?? null,
         })
-        .where(and(eq(schema.storageItem.householdId, householdId), eq(schema.storageItem.id, itemId)));
+        // `isNull` repeats the check above deliberately: that one read outside this transaction, so
+        // it can only speak for the moment before it. This is what makes one loan win a race.
+        .where(
+          and(
+            eq(schema.storageItem.householdId, householdId),
+            eq(schema.storageItem.id, itemId),
+            isNull(schema.storageItem.borrowedOn)
+          )
+        )
+        .returning({ id: schema.storageItem.id });
+
+      // Nothing to lend any more — deleted or lent by someone else in between. Throwing here is what
+      // takes a contact minted for this loan back out with it.
+      if (!updated) {
+        throw notFound('Item');
+      }
     });
 
     return { item: await StorageItemsService.read(householdId, itemId), createdContact };

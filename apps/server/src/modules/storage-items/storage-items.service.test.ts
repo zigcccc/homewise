@@ -122,6 +122,40 @@ describe('a loan whose contact is deleted', () => {
   });
 });
 
+describe('lending something that is already out', () => {
+  it('should refuse it, and mint nobody for the loan it refused', async () => {
+    // GIVEN: an item already out with somebody
+    const item = await StorageItemsService.create(
+      ours.householdId,
+      { locationId: ourLocation, name: `Extension ladder ${randomUUID()}` },
+      ours.userId
+    );
+    await StorageItemsService.lend(ours.householdId, item.id, {
+      contact: { name: 'First Borrower', type: 'other' },
+    });
+
+    // WHEN: a second loan is filed against it — the UI only offers this on an item that is here, so
+    // reaching it means two people acted at once, or something called the endpoint directly
+    const second = StorageItemsService.lend(ours.householdId, item.id, {
+      contact: { name: `Second Borrower ${randomUUID()}`, type: 'other' },
+    });
+
+    // THEN: it should be refused rather than quietly replacing whoever has it
+    await expect(second).rejects.toThrow(HTTPException);
+    await expect(second).rejects.toMatchObject({ status: 409 });
+
+    const after = await db.query.storageItem.findFirst({ where: eq(schema.storageItem.id, item.id) });
+    expect(after?.borrowedByName).toBe('First Borrower');
+
+    // AND: the contact the refused loan would have created should not be in the address book — the
+    // refusal lands before the transaction that would have minted it
+    const contacts = await db.query.contact.findMany({
+      where: eq(schema.contact.householdId, ours.householdId),
+    });
+    expect(contacts.filter((contact) => contact.name.startsWith('Second Borrower'))).toHaveLength(0);
+  });
+});
+
 describe('the loan check constraint', () => {
   it('should refuse a loan that names nobody', async () => {
     // GIVEN: an item that is here

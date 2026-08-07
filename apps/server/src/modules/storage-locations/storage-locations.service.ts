@@ -128,7 +128,8 @@ export class StorageLocationsService {
       .select()
       .from(schema.storageLocation)
       .where(and(...filters))
-      .orderBy(sortDirection === 'desc' ? desc(sortColumn) : asc(sortColumn));
+      // The id breaks ties, so two identical requests can't shuffle rows that share a `createdAt`.
+      .orderBy(sortDirection === 'desc' ? desc(sortColumn) : asc(sortColumn), asc(schema.storageLocation.id));
 
     const counts = await StorageLocationsService.countItems(
       householdId,
