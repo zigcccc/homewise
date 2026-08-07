@@ -9,5 +9,6 @@ export * from './medical-info';
 export * from './pet-profile';
 export * from './recipe';
 export * from './shopping-list';
+export * from './storage';
 export * from './store';
 export * from './user';

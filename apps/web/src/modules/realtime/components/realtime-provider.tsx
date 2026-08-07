@@ -24,6 +24,8 @@ import { invalidateMealPlan } from '@/modules/meal-plan';
 import { invalidatePetProfile, invalidatePetProfiles } from '@/modules/pet-profiles';
 import { invalidateRecipe, invalidateRecipes } from '@/modules/recipes';
 import { invalidateShoppingLists } from '@/modules/shopping-lists';
+import { invalidateStorageItems } from '@/modules/storage-items';
+import { invalidateStorageLocations } from '@/modules/storage-locations';
 import { invalidateStores } from '@/modules/stores';
 
 import { realtimeClient } from '../realtime.client';
@@ -102,6 +104,16 @@ const invalidators: Record<HouseholdEventEntity, (queryClient: QueryClient, even
   // The headline case: two people in the same shop, one ticks an item, the other's list updates.
   // Coarse on purpose — a tick changes the open list *and* the master column's counts.
   shopping_list: (queryClient) => invalidateShoppingLists(queryClient),
+  storage_item: (queryClient) => {
+    invalidateStorageItems(queryClient);
+    // Locations carry the item and on-loan counts, so anything that happens to an item moves them.
+    invalidateStorageLocations(queryClient);
+  },
+  storage_location: (queryClient) => {
+    invalidateStorageLocations(queryClient);
+    // Items read the location's name off the join, and deleting one takes its items with it.
+    invalidateStorageItems(queryClient);
+  },
   store: (queryClient) => {
     invalidateStores(queryClient);
     // The ingredient table shows the shop's name off the join, so a rename relabels rows there and

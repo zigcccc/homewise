@@ -40,9 +40,13 @@ export class ContactsService {
     });
   }
 
-  /** Resolves a contact, scoped to its household so ids from elsewhere 404. */
-  private static async readContactRow(householdId: number, contactId: number) {
-    const contact = await db.query.contact.findFirst({
+  /**
+   * Resolves a contact, scoped to its household so ids from elsewhere 404. Public because owners
+   * that *link* an existing contact need the same check — and an `executor` so that link can be made
+   * in the same transaction as whatever else the request writes.
+   */
+  public static async readContactRow(householdId: number, contactId: number, executor: Executor = db) {
+    const contact = await executor.query.contact.findFirst({
       where: (fields, { and, eq }) => and(eq(fields.householdId, householdId), eq(fields.id, contactId)),
     });
 

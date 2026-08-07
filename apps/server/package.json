@@ -76,6 +76,14 @@
       "types": "./src/modules/expense-categories/expense-categories.model.ts",
       "import": "./src/modules/expense-categories/expense-categories.model.ts"
     },
+    "./storage-locations": {
+      "types": "./src/modules/storage-locations/storage-locations.model.ts",
+      "import": "./src/modules/storage-locations/storage-locations.model.ts"
+    },
+    "./storage-items": {
+      "types": "./src/modules/storage-items/storage-items.model.ts",
+      "import": "./src/modules/storage-items/storage-items.model.ts"
+    },
     "./realtime": {
       "types": "./src/modules/realtime/realtime.model.ts",
       "import": "./src/modules/realtime/realtime.model.ts"

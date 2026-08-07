@@ -9,6 +9,7 @@ import { plannedDayNote, plannedMeal, plannedMealMember } from './meal-plan';
 import { petProfile } from './pet-profile';
 import { ingredient, recipe, recipeTag } from './recipe';
 import { shoppingList } from './shopping-list';
+import { storageItem, storageLocation } from './storage';
 import { store } from './store';
 import { user } from './user';
 
@@ -73,6 +74,8 @@ export const householdRelations = relations(household, ({ many, one }) => ({
   recipeTags: many(recipeTag),
   recipes: many(recipe),
   shoppingLists: many(shoppingList),
+  storageItems: many(storageItem),
+  storageLocations: many(storageLocation),
   stores: many(store),
 }));
 

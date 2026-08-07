@@ -122,6 +122,58 @@ export const SEED_MEAL_PLAN = {
 } as const;
 
 /**
+ * Where the seeded household keeps things. Two of them, so the e2e suite can move an item from one
+ * to the other without creating either first.
+ *
+ * The garage carries coordinates and the cellar doesn't — those are the two states the map has to
+ * render, and a seed with only pinned locations would never show the unpinned one.
+ */
+export const SEED_STORAGE_LOCATIONS = [
+  { name: 'Garage', address: 'Slovenska cesta 1, 1000 Ljubljana', latitude: 46.051389, longitude: 14.506111 },
+  { name: 'Cellar', address: null, latitude: null, longitude: null },
+] as const;
+
+/**
+ * The contact the seeded loan is lent to. A borrower is a household contact, so a preview environment
+ * opens the lend dialog on an address book with something in it.
+ */
+export const SEED_STORAGE_CONTACT = {
+  name: 'Ana Novak',
+  type: 'other',
+  phone: '+386 40 123 456',
+} as const;
+
+/**
+ * What's in the seeded locations. One item is out on loan and one is overdue, because "available",
+ * "on loan" and "overdue" are three filters and a seed showing only the first proves none of them.
+ *
+ * `dueOffsetDays` is **resolved against today at seed time** — never a literal date, for the same
+ * reason `SEED_MEAL_PLAN` uses week offsets: a hard-coded date stops being overdue-or-not the moment
+ * it passes, and the assertion about it stops meaning anything.
+ *
+ * The e2e suite creates its own uniquely-named items and only ever *reads* these.
+ */
+export const SEED_STORAGE_ITEMS = [
+  { name: 'Winter tyres', location: 'Garage', notes: 'Set of four, 205/55 R16.', quantity: 4, loan: null },
+  { name: 'Christmas decorations', location: 'Cellar', notes: null, quantity: 2, loan: null },
+  {
+    name: 'Cordless drill',
+    location: 'Garage',
+    notes: null,
+    quantity: 1,
+    loan: { borrowedOffsetDays: -14, dueOffsetDays: 7 },
+  },
+  {
+    name: 'Camping tent',
+    location: 'Cellar',
+    notes: 'Four-person, poles in the side pocket.',
+    quantity: 1,
+    /** Already past its due date — the overdue filter needs a row it can find. */
+    loan: { borrowedOffsetDays: -60, dueOffsetDays: -5 },
+  },
+] as const;
+
+/**
  * The categories the seeded household files its spending under. Two of them, so the monthly breakdown
  * has more than one slice to draw and the picker opens on something.
  */
