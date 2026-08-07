@@ -51,13 +51,16 @@ export function LocationMapField({
         <MapEvents onClick={onChange} />
         <MapSearchControl
           aria-label="Search for a place"
-          onChange={(address) => onAddressResolved?.(address)}
-          onPlaceSelect={(feature) => {
+          // Both halves come off the pick, not off `onChange` — that one fires per keystroke, so
+          // routing the address through it overwrote a saved address with whatever was half-typed.
+          onPlaceSelect={(feature, address) => {
             const [longitude, latitude] = feature.geometry.coordinates;
 
             if (latitude !== undefined && longitude !== undefined) {
               onChange({ latitude, longitude });
             }
+
+            onAddressResolved?.(address);
           }}
         />
         <MapZoomControl />

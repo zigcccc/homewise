@@ -192,7 +192,8 @@ function LocationsOverviewMap({
 }) {
   const first = locations[0];
 
-  if (!first?.latitude || !first.longitude) {
+  // Null, not falsy: 0 is a coordinate, and the zero meridian runs through places people live.
+  if (first?.latitude == null || first.longitude == null) {
     return null;
   }
 

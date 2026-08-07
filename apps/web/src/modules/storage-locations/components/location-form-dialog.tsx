@@ -25,6 +25,7 @@ import {
 
 import { parseResponse } from '@/api/client';
 import { isServerStatus, serverMessage } from '@/modules/shared';
+import { invalidateStorageItems } from '@/modules/storage-items';
 
 import {
   $createStorageLocation,
@@ -91,6 +92,9 @@ function LocationForm({ location, onDone }: { location?: StorageLocation; onDone
       await save(values);
       toast.success(location ? 'Location updated.' : `"${values.name}" added.`);
       invalidateStorageLocations(queryClient);
+      // Every item carries its location's name in the row it renders, so a rename relabels the item
+      // lists too — which is exactly what this dialog's description promises.
+      invalidateStorageItems(queryClient);
       onDone();
     } catch (error) {
       const message = serverMessage(error, 'Something went wrong.');

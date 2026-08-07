@@ -214,7 +214,9 @@ function ItemForm({ item, locationId, onDone }: { item?: StorageItem; locationId
                     <Input
                       {...field}
                       min={1}
-                      onChange={(event) => field.onChange(event.target.valueAsNumber)}
+                      // An emptied number input reports `valueAsNumber: NaN`. Stored, that comes
+                      // back as the input's `value` and React blanks the control it was typed into.
+                      onChange={(event) => field.onChange(event.target.value === '' ? '' : event.target.valueAsNumber)}
                       type="number"
                     />
                   </FormControl>
