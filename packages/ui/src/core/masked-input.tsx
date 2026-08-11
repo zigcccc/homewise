@@ -1,5 +1,5 @@
 import { CopyIcon, EyeOffIcon, PencilIcon } from 'lucide-react';
-import { type ComponentProps } from 'react';
+import { type ComponentProps, useState } from 'react';
 
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from './input-group';
 
@@ -36,6 +36,10 @@ type MaskedInputProps = Omit<ComponentProps<typeof InputGroupInput>, 'onChange' 
  */
 function MaskedInput({ value, onChange, revealed, onReveal, onHide, onCopy, onCopyError, ...props }: MaskedInputProps) {
   const hasValue = value.length > 0;
+  // Set by the pencil, read by the input it mounts. A field that opens revealed because it is empty must not
+  // take focus on page load — with two of them, the last would win and scroll the page to itself. Once the
+  // user has reached for the pencil it stays set, which is exactly when a revealed input should be focused.
+  const [focusOnReveal, setFocusOnReveal] = useState(false);
 
   const copy = async () => {
     try {
@@ -51,7 +55,7 @@ function MaskedInput({ value, onChange, revealed, onReveal, onHide, onCopy, onCo
       {revealed ? (
         // Distinct key from the masked branch so switching remounts the input, letting autoFocus fire.
         <InputGroupInput
-          autoFocus
+          autoFocus={focusOnReveal}
           key="revealed"
           onChange={(event) => onChange(event.target.value)}
           value={value}
@@ -74,7 +78,15 @@ function MaskedInput({ value, onChange, revealed, onReveal, onHide, onCopy, onCo
             </InputGroupButton>
           )}
           {!revealed && (
-            <InputGroupButton aria-label="Edit" onClick={onReveal} size="icon-xs" type="button">
+            <InputGroupButton
+              aria-label="Edit"
+              onClick={() => {
+                setFocusOnReveal(true);
+                onReveal();
+              }}
+              size="icon-xs"
+              type="button"
+            >
               <PencilIcon />
             </InputGroupButton>
           )}
