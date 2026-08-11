@@ -1,6 +1,15 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { addDays, clampRange, eachDayInclusive, endOfMonth, startOfISOWeek, startOfMonth, todayISO } from '#lib/dates';
+import {
+  addDays,
+  clampRange,
+  eachDayInclusive,
+  endOfMonth,
+  startOfISOWeek,
+  startOfMonth,
+  todayISO,
+  todayMonthDay,
+} from '#lib/dates';
 
 describe('todayISO', () => {
   afterEach(() => {
@@ -15,6 +24,32 @@ describe('todayISO', () => {
     // WHEN: today is asked for
     // THEN: it should be the UTC day
     expect(todayISO()).toBe('2026-08-06');
+  });
+});
+
+describe('todayMonthDay', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('should drop the year and pad both parts', () => {
+    // GIVEN: a day whose month and date are both single-digit
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-05T12:00:00Z'));
+
+    // WHEN: today's month and day are asked for
+    // THEN: both should be zero-padded, so a string comparison orders the calendar
+    expect(todayMonthDay()).toBe('01-05');
+  });
+
+  it('should read the calendar day in UTC rather than the process timezone', () => {
+    // GIVEN: the clock has rolled into a new month in UTC but not in UTC-5
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-09-01T00:30:00Z'));
+
+    // WHEN: today's month and day are asked for
+    // THEN: it should be the UTC day, matching `todayISO`
+    expect(todayMonthDay()).toBe('09-01');
   });
 });
 

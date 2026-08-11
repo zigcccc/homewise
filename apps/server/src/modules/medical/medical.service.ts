@@ -92,16 +92,9 @@ export class MedicalService {
   public static async linkContact(householdId: number, medicalInfoId: number, contactId: number) {
     await MedicalService.readMedicalInfoRow(householdId, medicalInfoId);
 
-    // Scopes the contact to the household so a foreign id can't be linked in. Loads it with its links so
-    // the mutation returns the same joined shape as profile reads and the other contact mutations.
-    const contact = await db.query.contact.findFirst({
-      where: (fields, { and, eq }) => and(eq(fields.householdId, householdId), eq(fields.id, contactId)),
-      with: { links: { orderBy: (fields, { asc }) => [asc(fields.createdAt)] } },
-    });
-
-    if (!contact) {
-      throw notFound('Contact');
-    }
+    // Scopes the contact to the household so a foreign id can't be linked in, and returns the same
+    // joined shape `addContact` does — both of these end up in the same place on the profile card.
+    const contact = await ContactsService.read(householdId, contactId);
 
     await db
       .insert(schema.medicalInfoContact)

@@ -61,13 +61,16 @@ Requires Node.js >=24 and Docker (local dev Postgres on 8765; the E2E suite spin
 
 ### Backend (`apps/server`)
 
-Hono.js app with a module-based structure. Each feature module lives in `src/modules/<feature>/` and is a **flat trio** — no sub-folders:
+Hono.js app with a module-based structure. Each feature module lives in `src/modules/<feature>/` and is **flat** — no sub-folders:
 - `<feature>.app.ts` — Hono router with route definitions
 - `<feature>.service.ts` — Business logic and DB queries
 - `<feature>.model.ts` — Zod schemas and TypeScript types
+- `<feature>.constants.ts` — *optional*: domain lookup tables and fixed values. A `Record` mapping one enum onto another is not a schema and does not belong beside them — `contacts.constants.ts` holds `INVERSE_ROLE`. Only add the file when there is something to put in it.
 - `index.ts` — one line, `export { default } from './<feature>.app'`, so `src/index.ts` can mount it as `./modules/<feature>`
 
 Barrels earn their place only there. Everything else names its file — see the imports section below.
+
+**A module may expose more than one `package.json#exports` subpath.** Each maps to exactly one file — there is no barrel to hide behind — so a module whose constants the web also needs gets a second entry beside its model: `@homewise/server/contacts` is `contacts.model.ts`, `@homewise/server/contacts/constants` is `contacts.constants.ts`.
 
 Middleware chain: Logger → CORS → Auth session guard → Routes.
 

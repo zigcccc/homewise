@@ -127,6 +127,13 @@
       "when": 1786025896660,
       "tag": "0017_foamy_manta",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1786442035683,
+      "tag": "0018_mysterious_doomsday",
+      "breakpoints": true
     }
   ]
 }
