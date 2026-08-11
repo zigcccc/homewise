@@ -216,6 +216,7 @@ function PlaceAutocomplete({
   locationBiasScale,
   lon,
   onChange,
+  onKeyDown,
   onPlaceSelect,
   value,
   zoom,
@@ -260,6 +261,18 @@ function PlaceAutocomplete({
             onChange={(event) => {
               commit(event.target.value);
               setSearchQuery(event.target.value);
+            }}
+            onKeyDown={(event) => {
+              onKeyDown?.(event);
+
+              // cmdk's root handler preventDefaults *every* Enter, whether or not there is a result
+              // to take. With results up that is what should happen — Enter picks the highlighted
+              // place. With none (nothing typed yet, a place already picked, "no places match", a
+              // geocoder that didn't answer) it makes this the one field in its form that ignores
+              // Enter, so ask the form here, in the target phase, before that handler runs.
+              if (event.key === 'Enter' && results.length === 0 && !event.defaultPrevented) {
+                event.currentTarget.form?.requestSubmit();
+              }
             }}
             placeholder="Search for a place"
             value={displayValue}
