@@ -19,12 +19,29 @@ export class MedicalPage {
     await expect(this.page.getByText('Medical information updated.')).toBeVisible();
   }
 
-  /** Creates a new contact via the "Add contact" combobox → "Create new contact". */
-  async addContact(name: string) {
+  /** The open contact dialog's Address box — a place autocomplete, not a plain input. */
+  get addressField() {
+    return this.page.getByRole('dialog').getByLabel('Address', { exact: true });
+  }
+
+  /** Opens the create-contact dialog via the "Add contact" combobox, and returns it. */
+  async openCreateContactDialog() {
     await this.page.getByRole('button', { name: 'Add contact' }).click();
     // "Create new contact" is a combobox action button, not a selectable option.
     await this.page.getByRole('button', { name: 'Create new contact' }).click();
-    const dialog = this.page.getByRole('dialog');
+
+    return this.page.getByRole('dialog');
+  }
+
+  /** Searches the address box and takes the suggestion whose text contains `option`. */
+  async pickAddress(search: string, option: string) {
+    await this.addressField.fill(search);
+    await this.page.getByRole('option', { name: option }).click();
+  }
+
+  /** Creates a new contact via the "Add contact" combobox → "Create new contact". */
+  async addContact(name: string) {
+    const dialog = await this.openCreateContactDialog();
     await dialog.getByLabel('Name', { exact: true }).fill(name);
     await dialog.getByRole('button', { name: 'Create contact' }).click();
     await expect(dialog).toBeHidden();
