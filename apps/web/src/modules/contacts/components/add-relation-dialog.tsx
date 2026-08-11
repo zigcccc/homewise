@@ -4,7 +4,7 @@ import { type SubmitHandler, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import type z from 'zod';
 
-import { type ContactRelationRole, createContactRelationModel } from '@homewise/server/contacts';
+import { type ContactRelationRole, contactRelationRole, createContactRelationModel } from '@homewise/server/contacts';
 import { INVERSE_ROLE } from '@homewise/server/contacts/constants';
 import {
   Button,
@@ -136,9 +136,9 @@ function RelationForm({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {Object.entries(contactRelationRoleLabels).map(([option, label]) => (
+                  {contactRelationRole.options.map((option) => (
                     <SelectItem key={option} value={option}>
-                      {label}
+                      {contactRelationRoleLabels[option]}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -163,9 +163,9 @@ function RelationForm({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {Object.entries(contactRelationRoleLabels).map(([option, label]) => (
+                  {contactRelationRole.options.map((option) => (
                     <SelectItem key={option} value={option}>
-                      {label}
+                      {contactRelationRoleLabels[option]}
                     </SelectItem>
                   ))}
                 </SelectContent>

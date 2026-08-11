@@ -1,5 +1,7 @@
 import { type ContactRelationRole } from '@homewise/server/contacts';
 
+import { type ContactRelation } from '../contacts.queries';
+
 /** A relation as the contact form carries it. No `relationId` means it hasn't been saved yet. */
 export type RelationDraft = {
   relationId?: number;
@@ -8,14 +10,12 @@ export type RelationDraft = {
   role: ContactRelationRole;
 };
 
-/** A relation as the detail response reports it — already turned to face the contact being edited. */
-type StoredRelation = {
-  id: number;
-  role: ContactRelationRole;
-  contact: { id: number; name: string };
-};
-
-export const toRelationDrafts = (relations: StoredRelation[]): RelationDraft[] =>
+/**
+ * Takes relations as the detail response reports them — already turned to face the contact being
+ * edited — and flattens each to what the form needs. Typed off the response rather than restated,
+ * so a field renamed on the server surfaces here instead of compiling on a structural match.
+ */
+export const toRelationDrafts = (relations: ContactRelation[]): RelationDraft[] =>
   relations.map((relation) => ({
     relationId: relation.id,
     relatedContactId: relation.contact.id,

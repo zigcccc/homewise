@@ -4,8 +4,16 @@ import { type ContactLinkType } from '@homewise/server/contacts';
 
 import { ageInYears, ExternalLink, formatDate } from '@/modules/shared';
 
-/** Icon per link type — a website, a social profile, or anything else. */
-const linkIcons = { web: GlobeIcon, social: AtSignIcon, other: LinkIcon } as const;
+/**
+ * Icon per link type — a website, a social profile, or anything else. Typed against the enum rather
+ * than inferred from its own keys, so a link type added on the server fails the build here instead
+ * of rendering `undefined` as a component.
+ */
+const linkIcons: Record<ContactLinkType, typeof GlobeIcon> = {
+  web: GlobeIcon,
+  social: AtSignIcon,
+  other: LinkIcon,
+};
 
 type ContactLink = { id: number; name: string; type: ContactLinkType; url: string };
 

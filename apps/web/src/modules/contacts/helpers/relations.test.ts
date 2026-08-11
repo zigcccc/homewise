@@ -88,7 +88,9 @@ describe('resolveRelationChanges', () => {
 
 describe('toRelationDrafts', () => {
   it('should carry the relation id and the far contact through', () => {
-    const drafts = toRelationDrafts([{ id: 3, role: 'mother', contact: { id: 14, name: 'Ana' } }]);
+    const drafts = toRelationDrafts([
+      { id: 3, role: 'mother', contact: { id: 14, name: 'Ana', type: 'family', dateOfBirth: '1962-04-02' } },
+    ]);
 
     expect(drafts).toEqual([{ relationId: 3, relatedContactId: 14, relatedContactName: 'Ana', role: 'mother' }]);
   });

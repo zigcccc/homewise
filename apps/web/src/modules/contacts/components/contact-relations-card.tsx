@@ -4,7 +4,7 @@ import { XIcon } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
-import { type ContactRelationRole } from '@homewise/server/contacts';
+import { type ContactRelationRole, contactRelationRole } from '@homewise/server/contacts';
 import {
   Button,
   Card,
@@ -169,9 +169,9 @@ function RelationRow({ contact, relation }: { contact: ContactDetail; relation: 
             <span>{contactRelationRoleLabels[relation.role]}</span>
           </SelectTrigger>
           <SelectContent>
-            {Object.entries(contactRelationRoleLabels).map(([option, label]) => (
+            {contactRelationRole.options.map((option) => (
               <SelectItem key={option} value={option}>
-                {label}
+                {contactRelationRoleLabels[option]}
               </SelectItem>
             ))}
           </SelectContent>

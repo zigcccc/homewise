@@ -36,7 +36,7 @@ import {
 } from '@homewise/ui/core';
 
 import { ContactDialog, contactTypeLabels, listContactsQueryOptions } from '@/modules/contacts';
-import { Actionbar, RouteError, SORT_LABELS, SortDirectionToggle } from '@/modules/shared';
+import { Actionbar, RouteError, SORT_LABELS, type SortDirectionLabels, SortDirectionToggle } from '@/modules/shared';
 
 import { contactColumns } from './-contacts-table.config';
 
@@ -49,12 +49,25 @@ const searchParamsModel = z.object({
 
 type SearchParams = z.infer<typeof searchParamsModel>;
 
+type ContactSortKey = z.infer<typeof contactSortKey>;
+
+/**
+ * Both records are `satisfies Record<ContactSortKey, …>` so a sort key added on the server is a
+ * compile error here rather than a key the picker never offers and a toggle that quietly falls back
+ * to the wrong words.
+ */
+const SORT_KEY_LABELS = {
+  name: 'Name',
+  birthday: 'Birthday',
+  createdAt: 'Date added',
+} satisfies Record<ContactSortKey, string>;
+
 /** Ascending reads differently per column: A → Z for a name, but soonest-first for a birthday. */
 const SORT_DIRECTION_LABELS = {
   name: SORT_LABELS.text,
   birthday: SORT_LABELS.recurring,
   createdAt: SORT_LABELS.date,
-};
+} satisfies Record<ContactSortKey, SortDirectionLabels>;
 
 export const Route = createFileRoute('/_authenticated/_onboarded/family/contacts/')({
   validateSearch: searchParamsModel,
@@ -154,9 +167,11 @@ function ContactsRoute() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="name">Name</SelectItem>
-              <SelectItem value="birthday">Birthday</SelectItem>
-              <SelectItem value="createdAt">Date added</SelectItem>
+              {contactSortKey.options.map((option) => (
+                <SelectItem key={option} value={option}>
+                  {SORT_KEY_LABELS[option]}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
 

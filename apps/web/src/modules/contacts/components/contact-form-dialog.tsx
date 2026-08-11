@@ -172,7 +172,11 @@ function ContactForm({
   // Watched rather than read once: these sections appear and disappear as the type is changed, in
   // the same dialog, before anything is saved.
   const selectedType = form.watch('type');
-  const offersBirthday = showsPersonalDetails(selectedType, Boolean(contact?.dateOfBirth));
+  // The *live* value, not the loaded one. Gating on what the record arrived with would let a
+  // birthday typed for a family contact survive a switch to `business` — hidden, still in form
+  // state, and submitted anyway. The relations list has always read live field state this way.
+  const enteredBirthday = form.watch('dateOfBirth');
+  const offersBirthday = showsPersonalDetails(selectedType, Boolean(enteredBirthday));
 
   const links = useFieldArray({ control: form.control, name: 'links' });
   const relations = useFieldArray({ control: form.control, name: 'relations' });

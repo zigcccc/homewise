@@ -71,11 +71,16 @@ export function ContactDialog({
         );
       }
 
-      invalidateContacts(queryClient);
       toast.success(contact ? 'Contact updated.' : 'Contact added.');
     } catch (error) {
       toast.error(serverMessage(error, contact ? 'Could not update contact.' : 'Could not add contact.'));
       throw error; // Keep the dialog open so the user can retry.
+    } finally {
+      // In `finally`, because an edit is several requests and a failure half way through leaves the
+      // server ahead of the cache. `savedRelations` is read from that cache, so skipping this would
+      // have the retry re-issue the removals that already succeeded — and a removal of an
+      // already-removed relation 404s, which is a dialog nobody can get out of.
+      invalidateContacts(queryClient);
     }
   };
 
