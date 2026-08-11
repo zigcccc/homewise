@@ -25,6 +25,7 @@ import {
   FormLabel,
   FormMessage,
   Input,
+  PlaceAutocomplete,
   Select,
   SelectContent,
   SelectItem,
@@ -193,7 +194,16 @@ function ContactForm({
             <FormItem>
               <FormLabel>Address</FormLabel>
               <FormControl>
-                <Input {...field} placeholder="Street, city" value={field.value ?? ''} />
+                {/* Spelled out rather than `{...field}`: an undefined `value` would flip the
+                    component to uncontrolled mid-edit, and its `onChange` takes the string itself. */}
+                <PlaceAutocomplete
+                  name={field.name}
+                  onBlur={field.onBlur}
+                  onChange={field.onChange}
+                  placeholder="Street, city"
+                  ref={field.ref}
+                  value={field.value ?? ''}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
