@@ -44,10 +44,19 @@ export class KidsPage {
     await this.page.getByRole('option', { name: label, exact: true }).click();
   }
 
-  /** Reveals a masked identifier field (National ID / Tax ID) and fills it. */
+  /** The input group wrapping a masked identifier field (National ID / Tax ID), with its actions. */
+  maskedField(id: 'nationalId' | 'taxId') {
+    return this.page.locator('[data-slot="input-group"]').filter({ has: this.page.locator(`#${id}`) });
+  }
+
+  /** Reveals a masked identifier field and fills it. An empty field is already editable, so it has no pencil. */
   async setMaskedField(id: 'nationalId' | 'taxId', value: string) {
-    const group = this.page.locator('[data-slot="input-group"]').filter({ has: this.page.locator(`#${id}`) });
-    await group.getByRole('button', { name: 'Edit' }).click();
+    const edit = this.maskedField(id).getByRole('button', { name: 'Edit' });
+
+    if (await edit.count()) {
+      await edit.click();
+    }
+
     await this.page.locator(`#${id}`).fill(value);
   }
 
