@@ -67,12 +67,27 @@ function DefaultEmptyComponent() {
   );
 }
 
+/**
+ * Anything inside a row that handles its own click. A row-level handler must not fire for these, or
+ * opening the row-actions menu also navigates away from the row you were acting on.
+ */
+const INTERACTIVE_IN_ROW = 'a, button, input, select, textarea, [role="menuitem"], [role="option"]';
+
 export function DataTable<Data extends Record<string, unknown>>({
   emptyContent = <DefaultEmptyComponent />,
+  onRowClick,
   table,
 }: {
   table: CoreTable<Data>;
   emptyContent?: ReactNode;
+  /**
+   * Makes the whole row clickable — for a table whose rows lead somewhere.
+   *
+   * A convenience for the mouse, never the only way in: a `<tr>` can't take focus, so the row still
+   * has to contain a real link for the keyboard and for anything reading the page. This just widens
+   * the target to the row that link sits in.
+   */
+  onRowClick?: (row: Data) => void;
 }) {
   const headers = table.getHeaderGroups();
   const rows = table.getRowModel().rows;
@@ -103,7 +118,19 @@ export function DataTable<Data extends Record<string, unknown>>({
         <TableBody>
           {rows?.length ? (
             rows.map((row) => (
-              <TableRow data-state={row.getIsSelected() && 'selected'} key={row.id}>
+              <TableRow
+                className={cn(onRowClick && 'cursor-pointer')}
+                data-state={row.getIsSelected() && 'selected'}
+                key={row.id}
+                onClick={
+                  onRowClick &&
+                  ((event) => {
+                    if (!(event.target as HTMLElement).closest(INTERACTIVE_IN_ROW)) {
+                      onRowClick(row.original);
+                    }
+                  })
+                }
+              >
                 {row.getVisibleCells().map((cell) => (
                   <TableCell className={cell.column.columnDef.meta?.className} key={cell.id}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}

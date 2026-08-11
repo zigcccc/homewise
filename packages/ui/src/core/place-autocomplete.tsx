@@ -258,6 +258,20 @@ function PlaceAutocomplete({
             <SearchIcon />
           </InputGroupAddon>
           <InputGroupInput
+            // This box already has a dropdown. Every one of these is a second, uninvited one drawn
+            // *over* it by something we don't control — the browser's saved addresses, a password
+            // manager's, the spellchecker's red underline beneath a street name it will never know.
+            //
+            // `autoComplete="off"` is the honest request and the one Firefox and Safari honour.
+            // Chrome reserves the right to ignore it on a field it has decided is an address, and it
+            // decides that from the `name`/`id` the *consumer* passes — so if its own popup still
+            // shows up, the remaining lever is naming the field something that isn't "address",
+            // which belongs to the form, not here.
+            autoCapitalize="off"
+            autoComplete="off"
+            autoCorrect="off"
+            data-1p-ignore
+            data-lpignore="true"
             onChange={(event) => {
               commit(event.target.value);
               setSearchQuery(event.target.value);
@@ -275,6 +289,7 @@ function PlaceAutocomplete({
               }
             }}
             placeholder="Search for a place"
+            spellCheck={false}
             value={displayValue}
             {...props}
           />
