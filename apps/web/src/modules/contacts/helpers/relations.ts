@@ -1,0 +1,53 @@
+import { type ContactRelationRole } from '@homewise/server/contacts';
+
+/** A relation as the contact form carries it. No `relationId` means it hasn't been saved yet. */
+export type RelationDraft = {
+  relationId?: number;
+  relatedContactId: number;
+  relatedContactName: string;
+  role: ContactRelationRole;
+};
+
+/** A relation as the detail response reports it — already turned to face the contact being edited. */
+type StoredRelation = {
+  id: number;
+  role: ContactRelationRole;
+  contact: { id: number; name: string };
+};
+
+export const toRelationDrafts = (relations: StoredRelation[]): RelationDraft[] =>
+  relations.map((relation) => ({
+    relationId: relation.id,
+    relatedContactId: relation.contact.id,
+    relatedContactName: relation.contact.name,
+    role: relation.role,
+  }));
+
+/**
+ * What has to happen to turn the saved relations into the ones the form is holding.
+ *
+ * The dialog edits relations as a list and saves on Save, like every other field on it — but a
+ * relation is not a column of the contact, so there is no payload that can carry the whole list.
+ * Each change is its own request against the relation endpoints, and this is what decides which.
+ *
+ * Kept separate from the component that calls it, and pure, because getting it wrong is silent:
+ * a missed `removed` leaves a relation the user deleted, and a spurious one deletes a relation the
+ * *other* contact recorded.
+ */
+export function resolveRelationChanges(saved: RelationDraft[], next: RelationDraft[]) {
+  const nextIds = new Set(next.map((relation) => relation.relationId).filter((id) => id !== undefined));
+
+  return {
+    added: next.filter((relation) => relation.relationId === undefined),
+    removed: saved.filter((relation) => relation.relationId !== undefined && !nextIds.has(relation.relationId)),
+    changed: next.filter((relation) => {
+      if (relation.relationId === undefined) {
+        return false;
+      }
+
+      const before = saved.find((candidate) => candidate.relationId === relation.relationId);
+
+      return before !== undefined && before.role !== relation.role;
+    }),
+  };
+}

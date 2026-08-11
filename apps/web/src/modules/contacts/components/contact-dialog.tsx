@@ -1,0 +1,124 @@
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+
+import { parseResponse } from '@/api/client';
+import { serverMessage } from '@/modules/shared';
+
+import {
+  $addContactRelation,
+  $createContact,
+  $patchContact,
+  $patchContactRelation,
+  $removeContactRelation,
+  getContactQueryOptions,
+  invalidateContacts,
+  listContactsQueryOptions,
+} from '../contacts.queries';
+import {
+  contactTypeLabels,
+  type RelationDraft,
+  resolveRelationChanges,
+  showsPersonalDetails,
+  toRelationDrafts,
+} from '../helpers';
+import { ContactFormDialog, type ContactFormValues } from './contact-form-dialog';
+
+/**
+ * The address book's own create/edit dialog — `ContactFormDialog` with the contacts endpoints behind
+ * it. The generic one stays caller-driven because the owners that mint a contact (a medical record, a
+ * loan) each post somewhere else; this is the one place that writes a contact as a contact.
+ */
+export function ContactDialog({
+  contactId,
+  onOpenChange,
+  open,
+}: {
+  /** Omitted to create. */
+  contactId?: number;
+  onOpenChange: (open: boolean) => void;
+  open: boolean;
+}) {
+  const queryClient = useQueryClient();
+
+  // The list rows carry no relations — only the detail response does — so editing loads the record
+  // rather than seeding the form from whatever the caller happened to have. Getting this wrong is
+  // not a blank section: the save would read it as "every relation removed".
+  const { data: contact } = useQuery({ ...getContactQueryOptions(contactId ?? 0), enabled: contactId !== undefined });
+  const { data: allContacts = [] } = useQuery(listContactsQueryOptions());
+
+  const savedRelations = contact ? toRelationDrafts(contact.relations) : [];
+  const relatable = allContacts.filter(
+    (candidate) => candidate.id !== contactId && showsPersonalDetails(candidate.type)
+  );
+
+  const submit = async (values: ContactFormValues) => {
+    const { relations = [], ...fields } = values;
+
+    try {
+      if (contact) {
+        await parseResponse($patchContact({ param: { id: contact.id.toString() }, json: fields }));
+        await applyRelationChanges(contact.id, savedRelations, relations);
+      } else {
+        await parseResponse(
+          $createContact({
+            json: {
+              ...fields,
+              // The wire model knows nothing of `relationId`/`relatedContactName`; the reverse wording
+              // is the server's default from `INVERSE_ROLE`.
+              relations: relations.map(({ relatedContactId, role }) => ({ relatedContactId, role })),
+            },
+          })
+        );
+      }
+
+      invalidateContacts(queryClient);
+      toast.success(contact ? 'Contact updated.' : 'Contact added.');
+    } catch (error) {
+      toast.error(serverMessage(error, contact ? 'Could not update contact.' : 'Could not add contact.'));
+      throw error; // Keep the dialog open so the user can retry.
+    }
+  };
+
+  return (
+    <ContactFormDialog
+      contact={contact ? { ...contact, relations: savedRelations } : undefined}
+      // The address book is where people are kept, so a new one starts as family rather than a doctor.
+      defaultType="family"
+      isLoading={contactId !== undefined && !contact}
+      onOpenChange={onOpenChange}
+      onSubmit={submit}
+      open={open}
+      relatableContacts={relatable}
+      typeLabels={contactTypeLabels}
+    />
+  );
+}
+
+/**
+ * Turns the form's relation list into the requests that make it true.
+ *
+ * A relation belongs to two contacts, so there is no payload on the contact that can carry the whole
+ * set — each change is its own call. Run in series: they touch the same rows, and a removal racing
+ * its own re-add is not worth the round trip saved.
+ */
+async function applyRelationChanges(contactId: number, saved: RelationDraft[], next: RelationDraft[]) {
+  const { added, changed, removed } = resolveRelationChanges(saved, next);
+  const param = (relationId: number) => ({ id: contactId.toString(), relationId: relationId.toString() });
+
+  for (const relation of removed) {
+    await parseResponse($removeContactRelation({ param: param(relation.relationId!) }));
+  }
+
+  for (const relation of changed) {
+    await parseResponse($patchContactRelation({ json: { role: relation.role }, param: param(relation.relationId!) }));
+  }
+
+  for (const relation of added) {
+    await parseResponse(
+      $addContactRelation({
+        json: { relatedContactId: relation.relatedContactId, role: relation.role },
+        param: { id: contactId.toString() },
+      })
+    );
+  }
+}
