@@ -126,7 +126,7 @@ export class ContactsPage {
     const dialog = this.page.getByRole('dialog');
     await dialog.getByRole('button', { name: 'Add relation', exact: true }).click();
     await this.page.getByPlaceholder('Search contacts').fill(relatedName);
-    await this.page.getByRole('option', { name: new RegExp(relatedName) }).click();
+    await this.page.getByRole('option', { name: relatedName }).click();
     await this.pickInDialog(dialog.getByRole('combobox', { name: `${relatedName}'s relation` }), role);
   }
 
@@ -139,13 +139,13 @@ export class ContactsPage {
     // carries the same words, so every later locator here is scoped to the dialog.
     await this.page.getByRole('button', { name: 'Add relation', exact: true }).click();
     await this.page.getByPlaceholder('Search contacts').fill(relatedName);
-    await this.page.getByRole('option', { name: new RegExp(relatedName) }).click();
+    await this.page.getByRole('option', { name: relatedName }).click();
 
     const dialog = this.page.getByRole('dialog');
-    await this.pickInDialog(dialog.getByRole('combobox').first(), role);
+    await this.pickInDialog(dialog.getByRole('combobox', { name: `${relatedName} is` }), role);
 
     if (inverseRole) {
-      await this.pickInDialog(dialog.getByRole('combobox').nth(1), inverseRole);
+      await this.pickInDialog(dialog.getByRole('combobox', { name: 'which makes' }), inverseRole);
     }
 
     await dialog.getByRole('button', { name: 'Add relation' }).click();
