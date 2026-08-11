@@ -22,12 +22,14 @@ export const storageItemName = z
 /**
  * The quantity bounds on their own, so the web's number field validates against the same contract —
  * it holds a real number, where the wire holds the string multipart makes of it.
+ *
+ * There is deliberately no ceiling: the column's own range is the only real limit, and a count that
+ * overruns it is somebody doing something strange rather than a case worth wording an error for.
  */
 export const storageItemQuantity = z
   .number()
   .int({ error: 'Quantity must be a whole number' })
-  .min(1, { error: 'Quantity must be at least 1' })
-  .max(100_000, { error: 'Quantity must be at most 100000' });
+  .min(1, { error: 'Quantity must be at least 1' });
 
 /** An item is written as multipart because of the photo, and multipart sends numbers as strings. */
 const locationId = z.coerce.number<number>().int().positive({ error: 'Pick a storage location' });

@@ -14,7 +14,8 @@ describe('quantityText', () => {
   it('should accept a whole number, surrounding space and all', () => {
     expect(quantityText.safeParse('4').success).toBe(true);
     expect(quantityText.parse(' 12 ')).toBe('12');
-    expect(quantityText.safeParse('100000').success).toBe(true);
+    // No ceiling of our own: a count the column can hold is a count the cell takes.
+    expect(quantityText.safeParse('250000').success).toBe(true);
   });
 
   it('should reject anything that is not a whole number', () => {
@@ -25,10 +26,9 @@ describe('quantityText', () => {
     expect(message('1.5')).toBe('Quantity must be a whole number');
   });
 
-  it('should reject a count outside the bounds, in the server’s own words', () => {
-    // GIVEN: numbers the column itself refuses
+  it('should reject a count below one, in the server’s own words', () => {
+    // GIVEN: a number the column itself refuses
     // THEN: the message should come from `storageItemQuantity` rather than a copy of its numbers
     expect(message('0')).toBe('Quantity must be at least 1');
-    expect(message('100001')).toBe('Quantity must be at most 100000');
   });
 });
