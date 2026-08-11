@@ -175,6 +175,55 @@ describe('ContactsService.addRelation', () => {
   });
 });
 
+describe('ContactsService.create with relations', () => {
+  it('should store them with the contact, opposite roles filled in', async () => {
+    // GIVEN: somebody already in the address book
+    const householdId = await createHousehold('create-relations');
+    const suffix = randomUUID();
+    const sarah = await createContact(householdId, `Sarah ${suffix}`);
+
+    // WHEN: a contact is created naming her as his wife in the same request
+    const john = await ContactsService.create(householdId, {
+      type: 'friend',
+      name: `John ${suffix}`,
+      relations: [{ relatedContactId: sarah.id, role: 'wife' }],
+    });
+
+    // THEN: the relation should be there, and read correctly from her side too
+    const fromJohn = await ContactsService.read(householdId, john.id);
+    const fromSarah = await ContactsService.read(householdId, sarah.id);
+
+    expect(fromJohn.relations).toEqual([
+      expect.objectContaining({ role: 'wife', contact: expect.objectContaining({ id: sarah.id }) }),
+    ]);
+    expect(fromSarah.relations[0]?.role).toBe('husband');
+  });
+
+  it('should create no contact at all when a relation names someone else’s', async () => {
+    // GIVEN: a contact belonging to another household
+    const householdId = await createHousehold('create-relations-foreign');
+    const suffix = randomUUID();
+    const theirs = await createContact(await createHousehold('create-relations-other'), `Theirs ${suffix}`);
+    const name = `Orphan ${suffix}`;
+
+    // WHEN: a create names it
+    const raised = await ContactsService.create(householdId, {
+      type: 'friend',
+      name,
+      relations: [{ relatedContactId: theirs.id, role: 'friend' }],
+    }).catch((error: unknown) => error);
+
+    // THEN: it should 404 — and leave nothing behind. The standalone create runs on `db` rather than
+    // a transaction, so a relation checked *after* the insert would strand the contact.
+    if (!(raised instanceof HTTPException)) {
+      throw new Error(`Expected a foreign relation to be refused, got ${String(raised)}`);
+    }
+
+    expect(raised.status).toBe(404);
+    expect(await db.query.contact.findFirst({ where: (row, { eq }) => eq(row.name, name) })).toBeUndefined();
+  });
+});
+
 describe('a stored relation read from both ends', () => {
   it('should report each contact the role that describes the other', async () => {
     // GIVEN: one row saying John is Sarah's husband, and Sarah John's wife

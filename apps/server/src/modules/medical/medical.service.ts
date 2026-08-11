@@ -94,7 +94,7 @@ export class MedicalService {
 
     // Scopes the contact to the household so a foreign id can't be linked in, and returns the same
     // joined shape `addContact` does — both of these end up in the same place on the profile card.
-    const contact = await ContactsService.read(householdId, contactId);
+    const contact = await ContactsService.readWithLinks(householdId, contactId);
 
     await db
       .insert(schema.medicalInfoContact)

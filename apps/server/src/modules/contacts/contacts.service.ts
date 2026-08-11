@@ -22,7 +22,30 @@ const relatedContactColumns = { id: true, name: true, type: true, dateOfBirth: t
 /** Standalone household contacts (address-book entries). Owner features attach them via join tables. */
 export class ContactsService {
   /**
-   * Reads a contact with everything hanging off it, so every mutation returns what a fresh read would.
+   * A contact and its links — the shape a contact takes wherever it is *attached* to something else:
+   * nested in a profile's medical record, returned by the mutations that mint one.
+   *
+   * Public so those owners re-read through this rather than growing their own copy of the query.
+   */
+  public static async readWithLinks(householdId: number, contactId: number, executor: Executor = db) {
+    const contact = await executor.query.contact.findFirst({
+      where: (fields, { and, eq }) => and(eq(fields.householdId, householdId), eq(fields.id, contactId)),
+      with: { links: { orderBy: (fields, { asc }) => [asc(fields.createdAt)] } },
+    });
+
+    if (!contact) {
+      throw notFound('Contact');
+    }
+
+    return contact;
+  }
+
+  /**
+   * The whole record, for the contact's own page — links *and* who it's related to.
+   *
+   * Deliberately not what the attached shape returns: a profile nests its medical record, which nests
+   * its contacts, and hanging relations off those would put a fourth collection four levels down a
+   * response that no screen reads it from. Depth is the thing that collapses an inferred RPC type.
    *
    * The two relation collections are the same table approached from opposite ends, and they collapse
    * into one list here: a row entered from the far end is reported through its `inverseRole`, so a
@@ -139,6 +162,11 @@ export class ContactsService {
 
   /** Creates a contact and its links. Accepts an `executor` so an owner can create-and-link atomically. */
   public static async create(householdId: number, data: CreateContact, executor: Executor = db) {
+    // Resolved *before* the contact is written, not after. `executor` defaults to `db` rather than a
+    // transaction — the standalone create route hands it nothing — so a relation naming an id from
+    // another household would otherwise 404 with the new contact already committed and orphaned.
+    const relations = await ContactsService.resolveRelations(executor, householdId, data.relations);
+
     const [created] = await executor
       .insert(schema.contact)
       .values({
@@ -159,7 +187,47 @@ export class ContactsService {
 
     await ContactsService.insertLinks(executor, created.id, data.links);
 
-    return ContactsService.read(householdId, created.id, executor);
+    if (relations.length > 0) {
+      await executor
+        .insert(schema.contactRelation)
+        .values(relations.map((relation) => ({ ...relation, contactId: created.id })));
+    }
+
+    return ContactsService.readWithLinks(householdId, created.id, executor);
+  }
+
+  /**
+   * Checks the far end of every relation named on a create, and settles each one's stored pair of
+   * roles — everything about them that can fail, done while failing is still free.
+   *
+   * Nothing here can breach the pair index: the contact these will hang off doesn't exist yet, so it
+   * has no relations to duplicate. Two entries naming the *same* far contact twice would, which is
+   * what the seen-set drops.
+   */
+  private static async resolveRelations(
+    executor: Executor,
+    householdId: number,
+    relations: CreateContactRelation[] | undefined
+  ) {
+    const seen = new Set<number>();
+    const resolved = [];
+
+    for (const relation of relations ?? []) {
+      if (seen.has(relation.relatedContactId)) {
+        continue;
+      }
+
+      seen.add(relation.relatedContactId);
+      await ContactsService.readContactRow(householdId, relation.relatedContactId, executor);
+
+      resolved.push({
+        relatedContactId: relation.relatedContactId,
+        role: relation.role,
+        inverseRole: relation.inverseRole ?? INVERSE_ROLE[relation.role],
+      });
+    }
+
+    return resolved;
   }
 
   public static async patch(householdId: number, contactId: number, data: PatchContact) {
@@ -191,7 +259,7 @@ export class ContactsService {
       }
     });
 
-    return ContactsService.read(householdId, contactId);
+    return ContactsService.readWithLinks(householdId, contactId);
   }
 
   public static async delete(householdId: number, contactId: number) {

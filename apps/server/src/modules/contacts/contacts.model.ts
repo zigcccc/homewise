@@ -16,6 +16,38 @@ export type ContactLinkType = z.infer<typeof contactLinkType>;
 export const contactRelationRole = createSelectSchema(schema.contactRelationRoleEnum);
 export type ContactRelationRole = z.infer<typeof contactRelationRole>;
 
+/**
+ * Hand-written, because a relation is a command over a *pair* rather than a row of the table.
+ *
+ * Both roles are stated from the frame of whichever contact the route names, which is not what the
+ * columns hold — when that contact is the far end of an existing row, the service writes `role` to
+ * the stored `inverseRole` and back again. Deriving this from the table would mean overriding every
+ * field to get nothing back.
+ */
+const relationRoles = {
+  /** What the other contact is to this one: "John is Sarah's **husband**". */
+  role: contactRelationRole,
+  /** And this one to them. Defaults through `INVERSE_ROLE` when omitted. */
+  inverseRole: contactRelationRole.optional(),
+};
+
+export const createContactRelationModel = z.object({
+  relatedContactId: z.coerce.number<number>().int().positive({ error: 'Pick a contact' }),
+  ...relationRoles,
+});
+export type CreateContactRelation = z.infer<typeof createContactRelationModel>;
+
+/**
+ * Relations named while the contact is being created, written in the same transaction as the row
+ * they hang off — the same bargain `links` makes. There is deliberately no equivalent on the patch
+ * model: a relation belongs to *two* contacts, so a replace-all from one side would silently drop
+ * what the other side recorded. Editing one goes through the relation endpoints.
+ */
+const relations = z
+  .array(createContactRelationModel)
+  .max(50, { error: 'A contact can have at most 50 relations' })
+  .optional();
+
 /** Empty string clears the value; a valid email is required otherwise. */
 const email = z.email({ error: 'Enter a valid email' }).or(z.literal(''));
 
@@ -66,7 +98,7 @@ const contactPayloadFields = {
 
 export const createContactModel = createInsertSchema(schema.contact, contactName)
   .omit(dbOwnedColumns)
-  .extend(contactPayloadFields);
+  .extend({ ...contactPayloadFields, relations });
 export type CreateContact = z.infer<typeof createContactModel>;
 
 export const patchContactModel = createUpdateSchema(schema.contact, contactName)
@@ -97,27 +129,6 @@ export const listContactsQueryParamsModel = z.object({
   sortDirection: sortDirection.default('asc').catch('asc'),
 });
 export type ListContactsQueryParams = z.infer<typeof listContactsQueryParamsModel>;
-
-/**
- * Hand-written, because a relation is a command over a *pair* rather than a row of the table.
- *
- * Both roles are stated from the frame of whichever contact the route names, which is not what the
- * columns hold — when that contact is the far end of an existing row, the service writes `role` to
- * the stored `inverseRole` and back again. Deriving this from the table would mean overriding every
- * field to get nothing back.
- */
-const relationRoles = {
-  /** What the other contact is to this one: "John is Sarah's **husband**". */
-  role: contactRelationRole,
-  /** And this one to them. Defaults through `INVERSE_ROLE` when omitted. */
-  inverseRole: contactRelationRole.optional(),
-};
-
-export const createContactRelationModel = z.object({
-  relatedContactId: z.coerce.number<number>().int().positive({ error: 'Pick a contact' }),
-  ...relationRoles,
-});
-export type CreateContactRelation = z.infer<typeof createContactRelationModel>;
 
 /** The pair is fixed once created — re-pointing a relation is a delete and an add. */
 export const patchContactRelationModel = z.object(relationRoles).partial();
