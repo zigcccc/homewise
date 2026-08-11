@@ -1,5 +1,10 @@
 import { expect, type Page } from '@playwright/test';
 
+/** The masked identifier fields, keyed by the payload field and named by the label the user reads. */
+const identifierLabels = { nationalId: 'National ID', taxId: 'Tax ID' } as const;
+
+type Identifier = keyof typeof identifierLabels;
+
 /** The Kids list (`/family/kids`) and a child profile's General tab. */
 export class KidsPage {
   constructor(private readonly page: Page) {}
@@ -44,20 +49,36 @@ export class KidsPage {
     await this.page.getByRole('option', { name: label, exact: true }).click();
   }
 
-  /** The input group wrapping a masked identifier field (National ID / Tax ID), with its actions. */
-  maskedField(id: 'nationalId' | 'taxId') {
-    return this.page.locator('[data-slot="input-group"]').filter({ has: this.page.locator(`#${id}`) });
+  /**
+   * A masked identifier input. Scoped to the form for the same reason `recipes.page.ts` scopes its
+   * fields: `getByLabel` matches accessible names by substring, and the router devtools panel — present
+   * in `E2E_WEB_MODE=dev` — labels its match rows with serialized search params.
+   */
+  identifierInput(id: Identifier) {
+    return this.page.locator('form').getByLabel(identifierLabels[id]);
+  }
+
+  /**
+   * The input group wrapping an identifier field, which is what carries its Copy/Hide/Edit actions. Reached
+   * upwards from the input rather than by filtering groups on it: `filter({ has })` re-roots its inner
+   * locator at each candidate group, where the form-scoped `identifierInput` can never match.
+   */
+  maskedField(id: Identifier) {
+    return this.identifierInput(id).locator('xpath=ancestor::*[@data-slot="input-group"]');
+  }
+
+  /** The pencil that reveals a masked identifier. Absent while the field is empty — it is already editable. */
+  editIdentifierButton(id: Identifier) {
+    return this.maskedField(id).getByRole('button', { name: 'Edit' });
   }
 
   /** Reveals a masked identifier field and fills it. An empty field is already editable, so it has no pencil. */
-  async setMaskedField(id: 'nationalId' | 'taxId', value: string) {
-    const edit = this.maskedField(id).getByRole('button', { name: 'Edit' });
-
-    if (await edit.count()) {
-      await edit.click();
+  async setMaskedField(id: Identifier, value: string) {
+    if (await this.editIdentifierButton(id).count()) {
+      await this.editIdentifierButton(id).click();
     }
 
-    await this.page.locator(`#${id}`).fill(value);
+    await this.identifierInput(id).fill(value);
   }
 
   async saveGeneral() {
