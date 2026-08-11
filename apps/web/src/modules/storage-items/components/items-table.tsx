@@ -22,7 +22,7 @@ import {
 } from '@homewise/ui/core';
 
 import { parseResponse } from '@/api/client';
-import { ConfirmDeleteDialog, formatDate, InlineCell, serverMessage, todayISODay } from '@/modules/shared';
+import { ConfirmDeleteDialog, formatDate, InlineCell, serverMessage } from '@/modules/shared';
 import { invalidateStorageLocations, listStorageLocationOptionsQueryOptions } from '@/modules/storage-locations';
 
 import { LOAN_STATUS_LABELS, resolveLoanStatus } from '../helpers/loan';
@@ -126,7 +126,7 @@ function ItemNameCell({ id, name, notes }: { id: number; name: string; notes: st
 }
 
 function LoanCell({ loan }: { loan: StorageItem['loan'] }) {
-  const status = resolveLoanStatus(loan, todayISODay());
+  const status = resolveLoanStatus(loan);
 
   if (!loan) {
     return <Badge variant="outline">{LOAN_STATUS_LABELS.available}</Badge>;

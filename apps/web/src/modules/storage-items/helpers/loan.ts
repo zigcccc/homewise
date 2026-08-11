@@ -1,20 +1,21 @@
+import { todayISODay } from '@/modules/shared';
+
 import { type StorageItem } from '../storage-items.queries';
 
 /** Where a thing stands: here, out, or out past when it was promised back. */
 export type LoanStatus = 'available' | 'onLoan' | 'overdue';
 
 /**
- * `today` is a parameter rather than something read in here, for the same reason the API takes
- * explicit dates: which day it is, is the *client's* question, and a function that reaches for the
- * clock can't be told about tomorrow.
- *
- * Both sides are `YYYY-MM-DD`, which compares correctly as a string — no Date to build, and no
- * timezone to get wrong on the way.
+ * Both dates are `YYYY-MM-DD`, which compares correctly as a string — no Date to build, and no
+ * timezone to get wrong on the way. `todayISODay` names the *local* day, which is the one whose
+ * badge the user is looking at.
  */
-export function resolveLoanStatus(loan: StorageItem['loan'], today: string): LoanStatus {
+export function resolveLoanStatus(loan: StorageItem['loan']): LoanStatus {
   if (!loan) {
     return 'available';
   }
+
+  const today = todayISODay();
 
   // An open-ended loan is never overdue; most of them are.
   return loan.dueOn !== null && loan.dueOn < today ? 'overdue' : 'onLoan';
