@@ -33,7 +33,7 @@ import {
 } from '@homewise/ui/core';
 
 import { parseResponse } from '@/api/client';
-import { serverMessage } from '@/modules/shared';
+import { resolveManagedImage, serverMessage } from '@/modules/shared';
 import { invalidateStorageLocations, listStorageLocationOptionsQueryOptions } from '@/modules/storage-locations';
 
 import {
@@ -58,15 +58,6 @@ const itemFormModel = z.object({
 });
 
 type ItemFormValues = z.infer<typeof itemFormModel>;
-
-/** Photo resolves upload → clear → leave alone, matching the server. */
-function resolveImage(values: ItemFormValues, current: string | null | undefined) {
-  if (values.imageFile instanceof File) {
-    return values.imageFile;
-  }
-
-  return !values.image && current ? '' : undefined;
-}
 
 /**
  * Add/edit dialog for a stored thing. The form body is mounted inside `DialogContent`, which Radix
@@ -131,10 +122,10 @@ function ItemForm({ item, locationId, onDone }: { item?: StorageItem; locationId
    */
   const { mutateAsync: save } = useMutation({
     mutationFn: async (values: ItemFormValues) => {
-      const image = resolveImage(values, item?.photoUrl);
-      // Omitted entirely when unchanged — the server reads a missing key as "leave the photo alone".
+      // The photo key is omitted entirely when unchanged — the server reads a missing one as
+      // "leave the picture alone".
       const shared = {
-        ...(image === undefined ? {} : { image }),
+        ...resolveManagedImage(values, item?.photoUrl),
         notes: values.notes ?? '',
         quantity: values.quantity,
       };

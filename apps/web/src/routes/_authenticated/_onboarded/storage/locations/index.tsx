@@ -38,7 +38,7 @@ import {
   Spinner,
 } from '@homewise/ui/core';
 
-import { Actionbar, RouteError } from '@/modules/shared';
+import { Actionbar, RouteError, SortDirectionToggle } from '@/modules/shared';
 import { LocationFormDialog, listStorageLocationsQueryOptions } from '@/modules/storage-locations';
 
 const searchParamsModel = z.object({
@@ -119,12 +119,10 @@ function StorageLocationsRoute() {
             </InputGroupAddon>
           </InputGroup>
 
-          <Button
-            onClick={() => setSearchParam('sortDirection', searchParams.sortDirection === 'asc' ? 'desc' : 'asc')}
-            variant="outline"
-          >
-            {searchParams.sortDirection === 'asc' ? 'A → Z' : 'Z → A'}
-          </Button>
+          <SortDirectionToggle
+            onChange={(next) => setSearchParam('sortDirection', next)}
+            value={searchParams.sortDirection}
+          />
         </div>
 
         {/* Only worth drawing once something is actually on it. */}

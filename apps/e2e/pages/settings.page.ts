@@ -16,7 +16,7 @@ export class SettingsPage {
   }
 
   /** The "Manage "X" household" heading — reflects the current household name. */
-  heading(name: string): Locator {
+  heading(name: string) {
     return this.page.getByRole('heading', { name: `Manage "${name}" household` });
   }
 
@@ -36,7 +36,7 @@ export class SettingsPage {
   }
 
   /** Opens the danger-zone delete dialog. */
-  async openDeleteDialog(): Promise<Locator> {
+  async openDeleteDialog() {
     await this.deleteButton.click();
     const dialog = this.page.getByRole('dialog');
     await expect(dialog.getByRole('heading', { name: 'Are you sure?' })).toBeVisible();

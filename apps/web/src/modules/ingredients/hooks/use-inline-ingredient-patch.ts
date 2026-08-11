@@ -1,9 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { type InferRequestType } from 'hono';
-import { toast } from 'sonner';
 
 import { client, parseResponse } from '@/api/client';
-import { serverMessage } from '@/modules/shared';
+import { useInlinePatch } from '@/modules/shared';
 import { invalidateStores } from '@/modules/stores';
 
 import { applyIngredientUpdate, invalidateIngredients } from '../ingredients.queries';
@@ -22,32 +21,19 @@ export type PatchIngredientPayload = InferRequestType<typeof $patchIngredient>['
 export function useInlineIngredientPatch(ingredientId: number) {
   const queryClient = useQueryClient();
 
-  const { isPending, mutateAsync: save } = useMutation({
-    mutationFn: async (json: PatchIngredientPayload) =>
-      parseResponse($patchIngredient({ param: { id: ingredientId.toString() }, json })),
-    onSuccess: (updated, json) => {
-      applyIngredientUpdate(queryClient, updated);
-      invalidateIngredients(queryClient);
+  return useInlinePatch(
+    useMutation({
+      mutationFn: async (json: PatchIngredientPayload) =>
+        parseResponse($patchIngredient({ param: { id: ingredientId.toString() }, json })),
+      onSuccess: (updated, json) => {
+        applyIngredientUpdate(queryClient, updated);
+        invalidateIngredients(queryClient);
 
-      // Naming a shop found-or-creates it as part of the same write, so the list may have grown.
-      if (json.storeName) {
-        invalidateStores(queryClient);
-      }
-    },
-  });
-
-  /**
-   * For controls with nowhere to put an error: a select has no field to hang a message on, so a
-   * failure toasts and the cell falls back to the server's value on the next render. Callers that do
-   * have a field — the name editor and its 409 — use `save` and handle the rejection themselves.
-   */
-  const saveOrToast = async (json: PatchIngredientPayload) => {
-    try {
-      await save(json);
-    } catch (error) {
-      toast.error(serverMessage(error, 'Something went wrong.'));
-    }
-  };
-
-  return { isPending, save, saveOrToast };
+        // Naming a shop found-or-creates it as part of the same write, so the list may have grown.
+        if (json.storeName) {
+          invalidateStores(queryClient);
+        }
+      },
+    })
+  );
 }

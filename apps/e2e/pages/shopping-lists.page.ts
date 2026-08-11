@@ -33,7 +33,7 @@ export class ShoppingListsPage {
    * running in parallel routinely produce lists called the same thing. The id is the only handle
    * that belongs to one spec.
    */
-  listLink(listId: string): Locator {
+  listLink(listId: string) {
     // Anchored on both ends, never `*=`: `…/1` is a prefix of `…/10`, so a substring match would find
     // other specs' rows. The `?` alternative is for the retained `includeCompleted` filter, which the
     // section carries onto its own links so a completed list can be opened at all.
@@ -51,7 +51,7 @@ export class ShoppingListsPage {
    * list — which it then finds already has its ingredient on it. `createListFromUi` still covers the
    * button, in the exclusive project where nothing else is creating lists at the same time.
    */
-  async createList(): Promise<string> {
+  async createList() {
     const response = await this.page.context().request.post(`${API_URL}/shopping-lists`, { data: {} });
     expect(response.ok(), 'could not create a shopping list').toBe(true);
 
@@ -69,7 +69,7 @@ export class ShoppingListsPage {
    * auto-selects the first list, so the URL already matches before the click and a plain
    * `waitForURL` would hand back whichever list happened to be open.
    */
-  async createListFromUi(): Promise<string> {
+  async createListFromUi() {
     // Every id already on screen, not just the one currently open. On a wide screen the index route
     // auto-selects a list, and that navigation can land *after* the click — so "wait for the id to
     // change" would happily return the auto-selected list, which belongs to another spec.
@@ -129,7 +129,7 @@ export class ShoppingListsPage {
    * One row of the import preview, identified by its own include checkbox — the master column's
    * entries are `listitem`s too, and can carry the same words.
    */
-  previewRow(name: string): Locator {
+  previewRow(name: string) {
     return this.page
       .getByRole('listitem')
       .filter({ has: this.page.getByRole('checkbox', { name: `Include ${name}` }) });
@@ -173,7 +173,7 @@ export class ShoppingListsPage {
   }
 
   /** A section heading in the open list. */
-  section(label: string): Locator {
+  section(label: string) {
     return this.page.getByRole('heading', { level: 2, name: label });
   }
 
@@ -182,7 +182,7 @@ export class ShoppingListsPage {
    * `listitem`s carrying the name of whatever they're reporting on ("Removed \"Onion\""), which is
    * exactly the text the row locators filter by.
    */
-  private sections(): Locator {
+  private sections() {
     return this.page.locator('section').filter({ hasNot: this.page.locator('[data-sonner-toast]') });
   }
 
@@ -191,7 +191,7 @@ export class ShoppingListsPage {
    * master column and the import preview are `listitem`s too, and an ingredient name can appear in
    * a list's inferred label.
    */
-  item(label: string): Locator {
+  item(label: string) {
     return this.sections().getByRole('listitem').filter({ hasText: label });
   }
 
@@ -199,21 +199,21 @@ export class ShoppingListsPage {
    * The section an item sits under, read off the rendered order: each `section` element holds its
    * own heading and list, so this asks which section contains the row.
    */
-  itemsUnder(sectionLabel: string): Locator {
+  itemsUnder(sectionLabel: string) {
     return this.sections()
       .filter({ has: this.page.getByRole('heading', { level: 2, name: sectionLabel }) })
       .getByRole('listitem');
   }
 
   /** A section's `<ul>` — the drop target for a drag that isn't aimed at a particular row. */
-  sectionList(sectionLabel: string): Locator {
+  sectionList(sectionLabel: string) {
     return this.sections()
       .filter({ has: this.page.getByRole('heading', { level: 2, name: sectionLabel }) })
       .getByRole('list');
   }
 
   /** Items with no section render in the one `section` element that has no heading. */
-  ungroupedItems(): Locator {
+  ungroupedItems() {
     return this.sections()
       .filter({ hasNot: this.page.getByRole('heading', { level: 2 }) })
       .getByRole('listitem');
@@ -278,7 +278,7 @@ export class ShoppingListsPage {
     await expect(this.isTicked(label)).toHaveCount(0);
   }
 
-  isTicked(label: string): Locator {
+  isTicked(label: string) {
     return this.page.getByRole('checkbox', { name: `Tick ${label}`, checked: true });
   }
 
@@ -329,7 +329,7 @@ export class ShoppingListsPage {
     await expect(this.quantityField()).toBeVisible();
   }
 
-  quantityField(): Locator {
+  quantityField() {
     return this.page.getByRole('spinbutton', { name: 'Quantity' });
   }
 
@@ -369,7 +369,7 @@ export class ShoppingListsPage {
   }
 
   /** The "3 of 12 ticked" line under the open list's title — the master column shows it too. */
-  progress(): Locator {
+  progress() {
     return this.page.getByTestId('list-progress');
   }
 
@@ -436,7 +436,7 @@ export class ShoppingListsPage {
    * Without it this read 0 every time and silently skipped the delete, leaving a list behind for
    * every spec in the run.
    */
-  async deleteListIfPresent(listId: string): Promise<boolean> {
+  async deleteListIfPresent(listId: string) {
     // `includeCompleted=true`, or a finished list redirects out before it can be deleted.
     await this.page.goto(`/food/shopping-lists/${listId}?includeCompleted=true`);
 
@@ -497,12 +497,12 @@ export class ShoppingListsPage {
    * The `<aside>` itself (role `complementary`), not the `<h1>` — the heading lives in the page
    * header row now, which stays visible in both panes.
    */
-  masterColumn(): Locator {
+  masterColumn() {
     return this.page.getByRole('complementary');
   }
 
   /** The column the open list renders into. Its own scrollport from `md` up. */
-  detailColumn(): Locator {
+  detailColumn() {
     return this.page.getByTestId('list-detail-pane');
   }
 
@@ -517,7 +517,7 @@ export class ShoppingListsPage {
     await expect.poll(async () => this.scrollTopOf(column)).toBeGreaterThan(0);
   }
 
-  backToAllLists(): Locator {
+  backToAllLists() {
     return this.page.getByRole('link', { name: 'All lists' });
   }
 }

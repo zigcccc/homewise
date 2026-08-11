@@ -1,4 +1,4 @@
-import { expect, type Locator, type Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 
 import { SearchBox } from './search-box';
 
@@ -17,7 +17,7 @@ export class DictionaryPage {
   }
 
   /** A dictionary-table row containing the given phrase. */
-  row(phrase: string): Locator {
+  row(phrase: string) {
     return this.page.getByRole('row').filter({ hasText: phrase });
   }
 

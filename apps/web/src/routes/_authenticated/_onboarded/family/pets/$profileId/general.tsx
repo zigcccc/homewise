@@ -31,7 +31,7 @@ import {
 import { client, parseResponse } from '@/api/client';
 import { MedicalInfoCard } from '@/modules/medical';
 import { getPetProfileQueryOptions, invalidatePetProfile, petTypeLabels } from '@/modules/pet-profiles';
-import { DateField, sexLabels, UnsavedChangesDialog } from '@/modules/shared';
+import { DateField, resolveManagedImage, sexLabels, UnsavedChangesDialog } from '@/modules/shared';
 
 import { ProfilePictureField } from './-components/profile-picture-field';
 
@@ -100,14 +100,7 @@ function GeneralTab() {
       sex: data.sex ?? '',
     };
 
-    // Picture resolves photo → avatar → clear, matching the server.
-    if (data.imageFile instanceof File) {
-      payload.image = data.imageFile;
-    } else if (data.avatarFile instanceof File) {
-      payload.avatar = data.avatarFile;
-    } else if (!data.image && profile.profilePicture) {
-      payload.image = '';
-    }
+    Object.assign(payload, resolveManagedImage(data, profile.profilePicture));
 
     try {
       const updated = await mutateAsync(payload);

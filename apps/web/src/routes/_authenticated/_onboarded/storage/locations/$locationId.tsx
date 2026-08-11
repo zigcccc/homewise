@@ -26,6 +26,7 @@ import {
   BreadcrumbSeparator,
   Button,
   Card,
+  CardAction,
   CardContent,
   CardHeader,
   CardTitle,
@@ -54,7 +55,14 @@ import {
 } from '@homewise/ui/core';
 
 import { parseResponse } from '@/api/client';
-import { Actionbar, ConfirmDeleteDialog, ExternalLink, RouteError, serverMessage } from '@/modules/shared';
+import {
+  Actionbar,
+  ConfirmDeleteDialog,
+  ExternalLink,
+  RouteError,
+  SortDirectionToggle,
+  serverMessage,
+} from '@/modules/shared';
 import {
   createStorageItemColumns,
   ItemFormDialog,
@@ -172,30 +180,25 @@ function StorageLocationRoute() {
               {location.onLoanCount > 0 && ` · ${location.onLoanCount} out on loan`}
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <Button onClick={() => setAddOpen(true)}>
-              <PlusIcon />
-              Add item
-            </Button>
-            <LocationActions location={location} />
-          </div>
+          <LocationActions location={location} />
         </div>
 
-        <Card className="lg:max-w-2/3">
-          <CardHeader>
-            <CardTitle className="text-base">Where it is</CardTitle>
+        <Card className="lg:max-w-2/3" size="sm">
+          <CardHeader className="items-center">
+            <CardTitle className="row-span-2 text-xl">{location.address || 'No address recorded.'}</CardTitle>
+            {pin && (
+              <CardAction>
+                <Button asChild size="sm" variant="outline">
+                  <ExternalLink href={directionsUrl(pin)}>
+                    <NavigationIcon />
+                    Directions
+                  </ExternalLink>
+                </Button>
+              </CardAction>
+            )}
           </CardHeader>
           <CardContent className="space-y-3">
-            <p className="text-sm">{location.address || 'No address recorded.'}</p>
             <LocationMap name={location.name} value={pin} />
-            {pin && (
-              <Button asChild size="sm" variant="outline">
-                <ExternalLink href={directionsUrl(pin)}>
-                  <NavigationIcon />
-                  Directions
-                </ExternalLink>
-              </Button>
-            )}
           </CardContent>
         </Card>
 
@@ -241,11 +244,14 @@ function StorageLocationRoute() {
             </SelectContent>
           </Select>
 
-          <Button
-            onClick={() => setSearchParam('sortDirection', searchParams.sortDirection === 'asc' ? 'desc' : 'asc')}
-            variant="outline"
-          >
-            {searchParams.sortDirection === 'asc' ? 'A → Z' : 'Z → A'}
+          <SortDirectionToggle
+            onChange={(next) => setSearchParam('sortDirection', next)}
+            value={searchParams.sortDirection}
+          />
+
+          <Button onClick={() => setAddOpen(true)}>
+            <PlusIcon />
+            Add item
           </Button>
         </div>
 

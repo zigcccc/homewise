@@ -1,4 +1,4 @@
-import { expect, type Locator, type Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 
 /** The Pets list (`/family/pets`) and a pet profile's General tab. */
 export class PetsPage {
@@ -9,11 +9,11 @@ export class PetsPage {
     await expect(this.page.getByRole('heading', { name: 'Pets', exact: true })).toBeVisible();
   }
 
-  createSuggestion(name: string): Locator {
+  createSuggestion(name: string) {
     return this.page.getByRole('button', { name: `Create profile for ${name}` });
   }
 
-  profileCard(name: string): Locator {
+  profileCard(name: string) {
     return this.page.getByRole('link').filter({ hasText: name });
   }
 
@@ -24,7 +24,7 @@ export class PetsPage {
 
   // --- General tab ---
 
-  get photoButton(): Locator {
+  get photoButton() {
     return this.page.getByRole('button', { name: /photo/ });
   }
 

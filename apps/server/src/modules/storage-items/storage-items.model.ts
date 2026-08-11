@@ -12,12 +12,6 @@ import {
 } from '#lib/models';
 import { createContactModel } from '#modules/contacts/contacts.model';
 
-/**
- * The blob namespace item photos are uploaded into. `cleanupOwnedImage` guards on the top-level
- * segment alone, so whatever a service puts below it is organisation rather than security.
- */
-export const storageItemImagePrefix = 'storage-items';
-
 /** The name bounds on their own, so an inline rename validates against the same contract. */
 export const storageItemName = z
   .string()

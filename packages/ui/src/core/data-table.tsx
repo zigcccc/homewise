@@ -9,6 +9,8 @@ import {
 import { Rows3Icon } from 'lucide-react';
 import { type ReactNode } from 'react';
 
+import { cn } from '#lib/utils';
+
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from './empty';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './table';
 
@@ -24,6 +26,7 @@ declare module '@tanstack/react-table' {
      * a width below the content's own minimum collapses the column to exactly its content.
      */
     className?: string;
+    headerClassName?: string;
   }
 }
 
@@ -83,7 +86,13 @@ export function DataTable<Data extends Record<string, unknown>>({
             <TableRow key={headerGroup.id}>
               {headerGroup.headers.map((header) => {
                 return (
-                  <TableHead className={header.column.columnDef.meta?.className} key={header.id}>
+                  <TableHead
+                    className={cn(
+                      header.column.columnDef.meta?.className,
+                      header.column.columnDef.meta?.headerClassName
+                    )}
+                    key={header.id}
+                  >
                     {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                   </TableHead>
                 );

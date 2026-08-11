@@ -4,7 +4,7 @@ import { ClockIcon, PlusIcon, ScrollTextIcon, SearchIcon, StarIcon } from 'lucid
 import { useDebounceCallback } from 'usehooks-ts';
 import z from 'zod';
 
-import { type SortDirection, searchQueryParam, sortDirection } from '@homewise/server/models';
+import { searchQueryParam, sortDirection } from '@homewise/server/models';
 import { mealType, recipeSortKey } from '@homewise/server/recipes';
 import {
   Breadcrumb,
@@ -38,7 +38,7 @@ import {
 } from '@homewise/ui/core';
 
 import { listRecipesQueryOptions, listRecipeTagsQueryOptions, mealTypeLabels } from '@/modules/recipes';
-import { Actionbar, formatMinutes, SELECT_ALL } from '@/modules/shared';
+import { Actionbar, formatMinutes, SELECT_ALL, type SortDirectionLabels, SortDirectionToggle } from '@/modules/shared';
 
 const searchParamsModel = z.object({
   search: searchQueryParam,
@@ -59,7 +59,7 @@ const sortKeyLabels: Record<z.infer<typeof recipeSortKey>, string> = {
 };
 
 /** Ascending reads differently per column: A → Z for a title, oldest-first for a date. */
-const sortDirectionLabels: Record<z.infer<typeof recipeSortKey>, Record<SortDirection, string>> = {
+const sortDirectionLabels: Record<z.infer<typeof recipeSortKey>, SortDirectionLabels> = {
   title: { asc: 'A → Z', desc: 'Z → A' },
   createdAt: { asc: 'Oldest first', desc: 'Newest first' },
   updatedAt: { asc: 'Oldest first', desc: 'Newest first' },
@@ -205,12 +205,11 @@ function RecipesRoute() {
             </SelectContent>
           </Select>
 
-          <Button
-            onClick={() => setSearchParam('sortDirection', searchParams.sortDirection === 'asc' ? 'desc' : 'asc')}
-            variant="outline"
-          >
-            {sortDirectionLabels[searchParams.sortKey][searchParams.sortDirection]}
-          </Button>
+          <SortDirectionToggle
+            labels={sortDirectionLabels[searchParams.sortKey]}
+            onChange={(next) => setSearchParam('sortDirection', next)}
+            value={searchParams.sortDirection}
+          />
 
           <Label className="flex items-center gap-2 text-sm">
             <Checkbox

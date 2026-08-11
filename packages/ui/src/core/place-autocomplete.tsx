@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query';
 import { type BBox, type Feature, type FeatureCollection, type Point } from 'geojson';
 import { MapPinIcon, SearchIcon } from 'lucide-react';
 import { type ComponentProps, useEffect, useState } from 'react';
@@ -16,7 +17,7 @@ import { Spinner } from './spinner';
  * Adapted from https://shadcn-place-autocomplete.vercel.app.
  */
 
-interface PlaceFeatureProperties {
+type PlaceFeatureProperties = {
   osm_id: number;
   osm_type: 'N' | 'W' | 'R';
   osm_key: string;
@@ -35,7 +36,7 @@ interface PlaceFeatureProperties {
   countrycode?: string;
   extent?: [number, number, number, number];
   extra?: Record<string, string>;
-}
+};
 
 export type PlaceFeature = Feature<Point, PlaceFeatureProperties>;
 type PlaceFeatureCollection = FeatureCollection<Point, PlaceFeatureProperties>;
@@ -44,7 +45,7 @@ type PlaceFeatureCollection = FeatureCollection<Point, PlaceFeatureProperties>;
  * Photon's query parameters.
  * @see https://github.com/komoot/photon#photon-api
  */
-interface PlaceSearchOptions {
+type PlaceSearchOptions = {
   /** Search text (address, place name, or POI). */
   query: string;
   /** Preferred language for results (e.g. `en`, `de`, `sl`). */
@@ -58,7 +59,7 @@ interface PlaceSearchOptions {
   /** Higher values make the bias more local. */
   zoom?: number;
   locationBiasScale?: number;
-}
+};
 
 export type PlaceAutocompleteProps = Omit<PlaceSearchOptions, 'query'> &
   Omit<ComponentProps<'input'>, 'onChange' | 'value'> & {
@@ -71,7 +72,15 @@ export type PlaceAutocompleteProps = Omit<PlaceSearchOptions, 'query'> &
     value?: string;
   };
 
-/** One line of address out of Photon's parts, skipping the ones it didn't return. */
+/**
+ * One line of address out of Photon's parts, skipping the ones it didn't return.
+ *
+ * The street line is **street first, then number** — "Slovenska cesta 1a" — which is how most of
+ * Europe writes one and, more to the point, how this app's users do. The number-first order the
+ * upstream component shipped is the Anglosphere's. Neither is universal, and nothing here is
+ * localized yet; when that changes, this line is what has to learn the country code Photon already
+ * returns as `countrycode`.
+ */
 function formatAddress(properties: PlaceFeatureProperties) {
   const parts = [];
 
@@ -79,8 +88,8 @@ function formatAddress(properties: PlaceFeatureProperties) {
     parts.push(properties.name);
   }
 
-  if (properties.housenumber && properties.street) {
-    parts.push(`${properties.housenumber} ${properties.street}`);
+  if (properties.street && properties.housenumber) {
+    parts.push(`${properties.street} ${properties.housenumber}`);
   } else if (properties.street) {
     parts.push(properties.street);
   }
@@ -145,71 +154,55 @@ function useDebounce<T>(value: T, delay: number) {
   return debouncedValue;
 }
 
+/**
+ * The lookup, as a query rather than an effect. TanStack owns the parts that were hand-rolled here:
+ * the abort signal that stops a slow answer landing on top of a newer one, the in-flight flag, and —
+ * the one that had already shipped as a bug — discarding the previous error, which now happens
+ * because the state belongs to the query key rather than to the component.
+ *
+ * The debounce stays: it decides which strings become keys at all, and without it every keystroke
+ * would be its own cache entry and its own request to somebody else's free service.
+ */
 function usePlaceSearch({ debounceMs, query, ...options }: { debounceMs: number } & PlaceSearchOptions) {
-  const [results, setResults] = useState<PlaceFeature[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  const [hasSearched, setHasSearched] = useState(false);
-
-  const debouncedQuery = useDebounce(query, debounceMs);
+  const debouncedQuery = useDebounce(query.trim(), debounceMs);
   const { bbox, lang, lat, limit, locationBiasScale, lon, zoom } = options;
 
-  useEffect(() => {
-    if (!debouncedQuery.trim()) {
-      setResults([]);
-      setIsLoading(false);
-      setHasSearched(false);
-      // The error goes with the query that caused it. Left set, it keeps the dropdown open under an
-      // empty field, complaining about a lookup the user has already backspaced away.
-      setError(null);
-      return;
-    }
+  const { data, error, isFetching, isSuccess } = useQuery({
+    queryKey: ['place-autocomplete', { bbox, debouncedQuery, lang, lat, limit, locationBiasScale, lon, zoom }],
+    async queryFn({ signal }) {
+      const url = buildSearchUrl({ bbox, lang, lat, limit, locationBiasScale, lon, query: debouncedQuery, zoom });
+      const response = await fetch(url, { signal });
 
-    // Every keystroke past the debounce starts a request; without this the slower of two overlapping
-    // lookups would land last and overwrite the newer results.
-    const abortController = new AbortController();
-
-    async function fetchResults() {
-      setIsLoading(true);
-      setError(null);
-      setHasSearched(true);
-
-      try {
-        const url = buildSearchUrl({ bbox, lang, lat, limit, locationBiasScale, lon, query: debouncedQuery, zoom });
-        const response = await fetch(url, { signal: abortController.signal });
-
-        if (!response.ok) {
-          throw new Error(`Photon API error: ${response.status} ${response.statusText}`);
-        }
-
-        const data: PlaceFeatureCollection = await response.json();
-        // Photon returns the same OSM object once per matched name, so the raw list repeats places.
-        const seen = new Set<number>();
-        setResults(
-          data.features.filter((feature) => {
-            if (seen.has(feature.properties.osm_id)) {
-              return false;
-            }
-            seen.add(feature.properties.osm_id);
-            return true;
-          })
-        );
-      } catch (error_) {
-        if (error_ instanceof Error && error_.name !== 'AbortError') {
-          setError(error_);
-          setResults([]);
-        }
-      } finally {
-        setIsLoading(false);
+      if (!response.ok) {
+        throw new Error(`Photon API error: ${response.status} ${response.statusText}`);
       }
-    }
 
-    void fetchResults();
+      const collection: PlaceFeatureCollection = await response.json();
+      // Photon returns the same OSM object once per matched name, so the raw list repeats places.
+      const seen = new Set<number>();
 
-    return () => abortController.abort();
-  }, [bbox, debouncedQuery, lang, lat, limit, locationBiasScale, lon, zoom]);
+      return collection.features.filter((feature) => {
+        if (seen.has(feature.properties.osm_id)) {
+          return false;
+        }
 
-  return { error, hasSearched, isLoading, results };
+        seen.add(feature.properties.osm_id);
+
+        return true;
+      });
+    },
+    enabled: Boolean(debouncedQuery),
+    // Places do not move, and backspacing over a word to try another is the commonest thing anyone
+    // does in this box — so retyping one should cost nothing.
+    staleTime: 5 * 60 * 1000,
+    // Photon is keyless and free and has no SLA. One failure is the answer, and the UI's answer to it
+    // is "type the address yourself"; three more attempts only make that verdict slower to arrive.
+    retry: false,
+    // Says the same thing to the app's error reporting: a geocoder being down is not a bug here.
+    meta: { expectedFailure: true },
+  });
+
+  return { error, hasSearched: isSuccess, isLoading: isFetching, results: data ?? [] };
 }
 
 function PlaceAutocomplete({

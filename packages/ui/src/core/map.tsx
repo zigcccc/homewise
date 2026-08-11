@@ -91,7 +91,7 @@ function useLeaflet() {
   const [L, setL] = useState<typeof import('leaflet') | null>(null);
 
   useEffect(() => {
-    if (L || typeof window === 'undefined') {
+    if (L) {
       return;
     }
 

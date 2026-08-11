@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { createColumnHelper } from '@tanstack/react-table';
-import { HandCoinsIcon, ImageIcon, MoreHorizontal, MoveRightIcon, PencilIcon, TrashIcon, UndoIcon } from 'lucide-react';
+import { HandCoinsIcon, MoreHorizontal, MoveRightIcon, PencilIcon, TrashIcon, UndoIcon } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -18,6 +18,7 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
+  Thumbnail,
 } from '@homewise/ui/core';
 
 import { parseResponse } from '@/api/client';
@@ -47,19 +48,17 @@ export function createStorageItemColumns({ showLocation }: { showLocation: boole
   return [
     columnHelper.accessor('photoUrl', {
       header: '',
-      cell: (info) => <PhotoCell name={info.row.original.name} url={info.getValue()} />,
-      // A width under the content's own minimum collapses the column to exactly the thumbnail,
-      // instead of handing a picture column its share of the table's leftover width.
+      cell: (info) => <Thumbnail alt={info.row.original.name} src={info.getValue()} />,
       meta: { className: 'w-px' },
     }),
     columnHelper.accessor('name', {
       header: 'Item',
       cell: (info) => <ItemNameCell id={info.row.original.id} name={info.getValue()} notes={info.row.original.notes} />,
+      meta: { headerClassName: 'pl-4' },
     }),
     columnHelper.accessor('quantity', {
       header: 'Qty',
       cell: (info) => <QuantityCell id={info.row.original.id} quantity={info.getValue()} />,
-      meta: { className: 'w-px' },
     }),
     ...(showLocation
       ? [
@@ -90,20 +89,6 @@ export function createStorageItemColumns({ showLocation }: { showLocation: boole
       cell: (info) => <ItemRowActions item={info.row.original} />,
     }),
   ];
-}
-
-function PhotoCell({ name, url }: { name: string; url: string | null }) {
-  if (!url) {
-    // Most items never get a photo, so the empty state is the common one and has to look deliberate
-    // rather than like a picture that failed to load.
-    return (
-      <div aria-hidden className="flex size-10 items-center justify-center rounded-md bg-muted text-muted-foreground">
-        <ImageIcon className="size-4" />
-      </div>
-    );
-  }
-
-  return <img alt={name} className="size-10 rounded-md border object-cover" src={url} />;
 }
 
 function QuantityCell({ id, quantity }: { id: number; quantity: number }) {
@@ -148,7 +133,7 @@ function LoanCell({ loan }: { loan: StorageItem['loan'] }) {
   }
 
   return (
-    <div className="space-y-0.5">
+    <div className="flex items-center gap-1">
       <Badge variant={status === 'overdue' ? 'destructive' : 'secondary'}>{LOAN_STATUS_LABELS[status]}</Badge>
       <p className="text-muted-foreground text-xs">
         {loan.name}

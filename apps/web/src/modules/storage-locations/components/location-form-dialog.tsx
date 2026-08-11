@@ -111,8 +111,7 @@ function LocationForm({ location, onDone }: { location?: StorageLocation; onDone
     }
   };
 
-  const latitude = form.watch('latitude');
-  const longitude = form.watch('longitude');
+  const [latitude, longitude] = form.watch(['latitude', 'longitude']);
   const pin = latitude != null && longitude != null ? { latitude, longitude } : null;
 
   return (

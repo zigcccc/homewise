@@ -35,6 +35,7 @@ import {
 
 import { listChildDictionaryEntriesQueryOptions } from '@/modules/child-dictionaries';
 import { getChildProfileQueryOptions } from '@/modules/child-profiles';
+import { type SortDirectionLabels, SortDirectionToggle } from '@/modules/shared';
 
 import { createEntriesTableColumns, EntryForm } from './-components/entries-table.config';
 
@@ -46,6 +47,22 @@ const searchParamsModel = z.object({
 });
 
 type SearchParams = z.infer<typeof searchParamsModel>;
+
+/** This toolbar is tight enough that the direction is an arrow with a word beside it, not a phrase. */
+const sortDirectionLabels: SortDirectionLabels = {
+  asc: (
+    <>
+      <ArrowDownAZIcon />
+      Asc
+    </>
+  ),
+  desc: (
+    <>
+      <ArrowUpAZIcon />
+      Desc
+    </>
+  ),
+};
 
 const sortKeyLabels: Record<z.infer<typeof childDictionaryEntrySortKey>, string> = {
   childPhrase: 'Child phrase',
@@ -182,14 +199,12 @@ function DictionaryEntries({
           </SelectContent>
         </Select>
 
-        <Button
-          onClick={() => setSearchParam('sortDirection', searchParams.sortDirection === 'asc' ? 'desc' : 'asc')}
+        <SortDirectionToggle
+          labels={sortDirectionLabels}
+          onChange={(next) => setSearchParam('sortDirection', next)}
           title={searchParams.sortDirection === 'asc' ? 'Ascending' : 'Descending'}
-          variant="outline"
-        >
-          {searchParams.sortDirection === 'asc' ? <ArrowDownAZIcon /> : <ArrowUpAZIcon />}
-          {searchParams.sortDirection === 'asc' ? 'Asc' : 'Desc'}
-        </Button>
+          value={searchParams.sortDirection}
+        />
 
         <Label className="flex items-center gap-2 text-sm">
           <Checkbox

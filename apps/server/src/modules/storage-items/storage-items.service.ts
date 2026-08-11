@@ -3,6 +3,7 @@ import { HTTPException } from 'hono/http-exception';
 
 import { db, schema } from '#db/core';
 import { emptyToNull, type Filters, writesAnything } from '#db/utils';
+import { blobPrefix } from '#lib/blobs';
 import { todayISO } from '#lib/dates';
 import { notFound, somethingWentWrong } from '#lib/errors';
 import { ContactsService } from '#modules/contacts/contacts.service';
@@ -14,7 +15,6 @@ import {
   type LendStorageItem,
   type ListStorageItemsQueryParams,
   type PatchStorageItem,
-  storageItemImagePrefix,
 } from './storage-items.model';
 
 /** The joins every item response carries: where it is, and who has it. */
@@ -31,6 +31,11 @@ type ItemLoanRow = {
   borrowedOn: string | null;
   dueOn: string | null;
 };
+
+/** One phrasing for the refusal, raised both before the write and by the loser of a race for it. */
+function alreadyOnLoan(name: string) {
+  return new HTTPException(409, { message: `"${name}" is already out on loan.` });
+}
 
 export class StorageItemsService {
   /**
@@ -138,7 +143,7 @@ export class StorageItemsService {
     // The photo is uploaded before the row exists, so a failed insert has to drop it again — which is
     // exactly what `commitManagedImage` does with the rollback half of the resolved update.
     const photo = await ImagesService.resolveManagedImage({ image: data.image }, null, {
-      ownedPrefix: `${storageItemImagePrefix}/${householdId}`,
+      ownedPrefix: blobPrefix.storageItemPhoto(householdId),
       size: 512,
     });
 
@@ -186,7 +191,7 @@ export class StorageItemsService {
     };
 
     const photo = await ImagesService.resolveManagedImage({ image: data.image }, existing.photoUrl, {
-      ownedPrefix: `${storageItemImagePrefix}/${householdId}`,
+      ownedPrefix: blobPrefix.storageItemPhoto(householdId),
       size: 512,
     });
     if (photo.changed) {
@@ -226,7 +231,7 @@ export class StorageItemsService {
     const item = await StorageItemsService.readItemRow(householdId, itemId);
 
     if (item.borrowedOn !== null) {
-      throw new HTTPException(409, { message: `"${item.name}" is already out on loan.` });
+      throw alreadyOnLoan(item.name);
     }
 
     const createdContact = 'contact' in data;
@@ -256,10 +261,18 @@ export class StorageItemsService {
         )
         .returning({ id: schema.storageItem.id });
 
-      // Nothing to lend any more — deleted or lent by someone else in between. Throwing here is what
-      // takes a contact minted for this loan back out with it.
+      // Nothing to lend any more, and the two ways that happens are different answers: the item was
+      // deleted, or somebody else lent it in between. Telling the loser of a race that the item does
+      // not exist would send them looking for a thing that is sitting in a colleague's hands, so the
+      // row is asked for again rather than assumed gone. Throwing either way is also what takes a
+      // contact minted for this loan back out with it.
       if (!updated) {
-        throw notFound('Item');
+        const current = await tx.query.storageItem.findFirst({
+          columns: { name: true },
+          where: (fields, { and, eq }) => and(eq(fields.householdId, householdId), eq(fields.id, itemId)),
+        });
+
+        throw current ? alreadyOnLoan(current.name) : notFound('Item');
       }
     });
 
@@ -292,7 +305,7 @@ export class StorageItemsService {
     }
 
     // The row is already gone — cleanup is best-effort and guarded to our own uploads.
-    await ImagesService.cleanupOwnedImage(deleted.photoUrl, `${storageItemImagePrefix}/${householdId}`);
+    await ImagesService.cleanupOwnedImage(deleted.photoUrl, blobPrefix.storageItemPhoto(householdId));
 
     return deleted;
   }

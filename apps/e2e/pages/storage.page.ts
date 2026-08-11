@@ -1,14 +1,17 @@
-import { expect, type Locator, type Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 
+import { MapCanvas } from './map';
 import { SearchBox } from './search-box';
 
 /** The storage locations list (`/storage/locations`) and one location's detail page. */
 export class StorageLocationsPage {
   private readonly searchBox: SearchBox;
-  private overviewMapClip: { height: number; width: number; x: number; y: number } | null = null;
+  /** Unscoped, so it resolves to the page's own map rather than the create dialog's. */
+  readonly overviewMap: MapCanvas;
 
   constructor(private readonly page: Page) {
     this.searchBox = new SearchBox(page, 'Search locations and addresses');
+    this.overviewMap = new MapCanvas(page);
   }
 
   async goto() {
@@ -21,7 +24,7 @@ export class StorageLocationsPage {
   }
 
   /** A location's card in the grid. */
-  card(name: string): Locator {
+  card(name: string) {
     return this.page.getByRole('link').filter({ hasText: name });
   }
 
@@ -31,75 +34,12 @@ export class StorageLocationsPage {
   }
 
   /** Opens the create dialog and leaves it open. */
-  async openAddDialog(): Promise<Locator> {
+  async openAddDialog() {
     await this.page.getByRole('button', { name: 'Add location', exact: true }).first().click();
     const dialog = this.page.getByRole('dialog');
     await expect(dialog).toBeVisible();
 
     return dialog;
-  }
-
-  /**
-   * A shot of the overview map's zoom button, taken from the same coordinates every time. Comparing
-   * two of them is how a spec asks whether anything is drawn over the map: a dialog's overlay dims
-   * whatever it covers, so the button darkens — and a map that paints over that overlay leaves it
-   * pixel-identical. The button rather than the map itself because it is ours and opaque: tiles
-   * arrive from a CDN, and a spec that needs one to have landed is a spec that needs the internet.
-   *
-   * Asking the DOM instead does not work. Leaflet numbers its panes and control corners in the
-   * hundreds, so unless the container opens a stacking context they outrank every Radix layer at
-   * z-50 — but Radix also sets `pointer-events: none` on the page while a modal is open, and
-   * Chromium's hit testing then stops reporting the map whether or not the map is what you see.
-   * `elementFromPoint` and CDP's `getNodeForLocation` both answer "overlay" over a map that is
-   * visibly on top of the dialog. The compositor is the only witness, so this reads pixels.
-   */
-  async settledOverviewMapControl(): Promise<Buffer> {
-    // Until a tile has painted there is nothing over the overlay to measure — the map mounts lazily
-    // and an empty one sits below the dialog quite correctly. This is the one spec that needs the
-    // tile CDN to answer; a map that never draws fails it rather than quietly weakening it.
-    await expect(this.page.locator('.leaflet-tile-loaded').first()).toBeVisible();
-
-    let previous = await this.captureOverviewMapControl();
-
-    for (let attempt = 0; attempt < 25; attempt++) {
-      await this.page.waitForTimeout(200);
-      const next = await this.captureOverviewMapControl();
-
-      if (next.equals(previous)) {
-        return next;
-      }
-
-      previous = next;
-    }
-
-    throw new Error('The overview map never stopped changing, so two shots of it prove nothing.');
-  }
-
-  private async captureOverviewMapControl(): Promise<Buffer> {
-    // The create dialog carries a map of its own, so this has to name the one on the page. By
-    // attribute rather than by role: an open dialog `aria-hidden`s everything behind it, and a role
-    // query would stop finding the very button whose look is the thing being measured.
-    const box = await this.page.locator('.leaflet-container').first().locator('[aria-label="Zoom in"]').boundingBox();
-
-    if (!box) {
-      throw new Error('The overview map is not on the page.');
-    }
-
-    // Inset, so the clip holds the button's own fill and nothing of the map behind its edges.
-    const clip = {
-      height: Math.round(box.height) - 6,
-      width: Math.round(box.width) - 6,
-      x: Math.round(box.x) + 3,
-      y: Math.round(box.y) + 3,
-    };
-
-    if (this.overviewMapClip && JSON.stringify(clip) !== JSON.stringify(this.overviewMapClip)) {
-      throw new Error('The overview map moved between shots, so comparing them proves nothing.');
-    }
-
-    this.overviewMapClip = clip;
-
-    return this.page.screenshot({ animations: 'disabled', clip });
   }
 
   /**
@@ -127,18 +67,12 @@ export class StorageLocationsPage {
     return dialog;
   }
 
-  /**
-   * Drops a pin by clicking the map in the create dialog. The coordinates it lands on are whatever
-   * the viewport happens to show, which is the point — what's being proven is that a click produces
-   * a pin the form then saves, not that it produces a particular latitude.
-   */
+  /** Drops a pin by clicking the map in the create dialog, then saves. */
   async addWithPin(name: string) {
     const dialog = await this.openAddDialog();
     await dialog.getByLabel('Name', { exact: true }).fill(name);
 
-    const map = dialog.locator('.leaflet-container');
-    await expect(map).toBeVisible();
-    await map.click({ position: { x: 160, y: 120 } });
+    await new MapCanvas(this.page, dialog).click();
 
     // The clear button only exists once there's a pin to clear.
     await expect(dialog.getByRole('button', { name: 'Clear pin' })).toBeVisible();
@@ -175,7 +109,7 @@ export class StorageLocationsPage {
   }
 
   /** Best-effort cleanup: removes the location when it's listed, and says so. */
-  async deleteIfPresent(name: string): Promise<boolean> {
+  async deleteIfPresent(name: string) {
     if ((await this.card(name).count()) === 0) {
       return false;
     }
@@ -207,7 +141,7 @@ export class StorageItemsPage {
     await expect(this.page.getByRole('heading', { level: 1, name: 'Items' })).toBeVisible();
   }
 
-  row(name: string): Locator {
+  row(name: string) {
     return this.page.getByRole('row').filter({ hasText: name });
   }
 
@@ -277,7 +211,7 @@ export class StorageItemsPage {
     await this.nameInput().press('Enter');
   }
 
-  private nameInput(): Locator {
+  private nameInput() {
     return this.page.getByRole('table').getByRole('textbox', { name: 'Item name' });
   }
 
@@ -370,7 +304,7 @@ export class StorageItemsPage {
   }
 
   /** Best-effort cleanup: removes the item when it's listed, and says so. */
-  async deleteIfPresent(name: string): Promise<boolean> {
+  async deleteIfPresent(name: string) {
     if ((await this.row(name).count()) === 0) {
       return false;
     }

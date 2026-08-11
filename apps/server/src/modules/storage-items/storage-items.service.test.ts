@@ -154,6 +154,41 @@ describe('lending something that is already out', () => {
     });
     expect(contacts.filter((contact) => contact.name.startsWith('Second Borrower'))).toHaveLength(0);
   });
+
+  /**
+   * The same refusal from the other branch. The check above runs before the transaction, so it can
+   * only speak for the moment before it — two loans filed at once both pass it, and the second is
+   * caught by the `isNull` in the update's own `WHERE`. That branch used to answer 404, which is a
+   * lie about an item that exists and is in somebody's hands.
+   */
+  it('should refuse the loser of a race with a conflict, not a 404', async () => {
+    // GIVEN: an item that is here
+    const item = await StorageItemsService.create(
+      ours.householdId,
+      { locationId: ourLocation, name: `Pressure washer ${randomUUID()}` },
+      ours.userId
+    );
+
+    // WHEN: two loans are filed against it at once, so both read it as available before either writes
+    const [first, second] = await Promise.allSettled([
+      StorageItemsService.lend(ours.householdId, item.id, { contact: { name: 'Racer One', type: 'other' } }),
+      StorageItemsService.lend(ours.householdId, item.id, { contact: { name: 'Racer Two', type: 'other' } }),
+    ]);
+
+    // THEN: exactly one should win
+    const winners = [first, second].filter((result) => result.status === 'fulfilled');
+    const losers = [first, second].filter((result) => result.status === 'rejected');
+    expect(winners).toHaveLength(1);
+    expect(losers).toHaveLength(1);
+
+    // AND: the loser should be told the item is taken, not that it is missing
+    expect(losers[0]!.reason).toBeInstanceOf(HTTPException);
+    expect(losers[0]!.reason).toMatchObject({ status: 409 });
+
+    // AND: the item should be out with whoever won, and nobody else
+    const after = await db.query.storageItem.findFirst({ where: eq(schema.storageItem.id, item.id) });
+    expect(['Racer One', 'Racer Two']).toContain(after?.borrowedByName);
+  });
 });
 
 describe('the loan check constraint', () => {

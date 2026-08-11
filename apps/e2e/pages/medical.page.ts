@@ -1,4 +1,4 @@
-import { expect, type Locator, type Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 
 /**
  * The "Medical information" card shared by child and pet General tabs — the
@@ -8,7 +8,7 @@ export class MedicalPage {
   constructor(private readonly page: Page) {}
 
   /** A linked-contact list item by name. */
-  contactItem(name: string): Locator {
+  contactItem(name: string) {
     return this.page.getByRole('listitem').filter({ hasText: name });
   }
 

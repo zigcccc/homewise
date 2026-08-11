@@ -1,4 +1,4 @@
-import { expect, type Locator, type Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 
 import { SearchBox } from './search-box';
 
@@ -29,7 +29,7 @@ export class StoresPage {
     await expect(this.page.getByPlaceholder('Search shops')).toBeVisible();
   }
 
-  row(name: string): Locator {
+  row(name: string) {
     return this.page.getByRole('row').filter({ hasText: name });
   }
 
@@ -74,12 +74,12 @@ export class StoresPage {
    * The open inline rename input. Only one row edits at a time, and it's scoped to the table so the
    * add/edit dialog's identically-labelled field can never match instead.
    */
-  private nameInput(): Locator {
+  private nameInput() {
     return this.page.getByRole('table').getByRole('textbox', { name: 'Name' });
   }
 
   /** Best-effort cleanup: removes the shop when it's listed, and says so. */
-  async deleteIfPresent(name: string): Promise<boolean> {
+  async deleteIfPresent(name: string) {
     if ((await this.row(name).count()) === 0) {
       return false;
     }

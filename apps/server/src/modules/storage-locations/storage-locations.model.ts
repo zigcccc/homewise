@@ -2,7 +2,7 @@ import { createInsertSchema, createUpdateSchema } from 'drizzle-zod';
 import z from 'zod';
 
 import * as schema from '#db/schema/core';
-import { dbOwnedColumns, optionalText, searchQueryParam, sortDirection } from '#lib/models';
+import { coordinates, dbOwnedColumns, optionalText, searchQueryParam, sortDirection } from '#lib/models';
 
 /** The name bounds on their own, so an inline rename validates against the same contract. */
 export const storageLocationName = z
@@ -11,29 +11,7 @@ export const storageLocationName = z
   .min(1, { error: 'Name must contain at least 1 character' })
   .max(96, { error: 'Name must contain at most 96 characters' });
 
-/**
- * The map pin, as two halves. Both are optional and `null` clears them.
- *
- * Only the ranges are checked here. "Both or neither" can't be: a PATCH may legitimately carry one
- * half, and whether that leaves a valid pin depends on what is already stored — so the service
- * decides it against the merged row.
- */
-const pin = {
-  latitude: z
-    .number()
-    .min(-90, { error: 'Latitude must be between -90 and 90' })
-    .max(90, { error: 'Latitude must be between -90 and 90' })
-    .nullable()
-    .optional(),
-  longitude: z
-    .number()
-    .min(-180, { error: 'Longitude must be between -180 and 180' })
-    .max(180, { error: 'Longitude must be between -180 and 180' })
-    .nullable()
-    .optional(),
-};
-
-const details = { address: optionalText(256, 'Address'), ...pin };
+const details = { address: optionalText(256, 'Address'), ...coordinates };
 
 export const createStorageLocationModel = createInsertSchema(schema.storageLocation, {
   name: () => storageLocationName,
