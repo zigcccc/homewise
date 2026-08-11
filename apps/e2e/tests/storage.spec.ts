@@ -4,6 +4,7 @@ import { SEED_STORAGE_ITEMS, SEED_STORAGE_LOCATIONS } from '@homewise/server/see
 
 import { StorageItemsPage, StorageLocationsPage } from '../pages/storage.page';
 import { API_URL } from '../playwright.config';
+import { deleteOutOfBand } from '../support/records';
 
 const [GARAGE, CELLAR] = SEED_STORAGE_LOCATIONS;
 
@@ -22,16 +23,6 @@ async function addItemOutOfBand(page: Page, name: string) {
     multipart: { locationId: String(garage.id), name },
   });
   expect(created.ok()).toBe(true);
-}
-
-/** Removes something this file created behind the app's back, so a rerun starts where this one did. */
-async function deleteOutOfBand(page: Page, path: 'contacts' | 'storage-items', name: string) {
-  const list = await page.context().request.get(`${API_URL}/${path}`);
-  const row = (await list.json()).find((candidate: { name: string }) => candidate.name === name);
-
-  if (row) {
-    await page.context().request.delete(`${API_URL}/${path}/${row.id}`);
-  }
 }
 
 const OVERDUE_ITEM = SEED_STORAGE_ITEMS.find((item) => item.name === 'Camping tent');
@@ -233,12 +224,15 @@ test.describe('storage', () => {
       await items.moveTo(name, GARAGE.name);
       await expect(items.row(name)).toContainText(GARAGE.name);
     } finally {
-      await items.goto();
-      await items.search('');
-      await items.deleteIfPresent(name);
-      // The bystander went in behind the app's back, so it comes out the same way — left behind it
-      // would accumulate one row per run in the household every other spec reads.
-      await deleteOutOfBand(page, 'storage-items', bystander);
+      try {
+        await items.goto();
+        await items.search('');
+        await items.deleteIfPresent(name);
+      } finally {
+        // The bystander went in behind the app's back, so it comes out the same way — left behind it
+        // would accumulate one row per run in the household every other spec reads.
+        await deleteOutOfBand(page, 'storage-items', bystander);
+      }
     }
   });
 
@@ -267,12 +261,15 @@ test.describe('storage', () => {
       await expect(items.row(name)).toContainText('Here');
       await expect(items.row(name)).not.toContainText(borrower);
     } finally {
-      await items.goto();
-      await items.search('');
-      await items.deleteIfPresent(name);
-      // The loan minted a contact, and there is no Contacts page to remove it from. Left behind, it
-      // grows the address book this feature's combobox loads on every run.
-      await deleteOutOfBand(page, 'contacts', borrower);
+      try {
+        await items.goto();
+        await items.search('');
+        await items.deleteIfPresent(name);
+      } finally {
+        // The loan minted a contact, and there is no Contacts page to remove it from. Left behind, it
+        // grows the address book this feature's combobox loads on every run.
+        await deleteOutOfBand(page, 'contacts', borrower);
+      }
     }
   });
 
