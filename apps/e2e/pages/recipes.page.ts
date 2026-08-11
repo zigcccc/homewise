@@ -1,5 +1,6 @@
 import { expect, type Page } from '@playwright/test';
 
+import { SORT_DIRECTION_NAME } from '../support/text';
 import { Drag } from './drag';
 import { SearchBox } from './search-box';
 
@@ -260,7 +261,7 @@ export class RecipesPage {
 
   /** The sort-direction toggle. Its label follows the sort column, so match any of the four. */
   sortDirectionButton() {
-    return this.page.getByRole('button', { name: /A → Z|Z → A|Oldest first|Newest first/ });
+    return this.page.getByRole('button', { name: SORT_DIRECTION_NAME });
   }
 
   async toggleSortDirection() {

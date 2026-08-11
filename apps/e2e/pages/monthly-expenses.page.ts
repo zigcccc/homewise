@@ -1,5 +1,6 @@
 import { expect, type Page } from '@playwright/test';
 
+import { nameStartsWith } from '../support/text';
 import { SearchBox } from './search-box';
 
 /**
@@ -48,7 +49,7 @@ export class MonthlyExpensesPage {
 
   /** A slice of the per-category breakdown, which doubles as the category filter. */
   breakdownChip(category: string) {
-    return this.page.getByRole('button', { name: new RegExp(`^${category}`) });
+    return this.page.getByRole('button', { name: nameStartsWith(category) });
   }
 
   /**

@@ -1,5 +1,6 @@
 import { expect, type Page } from '@playwright/test';
 
+import { nameStartsWith } from '../support/text';
 import { Drag } from './drag';
 
 /**
@@ -216,7 +217,7 @@ export class MealPlanPage {
   async moveMealToDay(day: string, label: string, targetWeekday: string) {
     await this.openMealMenu(day, label);
     await this.page.getByRole('menuitem', { name: 'Move to day' }).click();
-    await this.page.getByRole('menuitem', { name: new RegExp(`^${targetWeekday},`) }).click();
+    await this.page.getByRole('menuitem', { name: nameStartsWith(`${targetWeekday},`) }).click();
   }
 
   /** Removes immediately — the confirmation is an Undo toast, not a dialog. */

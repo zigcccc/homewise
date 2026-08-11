@@ -1,5 +1,6 @@
 import { expect, type Page } from '@playwright/test';
 
+import { SORT_DIRECTION_NAME } from '../support/text';
 import { MapCanvas } from './map';
 import { SearchBox } from './search-box';
 
@@ -322,6 +323,16 @@ export class StorageItemsPage {
   async filterByStatus(status: string) {
     await this.page.getByRole('combobox', { name: 'Filter by status' }).click();
     await this.page.getByRole('option', { name: status, exact: true }).click();
+  }
+
+  async selectSortKey(label: string) {
+    await this.page.getByRole('combobox', { name: 'Sort by' }).click();
+    await this.page.getByRole('option', { name: label, exact: true }).click();
+  }
+
+  /** The sort-direction toggle. Its label follows the sort column, so match any of the four. */
+  sortDirectionButton() {
+    return this.page.getByRole('button', { name: SORT_DIRECTION_NAME });
   }
 
   async openRowMenu(name: string) {

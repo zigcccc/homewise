@@ -1,5 +1,6 @@
 import { expect, type Page } from '@playwright/test';
 
+import { SORT_DIRECTION_NAME } from '../support/text';
 import { SearchBox } from './search-box';
 
 /** A child profile's Dictionary tab (`/family/kids/$id/dictionary`). */
@@ -67,7 +68,7 @@ export class DictionaryPage {
   }
 
   async toggleSortDirection() {
-    await this.page.getByRole('button', { name: /Asc|Desc/ }).click();
+    await this.page.getByRole('button', { name: SORT_DIRECTION_NAME }).click();
   }
 
   private async openRowMenu(phrase: string) {

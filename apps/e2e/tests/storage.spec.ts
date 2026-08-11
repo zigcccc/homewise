@@ -332,6 +332,10 @@ test.describe('storage', () => {
     await page.getByRole('button', { name: 'A → Z' }).click();
     await expect(page.getByRole('button', { name: 'Z → A' })).toBeVisible();
     await expect(firstRow).not.toHaveText(ascending);
+
+    // The label follows the column: "descending" on a date reads as newest-first, not Z → A.
+    await items.selectSortKey('Date added');
+    await expect(items.sortDirectionButton()).toHaveText('Newest first');
   });
 
   test('deleting a location warns about what goes with it', async ({ page }) => {

@@ -1,6 +1,7 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 
 import { API_URL } from '../playwright.config';
+import { nameStartsWith } from '../support/text';
 import { Drag } from './drag';
 
 /** The household's shopping lists (`/food/shopping-lists`) — master column plus the open list. */
@@ -324,7 +325,7 @@ export class ShoppingListsPage {
    */
   async openItemEditorByName(label: string) {
     await this.item(label)
-      .getByRole('button', { name: new RegExp(`^${label}`) })
+      .getByRole('button', { name: nameStartsWith(label) })
       .click();
     await expect(this.quantityField()).toBeVisible();
   }
