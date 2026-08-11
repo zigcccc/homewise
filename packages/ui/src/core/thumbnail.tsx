@@ -10,6 +10,10 @@ import { cn } from '../lib/utils';
  * it has to read as deliberate rather than as a picture that failed to load. That's the whole reason
  * this is a component and not an `<img>` with an `onError`: the empty state is the design, not an
  * accident, and every list that shows pictures needs the same one.
+ *
+ * `alt` is required rather than defaulted: an `<img>` with no alternative text in a table of records
+ * is a real gap for a screen reader, and a silent `''` would hide it. A thumbnail that genuinely adds
+ * nothing beside the name next to it says so by passing `alt=""`.
  */
 function Thumbnail({
   alt,
@@ -17,7 +21,7 @@ function Thumbnail({
   fallback = <ImageIcon className="size-4" />,
   src,
   ...props
-}: Omit<ComponentProps<'img'>, 'src'> & { fallback?: ReactNode; src?: string | null }) {
+}: Omit<ComponentProps<'img'>, 'alt' | 'src'> & { alt: string; fallback?: ReactNode; src?: string | null }) {
   if (!src) {
     return (
       <div
