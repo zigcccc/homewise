@@ -84,11 +84,15 @@ test.describe('medical information', () => {
       await expect(second).toBeHidden();
       await expect(medical.contactItem(typed)).toContainText(typedAddress);
     } finally {
-      await removeManagedMember(page, kidName);
-      // Unlinking leaves the contact in the household, and there is no Contacts page to remove it
-      // from — so both go out of band, or they pile up in every later run's address book.
-      await deleteOutOfBand(page, 'contacts', picked);
-      await deleteOutOfBand(page, 'contacts', typed);
+      try {
+        await removeManagedMember(page, kidName);
+      } finally {
+        // Unlinking leaves the contact in the household, and there is no Contacts page to remove it
+        // from — so both go out of band, or they pile up in every later run's address book. Both,
+        // whichever way the member teardown went, and `Promise.all` rather than two awaits: it has
+        // the second request away before the first can reject.
+        await Promise.all([deleteOutOfBand(page, 'contacts', picked), deleteOutOfBand(page, 'contacts', typed)]);
+      }
     }
   });
 });

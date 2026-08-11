@@ -224,12 +224,15 @@ test.describe('storage', () => {
       await items.moveTo(name, GARAGE.name);
       await expect(items.row(name)).toContainText(GARAGE.name);
     } finally {
-      await items.goto();
-      await items.search('');
-      await items.deleteIfPresent(name);
-      // The bystander went in behind the app's back, so it comes out the same way — left behind it
-      // would accumulate one row per run in the household every other spec reads.
-      await deleteOutOfBand(page, 'storage-items', bystander);
+      try {
+        await items.goto();
+        await items.search('');
+        await items.deleteIfPresent(name);
+      } finally {
+        // The bystander went in behind the app's back, so it comes out the same way — left behind it
+        // would accumulate one row per run in the household every other spec reads.
+        await deleteOutOfBand(page, 'storage-items', bystander);
+      }
     }
   });
 
@@ -258,12 +261,15 @@ test.describe('storage', () => {
       await expect(items.row(name)).toContainText('Here');
       await expect(items.row(name)).not.toContainText(borrower);
     } finally {
-      await items.goto();
-      await items.search('');
-      await items.deleteIfPresent(name);
-      // The loan minted a contact, and there is no Contacts page to remove it from. Left behind, it
-      // grows the address book this feature's combobox loads on every run.
-      await deleteOutOfBand(page, 'contacts', borrower);
+      try {
+        await items.goto();
+        await items.search('');
+        await items.deleteIfPresent(name);
+      } finally {
+        // The loan minted a contact, and there is no Contacts page to remove it from. Left behind, it
+        // grows the address book this feature's combobox loads on every run.
+        await deleteOutOfBand(page, 'contacts', borrower);
+      }
     }
   });
 
