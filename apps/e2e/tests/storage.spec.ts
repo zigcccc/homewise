@@ -266,8 +266,9 @@ test.describe('storage', () => {
         await items.search('');
         await items.deleteIfPresent(name);
       } finally {
-        // The loan minted a contact, and there is no Contacts page to remove it from. Left behind, it
-        // grows the address book this feature's combobox loads on every run.
+        // The loan minted a contact, which outlives the item. Removed out of band rather than by
+        // detouring this spec through the address book — left behind, it grows the list this
+        // feature's combobox loads on every run.
         await deleteOutOfBand(page, 'contacts', borrower);
       }
     }
