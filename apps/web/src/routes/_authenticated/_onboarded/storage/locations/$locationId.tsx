@@ -69,6 +69,7 @@ import {
   invalidateStorageItems,
   LOAN_FILTER_LABELS,
   listStorageItemsQueryOptions,
+  STORAGE_ITEM_SORT_DIRECTION_LABELS,
 } from '@/modules/storage-items';
 import {
   $deleteStorageLocation,
@@ -245,6 +246,7 @@ function StorageLocationRoute() {
           </Select>
 
           <SortDirectionToggle
+            labels={STORAGE_ITEM_SORT_DIRECTION_LABELS[searchParams.sortKey]}
             onChange={(next) => setSearchParam('sortDirection', next)}
             value={searchParams.sortDirection}
           />

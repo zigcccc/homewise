@@ -38,7 +38,14 @@ import {
 } from '@homewise/ui/core';
 
 import { listRecipesQueryOptions, listRecipeTagsQueryOptions, mealTypeLabels } from '@/modules/recipes';
-import { Actionbar, formatMinutes, SELECT_ALL, type SortDirectionLabels, SortDirectionToggle } from '@/modules/shared';
+import {
+  Actionbar,
+  formatMinutes,
+  SELECT_ALL,
+  SORT_LABELS,
+  type SortDirectionLabels,
+  SortDirectionToggle,
+} from '@/modules/shared';
 
 const searchParamsModel = z.object({
   search: searchQueryParam,
@@ -60,9 +67,9 @@ const sortKeyLabels: Record<z.infer<typeof recipeSortKey>, string> = {
 
 /** Ascending reads differently per column: A → Z for a title, oldest-first for a date. */
 const sortDirectionLabels: Record<z.infer<typeof recipeSortKey>, SortDirectionLabels> = {
-  title: { asc: 'A → Z', desc: 'Z → A' },
-  createdAt: { asc: 'Oldest first', desc: 'Newest first' },
-  updatedAt: { asc: 'Oldest first', desc: 'Newest first' },
+  title: SORT_LABELS.text,
+  createdAt: SORT_LABELS.date,
+  updatedAt: SORT_LABELS.date,
 };
 
 /** Search params are typed; the RPC query string wants strings. */

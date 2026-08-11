@@ -41,6 +41,7 @@ import {
   ItemFormDialog,
   LOAN_FILTER_LABELS,
   listStorageItemsQueryOptions,
+  STORAGE_ITEM_SORT_DIRECTION_LABELS,
 } from '@/modules/storage-items';
 import { listStorageLocationOptionsQueryOptions, listStorageLocationsQueryOptions } from '@/modules/storage-locations';
 
@@ -185,6 +186,7 @@ function StorageItemsRoute() {
           </Select>
 
           <SortDirectionToggle
+            labels={STORAGE_ITEM_SORT_DIRECTION_LABELS[searchParams.sortKey]}
             onChange={(next) => setSearchParam('sortDirection', next)}
             value={searchParams.sortDirection}
           />
