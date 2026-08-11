@@ -23,6 +23,16 @@ test.describe('kids', () => {
       await expect(kids.createSuggestion(name)).toBeVisible();
       await kids.createProfileFor(name);
 
+      // An identifier with no value opens editable — no pencil to click through — and offers no actions at
+      // all, copying nothing least of all. Asserting the attribute first is deliberate: it fails unless the
+      // input exists, so the button count below can't pass against a form that simply isn't mounted yet.
+      await expect(kids.identifierInput('nationalId')).not.toHaveAttribute('readonly');
+      await expect(kids.maskedField('nationalId').getByRole('button')).toHaveCount(0);
+      // Editable, but not asking to be typed into: opening the page must not drop the caret in either field.
+      // Both are checked because the last one mounted is the one that would win an autofocus race.
+      await expect(kids.identifierInput('nationalId')).not.toBeFocused();
+      await expect(kids.identifierInput('taxId')).not.toBeFocused();
+
       // Edit the general info and confirm it survives a reload.
       await kids.setDateOfBirth('15. 06. 2020');
       await kids.setSex('Female');
@@ -31,7 +41,13 @@ test.describe('kids', () => {
 
       await page.reload();
       await expect(page.getByLabel('Date of birth')).toHaveValue('15. 06. 2020');
-      await expect(page.locator('#nationalId')).toHaveValue(/4567$/);
+      // Saved, so it comes back masked, read-only, and copyable.
+      await expect(kids.identifierInput('nationalId')).toHaveValue(/4567$/);
+      await expect(kids.identifierInput('nationalId')).toHaveAttribute('readonly');
+      await expect(kids.maskedField('nationalId').getByRole('button', { name: 'Copy' })).toBeVisible();
+      // Revealing is what earns the caret, so the pencil still focuses the field it opens.
+      await kids.editIdentifierButton('nationalId').click();
+      await expect(kids.identifierInput('nationalId')).toBeFocused();
 
       // The child appears as a card on the list.
       await kids.goto();

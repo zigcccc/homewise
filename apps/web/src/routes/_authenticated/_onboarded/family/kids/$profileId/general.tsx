@@ -75,13 +75,20 @@ function defaults(profile: ChildProfile): z.infer<typeof generalFormModel> {
   };
 }
 
+/** An identifier with no value opens in edit mode — there is nothing to mask or copy yet. */
+function revealedDefaults(profile: ChildProfile) {
+  return { nationalId: !profile.nationalId, taxId: !profile.taxId };
+}
+
 function GeneralTab() {
   const { profileId } = Route.useParams();
   const queryClient = useQueryClient();
   const { data: profile } = useSuspenseQuery(getChildProfileQueryOptions(Number(profileId)));
 
-  // View-only state: which identifier fields are unmasked/editable. Re-masked after a successful save.
-  const [revealed, setRevealed] = useState({ nationalId: false, taxId: false });
+  // View-only state: which identifier fields are unmasked/editable. Re-derived after a successful save, so a
+  // saved value re-masks while one left empty stays open. Deriving it in render instead would mask a field the
+  // moment its first character landed.
+  const [revealed, setRevealed] = useState(revealedDefaults(profile));
 
   const form = useForm<z.infer<typeof generalFormModel>>({
     resolver: zodResolver(generalFormModel),
@@ -107,7 +114,7 @@ function GeneralTab() {
       const updated = await mutateAsync(payload);
       invalidateChildProfile(queryClient, profile.id);
       form.reset(defaults(updated));
-      setRevealed({ nationalId: false, taxId: false });
+      setRevealed(revealedDefaults(updated));
       toast.success('Profile updated.');
     } catch {
       toast.error('Something went wrong.');
