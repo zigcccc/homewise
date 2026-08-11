@@ -30,8 +30,13 @@ type MaskedInputProps = Omit<ComponentProps<typeof InputGroupInput>, 'onChange' 
  * A text input that gives the *impression* of a sensitive value. Read-only and masked by default
  * (last 4 characters shown), with Copy and Edit actions. Edit reveals a real editable input; copy
  * writes the unmasked value to the clipboard. Nothing is masked server-side — this is UI only.
+ *
+ * With no value there is nothing to copy or to re-mask, so those actions are dropped — and a revealed
+ * empty field drops the addon entirely, leaving a plain text input.
  */
 function MaskedInput({ value, onChange, revealed, onReveal, onHide, onCopy, onCopyError, ...props }: MaskedInputProps) {
+  const hasValue = value.length > 0;
+
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(value);
@@ -55,20 +60,26 @@ function MaskedInput({ value, onChange, revealed, onReveal, onHide, onCopy, onCo
       ) : (
         <InputGroupInput key="masked" readOnly value={mask(value)} {...props} />
       )}
-      <InputGroupAddon align="inline-end">
-        <InputGroupButton aria-label="Copy" onClick={copy} size="icon-xs" type="button">
-          <CopyIcon />
-        </InputGroupButton>
-        {revealed ? (
-          <InputGroupButton aria-label="Hide" onClick={onHide} size="icon-xs" type="button">
-            <EyeOffIcon />
-          </InputGroupButton>
-        ) : (
-          <InputGroupButton aria-label="Edit" onClick={onReveal} size="icon-xs" type="button">
-            <PencilIcon />
-          </InputGroupButton>
-        )}
-      </InputGroupAddon>
+      {/* The group's input padding keys off the addon's presence, so an actionless one would indent for nothing. */}
+      {(hasValue || !revealed) && (
+        <InputGroupAddon align="inline-end">
+          {hasValue && (
+            <InputGroupButton aria-label="Copy" onClick={copy} size="icon-xs" type="button">
+              <CopyIcon />
+            </InputGroupButton>
+          )}
+          {revealed && hasValue && (
+            <InputGroupButton aria-label="Hide" onClick={onHide} size="icon-xs" type="button">
+              <EyeOffIcon />
+            </InputGroupButton>
+          )}
+          {!revealed && (
+            <InputGroupButton aria-label="Edit" onClick={onReveal} size="icon-xs" type="button">
+              <PencilIcon />
+            </InputGroupButton>
+          )}
+        </InputGroupAddon>
+      )}
     </InputGroup>
   );
 }
