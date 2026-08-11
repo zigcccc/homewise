@@ -15,14 +15,22 @@ import './main.css';
  * Every request in the app goes through TanStack Query, so this is the one place that sees all of
  * them fail. Expected 4xx responses are left alone — the UI already turns those into field errors
  * and toasts, and reporting them would bury the 5xxs and the dropped connections.
+ *
+ * A query may also declare itself expected. Only one does: the address lookup talks to a keyless
+ * third-party geocoder with no SLA, and its being down is a thing the UI already handles by telling
+ * you to type the address yourself.
  */
-function reportUnexpected(error: unknown) {
-  if (!isExpectedRequestFailure(error)) Sentry.captureException(error);
+function reportUnexpected(error: unknown, meta: { expectedFailure?: boolean } | undefined) {
+  if (meta?.expectedFailure || isExpectedRequestFailure(error)) return;
+
+  Sentry.captureException(error);
 }
 
 const queryClient = new QueryClient({
-  queryCache: new QueryCache({ onError: reportUnexpected }),
-  mutationCache: new MutationCache({ onError: reportUnexpected }),
+  queryCache: new QueryCache({ onError: (error, query) => reportUnexpected(error, query.meta) }),
+  mutationCache: new MutationCache({
+    onError: (error, _variables, _context, mutation) => reportUnexpected(error, mutation.meta),
+  }),
 });
 
 // Create a new router instance
@@ -68,6 +76,14 @@ Sentry.init({
 declare module '@tanstack/react-router' {
   interface Register {
     router: typeof router;
+  }
+}
+
+/** Types the `meta` both caches above read, so a typo in one is a compile error rather than silence. */
+declare module '@tanstack/react-query' {
+  interface Register {
+    queryMeta: { expectedFailure?: boolean };
+    mutationMeta: { expectedFailure?: boolean };
   }
 }
 

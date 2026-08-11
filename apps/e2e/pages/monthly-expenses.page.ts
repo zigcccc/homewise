@@ -1,5 +1,6 @@
-import { expect, type Locator, type Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 
+import { nameStartsWith } from '../support/text';
 import { SearchBox } from './search-box';
 
 /**
@@ -26,12 +27,12 @@ export class MonthlyExpensesPage {
     await expect(this.page.getByRole('button', { name: 'Add expense', exact: true }).first()).toBeVisible();
   }
 
-  row(title: string): Locator {
+  row(title: string) {
     return this.page.getByRole('row').filter({ hasText: title });
   }
 
   /** The month's header total, e.g. "Total 42,00 € · 30,00 € paid back". */
-  total(): Locator {
+  total() {
     return this.page.getByTestId('month-total');
   }
 
@@ -42,24 +43,24 @@ export class MonthlyExpensesPage {
    * it should do, and exactly why `getByRole('row')` finds nothing there. Proving the table is still
    * *mounted* under the panel therefore has to bypass roles.
    */
-  rowBehindSheet(title: string): Locator {
+  rowBehindSheet(title: string) {
     return this.page.locator('tbody tr').filter({ hasText: title });
   }
 
   /** A slice of the per-category breakdown, which doubles as the category filter. */
-  breakdownChip(category: string): Locator {
-    return this.page.getByRole('button', { name: new RegExp(`^${category}`) });
+  breakdownChip(category: string) {
+    return this.page.getByRole('button', { name: nameStartsWith(category) });
   }
 
   /**
    * The empty state's own call to action. `nth(1)` because the header carries the same button and
    * comes first in the DOM — which is also why `add()` deliberately takes `.first()`.
    */
-  emptyStateCta(): Locator {
+  emptyStateCta() {
     return this.page.getByRole('button', { name: 'Add expense', exact: true }).nth(1);
   }
 
-  emptyStateTitle(text: string): Locator {
+  emptyStateTitle(text: string) {
     return this.page.getByRole('main').getByText(text, { exact: false });
   }
 
@@ -117,7 +118,7 @@ export class MonthlyExpensesPage {
     await expect(this.sheet()).toBeVisible();
   }
 
-  sheet(): Locator {
+  sheet() {
     return this.page.getByRole('dialog', { name: 'Expense categories' });
   }
 
@@ -179,7 +180,7 @@ export class MonthlyExpensesPage {
    * column header is the only thing naming this column — so the field carries an `aria-label`, and
    * matching that rather than the placeholder is what keeps this locator honest.
    */
-  dateInput(title: string): Locator {
+  dateInput(title: string) {
     return this.row(title).getByRole('textbox', { name: 'Date' });
   }
 
@@ -191,12 +192,12 @@ export class MonthlyExpensesPage {
   }
 
   /** Sonner's live region, where a refused inline edit reports its reason. */
-  toasts(): Locator {
+  toasts() {
     return this.page.getByRole('region', { name: /Notifications/ });
   }
 
   /** The individual toasts inside it — `toasts()` itself is a landmark that's always present. */
-  toastMessages(): Locator {
+  toastMessages() {
     return this.toasts().locator('[data-sonner-toast]');
   }
 
@@ -216,12 +217,12 @@ export class MonthlyExpensesPage {
   }
 
   /** The open title editor. Public because the layout spec measures its box rather than typing in it. */
-  titleInput(): Locator {
+  titleInput() {
     return this.page.getByRole('table').getByRole('textbox', { name: 'Title' });
   }
 
   /** The cell the title editor opens inside — the box the layout spec measures it against. */
-  titleCell(title: string): Locator {
+  titleCell(title: string) {
     return this.row(title).getByRole('cell').first();
   }
 
@@ -239,7 +240,7 @@ export class MonthlyExpensesPage {
   }
 
   /** Best-effort cleanup: removes the expense when it's listed, and says so. */
-  async deleteIfPresent(title: string): Promise<boolean> {
+  async deleteIfPresent(title: string) {
     if ((await this.row(title).count()) === 0) {
       return false;
     }

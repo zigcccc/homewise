@@ -1,4 +1,4 @@
-import { expect, type Locator, type Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 
 /** The Kids list (`/family/kids`) and a child profile's General tab. */
 export class KidsPage {
@@ -10,12 +10,12 @@ export class KidsPage {
   }
 
   /** The "Create profile for <name>" suggestion button on the list. */
-  createSuggestion(name: string): Locator {
+  createSuggestion(name: string) {
     return this.page.getByRole('button', { name: `Create profile for ${name}` });
   }
 
   /** A profile card (a link) on the list. */
-  profileCard(name: string): Locator {
+  profileCard(name: string) {
     return this.page.getByRole('link').filter({ hasText: name });
   }
 
@@ -28,7 +28,7 @@ export class KidsPage {
   // --- General tab ---
 
   /** The picture button — labelled "Add a photo" or "Change photo" by current state. */
-  get photoButton(): Locator {
+  get photoButton() {
     return this.page.getByRole('button', { name: /photo/ });
   }
 

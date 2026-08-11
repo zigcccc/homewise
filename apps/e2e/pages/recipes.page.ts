@@ -1,5 +1,6 @@
-import { expect, type Locator, type Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 
+import { SORT_DIRECTION_NAME } from '../support/text';
 import { Drag } from './drag';
 import { SearchBox } from './search-box';
 
@@ -19,7 +20,7 @@ export class RecipesPage {
   }
 
   /** A recipe's card in the list. Cards are links, so the title is the accessible name. */
-  card(title: string): Locator {
+  card(title: string) {
     return this.page.getByRole('link').filter({ hasText: title });
   }
 
@@ -48,7 +49,7 @@ export class RecipesPage {
    * A button inside the form element. Scoped on purpose: a dirty form whose footer has scrolled out
    * of view also portals a save button into the actionbar, which is outside the <form>.
    */
-  private formButton(label: string): Locator {
+  private formButton(label: string) {
     return this.page.locator('form').getByRole('button', { name: label });
   }
 
@@ -58,7 +59,7 @@ export class RecipesPage {
    * whenever the suite runs against the dev server (`E2E_WEB_MODE=dev`) — labels its match rows with
    * the serialized search params, so `"sortKey":"title"` collides with a plain `getByLabel('Title')`.
    */
-  private formField(label: string): Locator {
+  private formField(label: string) {
     return this.page.locator('form').getByLabel(label);
   }
 
@@ -67,12 +68,12 @@ export class RecipesPage {
   }
 
   /** The title input, for asserting what the form is still holding. */
-  titleInput(): Locator {
+  titleInput() {
     return this.formField('Title');
   }
 
   /** Best-effort cleanup: removes the recipe when it's in the list, and says so. */
-  async deleteIfPresent(title: string): Promise<boolean> {
+  async deleteIfPresent(title: string) {
     if ((await this.card(title).count()) === 0) {
       return false;
     }
@@ -114,7 +115,7 @@ export class RecipesPage {
   }
 
   /** The editable name input on a not-yet-created ingredient line. */
-  newIngredientNameInput(name: string): Locator {
+  newIngredientNameInput(name: string) {
     return this.ingredientRow(name).getByLabel('Ingredient name');
   }
 
@@ -125,7 +126,7 @@ export class RecipesPage {
   }
 
   /** An ingredient line inside the form, identified by its remove button's accessible name. */
-  ingredientRow(name: string): Locator {
+  ingredientRow(name: string) {
     return this.page.getByRole('listitem').filter({ has: this.page.getByRole('button', { name: `Remove ${name}` }) });
   }
 
@@ -133,17 +134,17 @@ export class RecipesPage {
    * Every ingredient line in the form, in DOM order — for asserting the order itself. Scoped by
    * testid: tag chips and step rows are list items with "Remove …" buttons too.
    */
-  ingredientRows(): Locator {
+  ingredientRows() {
     return this.page.getByTestId('ingredient-lines').getByRole('listitem');
   }
 
   /** Every ingredient line on the detail view, in DOM order. */
-  detailIngredientRows(): Locator {
+  detailIngredientRows() {
     return this.page.getByTestId('recipe-ingredients').getByRole('listitem');
   }
 
   /** An ingredient line's drag handle. */
-  private ingredientDragHandle(name: string): Locator {
+  private ingredientDragHandle(name: string) {
     return this.ingredientRow(name).getByRole('button', { name: `Reorder ${name}` });
   }
 
@@ -199,7 +200,7 @@ export class RecipesPage {
   }
 
   /** A committed tag chip, identified by its remove button. */
-  tagChip(name: string): Locator {
+  tagChip(name: string) {
     return this.page
       .getByRole('listitem')
       .filter({ has: this.page.getByRole('button', { name: `Remove tag ${name}` }) });
@@ -211,7 +212,7 @@ export class RecipesPage {
   }
 
   /** The stand-in save button the form portals into the actionbar. */
-  actionbarSave(): Locator {
+  actionbarSave() {
     return this.page.getByTestId('actionbar-save');
   }
 
@@ -230,7 +231,7 @@ export class RecipesPage {
   }
 
   /** The guard shown when leaving a dirty form. Its title is the dialog's accessible name. */
-  unsavedChangesDialog(): Locator {
+  unsavedChangesDialog() {
     return this.page.getByRole('dialog', { name: 'Unsaved changes' });
   }
 
@@ -259,8 +260,8 @@ export class RecipesPage {
   }
 
   /** The sort-direction toggle. Its label follows the sort column, so match any of the four. */
-  sortDirectionButton(): Locator {
-    return this.page.getByRole('button', { name: /A → Z|Z → A|Oldest first|Newest first/ });
+  sortDirectionButton() {
+    return this.page.getByRole('button', { name: SORT_DIRECTION_NAME });
   }
 
   async toggleSortDirection() {
@@ -314,7 +315,7 @@ export class RecipesPage {
     await this.page.getByRole('button', { name: direction === 'more' ? 'More servings' : 'Fewer servings' }).click();
   }
 
-  servings(): Locator {
+  servings() {
     return this.page.getByTestId('servings');
   }
 
@@ -322,11 +323,11 @@ export class RecipesPage {
    * Detail-view assertions are scoped to their card: a success toast carries the same ingredient
    * name, so an unscoped `getByText` is ambiguous the moment one is on screen.
    */
-  detailIngredient(name: string): Locator {
+  detailIngredient(name: string) {
     return this.page.getByTestId('recipe-ingredients').getByText(name);
   }
 
-  detailStep(instruction: string): Locator {
+  detailStep(instruction: string) {
     return this.page.getByTestId('recipe-steps').getByText(instruction);
   }
 }

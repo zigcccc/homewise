@@ -33,7 +33,7 @@ import {
   ingredientCategoryLabels,
   listIngredientsQueryOptions,
 } from '@/modules/ingredients';
-import { SELECT_ALL, SELECT_NONE } from '@/modules/shared';
+import { SELECT_ALL, SELECT_NONE, SortDirectionToggle } from '@/modules/shared';
 import { listStoresQueryOptions, StoreSelectItems } from '@/modules/stores';
 
 import { ingredientsTableColumns } from './-ingredients-table.config';
@@ -147,12 +147,10 @@ function IngredientsRoute() {
           </SelectContent>
         </Select>
 
-        <Button
-          onClick={() => setSearchParam('sortDirection', searchParams.sortDirection === 'asc' ? 'desc' : 'asc')}
-          variant="outline"
-        >
-          {searchParams.sortDirection === 'asc' ? 'A → Z' : 'Z → A'}
-        </Button>
+        <SortDirectionToggle
+          onChange={(next) => setSearchParam('sortDirection', next)}
+          value={searchParams.sortDirection}
+        />
       </div>
 
       <DataTable

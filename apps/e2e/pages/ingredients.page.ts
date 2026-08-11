@@ -25,12 +25,12 @@ export class IngredientsPage {
     await expect(this.page.getByRole('heading', { level: 1, name: 'Ingredients' })).toBeVisible();
   }
 
-  row(name: string): Locator {
+  row(name: string) {
     return this.page.getByRole('row').filter({ hasText: name });
   }
 
   /** Opens the add dialog with the name already filled — the first two steps of every add path. */
-  private async openAddDialog(name: string): Promise<Locator> {
+  private async openAddDialog(name: string) {
     await this.page.getByRole('button', { name: 'Add ingredient', exact: true }).first().click();
     const dialog = this.page.getByRole('dialog');
     await dialog.getByLabel('Name').fill(name);
@@ -206,7 +206,7 @@ export class IngredientsPage {
    * The open inline rename input. Only one row edits at a time, and it's scoped to the table so the
    * add/edit dialog's identically-labelled field can never match instead.
    */
-  private nameInput(): Locator {
+  private nameInput() {
     return this.page.getByRole('table').getByRole('textbox', { name: 'Name' });
   }
 
@@ -214,7 +214,7 @@ export class IngredientsPage {
    * Sonner's live region, where a rejected rename reports its reason. The toasts inside it are plain
    * `li`s with no role of their own, so the named region is the role-based way to reach them.
    */
-  private toasts(): Locator {
+  private toasts() {
     return this.page.getByRole('region', { name: /Notifications/ });
   }
 
@@ -244,7 +244,7 @@ export class IngredientsPage {
   }
 
   /** Best-effort cleanup: removes the ingredient when it's in the library, and says so. */
-  async deleteIfPresent(name: string): Promise<boolean> {
+  async deleteIfPresent(name: string) {
     if ((await this.row(name).count()) === 0) {
       return false;
     }

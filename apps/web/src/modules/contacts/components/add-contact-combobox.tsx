@@ -1,6 +1,6 @@
 import { type InferResponseType } from 'hono';
 import { PlusIcon } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { type ReactNode, useMemo, useState } from 'react';
 
 import { type ContactType } from '@homewise/server/contacts';
 import {
@@ -18,26 +18,38 @@ import {
 
 import { type client } from '@/api/client';
 
+/** Hoisted so the default doesn't hand the component a new Set on every render. */
+const EMPTY_LINKED_IDS: ReadonlySet<number> = new Set();
+
 /** A household contact as the list endpoint returns it. */
 export type HouseholdContact = InferResponseType<typeof client.contacts.$get, 200>[number];
 
 /**
- * The "Add contact" entry point: a searchable popover over the household's existing contacts. Selecting
- * one links it to this medical info; the "Create new contact" item opens the create dialog instead.
- * Contacts already linked here (`linkedIds`) stay in the list but are disabled and marked "Already
- * added", so the list never looks empty just because everything is already attached.
+ * A searchable popover over the household's existing contacts. Selecting one hands it back; the
+ * "Create new contact" item opens the create dialog instead. Contacts already linked where this is
+ * used (`linkedIds`) stay in the list but are disabled and marked "Already added", so the list never
+ * looks empty just because everything is already attached.
+ *
+ * It opens from an **action** by default — "Add contact", for attaching another one to a set. Where
+ * the picker is a form field holding a single value instead, pass a `ComboboxFieldTrigger` as
+ * `trigger`: the two are different controls, and a field that looks like a button reads as an action
+ * nobody has taken yet.
  */
 export function AddContactCombobox({
   contacts,
-  linkedIds,
+  linkedIds = EMPTY_LINKED_IDS,
   onCreate,
   onLink,
+  trigger,
   typeLabels,
 }: {
   contacts: HouseholdContact[];
-  linkedIds: Set<number>;
+  /** Omit where only one contact is ever chosen — nothing can already be attached. */
+  linkedIds?: ReadonlySet<number>;
   onCreate: () => void;
   onLink: (contactId: number) => Promise<void>;
+  /** Replaces the default "Add contact" button. Must be a combobox trigger. */
+  trigger?: ReactNode;
   typeLabels: Record<ContactType, string>;
 }) {
   const [open, setOpen] = useState(false);
@@ -72,13 +84,16 @@ export function AddContactCombobox({
       }}
       open={open}
     >
-      <ComboboxTrigger asChild>
-        <Button size="sm" variant="outline">
-          <PlusIcon />
-          Add contact
-        </Button>
-      </ComboboxTrigger>
-      <ComboboxContent align="end" className="w-72" shouldFilter={false}>
+      {trigger ?? (
+        <ComboboxTrigger asChild>
+          <Button size="sm" variant="outline">
+            <PlusIcon />
+            Add contact
+          </Button>
+        </ComboboxTrigger>
+      )}
+      {/* A field trigger is full width, so its popup hangs off the same edge the field starts at. */}
+      <ComboboxContent align={trigger ? 'start' : 'end'} className={trigger ? undefined : 'w-72'} shouldFilter={false}>
         <ComboboxInput onValueChange={setSearch} placeholder="Search contacts…" value={search} />
         <ComboboxList>
           {filtered.length > 0 ? (

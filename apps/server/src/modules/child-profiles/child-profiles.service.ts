@@ -3,6 +3,7 @@ import { HTTPException } from 'hono/http-exception';
 
 import { db, schema } from '#db/core';
 import { emptyToNull } from '#db/utils';
+import { blobPrefix } from '#lib/blobs';
 import { notFound } from '#lib/errors';
 
 import { HouseholdsService } from '../households/households.service';
@@ -153,7 +154,7 @@ export class ChildProfilesService {
     const picture = await ImagesService.resolveManagedImage(
       { image: data.image, avatar: data.avatar },
       existing.profilePicture,
-      { ownedPrefix: `child-profiles/${profileId}`, size: 256 }
+      { ownedPrefix: blobPrefix.childProfile(profileId), size: 256 }
     );
     if (picture.changed) {
       patch.profilePicture = picture.value;
@@ -187,7 +188,7 @@ export class ChildProfilesService {
     }
 
     // The row is already gone — cleanup is best-effort and guarded to this child's own uploads.
-    await ImagesService.cleanupOwnedImage(deleted.profilePicture, `child-profiles/${profileId}`);
+    await ImagesService.cleanupOwnedImage(deleted.profilePicture, blobPrefix.childProfile(profileId));
 
     return deleted;
   }

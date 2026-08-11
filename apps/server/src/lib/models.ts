@@ -94,3 +94,25 @@ export const moneyAmount = (label: string) =>
     .refine((value) => Number(value.toFixed(2)) === value, {
       error: `${label} can have at most 2 decimal places`,
     });
+
+/**
+ * A map pin, as two halves. Both are optional and `null` clears them.
+ *
+ * Only the ranges live here. "Both or neither" cannot: a PATCH may legitimately carry one half, and
+ * whether that leaves a valid pin depends on what is already stored — so the service decides it
+ * against the merged row, and the column that holds it carries a check constraint of its own.
+ */
+export const coordinates = {
+  latitude: z
+    .number()
+    .min(-90, { error: 'Latitude must be between -90 and 90' })
+    .max(90, { error: 'Latitude must be between -90 and 90' })
+    .nullable()
+    .optional(),
+  longitude: z
+    .number()
+    .min(-180, { error: 'Longitude must be between -180 and 180' })
+    .max(180, { error: 'Longitude must be between -180 and 180' })
+    .nullable()
+    .optional(),
+};

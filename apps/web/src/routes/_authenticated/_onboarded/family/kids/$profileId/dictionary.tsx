@@ -1,6 +1,6 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
-import { ArrowDownAZIcon, ArrowUpAZIcon, BookHeartIcon, PlusIcon, SearchIcon } from 'lucide-react';
+import { BookHeartIcon, PlusIcon, SearchIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useDebounceCallback } from 'usehooks-ts';
 import z from 'zod';
@@ -35,6 +35,7 @@ import {
 
 import { listChildDictionaryEntriesQueryOptions } from '@/modules/child-dictionaries';
 import { getChildProfileQueryOptions } from '@/modules/child-profiles';
+import { SORT_LABELS, type SortDirectionLabels, SortDirectionToggle } from '@/modules/shared';
 
 import { createEntriesTableColumns, EntryForm } from './-components/entries-table.config';
 
@@ -46,6 +47,13 @@ const searchParamsModel = z.object({
 });
 
 type SearchParams = z.infer<typeof searchParamsModel>;
+
+/** Ascending reads differently per column: A → Z for a phrase, oldest-first for a date. */
+const sortDirectionLabels: Record<z.infer<typeof childDictionaryEntrySortKey>, SortDirectionLabels> = {
+  childPhrase: SORT_LABELS.text,
+  adultTranslation: SORT_LABELS.text,
+  createdAt: SORT_LABELS.date,
+};
 
 const sortKeyLabels: Record<z.infer<typeof childDictionaryEntrySortKey>, string> = {
   childPhrase: 'Child phrase',
@@ -182,14 +190,11 @@ function DictionaryEntries({
           </SelectContent>
         </Select>
 
-        <Button
-          onClick={() => setSearchParam('sortDirection', searchParams.sortDirection === 'asc' ? 'desc' : 'asc')}
-          title={searchParams.sortDirection === 'asc' ? 'Ascending' : 'Descending'}
-          variant="outline"
-        >
-          {searchParams.sortDirection === 'asc' ? <ArrowDownAZIcon /> : <ArrowUpAZIcon />}
-          {searchParams.sortDirection === 'asc' ? 'Asc' : 'Desc'}
-        </Button>
+        <SortDirectionToggle
+          labels={sortDirectionLabels[searchParams.sortKey]}
+          onChange={(next) => setSearchParam('sortDirection', next)}
+          value={searchParams.sortDirection}
+        />
 
         <Label className="flex items-center gap-2 text-sm">
           <Checkbox

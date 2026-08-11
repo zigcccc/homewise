@@ -1,5 +1,6 @@
-import { expect, type Locator, type Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 
+import { nameStartsWith } from '../support/text';
 import { Drag } from './drag';
 
 /**
@@ -27,28 +28,28 @@ export class MealPlanPage {
   }
 
   /** A day card. Keyed by date, which no role or label query can address. */
-  dayRow(day: string): Locator {
+  dayRow(day: string) {
     return this.page.getByTestId(`meal-plan-day-${day}`);
   }
 
   /** The header above a week's group of day cards. */
-  weekHeader(text: string): Locator {
+  weekHeader(text: string) {
     return this.page.getByRole('heading', { level: 2, name: text });
   }
 
   /** One planned meal, found by the label shown on its card. */
-  meal(day: string, label: string): Locator {
+  meal(day: string, label: string) {
     return this.dayRow(day).getByRole('listitem').filter({ hasText: label });
   }
 
   // ── Adding ────────────────────────────────────────────────────────────────
 
   /** The pair of add actions, folded away once every eligible member has a meal. */
-  pickRecipeButton(day: string): Locator {
+  pickRecipeButton(day: string) {
     return this.dayRow(day).getByRole('button', { name: /^Pick a recipe for/ });
   }
 
-  addAnotherButton(day: string): Locator {
+  addAnotherButton(day: string) {
     return this.dayRow(day).getByRole('button', { name: /^Add another meal on/ });
   }
 
@@ -90,7 +91,7 @@ export class MealPlanPage {
   }
 
   /** The open new-entry field on a day. */
-  customEntry(day: string): Locator {
+  customEntry(day: string) {
     return this.dayRow(day).getByRole('textbox', { name: /^What's for lunch on/ });
   }
 
@@ -99,7 +100,7 @@ export class MealPlanPage {
   }
 
   /** "Žiga and Robbie still need a meal" — shown only while a day is *partly* planned. */
-  coverageHint(day: string): Locator {
+  coverageHint(day: string) {
     return this.dayRow(day).getByText(/still needs? a meal/);
   }
 
@@ -117,7 +118,7 @@ export class MealPlanPage {
    * matching the instant editing begins. The aria-label still carries the original label, so it is
    * unique within the day either way.
    */
-  labelEditor(day: string, label: string): Locator {
+  labelEditor(day: string, label: string) {
     return this.dayRow(day).getByRole('textbox', { name: `Name of ${label}` });
   }
 
@@ -188,7 +189,7 @@ export class MealPlanPage {
     await field.press('Enter');
   }
 
-  private dayNoteEditor(day: string): Locator {
+  private dayNoteEditor(day: string) {
     return this.dayRow(day).getByRole('textbox', { name: /^Note for/ });
   }
 
@@ -216,7 +217,7 @@ export class MealPlanPage {
   async moveMealToDay(day: string, label: string, targetWeekday: string) {
     await this.openMealMenu(day, label);
     await this.page.getByRole('menuitem', { name: 'Move to day' }).click();
-    await this.page.getByRole('menuitem', { name: new RegExp(`^${targetWeekday},`) }).click();
+    await this.page.getByRole('menuitem', { name: nameStartsWith(`${targetWeekday},`) }).click();
   }
 
   /** Removes immediately — the confirmation is an Undo toast, not a dialog. */
@@ -235,7 +236,7 @@ export class MealPlanPage {
   }
 
   /** Sonner's live region, where the Undo action lives. */
-  toasts(): Locator {
+  toasts() {
     return this.page.getByRole('region', { name: /Notifications/ });
   }
 
@@ -270,7 +271,7 @@ export class MealPlanPage {
     await this.page.getByRole('option', { name: `${weeks} week${weeks === 1 ? '' : 's'}` }).click();
   }
 
-  dayCards(): Locator {
+  dayCards() {
     return this.page.locator('[data-testid^="meal-plan-day-"]');
   }
 }

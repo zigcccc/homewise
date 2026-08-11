@@ -1,4 +1,4 @@
-import { expect, type Locator, type Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 
 /** The "Manage household members" screen (`/manage/household-members`). */
 export class HouseholdMembersPage {
@@ -11,12 +11,12 @@ export class HouseholdMembersPage {
   }
 
   /** A members-table row for the given display name. */
-  memberRow(name: string): Locator {
+  memberRow(name: string) {
     return this.page.getByRole('row').filter({ hasText: name });
   }
 
   /** A pending-invites-table row for the given email. */
-  inviteRow(email: string): Locator {
+  inviteRow(email: string) {
     return this.page.getByRole('row').filter({ hasText: email });
   }
 

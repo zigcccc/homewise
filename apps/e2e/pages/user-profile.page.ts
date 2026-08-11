@@ -22,7 +22,7 @@ export class UserProfilePage {
   }
 
   /** The breadcrumb page, which renders "<name>'s profile". */
-  breadcrumb(name: string): Locator {
+  breadcrumb(name: string) {
     return this.page.getByText(`${name}'s profile`);
   }
 

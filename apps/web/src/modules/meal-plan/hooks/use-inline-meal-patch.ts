@@ -1,9 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { type InferRequestType } from 'hono';
-import { toast } from 'sonner';
 
 import { parseResponse } from '@/api/client';
-import { serverMessage } from '@/modules/shared';
+import { useInlinePatch } from '@/modules/shared';
 
 import { $patchMeal, applyMealUpdate, invalidateMealPlan } from '../meal-plan.queries';
 
@@ -23,26 +22,14 @@ export type PatchMealPayload = InferRequestType<typeof $patchMeal>['json'];
 export function useInlineMealPatch(mealId: number) {
   const queryClient = useQueryClient();
 
-  const { isPending, mutateAsync: save } = useMutation({
-    mutationFn: async (json: PatchMealPayload) => parseResponse($patchMeal({ param: { id: mealId.toString() }, json })),
-    onSuccess: (updated) => {
-      applyMealUpdate(queryClient, updated);
-      invalidateMealPlan(queryClient);
-    },
-  });
-
-  /**
-   * For controls with nowhere to put an error — the member popover has no field to hang a message
-   * on, so a failure toasts and the control falls back to the server's value on the next render.
-   * The text editors use `save` and let `InlineTextField` handle the rejection.
-   */
-  const saveOrToast = async (json: PatchMealPayload) => {
-    try {
-      await save(json);
-    } catch (error) {
-      toast.error(serverMessage(error, 'Something went wrong.'));
-    }
-  };
-
-  return { isPending, save, saveOrToast };
+  return useInlinePatch(
+    useMutation({
+      mutationFn: async (json: PatchMealPayload) =>
+        parseResponse($patchMeal({ param: { id: mealId.toString() }, json })),
+      onSuccess: (updated) => {
+        applyMealUpdate(queryClient, updated);
+        invalidateMealPlan(queryClient);
+      },
+    })
+  );
 }

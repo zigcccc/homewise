@@ -23,6 +23,7 @@ import {
   useDataTable,
 } from '@homewise/ui/core';
 
+import { SortDirectionToggle } from '@/modules/shared';
 import { listStoresQueryOptions, StoreFormDialog } from '@/modules/stores';
 
 import { storesTableColumns } from './-stores-table.config';
@@ -81,12 +82,10 @@ function StoresRoute() {
           </InputGroupAddon>
         </InputGroup>
 
-        <Button
-          onClick={() => setSearchParam('sortDirection', searchParams.sortDirection === 'asc' ? 'desc' : 'asc')}
-          variant="outline"
-        >
-          {searchParams.sortDirection === 'asc' ? 'A → Z' : 'Z → A'}
-        </Button>
+        <SortDirectionToggle
+          onChange={(next) => setSearchParam('sortDirection', next)}
+          value={searchParams.sortDirection}
+        />
       </div>
 
       <DataTable
