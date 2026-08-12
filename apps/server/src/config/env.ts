@@ -99,9 +99,9 @@ const envModel = z
       path: ['HOMEWISE_LOCAL_FILE_STORAGE'],
     }
   )
-  // Exactly one store has to be configured. Uploads are the one thing here with two backends, so the
-  // token stops being unconditionally required — but "neither" must still refuse to boot, or the
-  // first upload fails as an opaque SDK error long after the mistake.
+  // At least one store has to be configured (local storage wins when both are). Uploads are the one
+  // thing here with two backends, so the token stops being unconditionally required — but "neither"
+  // must still refuse to boot, or the first upload fails as an opaque SDK error long after the mistake.
   .refine(
     ({ HOMEWISE_FILES_READ_WRITE_TOKEN, HOMEWISE_LOCAL_FILE_STORAGE }) =>
       HOMEWISE_LOCAL_FILE_STORAGE || HOMEWISE_FILES_READ_WRITE_TOKEN !== undefined,

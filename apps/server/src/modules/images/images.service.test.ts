@@ -34,12 +34,16 @@ vi.mock('@vercel/blob', async (importOriginal) => ({
 
 const { del, head, put } = await import('@vercel/blob');
 
+// `mockReset`, not `mockClear`: a `*Once` implementation a test queued but never consumed would
+// otherwise stay queued and fire in the next one, ahead of the defaults set here.
 beforeEach(() => {
-  vi.mocked(del).mockClear();
-  vi.mocked(put).mockClear();
-  vi.mocked(head).mockClear();
-  // Nothing stored yet — which `head` reports by throwing, not by resolving to an absence.
-  vi.mocked(head).mockRejectedValue(new BlobNotFoundError());
+  vi.mocked(del)
+    .mockReset()
+    .mockImplementation(async () => undefined);
+  vi.mocked(put)
+    .mockReset()
+    .mockImplementation(async (pathname: string) => storedBlob(pathname));
+  vi.mocked(head).mockReset().mockRejectedValue(new BlobNotFoundError());
 });
 
 /** A resolved update whose commit/rollback just record that they ran. */
