@@ -30,6 +30,10 @@ export const rangeFor = (from: string, weeks: number) => ({
 
 export const shiftWeeks = (from: string, delta: number) => toISODate(addWeeks(parseISO(from), delta));
 
+/** The seven days of a week, for rendering the grid before the server's dense day list arrives. */
+export const daysOfWeek = (from: string) =>
+  Array.from({ length: 7 }, (_, offset) => toISODate(addDays(parseISO(from), offset)));
+
 /** "Monday" — the day's name, which is what you scan a plan by. */
 export const weekdayLabel = (iso: string) => format(parseISO(iso), 'EEEE');
 

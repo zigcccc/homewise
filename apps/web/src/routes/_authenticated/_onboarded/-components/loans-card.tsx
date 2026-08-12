@@ -7,13 +7,35 @@ import { Badge, Button } from '@homewise/ui/core';
 import { formatDate } from '@/modules/shared';
 import { LOAN_STATUS_LABELS, listStorageItemsQueryOptions, resolveLoanStatus } from '@/modules/storage-items';
 
-import { DashboardCard, DashboardCardEmpty, DashboardCardRow } from './dashboard-card';
+import { DashboardCard, DashboardCardEmpty, DashboardCardRow, DashboardCardRowsSkeleton } from './dashboard-card';
 
 /** Enough to chase; the items table has the rest. */
 const SHOWN = 4;
 
+/** The frame, shared with the skeleton so a renamed card can't say two things at once. */
+const CARD = {
+  action: (
+    <Button asChild size="sm" variant="ghost">
+      <Link search={{ loanStatus: 'onLoan' }} to="/storage/items">
+        View all
+        <ArrowRightIcon />
+      </Link>
+    </Button>
+  ),
+  icon: PackageOpenIcon,
+  title: 'Out on loan',
+};
+
 /** `onLoan` is `borrowed_on IS NOT NULL` server-side, so this includes the overdue ones. */
 export const dashboardLoansQueryOptions = () => listStorageItemsQueryOptions({ loanStatus: 'onLoan' });
+
+export function LoansCardSkeleton() {
+  return (
+    <DashboardCard {...CARD}>
+      <DashboardCardRowsSkeleton rows={SHOWN} />
+    </DashboardCard>
+  );
+}
 
 export function LoansCard() {
   const { data: items } = useSuspenseQuery(dashboardLoansQueryOptions());
@@ -29,18 +51,7 @@ export function LoansCard() {
     .slice(0, SHOWN);
 
   return (
-    <DashboardCard
-      action={
-        <Button asChild size="sm" variant="ghost">
-          <Link search={{ loanStatus: 'onLoan' }} to="/storage/items">
-            View all
-            <ArrowRightIcon />
-          </Link>
-        </Button>
-      }
-      icon={PackageOpenIcon}
-      title="Out on loan"
-    >
+    <DashboardCard {...CARD}>
       {onLoan.length === 0 ? (
         <DashboardCardEmpty>Everything is where it should be.</DashboardCardEmpty>
       ) : (

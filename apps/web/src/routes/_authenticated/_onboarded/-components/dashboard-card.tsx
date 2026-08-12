@@ -1,7 +1,7 @@
 import { type LucideIcon } from 'lucide-react';
 import { type ReactNode } from 'react';
 
-import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@homewise/ui/core';
+import { Card, CardAction, CardContent, CardHeader, CardTitle, Skeleton } from '@homewise/ui/core';
 import { cn } from '@homewise/ui/lib';
 
 /**
@@ -46,4 +46,21 @@ export function DashboardCardEmpty({ children }: { children: ReactNode }) {
 /** A label on the left, a value or badge on the right. */
 export function DashboardCardRow({ children, className }: { children: ReactNode; className?: string }) {
   return <div className={cn('flex items-center justify-between gap-3 py-1.5 text-sm', className)}>{children}</div>;
+}
+
+/** Uneven, so the placeholder reads as a list of names rather than a bar chart. Also the row keys. */
+const PLACEHOLDER_WIDTHS = ['w-40', 'w-28', 'w-36', 'w-24', 'w-32'];
+
+/** What a row-shaped card shows while its query is in flight. */
+export function DashboardCardRowsSkeleton({ rows }: { rows: number }) {
+  return (
+    <div className="divide-y">
+      {PLACEHOLDER_WIDTHS.slice(0, rows).map((width) => (
+        <DashboardCardRow key={width}>
+          <Skeleton className={cn('h-4 max-w-full', width)} />
+          <Skeleton className="h-4 w-16 shrink-0" />
+        </DashboardCardRow>
+      ))}
+    </div>
+  );
 }

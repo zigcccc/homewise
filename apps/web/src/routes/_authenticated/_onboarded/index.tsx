@@ -2,7 +2,7 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { format } from 'date-fns';
 import { BookUserIcon, CookingPotIcon, ListTodoIcon, PlusIcon } from 'lucide-react';
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 
 import {
   Breadcrumb,
@@ -11,7 +11,7 @@ import {
   BreadcrumbPage,
   Button,
   ButtonGroup,
-  Spinner,
+  Skeleton,
 } from '@homewise/ui/core';
 
 import { listChildProfilesQueryOptions } from '@/modules/child-profiles';
@@ -21,20 +21,29 @@ import { getMyHouseholdQueryOptions } from '@/modules/households';
 import { listPetProfilesQueryOptions } from '@/modules/pet-profiles';
 import { Actionbar, formatDate, PageLayout, RouteError, todayISODay } from '@/modules/shared';
 
-import { BirthdaysCard } from './-components/birthdays-card';
-import { dashboardLoansQueryOptions, LoansCard } from './-components/loans-card';
-import { dashboardRecentRecipesQueryOptions, RecentRecipesCard } from './-components/recent-recipes-card';
-import { dashboardShoppingListsQueryOptions, ShoppingListsCard } from './-components/shopping-lists-card';
+import { BirthdaysCard, BirthdaysCardSkeleton } from './-components/birthdays-card';
+import { dashboardLoansQueryOptions, LoansCard, LoansCardSkeleton } from './-components/loans-card';
+import {
+  dashboardRecentRecipesQueryOptions,
+  RecentRecipesCard,
+  RecentRecipesCardSkeleton,
+} from './-components/recent-recipes-card';
+import {
+  dashboardShoppingListsQueryOptions,
+  ShoppingListsCard,
+  ShoppingListsCardSkeleton,
+} from './-components/shopping-lists-card';
 import {
   dashboardRecentExpensesQueryOptions,
   dashboardSpendingSummaryQueryOptions,
   SpendingCard,
+  SpendingCardSkeleton,
 } from './-components/spending-card';
-import { WeekMealsCard, weekMealsQueryOptions } from './-components/week-meals-card';
+import { WeekMealsCard, WeekMealsCardSkeleton, weekMealsQueryOptions } from './-components/week-meals-card';
 
 export const Route = createFileRoute('/_authenticated/_onboarded/')({
   component: HomeRoute,
-  pendingComponent: () => <Spinner />,
+  pendingComponent: DashboardPending,
   errorComponent: () => <RouteError title="Couldn't load your dashboard" />,
   async loader({ context }) {
     // Warmed in parallel, or the page suspends once per card on the way in.
@@ -105,10 +114,8 @@ function QuickActions() {
   );
 }
 
-function HomeRoute() {
-  const { user } = Route.useRouteContext();
-  const { data: household } = useSuspenseQuery(getMyHouseholdQueryOptions());
-
+/** The page around the cards, so the loading state and the loaded one can't drift apart. */
+function DashboardShell({ children, header }: { children: ReactNode; header: ReactNode }) {
   return (
     <>
       <Actionbar.Content>
@@ -121,7 +128,48 @@ function HomeRoute() {
         </Breadcrumb>
       </Actionbar.Content>
       <PageLayout className="space-y-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">{header}</div>
+        <div className="grid gap-4 md:grid-cols-2">{children}</div>
+      </PageLayout>
+    </>
+  );
+}
+
+/**
+ * The real layout with the data left out. Each card's title, icon and "View all" need no request, so
+ * the page arrives whole and fills in — a full-page spinner would throw away everything we know.
+ */
+function DashboardPending() {
+  return (
+    <DashboardShell
+      header={
+        <>
+          <div className="space-y-2 py-1">
+            <Skeleton className="h-5 w-48" />
+            <Skeleton className="h-4 w-72 max-w-full" />
+          </div>
+          <Skeleton className="h-8 w-72 max-w-full" />
+        </>
+      }
+    >
+      <WeekMealsCardSkeleton />
+      <ShoppingListsCardSkeleton />
+      <BirthdaysCardSkeleton />
+      <SpendingCardSkeleton />
+      <LoansCardSkeleton />
+      <RecentRecipesCardSkeleton />
+    </DashboardShell>
+  );
+}
+
+function HomeRoute() {
+  const { user } = Route.useRouteContext();
+  const { data: household } = useSuspenseQuery(getMyHouseholdQueryOptions());
+
+  return (
+    <DashboardShell
+      header={
+        <>
           <div>
             <h1 className="font-medium text-lg">
               {greeting()}, {user.name}
@@ -132,16 +180,15 @@ function HomeRoute() {
             </p>
           </div>
           <QuickActions />
-        </div>
-        <div className="grid gap-4 md:grid-cols-2">
-          <WeekMealsCard />
-          <ShoppingListsCard />
-          <BirthdaysCard />
-          <SpendingCard />
-          <LoansCard />
-          <RecentRecipesCard />
-        </div>
-      </PageLayout>
-    </>
+        </>
+      }
+    >
+      <WeekMealsCard />
+      <ShoppingListsCard />
+      <BirthdaysCard />
+      <SpendingCard />
+      <LoansCard />
+      <RecentRecipesCard />
+    </DashboardShell>
   );
 }

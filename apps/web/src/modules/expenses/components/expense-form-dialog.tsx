@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Suspense } from 'react';
 import { type SubmitHandler, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import type z from 'zod';
@@ -20,6 +21,7 @@ import {
   FormLabel,
   FormMessage,
   Input,
+  Spinner,
 } from '@homewise/ui/core';
 
 import { parseResponse } from '@/api/client';
@@ -65,7 +67,12 @@ export function ExpenseFormDialog({
           <DialogTitle>Add expense</DialogTitle>
           <DialogDescription>Date it when the money actually moved — it doesn't have to be today.</DialogDescription>
         </DialogHeader>
-        <ExpenseForm defaultRecordedAt={defaultRecordedAt} onDone={() => onOpenChange(false)} />
+        {/* A dialog that loads its own data must catch its own suspense. The category combobox's
+            `useSuspenseQuery` would otherwise reach the *route's* boundary and replace the whole page
+            behind this dialog with a spinner. */}
+        <Suspense fallback={<Spinner className="min-h-64" />}>
+          <ExpenseForm defaultRecordedAt={defaultRecordedAt} onDone={() => onOpenChange(false)} />
+        </Suspense>
       </DialogContent>
     </Dialog>
   );

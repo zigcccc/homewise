@@ -24,6 +24,13 @@ Route nesting reflects auth/onboarding requirements:
 **Every route with a loader needs a `pendingComponent`** — use `<Spinner />` from `@homewise/ui/core`
 (it fills its container; pass `className="min-h-dvh min-w-dvw"` for the full-viewport variant).
 
+A spinner is right for a page whose shape is unknown until the data lands. **Where the layout is
+fixed and its headings, icons and links need no request, render that instead** — the dashboard's
+pending state is the real grid with `Skeleton` bodies. Keep the two from drifting by sharing the
+frame rather than describing it twice: a `DashboardShell` for the page, one `const CARD = { … }` per
+card feeding both the card and its exported `…Skeleton` (see
+`_authenticated/_onboarded/-components/`).
+
 **And an `errorComponent`, scoped to that route** — `<RouteError title="…" />` from
 `@/modules/shared`. Without one, a loader rejection (or a realtime refetch landing on a 404 because
 another member deleted the thing) climbs to the root boundary and replaces the *entire app*, sidebar

@@ -10,13 +10,16 @@ import { listContactsQueryOptions } from '@/modules/contacts';
 import { listPetProfilesQueryOptions } from '@/modules/pet-profiles';
 import { countdownLabel, nextBirthday } from '@/modules/shared';
 
-import { DashboardCard, DashboardCardEmpty, DashboardCardRow } from './dashboard-card';
+import { DashboardCard, DashboardCardEmpty, DashboardCardRow, DashboardCardRowsSkeleton } from './dashboard-card';
 
 /** Past this a birthday is a diary entry, not a heads-up. */
 const HORIZON_DAYS = 60;
 
 /** How many fit before the card outgrows the one beside it. */
 const SHOWN = 5;
+
+/** The frame, shared with the skeleton so a renamed card can't say two things at once. */
+const CARD = { icon: CakeIcon, title: 'Upcoming birthdays' };
 
 type Kind = 'child' | 'contact' | 'pet';
 
@@ -48,6 +51,14 @@ function BirthdayName({ id, kind, name }: { id: number; kind: Kind; name: string
     <Link className={className} params={{ profileId: String(id) }} to="/family/pets/$profileId">
       {name}
     </Link>
+  );
+}
+
+export function BirthdaysCardSkeleton() {
+  return (
+    <DashboardCard {...CARD}>
+      <DashboardCardRowsSkeleton rows={SHOWN} />
+    </DashboardCard>
   );
 }
 
@@ -92,7 +103,7 @@ export function BirthdaysCard() {
   }, [children, contacts, pets]);
 
   return (
-    <DashboardCard icon={CakeIcon} title="Upcoming birthdays">
+    <DashboardCard {...CARD}>
       {upcoming.length === 0 ? (
         <DashboardCardEmpty>No birthdays in the next two months.</DashboardCardEmpty>
       ) : (

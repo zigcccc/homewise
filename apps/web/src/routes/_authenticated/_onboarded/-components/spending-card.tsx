@@ -2,15 +2,30 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { ArrowRightIcon, PiggyBankIcon } from 'lucide-react';
 
-import { Button } from '@homewise/ui/core';
+import { Button, Skeleton } from '@homewise/ui/core';
+import { cn } from '@homewise/ui/lib';
 
 import { expensesSummaryQueryOptions, listExpensesQueryOptions } from '@/modules/expenses';
 import { currentMonth, currentYear, formatAmount, formatDate, monthRange } from '@/modules/shared';
 
-import { DashboardCard, DashboardCardEmpty, DashboardCardRow } from './dashboard-card';
+import { DashboardCard, DashboardCardEmpty, DashboardCardRow, DashboardCardRowsSkeleton } from './dashboard-card';
 
 /** Enough to recognise the month's spending by; the table is one click away. */
 const SHOWN = 4;
+
+/** The frame, shared with the skeleton so a renamed card can't say two things at once. */
+const CARD = {
+  action: (
+    <Button asChild size="sm" variant="ghost">
+      <Link to="/expenses/monthly-expenses">
+        View all
+        <ArrowRightIcon />
+      </Link>
+    </Button>
+  ),
+  icon: PiggyBankIcon,
+  title: "This month's spending",
+};
 
 /** Keyed by the same `monthRange` the expenses page uses, so the two share a cache entry. */
 export const dashboardSpendingSummaryQueryOptions = () =>
@@ -20,6 +35,16 @@ export const dashboardSpendingSummaryQueryOptions = () =>
 export const dashboardRecentExpensesQueryOptions = () =>
   listExpensesQueryOptions({ sortDirection: 'desc', sortKey: 'recordedAt' });
 
+export function SpendingCardSkeleton() {
+  return (
+    <DashboardCard {...CARD}>
+      {/* The month total sits above the rows, and it's the tallest thing in the card. */}
+      <Skeleton className="mb-2 h-7 w-32" />
+      <DashboardCardRowsSkeleton rows={SHOWN} />
+    </DashboardCard>
+  );
+}
+
 export function SpendingCard() {
   const { data: summary } = useSuspenseQuery(dashboardSpendingSummaryQueryOptions());
   const { data: range } = useSuspenseQuery(dashboardRecentExpensesQueryOptions());
@@ -27,18 +52,7 @@ export function SpendingCard() {
   const recent = range.expenses.slice(0, SHOWN);
 
   return (
-    <DashboardCard
-      action={
-        <Button asChild size="sm" variant="ghost">
-          <Link to="/expenses/monthly-expenses">
-            View all
-            <ArrowRightIcon />
-          </Link>
-        </Button>
-      }
-      icon={PiggyBankIcon}
-      title="This month's spending"
-    >
+    <DashboardCard {...CARD}>
       {/* A list, because past rows keep whatever currency they were logged in. */}
       {summary.totals.length === 0 ? (
         <DashboardCardEmpty>Nothing logged this month.</DashboardCardEmpty>
@@ -46,9 +60,17 @@ export function SpendingCard() {
         <>
           <div className="pb-2">
             {summary.totals.map((total) => (
-              <p className="font-medium text-xl" data-testid="dashboard-month-total" key={total.currency}>
-                {formatAmount(total.spent, total.currency)}
-              </p>
+              <div key={total.currency}>
+                <p className="font-medium text-xl" data-testid="dashboard-month-total">
+                  {formatAmount(total.spent, total.currency)}
+                </p>
+                {/* The total leaves these out, so a card of rows adding up to more needs saying why. */}
+                {total.paidBack > 0 ? (
+                  <p className="text-muted-foreground text-xs">
+                    {formatAmount(total.paidBack, total.currency)} paid back
+                  </p>
+                ) : null}
+              </div>
             ))}
           </div>
           <div className="divide-y">
@@ -60,7 +82,12 @@ export function SpendingCard() {
                     {expense.category?.name ?? 'Uncategorised'} · {formatDate(expense.recordedAt)}
                   </span>
                 </span>
-                <span className="shrink-0 tabular-nums">{formatAmount(expense.amount, expense.currency)}</span>
+                {/* Struck through when paid back, as the expenses table strikes it. */}
+                <span
+                  className={cn('shrink-0 tabular-nums', expense.paidBackAt && 'text-muted-foreground line-through')}
+                >
+                  {formatAmount(expense.amount, expense.currency)}
+                </span>
               </DashboardCardRow>
             ))}
           </div>
