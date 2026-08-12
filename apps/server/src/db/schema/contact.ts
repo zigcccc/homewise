@@ -1,5 +1,5 @@
 import { relations, sql } from 'drizzle-orm';
-import { type AnyPgColumn, check, date, index, integer, pgEnum, pgTable, text, uniqueIndex } from 'drizzle-orm/pg-core';
+import { check, date, index, integer, pgEnum, pgTable, text, uniqueIndex } from 'drizzle-orm/pg-core';
 
 import { baseDbEntityFields } from './__shared/base';
 import { household } from './household';
@@ -97,10 +97,10 @@ export const contactRelation = pgTable(
     ...baseDbEntityFields,
     contactId: integer('contact_id')
       .notNull()
-      .references((): AnyPgColumn => contact.id, { onDelete: 'cascade' }),
+      .references(() => contact.id, { onDelete: 'cascade' }),
     relatedContactId: integer('related_contact_id')
       .notNull()
-      .references((): AnyPgColumn => contact.id, { onDelete: 'cascade' }),
+      .references(() => contact.id, { onDelete: 'cascade' }),
     role: contactRelationRoleEnum().notNull(),
     inverseRole: contactRelationRoleEnum().notNull(),
   },
