@@ -4,6 +4,8 @@ import { SEED_EXPENSES, SEED_MEAL_PLAN, SEED_RECIPE } from '@homewise/server/see
 
 import { ContactsPage } from '../pages/contacts.page';
 import { DashboardPage } from '../pages/dashboard.page';
+import { HouseholdMembersPage } from '../pages/household-members.page';
+import { KidsPage } from '../pages/kids.page';
 import { ShoppingListsPage } from '../pages/shopping-lists.page';
 
 /**
@@ -48,6 +50,7 @@ test.describe('dashboard', () => {
     await expect(dashboard.spending()).toBeVisible();
     await expect(dashboard.loans()).toBeVisible();
     await expect(dashboard.recentRecipes()).toBeVisible();
+    await expect(dashboard.familyProfiles()).toBeVisible();
 
     // Every spec that writes a meal writes it on a far-future week, so this week is the seed's.
     await expect(dashboard.weekMeals()).toContainText(SEED_RECIPE.title);
@@ -91,6 +94,15 @@ test.describe('dashboard', () => {
       'href',
       '/storage/items?loanStatus=onLoan'
     );
+    // The one card holding two lists, so it points at both rather than picking a favourite.
+    await expect(dashboard.familyProfiles().getByRole('link', { name: 'Kids' })).toHaveAttribute(
+      'href',
+      '/family/kids'
+    );
+    await expect(dashboard.familyProfiles().getByRole('link', { name: 'Pets' })).toHaveAttribute(
+      'href',
+      '/family/pets'
+    );
   });
 
   test('opens the expense dialog over the dashboard', async ({ page }) => {
@@ -119,6 +131,36 @@ test.describe('dashboard', () => {
     } finally {
       // Through the API: a list left behind fails the exclusive project, not this spec.
       await lists.deleteListViaApi(listId);
+    }
+  });
+
+  test('shows a newly created kid profile', async ({ page }) => {
+    const members = new HouseholdMembersPage(page);
+    const kids = new KidsPage(page);
+    const dashboard = new DashboardPage(page);
+    const name = `E2E Profile ${Date.now()}`;
+
+    await members.goto();
+    await members.addManagedMember(name); // defaults to the Child role
+
+    try {
+      await kids.goto();
+      await kids.createProfileFor(name);
+
+      await dashboard.goto();
+
+      // The tile, not the card: every worker's profiles land in this one card at once.
+      const tile = dashboard.familyProfiles().getByRole('link').filter({ hasText: name });
+
+      await expect(tile).toBeVisible();
+      // The two lines under the name — the second is the per-kind one, which pets spell differently.
+      await expect(tile).toContainText('Age not set');
+      await expect(tile).toContainText('0 words in the dictionary');
+    } finally {
+      // Removing the member cascade-deletes the profile it was created for.
+      await members.goto();
+      await members.removeMember(name);
+      await expect(members.memberRow(name)).toBeHidden();
     }
   });
 
