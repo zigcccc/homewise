@@ -258,15 +258,9 @@ function PlaceAutocomplete({
             <SearchIcon />
           </InputGroupAddon>
           <InputGroupInput
-            // This box already has a dropdown. Every one of these is a second, uninvited one drawn
-            // *over* it by something we don't control — the browser's saved addresses, a password
-            // manager's, the spellchecker's red underline beneath a street name it will never know.
-            //
-            // `autoComplete="off"` is the honest request and the one Firefox and Safari honour.
-            // Chrome reserves the right to ignore it on a field it has decided is an address, and it
-            // decides that from the `name`/`id` the *consumer* passes — so if its own popup still
-            // shows up, the remaining lever is naming the field something that isn't "address",
-            // which belongs to the form, not here.
+            // This box has its own dropdown; these keep browsers and password managers from drawing a
+            // second one over it. Chrome may ignore `autoComplete` on a field it reads as an address,
+            // and it decides that from the `name` the consumer passes — so that lever is the form's.
             autoCapitalize="off"
             autoComplete="off"
             autoCorrect="off"
