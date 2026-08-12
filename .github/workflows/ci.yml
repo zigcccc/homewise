@@ -79,16 +79,16 @@ jobs:
     # preview).
     env:
       HUSKY: 0
-      # The server validates these at boot (src/config/env.ts); the blob token must
-      # be real because the photo specs upload to Vercel blob (no local emulator)
-      # and assert the returned image renders. Same for the Ably key: the realtime
-      # specs assert one browser sees another's change, which is only a real test
-      # against the real broker (playwright.config.ts gives each run its own channel
-      # namespace, so concurrent runs can share the app). DATABASE_URL is supplied by
+      # The server validates these at boot (src/config/env.ts). The Ably key has to
+      # be real: the realtime specs assert one browser sees another's change, which
+      # is only a real test against the real broker (playwright.config.ts gives each
+      # run its own channel namespace, so concurrent runs can share the app). No blob
+      # token is needed — playwright.config.ts sets HOMEWISE_LOCAL_FILE_STORAGE, so
+      # the photo specs write to the runner's disk instead of spending Vercel's
+      # advanced-operation quota on every push. DATABASE_URL is supplied by
       # globalSetup/webServer (the test DB), so it is not set here.
       BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
       HOMEWISE_RESEND_API_KEY: ${{ secrets.HOMEWISE_RESEND_API_KEY }}
-      HOMEWISE_FILES_READ_WRITE_TOKEN: ${{ secrets.HOMEWISE_FILES_READ_WRITE_TOKEN }}
       HOMEWISE_ABLY_API_KEY: ${{ secrets.HOMEWISE_ABLY_API_KEY }}
     steps:
       - name: Checkout

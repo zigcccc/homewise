@@ -10,6 +10,7 @@ import { logger } from 'hono/logger';
 
 import { corsConfig } from './config/cors';
 import { env } from './config/env';
+import { SERVER_PORT } from './config/server';
 import { closeDb } from './db/core';
 import { auth } from './lib/auth';
 import childDictionariesApp from './modules/child-dictionaries';
@@ -18,6 +19,7 @@ import contactsApp from './modules/contacts';
 import expenseCategoriesApp from './modules/expense-categories';
 import expensesApp from './modules/expenses';
 import householdsApp from './modules/households';
+import { localStore } from './modules/images/images.store';
 import ingredientsApp from './modules/ingredients';
 import mealPlanApp from './modules/meal-plan';
 import medicalApp from './modules/medical';
@@ -49,6 +51,29 @@ base.use(async (_c, next) => {
 // 3xx/4xx are excluded by default, which is what we want: the ~60 `HTTPException`s in the services
 // are expected 400/404/409 responses, not incidents.
 base.use(sentry(base));
+
+// Serves what `HOMEWISE_LOCAL_FILE_STORAGE` wrote (E2E only — the env refuses the flag outside
+// development/test). Registered on `base`, so it sits ahead of the session guard below and stays out
+// of `AppType`: these URLs are `<img src>`s from another origin, which carry no cookies and would
+// otherwise 401, and no client calls this through the RPC client.
+base.get('/files/*', async (c) => {
+  if (!env.HOMEWISE_LOCAL_FILE_STORAGE) {
+    return c.notFound();
+  }
+
+  const file = await localStore.read(c.req.path.replace('/files/', ''));
+  if (!file) {
+    return c.notFound();
+  }
+
+  // An SVG can carry script, and this serves it from the API's own origin — the CDN it stands in for
+  // wouldn't. Cheap enough to keep on even though the flag confines the route to development/test.
+  return c.body(file.body, 200, {
+    'Content-Security-Policy': "default-src 'none'",
+    'X-Content-Type-Options': 'nosniff',
+    ...(file.contentType ? { 'Content-Type': file.contentType } : {}),
+  });
+});
 
 const app = base
   .use(logger())
@@ -94,8 +119,8 @@ const routes = app
   .route('/realtime', realtimeApp);
 
 if (env.NODE_ENV === 'development') {
-  console.log('Serving app on port 5173...');
-  const server = serve({ ...app, port: 5173 });
+  console.log(`Serving app on port ${SERVER_PORT}...`);
+  const server = serve({ ...app, port: SERVER_PORT });
 
   // Stop accepting connections, then close the DB pool cleanly so idle clients
   // don't error on an abrupt socket close (which otherwise crash-dumps on the

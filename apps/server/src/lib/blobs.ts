@@ -10,4 +10,5 @@ export const blobPrefix = {
   childProfile: (profileId: number) => `child-profiles/${profileId}`,
   petProfile: (profileId: number) => `pet-profiles/${profileId}`,
   storageItemPhoto: (householdId: number) => `storage-items/${householdId}`,
+  userAvatar: (userId: string) => `user-avatars/${userId}`,
 };
