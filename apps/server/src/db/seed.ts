@@ -500,10 +500,8 @@ async function seed() {
       .from(schema.contact)
       .where(and(eq(schema.contact.householdId, household.id), eq(schema.contact.name, SEED_STORAGE_CONTACT.name)));
 
-    // The month and day come from the offset so the birthday is always still to come; the year is
-    // pushed back so it reads as a birth date rather than a diary entry. Backdating by a multiple
-    // of four keeps a 29 February landing on one — a 40-year step lands on a leap year whenever
-    // the offset date did.
+    // The month and day come from the offset so the birthday is always still to come. Backdating by
+    // a multiple of four keeps a 29 February landing on one.
     const upcoming = addDays(todayISO(), SEED_STORAGE_CONTACT.birthdayOffsetDays);
     const [year, monthDay] = [upcoming.slice(0, 4), upcoming.slice(4)];
     const borrowerDateOfBirth = `${Number(year) - 40}${monthDay}`;
@@ -522,9 +520,7 @@ async function seed() {
         .returning();
       console.log('▸ seeded storage borrower contact');
     } else if (borrower.dateOfBirth === null) {
-      // The birthday arrived after this contact did, so a database seeded before then has it unset
-      // and the dashboard's birthdays card nothing to show. Only when it's still null, so a
-      // deliberate edit isn't undone.
+      // The birthday arrived after this fixture did. Only when still null, so an edit isn't undone.
       await db
         .update(schema.contact)
         .set({ dateOfBirth: borrowerDateOfBirth })
