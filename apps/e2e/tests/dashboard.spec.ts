@@ -15,11 +15,16 @@ import { ShoppingListsPage } from '../pages/shopping-lists.page';
  * times took unrelated specs over their timeout.
  */
 
-/** The month's spend, less what was paid back. Formatted sl-SI, so the separator is a comma. */
-const seededMonthTotal = SEED_EXPENSES.filter((expense) => !expense.paidBack)
-  .reduce((sum, expense) => sum + expense.amount, 0)
-  .toFixed(2)
-  .replace('.', ',');
+/** Formatted sl-SI, so the separator is a comma. */
+const asAmount = (value: number) => `${value.toFixed(2).replace('.', ',')} €`;
+
+/** The month's spend, less what was paid back. */
+const seededMonthTotal = asAmount(
+  SEED_EXPENSES.filter((expense) => !expense.paidBack).reduce((sum, expense) => sum + expense.amount, 0)
+);
+
+/** The one seeded expense that was paid back, whose row is struck through. */
+const paidBackAmount = asAmount(SEED_EXPENSES.find((expense) => expense.paidBack)?.amount ?? 0);
 
 /** A birth date whose month and day are tomorrow's, backdated so it reads as a birthday. */
 function birthdayTomorrow() {
@@ -49,10 +54,13 @@ test.describe('dashboard', () => {
     await expect(dashboard.weekMeals()).toContainText('At work');
     await expect(dashboard.weekMeals()).toContainText(SEED_MEAL_PLAN.notes[0].note);
 
-    // The paid-back kettle stays off the total, but keeps its row in the list below.
+    // The paid-back kettle stays off the total, but keeps its row in the list below — struck
+    // through, with the total saying what it left out, or the rows read as more than the sum.
     await expect(dashboard.monthTotal()).toContainText(seededMonthTotal);
     await expect(dashboard.spending()).toContainText('Parking');
     await expect(dashboard.spending()).toContainText('Returned kettle');
+    await expect(dashboard.spending()).toContainText('paid back');
+    await expect(dashboard.spending().getByText(paidBackAmount, { exact: true })).toHaveClass(/line-through/);
 
     // "An overdue row exists", not a named item: every worker lends from this table.
     await expect(dashboard.loans().getByText('Overdue').first()).toBeVisible();
@@ -83,6 +91,19 @@ test.describe('dashboard', () => {
       'href',
       '/storage/items?loanStatus=onLoan'
     );
+  });
+
+  test('opens the expense dialog over the dashboard', async ({ page }) => {
+    const dashboard = new DashboardPage(page);
+    await dashboard.goto();
+
+    const dialog = await dashboard.openExpenseDialog();
+
+    // The category picker is the part that fetches, behind the dialog's own suspense boundary.
+    await expect(dialog.getByRole('button', { name: 'Category' })).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    await expect(dashboard.weekMeals()).toBeVisible();
   });
 
   test('shows a newly created shopping list', async ({ page }) => {

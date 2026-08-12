@@ -56,6 +56,13 @@ export class DashboardPage {
     return this.card('Recently added recipes');
   }
 
+  /** The quick action, not the expenses page's toolbar button — hence `Expense`, not `Add expense`. */
+  async openExpenseDialog() {
+    await this.page.getByRole('button', { exact: true, name: 'Expense' }).click();
+
+    return this.page.getByRole('dialog');
+  }
+
   /** The month's headline figure, which the card renders once per currency. */
   monthTotal() {
     return this.page.getByTestId('dashboard-month-total');
