@@ -73,9 +73,11 @@ startup in `src/config/env.ts`. Household-scoped routes mount `withHousehold`, w
 
 TanStack Router with file-based routing (`_authenticated/` requires a session, `_authenticated/_onboarded/`
 requires a household). API calls go through the **Hono RPC client** (`src/api/client.ts`,
-`hc<AppType>()`), data fetching through **TanStack Query** with hierarchical keys and per-module
-`queryOptions` + `invalidate*` helpers. Reused domain code lives in
-`src/modules/<domain>/<mechanism>/` behind a barrel; app-wide shared code in `modules/shared/`.
+`hc<AppType>()`), data fetching through **TanStack Query** with hierarchical keys and one
+`<domain>.queries.ts` per module holding its `queryOptions` + `invalidate*` helpers. Other reused
+domain code lives in `src/modules/<domain>/<mechanism>/` behind a barrel (`components`, `hooks`,
+`helpers`, `constants` — queries are the exception and stay a root-level file); app-wide shared code
+in `modules/shared/`.
 → `web-conventions`, `ui-conventions`
 
 ### Shared UI (`packages/ui`)
@@ -113,7 +115,7 @@ the one-liners below.
 Each of these has already shipped as a bug or cost real time. Where a skill is named, it explains why.
 
 1. **Linting & formatting** are handled by [Biome](https://biomejs.dev/) via the root `biome.json` (single config, no per-package overrides). **Drive the diagnostic count to zero, not just the exit code** — warnings count as much as errors. For rules marked FIXABLE-but-unsafe (e.g. `nursery/useSortedClasses`), run `biome check --write --unsafe <files>` scoped to the files you touched, then diff the result — Tailwind class reordering is behaviourally inert because precedence comes from the generated stylesheet order, not the class attribute order. Type-only imports are enforced by `useImportType` (inline style: `import { type Foo }`); the `organizeImports` assist auto-removes unused imports and variables.
-2. **Dependencies use `catalog:`** — add the version to `pnpm-workspace.yaml`'s catalog and reference `catalog:` from each `package.json`. Never pin a raw version in a workspace package.
+2. **Dependencies use `catalog:`** — add the version to `pnpm-workspace.yaml`'s catalog and reference `catalog:` from each `package.json`. Never pin a raw version in a workspace package. Root-only tooling that no workspace package imports may hold a direct version in the root `package.json` (`turbo` does); a catalog entry for a single consumer buys nothing.
 3. **Never hand-write request/response payload types on the web** — derive them from the RPC client with `InferRequestType`/`InferResponseType`, and narrow responses to the success status (`, 200`). → `web-conventions`
 4. **Never annotate a service's return type** or hand-write the shape it returns. If inference collapses to `any`, the cause is nesting depth — fix that and prove it with a compiler probe. `pnpm check-types` cannot detect it. → `server-conventions`
 5. **Models derive from the DB schema** via drizzle-zod (`createInsertSchema`/`createUpdateSchema`, `createSelectSchema` for every enum) — never a hand-written mirror, and never refine with a bare schema. → `server-conventions`

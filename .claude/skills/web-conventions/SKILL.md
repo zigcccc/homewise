@@ -82,8 +82,10 @@ components.
 
 ## Data fetching
 
-Data fetching uses **TanStack Query** with `queryOptions` helpers defined alongside each feature
-(e.g. `src/modules/households/households.queries.ts`). Session is cached with a 5-minute stale time.
+Data fetching uses **TanStack Query** with `queryOptions` helpers in a single
+`<domain>.queries.ts` at the **module root**, beside `index.ts` — `src/modules/households/households.queries.ts`,
+not a `queries/` folder. Queries are the one mechanism that isn't a folder (see Module structure
+below); every module in the app follows this. Session is cached with a 5-minute stale time.
 
 Query keys are hierarchical so prefix matching does the work: `['<domain>', 'list']`,
 `['<domain>', id]`, `['<domain>', id, 'entries', queryParams]`. Including the params object in the
@@ -102,9 +104,13 @@ entry in the `invalidators` record, which is a compile error until you add it. S
 ## Module structure
 
 Domain-specific code that is reused across routes lives under `src/modules/<domain>/<mechanism>/<file>`
-— where `<mechanism>` is `components`, `hooks`, `queries`, `helpers`, etc. (e.g.
+— where `<mechanism>` is `components`, `hooks`, `helpers` or `constants` (e.g.
 `src/modules/households/components/add-member-forms.tsx`). Each mechanism folder exposes an `index.ts`
 barrel; import via `@/modules/<domain>/<mechanism>`.
+
+**Queries are the exception**: a module's `queryOptions` and `invalidate*` helpers go in one
+`<domain>.queries.ts` at the module root, not in a `queries/` folder. There is a single file's worth
+of them per domain, so a folder and a barrel would be a hop for nothing.
 
 Keep route files thin — when the same domain component/hook/query appears in more than one route,
 extract it into the matching module folder rather than duplicating it. Route-local, single-use
