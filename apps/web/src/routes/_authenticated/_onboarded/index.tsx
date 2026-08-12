@@ -14,14 +14,17 @@ import {
   Skeleton,
 } from '@homewise/ui/core';
 
-import { listChildProfilesQueryOptions } from '@/modules/child-profiles';
 import { ContactDialog, listContactsQueryOptions } from '@/modules/contacts';
 import { ExpenseFormDialog } from '@/modules/expenses';
 import { getMyHouseholdQueryOptions } from '@/modules/households';
-import { listPetProfilesQueryOptions } from '@/modules/pet-profiles';
 import { Actionbar, formatDate, PageLayout, RouteError, todayISODay } from '@/modules/shared';
 
 import { BirthdaysCard } from './-components/birthdays-card';
+import {
+  dashboardChildProfilesQueryOptions,
+  dashboardPetProfilesQueryOptions,
+  FamilyProfilesCard,
+} from './-components/family-profiles-card';
 import { dashboardLoansQueryOptions, LoansCard } from './-components/loans-card';
 import { dashboardRecentRecipesQueryOptions, RecentRecipesCard } from './-components/recent-recipes-card';
 import { dashboardShoppingListsQueryOptions, ShoppingListsCard } from './-components/shopping-lists-card';
@@ -47,8 +50,8 @@ export const Route = createFileRoute('/_authenticated/_onboarded/')({
       context.queryClient.ensureQueryData(dashboardLoansQueryOptions()),
       context.queryClient.ensureQueryData(dashboardRecentRecipesQueryOptions()),
       context.queryClient.ensureQueryData(listContactsQueryOptions()),
-      context.queryClient.ensureQueryData(listChildProfilesQueryOptions()),
-      context.queryClient.ensureQueryData(listPetProfilesQueryOptions()),
+      context.queryClient.ensureQueryData(dashboardChildProfilesQueryOptions()),
+      context.queryClient.ensureQueryData(dashboardPetProfilesQueryOptions()),
     ]);
   },
 });
@@ -149,6 +152,7 @@ function DashboardPending() {
       <SpendingCard.Skeleton />
       <LoansCard.Skeleton />
       <RecentRecipesCard.Skeleton />
+      <FamilyProfilesCard.Skeleton />
     </DashboardShell>
   );
 }
@@ -180,6 +184,7 @@ function HomeRoute() {
       <SpendingCard />
       <LoansCard />
       <RecentRecipesCard />
+      <FamilyProfilesCard />
     </DashboardShell>
   );
 }

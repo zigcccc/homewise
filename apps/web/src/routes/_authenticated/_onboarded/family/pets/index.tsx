@@ -3,7 +3,6 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import { PawPrintIcon, PlusIcon, UsersIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { type PetType } from '@homewise/server/pet-profiles';
 import {
   Avatar,
   AvatarFallback,
@@ -31,8 +30,8 @@ import {
 
 import { client, parseResponse } from '@/api/client';
 import { getMyHouseholdQueryOptions } from '@/modules/households';
-import { invalidatePetProfilesList, listPetProfilesQueryOptions, petTypeLabels } from '@/modules/pet-profiles';
-import { Actionbar, ageInYears, PageLayout } from '@/modules/shared';
+import { invalidatePetProfilesList, listPetProfilesQueryOptions, typeAndBreed } from '@/modules/pet-profiles';
+import { Actionbar, ageLabel, PageLayout } from '@/modules/shared';
 
 export const Route = createFileRoute('/_authenticated/_onboarded/family/pets/')({
   async loader({ context }) {
@@ -44,12 +43,6 @@ export const Route = createFileRoute('/_authenticated/_onboarded/family/pets/')(
   component: PetsRoute,
   pendingComponent: () => <Spinner />,
 });
-
-/** A "Dog · Golden Retriever" line — type, breed, or both. Null when neither is set. */
-function typeAndBreed(type: PetType | null, breed: string | null) {
-  const label = type ? petTypeLabels[type] : null;
-  return [label, breed].filter(Boolean).join(' · ') || null;
-}
 
 function PetsRoute() {
   const navigate = Route.useNavigate();
@@ -131,7 +124,6 @@ function PetsRoute() {
             {profiles.length > 0 && (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {profiles.map((profile) => {
-                  const age = ageInYears(profile.dateOfBirth);
                   const details = typeAndBreed(profile.type, profile.breed);
 
                   return (
@@ -145,9 +137,7 @@ function PetsRoute() {
                             </Avatar>
                             {profile.pet.displayName}
                           </CardTitle>
-                          <CardDescription>
-                            {age !== null ? `${age} ${age === 1 ? 'year' : 'years'} old` : 'Age not set'}
-                          </CardDescription>
+                          <CardDescription>{ageLabel(profile.dateOfBirth)}</CardDescription>
                         </CardHeader>
                         <CardContent className="text-muted-foreground text-sm">{details ?? 'Type not set'}</CardContent>
                       </Card>

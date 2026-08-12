@@ -27,7 +27,7 @@ export class DashboardPage {
     await expect(this.page.getByTestId('dashboard-greeting')).toContainText(householdName);
   }
 
-  /** One card, by its title. Six lists are on screen at once, so assertions must be scoped. */
+  /** One card, by its title. Seven lists are on screen at once, so assertions must be scoped. */
   card(title: string) {
     return this.page.getByRole('region', { name: title });
   }
@@ -54,6 +54,10 @@ export class DashboardPage {
 
   recentRecipes() {
     return this.card('Recently added recipes');
+  }
+
+  familyProfiles() {
+    return this.card('Family profiles');
   }
 
   /** The quick action, not the expenses page's toolbar button — hence `Expense`, not `Add expense`. */

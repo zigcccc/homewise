@@ -29,9 +29,9 @@ import {
 } from '@homewise/ui/core';
 
 import { client, parseResponse } from '@/api/client';
-import { listChildProfilesQueryOptions } from '@/modules/child-profiles';
+import { dictionaryLabel, listChildProfilesQueryOptions } from '@/modules/child-profiles';
 import { getMyHouseholdQueryOptions } from '@/modules/households';
-import { Actionbar, ageInYears, PageLayout } from '@/modules/shared';
+import { Actionbar, ageLabel, PageLayout } from '@/modules/shared';
 
 export const Route = createFileRoute('/_authenticated/_onboarded/family/kids/')({
   async loader({ context }) {
@@ -125,32 +125,25 @@ function KidsRoute() {
           <>
             {profiles.length > 0 && (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {profiles.map((profile) => {
-                  const age = ageInYears(profile.dateOfBirth);
-                  const wordCount = profile.dictionary?.entryCount ?? 0;
-
-                  return (
-                    <Link key={profile.id} params={{ profileId: profile.id.toString() }} to="/family/kids/$profileId">
-                      <Card className="h-full transition-colors hover:border-primary/50">
-                        <CardHeader>
-                          <CardTitle className="flex items-center gap-3">
-                            <Avatar className="size-9">
-                              <AvatarImage alt={profile.child.displayName} src={profile.profilePicture || undefined} />
-                              <AvatarFallback>{profile.child.displayName.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                            {profile.child.displayName}
-                          </CardTitle>
-                          <CardDescription>
-                            {age !== null ? `${age} ${age === 1 ? 'year' : 'years'} old` : 'Age not set'}
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent className="text-muted-foreground text-sm">
-                          {wordCount} {wordCount === 1 ? 'word' : 'words'} in the dictionary
-                        </CardContent>
-                      </Card>
-                    </Link>
-                  );
-                })}
+                {profiles.map((profile) => (
+                  <Link key={profile.id} params={{ profileId: profile.id.toString() }} to="/family/kids/$profileId">
+                    <Card className="h-full transition-colors hover:border-primary/50">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-3">
+                          <Avatar className="size-9">
+                            <AvatarImage alt={profile.child.displayName} src={profile.profilePicture || undefined} />
+                            <AvatarFallback>{profile.child.displayName.charAt(0)}</AvatarFallback>
+                          </Avatar>
+                          {profile.child.displayName}
+                        </CardTitle>
+                        <CardDescription>{ageLabel(profile.dateOfBirth)}</CardDescription>
+                      </CardHeader>
+                      <CardContent className="text-muted-foreground text-sm">
+                        {dictionaryLabel(profile.dictionary?.entryCount ?? 0)}
+                      </CardContent>
+                    </Card>
+                  </Link>
+                ))}
               </div>
             )}
 

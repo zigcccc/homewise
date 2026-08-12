@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   ageInYears,
+  ageLabel,
   DATE_DISPLAY_FORMAT,
   formatDate,
   formatDateTime,
@@ -242,6 +243,30 @@ describe('ageInYears', () => {
     ['unparseable text', 'nope'],
   ])('should return null for %s, so a profile with no birth date shows no age', (_what, value) => {
     expect(ageInYears(value)).toBeNull();
+  });
+});
+
+describe('ageLabel', () => {
+  it('should say "year" for exactly one', () => {
+    // GIVEN: a first birthday come and gone
+    freezeAt('2026-08-06T12:00:00');
+
+    // WHEN: the label is built
+    // THEN: it should be singular — "1 years old" is on a card the parent reads every day
+    expect(ageLabel('2025-08-06')).toBe('1 year old');
+  });
+
+  it.each([
+    ['a newborn', '2026-08-06', '0 years old'],
+    ['a kid', '2020-08-06', '6 years old'],
+  ])('should say "years" for %s', (_who, dateOfBirth, expected) => {
+    freezeAt('2026-08-06T12:00:00');
+
+    expect(ageLabel(dateOfBirth)).toBe(expected);
+  });
+
+  it('should fall back when there is no usable date, rather than rendering nothing', () => {
+    expect(ageLabel(null)).toBe('Age not set');
   });
 });
 
