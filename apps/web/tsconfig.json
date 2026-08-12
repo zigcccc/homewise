@@ -4,7 +4,7 @@
     "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "lib": ["DOM", "DOM.Iterable", "ES2022"],
+    "lib": ["DOM", "DOM.Iterable", "ES2023"],
     "noEmit": true,
     // This is a leaf app (noEmit, nothing consumes its .d.ts). Turning off declaration emit that the
     // shared base enables avoids serializing the enormous inferred Hono RPC `client` type (TS7056).

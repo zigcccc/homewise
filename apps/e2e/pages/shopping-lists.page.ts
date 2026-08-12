@@ -17,40 +17,25 @@ export class ShoppingListsPage {
     await expect(this.page.getByRole('heading', { level: 1, name: 'Shopping lists' })).toBeVisible();
   }
 
-  /**
-   * Same destination through the sidebar rather than the address bar, so the tab keeps the JS context
-   * it already had — a `goto` rebuilds the realtime client and would mask any bug in how a long-lived
-   * one survives beneath it.
-   */
+  /** Through the sidebar, so the tab keeps its JS context — a `goto` rebuilds the realtime client. */
   async openFromSidebar() {
     await this.page.getByRole('link', { name: 'Shopping lists', exact: true }).click();
     await expect(this.page.getByRole('heading', { level: 1, name: 'Shopping lists' })).toBeVisible();
   }
 
-  /**
-   * The master column's entry for a list, addressed by id.
-   *
-   * By id rather than by label on purpose: a list is labelled from its sections, so two specs
-   * running in parallel routinely produce lists called the same thing. The id is the only handle
-   * that belongs to one spec.
-   */
+  /** By id, not label: a list is labelled from its sections, which collide across parallel specs. */
   listLink(listId: string) {
-    // Anchored on both ends, never `*=`: `…/1` is a prefix of `…/10`, so a substring match would find
-    // other specs' rows. The `?` alternative is for the retained `includeCompleted` filter, which the
-    // section carries onto its own links so a completed list can be opened at all.
+    // Anchored both ends: `…/1` is a prefix of `…/10`. The `?` form carries the `includeCompleted`
+    // filter, without which a completed list can't be opened at all.
     const path = `/food/shopping-lists/${listId}`;
 
     return this.page.locator(`a[href="${path}"], a[href^="${path}?"]`);
   }
 
   /**
-   * Mints a list through the API and opens it.
-   *
-   * Through the API on purpose, for every spec that just needs *a* list of its own to work on. The
-   * button-driven path below races the index route's auto-select: the page opens whichever list is
-   * first, that navigation can land after the click, and the spec walks away holding another spec's
-   * list — which it then finds already has its ingredient on it. `createListFromUi` still covers the
-   * button, in the exclusive project where nothing else is creating lists at the same time.
+   * Mints a list through the API and opens it — for any spec that just needs one to work on. The
+   * button path races the index route's auto-select; `createListFromUi` covers it in the exclusive
+   * project.
    */
   async createList() {
     const response = await this.page.context().request.post(`${API_URL}/shopping-lists`, { data: {} });
@@ -63,17 +48,21 @@ export class ShoppingListsPage {
   }
 
   /**
-   * Creates a list by clicking `New list`, waits for the detail pane to open on it, and returns its
-   * id. Only safe where the household isn't being changed concurrently — see `createList`.
-   *
-   * Waits for the id to *change*, not merely for a detail URL: on a wide screen the index route
-   * auto-selects the first list, so the URL already matches before the click and a plain
-   * `waitForURL` would hand back whichever list happened to be open.
+   * The counterpart to `createList`, and it fails loudly. `deleteListIfPresent` drives the UI and
+   * gives up silently under load, leaving a list behind for the exclusive project to trip over.
+   */
+  async deleteListViaApi(listId: string) {
+    const response = await this.page.context().request.delete(`${API_URL}/shopping-lists/${listId}`);
+    expect(response.ok(), `could not delete shopping list ${listId}`).toBe(true);
+  }
+
+  /**
+   * Clicks `New list` and returns the new id. Only safe where nothing else is creating lists — see
+   * `createList`.
    */
   async createListFromUi() {
-    // Every id already on screen, not just the one currently open. On a wide screen the index route
-    // auto-selects a list, and that navigation can land *after* the click — so "wait for the id to
-    // change" would happily return the auto-selected list, which belongs to another spec.
+    // Every id on screen, not just the open one: the index route's auto-select can land *after* the
+    // click, so "wait for the id to change" would hand back another spec's list.
     const before = new Set(
       await this.page
         .locator('a[href^="/food/shopping-lists/"]')
@@ -83,8 +72,7 @@ export class ShoppingListsPage {
     );
     before.add(this.currentListId());
 
-    // `.first()` is the header row's button. The empty state has one too, and both are on screen
-    // whenever the household has no lists — they do the same thing, so either would serve.
+    // `.first()` is the header row's button; the empty state has an identical one.
     await this.page.getByRole('button', { name: 'New list' }).first().click();
     await this.page.waitForURL((url) => {
       const id = /\/food\/shopping-lists\/(\d+)/.exec(url.pathname)?.[1];
@@ -105,31 +93,22 @@ export class ShoppingListsPage {
   }
 
   /**
-   * Opens a list by id, with the filter left at its default.
-   *
-   * Deliberately *not* `?includeCompleted=true`: that would leave every spec reached through here
-   * running with the filter on, and "a list marked done drops out of the column" is then untestable.
-   * `deleteListIfPresent` sets it, because that one does have to reach a finished list.
+   * Opens a list with the filter at its default — not `?includeCompleted=true`, or "a list marked
+   * done drops out of the column" becomes untestable for every spec reached through here.
    */
   async openList(listId: string) {
     await this.page.goto(`/food/shopping-lists/${listId}`);
     await expect(this.page.getByRole('button', { name: 'List actions' })).toBeVisible();
   }
 
-  /**
-   * The import screen, over an explicit range. Driven by URL because the range lives in the search
-   * params — which is the point of putting it there: a range is shareable and survives a refresh.
-   */
+  /** The import screen, over an explicit range — which lives in the search params. */
   async gotoImport({ from, target, to }: { from: string; target?: string; to: string }) {
     const search = new URLSearchParams({ from, to, ...(target ? { target } : {}) });
     await this.page.goto(`/food/shopping-lists/import?${search.toString()}`);
     await expect(this.page.getByRole('heading', { level: 2, name: 'From the meal plan' })).toBeVisible();
   }
 
-  /**
-   * One row of the import preview, identified by its own include checkbox — the master column's
-   * entries are `listitem`s too, and can carry the same words.
-   */
+  /** By its own checkbox: the master column's entries are `listitem`s too. */
   previewRow(name: string) {
     return this.page
       .getByRole('listitem')
@@ -141,12 +120,7 @@ export class ShoppingListsPage {
     await expect(this.page.getByRole('checkbox', { name: `Include ${name}`, checked: true })).toHaveCount(0);
   }
 
-  /**
-   * Moves one end of the import range through the field, not through the URL.
-   *
-   * `gotoImport` would rebuild the page and prove nothing about what the range change does to a form
-   * that is already mounted. The field takes day-first text, like every date in this app.
-   */
+  /** Through the field, not the URL: `gotoImport` rebuilds the page and proves nothing about a mounted form. */
   async setImportRange(end: 'from' | 'to', isoDay: string) {
     const [year, month, day] = isoDay.split('-');
     const input = this.page.locator(`#import-${end}`);
@@ -178,28 +152,17 @@ export class ShoppingListsPage {
     return this.page.getByRole('heading', { level: 2, name: label });
   }
 
-  /**
-   * The list's own groups. A `section` each — but so is sonner's toast region, and its toasts are
-   * `listitem`s carrying the name of whatever they're reporting on ("Removed \"Onion\""), which is
-   * exactly the text the row locators filter by.
-   */
+  /** The list's own groups. Sonner's toast region is a `section` too, holding matching text. */
   private sections() {
     return this.page.locator('section').filter({ hasNot: this.page.locator('[data-sonner-toast]') });
   }
 
-  /**
-   * One row of the open list. Scoped inside a `section`, which only the list's own groups are — the
-   * master column and the import preview are `listitem`s too, and an ingredient name can appear in
-   * a list's inferred label.
-   */
+  /** Scoped to a `section`: the master column and the import preview hold `listitem`s too. */
   item(label: string) {
     return this.sections().getByRole('listitem').filter({ hasText: label });
   }
 
-  /**
-   * The section an item sits under, read off the rendered order: each `section` element holds its
-   * own heading and list, so this asks which section contains the row.
-   */
+  /** The section an item sits under, read off the rendered order. */
   itemsUnder(sectionLabel: string) {
     return this.sections()
       .filter({ has: this.page.getByRole('heading', { level: 2, name: sectionLabel }) })
@@ -220,12 +183,7 @@ export class ShoppingListsPage {
       .getByRole('listitem');
   }
 
-  /**
-   * Puts one-off lines on a list through the API, for the specs that need *a lot* of them.
-   *
-   * Through the API because the picker is not what's under test there: driving it 25 times is 25
-   * round trips through a popover for rows nothing asserts on individually.
-   */
+  /** Bulk one-offs through the API — the picker isn't what's under test where this is used. */
   async addOneOffsViaApi(listId: string, titles: string[]) {
     for (const title of titles) {
       const response = await this.page.context().request.post(`${API_URL}/shopping-lists/${listId}/items`, {
@@ -235,13 +193,7 @@ export class ShoppingListsPage {
     }
   }
 
-  /**
-   * Adds an existing library ingredient — the server files it under that ingredient's shop.
-   *
-   * Matched on the option's own name span rather than its accessible name: each row also renders a
-   * category badge, so the accessible name is "Onion Produce" and an exact match on "Onion" finds
-   * nothing.
-   */
+  /** Matched on the name span, not the accessible name — a category badge makes that "Onion Produce". */
   async addIngredient(name: string) {
     await this.openAddPicker();
     await this.page
@@ -264,11 +216,7 @@ export class ShoppingListsPage {
     await expect(this.page.getByPlaceholder('Search ingredients')).toBeVisible();
   }
 
-  /**
-   * `click`, not `check`: the checkbox is controlled by the server's response, so it doesn't flip
-   * the instant it's clicked. `check()` verifies the state itself and clicks again when it hasn't
-   * changed yet — which toggles it straight back. The assertion belongs in the spec instead.
-   */
+  /** `click`, not `check`: the state comes from the server, so `check()` clicks twice and toggles back. */
   async tick(label: string) {
     await this.page.getByRole('checkbox', { name: `Tick ${label}` }).click();
     await expect(this.isTicked(label)).toBeVisible();
@@ -294,12 +242,7 @@ export class ShoppingListsPage {
     await expect(this.item(label)).toHaveCount(0);
   }
 
-  /**
-   * Takes the Undo on the toast a removal leaves behind, and waits for the row to come back.
-   *
-   * Scoped to the toast naming this item: removals stack, and two toasts each carrying an `Undo`
-   * make a bare role query ambiguous — which Playwright retries until both have expired.
-   */
+  /** Scoped to the toast naming this item: removals stack, and two `Undo`s are ambiguous. */
   async undoRemoval(label: string) {
     await this.page
       .getByRole('listitem')
@@ -316,13 +259,7 @@ export class ShoppingListsPage {
     await expect(this.quantityField()).toBeVisible();
   }
 
-  /**
-   * The other way in, which must work the same whether the row is an ingredient or a one-off.
-   *
-   * Anchored, not exact: the label button's accessible name picks up the amount beside it
-   * ("Onion 2 kg"), while the row's other two buttons — "Move Onion", "Actions for Onion" — carry
-   * the name in the middle, so a loose match would find three buttons.
-   */
+  /** Anchored, not exact: the label button reads "Onion 2 kg", and two sibling buttons carry the name too. */
   async openItemEditorByName(label: string) {
     await this.item(label)
       .getByRole('button', { name: nameStartsWith(label) })
@@ -354,10 +291,7 @@ export class ShoppingListsPage {
     await this.saveItemEdit();
   }
 
-  /**
-   * The pointer path onto `target`, which shares no code with `moveItem` below — a broken drag would
-   * otherwise sail straight past the menu-driven spec.
-   */
+  /** Shares no code with `moveItem`, or a broken drag sails past the menu-driven spec. */
   async dragItem(label: string, target: Locator) {
     await this.drag.onto(this.page.getByRole('button', { exact: true, name: `Move ${label}` }), target);
   }
@@ -374,10 +308,7 @@ export class ShoppingListsPage {
     return this.page.getByTestId('list-progress');
   }
 
-  /**
-   * Marks the list done. With items still unticked a three-way dialog appears; `choice` picks one.
-   * With everything ticked there is nothing to decide and the list completes straight away.
-   */
+  /** With items still unticked a three-way dialog appears; `choice` picks one. */
   async markDone(choice?: 'Finish anyway' | 'Move to a new list') {
     await this.page.getByRole('button', { name: 'Mark done' }).click();
 
@@ -396,11 +327,7 @@ export class ShoppingListsPage {
     return this.page.getByRole('dialog');
   }
 
-  /**
-   * `click` rather than `check`, for the same reason as `tick`: this checkbox's state comes from the
-   * URL, so it only flips once the navigation lands. `check()` would see it unchanged and click
-   * again, toggling it straight back.
-   */
+  /** `click`, not `check`, as with `tick` — this state comes from the URL and lands a beat later. */
   async showCompleted(show: boolean) {
     const toggle = this.page.getByRole('checkbox', { name: 'Show completed' });
 
@@ -430,12 +357,8 @@ export class ShoppingListsPage {
   }
 
   /**
-   * Best-effort cleanup: opens the list by id and removes it if it's still there.
-   *
-   * The `waitFor` matters. `goto` resolves on document load, but the detail pane only appears once
-   * the route loader has resolved — and `count()`/`isVisible()` don't auto-wait like `expect` does.
-   * Without it this read 0 every time and silently skipped the delete, leaving a list behind for
-   * every spec in the run.
+   * Best-effort cleanup. The `waitFor` is required: `isVisible()` doesn't auto-wait, so without it
+   * this reads 0 before the loader resolves and skips the delete.
    */
   async deleteListIfPresent(listId: string) {
     // `includeCompleted=true`, or a finished list redirects out before it can be deleted.
@@ -456,48 +379,27 @@ export class ShoppingListsPage {
   }
 
   /**
-   * Removes every list the household still has. Only for the exclusive project, where one spec needs
-   * "no lists exist" as a precondition and owns the household while it runs.
+   * Empties the household, for the exclusive project's "no lists exist" precondition. Through the
+   * API, not the column: `showCompleted` only waits for the URL, so a scan can read the unfiltered
+   * column and call the household clean a beat before a completed list renders.
    */
   async deleteAllLists() {
-    await this.goto();
-    await this.showCompleted(true);
+    // `includeCompleted`, or a finished list survives the "clean" household.
+    const response = await this.page.context().request.get(`${API_URL}/shopping-lists?includeCompleted=true`);
+    expect(response.ok(), 'could not read the shopping lists').toBe(true);
 
-    // Re-read each time: deleting one re-renders the column, so a captured handle goes stale. Only
-    // hrefs ending in an id — "From meal plan" points at `/food/shopping-lists/import`, same prefix.
-    const attempted = new Set<string>();
-
-    for (;;) {
-      const hrefs = await this.page
-        .locator('a[href^="/food/shopping-lists/"]')
-        .evaluateAll((links) => links.map((link) => link.getAttribute('href') ?? ''));
-      const id = hrefs.map((href) => /\/food\/shopping-lists\/(\d+)/.exec(href)?.[1]).find(Boolean);
-
-      if (!id) {
-        return;
-      }
-
-      // A list that survives its own delete would otherwise keep reappearing until the test times
-      // out, and the failure would name the timeout rather than the list that wouldn't go.
-      expect(attempted.has(id), `list ${id} is still in the column after being deleted`).toBe(false);
-      attempted.add(id);
-
-      await this.deleteListIfPresent(id);
-      await this.goto();
-      await this.showCompleted(true);
+    for (const list of (await response.json()) as { id: number }[]) {
+      await this.deleteListViaApi(String(list.id));
     }
+
+    await this.goto();
   }
 
   private async openListMenu() {
     await this.page.getByRole('button', { name: 'List actions' }).click();
   }
 
-  /**
-   * The master column, which steps aside on a phone once a list is open.
-   *
-   * The `<aside>` itself (role `complementary`), not the `<h1>` — the heading lives in the page
-   * header row now, which stays visible in both panes.
-   */
+  /** The `<aside>`, not the `<h1>` — the heading lives in the header row and shows in both panes. */
   masterColumn() {
     return this.page.getByRole('complementary');
   }

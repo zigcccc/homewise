@@ -9,6 +9,7 @@ import {
   monthLabel,
   monthOptions,
   monthRange,
+  nextBirthday,
   parseDayFirst,
   todayISODay,
   yearOptions,
@@ -241,5 +242,83 @@ describe('ageInYears', () => {
     ['unparseable text', 'nope'],
   ])('should return null for %s, so a profile with no birth date shows no age', (_what, value) => {
     expect(ageInYears(value)).toBeNull();
+  });
+});
+
+describe('nextBirthday', () => {
+  it('should count forward to a birthday still to come this year', () => {
+    freezeAt('2026-08-06T12:00:00');
+
+    expect(nextBirthday('1990-08-20')).toMatchObject({ inDays: 14, turning: 36 });
+    expect(asISO(nextBirthday('1990-08-20')?.date)).toBe('2026-08-20');
+  });
+
+  it('should wrap into next year once the birthday has been and gone', () => {
+    // GIVEN: August, with a January birthday that is seven months past
+    freezeAt('2026-08-06T12:00:00');
+
+    // WHEN: the next one is worked out
+    // THEN: it should be next January's, not a negative count back to the last one
+    expect(asISO(nextBirthday('1990-01-05')?.date)).toBe('2027-01-05');
+    expect(nextBirthday('1990-01-05')).toMatchObject({ inDays: 152, turning: 37 });
+  });
+
+  it('should put the December birthday after the January one for most of the year', () => {
+    // GIVEN: August, and two people born in the same year — a plain date sort puts January first
+    freezeAt('2026-08-06T12:00:00');
+
+    // WHEN: both are measured
+    const january = nextBirthday('1990-01-05')!;
+    const december = nextBirthday('1990-12-31')!;
+
+    // THEN: December should come round first, because January's has already gone
+    expect(december.inDays).toBeLessThan(january.inDays);
+  });
+
+  it('should call the birthday itself today, however late in the day it is asked', () => {
+    // GIVEN: half past eleven at night on somebody's birthday
+    freezeAt('2026-08-06T23:30:00');
+
+    // WHEN: the next one is worked out
+    // THEN: it should be today — against the raw moment, this morning's midnight reads as past
+    expect(nextBirthday('1990-08-06')).toMatchObject({ inDays: 0, turning: 36 });
+  });
+
+  it('should measure tomorrow as one day off even late at night', () => {
+    // Less than 24 hours away, so anything counting elapsed spans rather than dates would say 0.
+    freezeAt('2026-08-06T23:30:00');
+
+    expect(nextBirthday('1990-08-07')?.inDays).toBe(1);
+  });
+
+  it('should land a 29 February birth date on 1 March in a common year', () => {
+    // GIVEN: a leap-day birth date, read in a year that has no 29 February
+    freezeAt('2027-01-15T12:00:00');
+
+    // WHEN: the next one is worked out
+    // THEN: it should roll forward to 1 March, as `setFullYear` does — pinned so it can't drift
+    expect(asISO(nextBirthday('2000-02-29')?.date)).toBe('2027-03-01');
+    expect(nextBirthday('2000-02-29')?.turning).toBe(27);
+  });
+
+  it('should keep 29 February on the day itself in a leap year', () => {
+    freezeAt('2028-01-15T12:00:00');
+
+    expect(asISO(nextBirthday('2000-02-29')?.date)).toBe('2028-02-29');
+  });
+
+  it('should return null for a birth date in the future rather than a negative age', () => {
+    freezeAt('2026-08-06T12:00:00');
+
+    expect(nextBirthday('2029-01-01')).toBeNull();
+  });
+
+  it.each([
+    ['null', null],
+    ['undefined', undefined],
+    ['an empty string', ''],
+    ['unparseable text', 'nope'],
+  ])('should return null for %s, so a record with no birth date shows no countdown', (_what, value) => {
+    expect(nextBirthday(value)).toBeNull();
   });
 });

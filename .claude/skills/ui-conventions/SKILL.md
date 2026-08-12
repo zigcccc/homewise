@@ -171,6 +171,15 @@ applies even to single-field dialogs.
 view (`useInView`): `order-last ml-auto`, `type="button"` + `handleSubmit`. Scope the E2E locator to
 `page.locator('form')`.
 
+**A dialog that loads its own data catches its own suspense.** Wrap the body in
+`<Suspense fallback={<Spinner className="min-h-64" />}>` inside `DialogContent`. Without it a
+`useSuspenseQuery` — usually a combobox's options, several layers down — reaches the *route's*
+boundary and puts the whole page behind the dialog into its loading state. It is invisible on the
+page whose loader already warmed that query, and only shows up where the dialog is reused: the
+expense dialog was fine on `/expenses/monthly-expenses` and blanked the dashboard. E2E can't pin
+this — a modal marks the background `aria-hidden`, so a role-based locator can't even find the page
+behind it, and the flash resolves before an auto-retrying assertion sees it.
+
 ## Destructive actions
 
 **Destructive actions always confirm.** Use `ConfirmDeleteDialog` from `@/modules/shared`; name the

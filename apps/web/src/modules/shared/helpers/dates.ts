@@ -1,4 +1,6 @@
 import {
+  addDays,
+  differenceInCalendarDays,
   differenceInYears,
   endOfMonth,
   format,
@@ -8,6 +10,8 @@ import {
   isValid,
   parse,
   parseISO,
+  setYear,
+  startOfDay,
   startOfMonth,
 } from 'date-fns';
 
@@ -100,6 +104,10 @@ export function parseDayFirst(input: string, allowFuture: boolean) {
 /** Today as the API spells a day. Local, so it can't hand anyone east of UTC yesterday's date. */
 export const todayISODay = () => format(new Date(), ISO_DAY_FORMAT);
 
+/** The seven days from `from`, as the API spells them — a week's grid, before any of it is filled. */
+export const daysOfWeek = (from: string) =>
+  Array.from({ length: 7 }, (_, offset) => format(addDays(parseISO(from), offset), ISO_DAY_FORMAT));
+
 /**
  * Whole years since `since` — how old a kid or a pet is. `null` when the date is absent, unparseable
  * or in the future, so a profile without a usable birth date shows no age rather than a negative one.
@@ -113,6 +121,42 @@ export function ageInYears(since: string | null | undefined) {
   const date = parseISO(since);
 
   return isValid(date) && !isFuture(date) ? differenceInYears(new Date(), date) : null;
+}
+
+/**
+ * When someone's next birthday falls, how far off it is, and the age it brings. `null` for an
+ * absent, unparseable or future date, like `ageInYears`.
+ *
+ * Both sides are floored to the day, or a birthday falling today reads as already gone from 00:01.
+ * A 29 February birth date lands on 1 March in a common year — `setFullYear` rolls it, and that
+ * matches how `ContactsService` already orders birthdays in SQL.
+ */
+export function nextBirthday(dateOfBirth: string | null | undefined) {
+  if (!dateOfBirth) {
+    return null;
+  }
+
+  const born = parseISO(dateOfBirth);
+
+  if (!isValid(born) || isFuture(born)) {
+    return null;
+  }
+
+  const today = startOfDay(new Date());
+  const thisYear = startOfDay(setYear(born, getYear(today)));
+  // Been and gone already this year, so the next one round is next year's.
+  const date = thisYear < today ? startOfDay(setYear(born, getYear(today) + 1)) : thisYear;
+
+  return { date, inDays: differenceInCalendarDays(date, today), turning: getYear(date) - getYear(born) };
+}
+
+/** A day count as words. "in 0 days" is not how anyone says it. */
+export function countdownLabel(inDays: number) {
+  if (inDays === 0) {
+    return 'Today';
+  }
+
+  return inDays === 1 ? 'Tomorrow' : `in ${inDays} days`;
 }
 
 /**

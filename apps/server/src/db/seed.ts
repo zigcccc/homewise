@@ -500,6 +500,12 @@ async function seed() {
       .from(schema.contact)
       .where(and(eq(schema.contact.householdId, household.id), eq(schema.contact.name, SEED_STORAGE_CONTACT.name)));
 
+    // The month and day come from the offset so the birthday is always still to come. Backdating by
+    // a multiple of four keeps a 29 February landing on one.
+    const upcoming = addDays(todayISO(), SEED_STORAGE_CONTACT.birthdayOffsetDays);
+    const [year, monthDay] = [upcoming.slice(0, 4), upcoming.slice(4)];
+    const borrowerDateOfBirth = `${Number(year) - 40}${monthDay}`;
+
     let borrower = existingBorrower;
     if (!borrower) {
       [borrower] = await db
@@ -509,9 +515,17 @@ async function seed() {
           name: SEED_STORAGE_CONTACT.name,
           type: SEED_STORAGE_CONTACT.type,
           phone: SEED_STORAGE_CONTACT.phone,
+          dateOfBirth: borrowerDateOfBirth,
         })
         .returning();
       console.log('▸ seeded storage borrower contact');
+    } else if (borrower.dateOfBirth === null) {
+      // The birthday arrived after this fixture did. Only when still null, so an edit isn't undone.
+      await db
+        .update(schema.contact)
+        .set({ dateOfBirth: borrowerDateOfBirth })
+        .where(eq(schema.contact.id, borrower.id));
+      console.log('▸ backfilled the storage borrower contact birthday');
     } else {
       console.log('▸ storage borrower contact already present — skipping');
     }

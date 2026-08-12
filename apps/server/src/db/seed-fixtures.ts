@@ -136,11 +136,17 @@ export const SEED_STORAGE_LOCATIONS = [
 /**
  * The contact the seeded loan is lent to. A borrower is a household contact, so a preview environment
  * opens the lend dialog on an address book with something in it.
+ *
+ * `birthdayOffsetDays` is **resolved against today at seed time**, like the loan dates below and the
+ * meal plan's week offsets — a literal birth date would drift out of the dashboard's window and leave
+ * the birthdays card permanently empty in every preview. Only the month and day come from the offset;
+ * the seed backdates the year, since a birth date in the future is not a birthday anyone is having.
  */
 export const SEED_STORAGE_CONTACT = {
   name: 'Ana Novak',
   type: 'other',
   phone: '+386 40 123 456',
+  birthdayOffsetDays: 10,
 } as const;
 
 /**
