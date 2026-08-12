@@ -32,7 +32,7 @@ import {
 import { client, parseResponse } from '@/api/client';
 import { getMyHouseholdQueryOptions } from '@/modules/households';
 import { invalidatePetProfilesList, listPetProfilesQueryOptions, petTypeLabels } from '@/modules/pet-profiles';
-import { Actionbar, ageInYears } from '@/modules/shared';
+import { Actionbar, ageInYears, PageLayout } from '@/modules/shared';
 
 export const Route = createFileRoute('/_authenticated/_onboarded/family/pets/')({
   async loader({ context }) {
@@ -100,7 +100,7 @@ function PetsRoute() {
         </Breadcrumb>
       </Actionbar.Content>
 
-      <main className="flex-1 space-y-6 p-4">
+      <PageLayout>
         <div>
           <h1 className="font-medium text-lg">Pets</h1>
           <p className="text-muted-foreground text-sm">A profile for each pet — the basics, and more to come.</p>
@@ -177,7 +177,7 @@ function PetsRoute() {
             )}
           </>
         )}
-      </main>
+      </PageLayout>
     </>
   );
 }

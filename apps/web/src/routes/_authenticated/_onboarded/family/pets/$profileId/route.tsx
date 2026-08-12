@@ -27,7 +27,7 @@ import {
 
 import { client, parseResponse } from '@/api/client';
 import { getPetProfileQueryOptions, invalidatePetProfile } from '@/modules/pet-profiles';
-import { Actionbar, ConfirmDeleteDialog } from '@/modules/shared';
+import { Actionbar, ConfirmDeleteDialog, PageLayout } from '@/modules/shared';
 
 export const Route = createFileRoute('/_authenticated/_onboarded/family/pets/$profileId')({
   async loader({ context, params }) {
@@ -91,7 +91,7 @@ function ProfileLayout() {
         </Breadcrumb>
       </Actionbar.Content>
 
-      <main className="flex-1 space-y-4 p-4">
+      <PageLayout className="space-y-4">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
             <Avatar className="size-12">
@@ -140,7 +140,7 @@ function ProfileLayout() {
           open={deleteOpen}
           title={`Delete ${profile.pet.displayName}'s profile?`}
         />
-      </main>
+      </PageLayout>
     </>
   );
 }

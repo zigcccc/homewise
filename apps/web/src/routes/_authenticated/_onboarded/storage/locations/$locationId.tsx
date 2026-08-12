@@ -59,6 +59,7 @@ import {
   Actionbar,
   ConfirmDeleteDialog,
   ExternalLink,
+  PageLayout,
   RouteError,
   SortDirectionToggle,
   serverMessage,
@@ -169,7 +170,7 @@ function StorageLocationRoute() {
         </Breadcrumb>
       </Actionbar.Content>
 
-      <main className="flex-1 space-y-6 p-4">
+      <PageLayout>
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
             <h1 className="flex items-center gap-2 font-medium text-lg">
@@ -285,7 +286,7 @@ function StorageLocationRoute() {
         />
 
         {addOpen && <ItemFormDialog locationId={location.id} onOpenChange={setAddOpen} open={addOpen} />}
-      </main>
+      </PageLayout>
     </>
   );
 }

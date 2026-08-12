@@ -36,7 +36,14 @@ import {
 } from '@homewise/ui/core';
 
 import { ContactDialog, contactTypeLabels, listContactsQueryOptions } from '@/modules/contacts';
-import { Actionbar, RouteError, SORT_LABELS, type SortDirectionLabels, SortDirectionToggle } from '@/modules/shared';
+import {
+  Actionbar,
+  PageLayout,
+  RouteError,
+  SORT_LABELS,
+  type SortDirectionLabels,
+  SortDirectionToggle,
+} from '@/modules/shared';
 
 import { contactColumns } from './-contacts-table.config';
 
@@ -116,7 +123,7 @@ function ContactsRoute() {
         </Breadcrumb>
       </Actionbar.Content>
 
-      <main className="flex-1 space-y-6 p-4">
+      <PageLayout>
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
             <h1 className="font-medium text-lg">Contacts</h1>
@@ -213,7 +220,7 @@ function ContactsRoute() {
         />
 
         {addOpen && <ContactDialog onOpenChange={setAddOpen} open={addOpen} />}
-      </main>
+      </PageLayout>
     </>
   );
 }
