@@ -50,7 +50,7 @@ import {
 
 import { client, DetailedError, parseResponse } from '@/api/client';
 import { getMyHouseholdQueryOptions } from '@/modules/households';
-import { Actionbar } from '@/modules/shared';
+import { Actionbar, PageLayout } from '@/modules/shared';
 
 const $deleteHousehold = client.households.my.$delete;
 const $patchHousehold = client.households.my.$patch;
@@ -140,7 +140,7 @@ function SettingsRoute() {
           </BreadcrumbList>
         </Breadcrumb>
       </Actionbar.Content>
-      <main className="flex-1 space-y-4 p-4">
+      <PageLayout className="space-y-4">
         <h1 className="font-medium text-lg">Manage "{household.name}" household</h1>
         <Card className="lg:max-w-1/2">
           <Form {...form}>
@@ -330,7 +330,7 @@ function SettingsRoute() {
             </Dialog>
           </CardFooter>
         </Card>
-      </main>
+      </PageLayout>
     </>
   );
 }

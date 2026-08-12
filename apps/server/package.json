@@ -44,6 +44,10 @@
       "types": "./src/modules/contacts/contacts.model.ts",
       "import": "./src/modules/contacts/contacts.model.ts"
     },
+    "./contacts/constants": {
+      "types": "./src/modules/contacts/contacts.constants.ts",
+      "import": "./src/modules/contacts/contacts.constants.ts"
+    },
     "./medical": {
       "types": "./src/modules/medical/medical.model.ts",
       "import": "./src/modules/medical/medical.model.ts"

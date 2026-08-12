@@ -31,7 +31,7 @@ import {
 import { client, parseResponse } from '@/api/client';
 import { listChildProfilesQueryOptions } from '@/modules/child-profiles';
 import { getMyHouseholdQueryOptions } from '@/modules/households';
-import { Actionbar, ageInYears } from '@/modules/shared';
+import { Actionbar, ageInYears, PageLayout } from '@/modules/shared';
 
 export const Route = createFileRoute('/_authenticated/_onboarded/family/kids/')({
   async loader({ context }) {
@@ -93,7 +93,7 @@ function KidsRoute() {
         </Breadcrumb>
       </Actionbar.Content>
 
-      <main className="flex-1 space-y-6 p-4">
+      <PageLayout>
         <div>
           <h1 className="font-medium text-lg">Kids</h1>
           <p className="text-muted-foreground text-sm">
@@ -174,7 +174,7 @@ function KidsRoute() {
             )}
           </>
         )}
-      </main>
+      </PageLayout>
     </>
   );
 }

@@ -1,4 +1,3 @@
-import { type InferResponseType } from 'hono';
 import { PlusIcon } from 'lucide-react';
 import { type ReactNode, useMemo, useState } from 'react';
 
@@ -16,13 +15,10 @@ import {
   ComboboxTrigger,
 } from '@homewise/ui/core';
 
-import { type client } from '@/api/client';
+import { type HouseholdContact } from '../contacts.queries';
 
 /** Hoisted so the default doesn't hand the component a new Set on every render. */
 const EMPTY_LINKED_IDS: ReadonlySet<number> = new Set();
-
-/** A household contact as the list endpoint returns it. */
-export type HouseholdContact = InferResponseType<typeof client.contacts.$get, 200>[number];
 
 /**
  * A searchable popover over the household's existing contacts. Selecting one hands it back; the
@@ -37,6 +33,7 @@ export type HouseholdContact = InferResponseType<typeof client.contacts.$get, 20
  */
 export function AddContactCombobox({
   contacts,
+  label = 'Add contact',
   linkedIds = EMPTY_LINKED_IDS,
   onCreate,
   onLink,
@@ -44,11 +41,17 @@ export function AddContactCombobox({
   typeLabels,
 }: {
   contacts: HouseholdContact[];
+  /**
+   * What the action button says. It names what picking someone here *does*, which is not always
+   * "add a contact" — on a contact's own page it records a relation between two that already exist,
+   * and "Add contact" there reads as though it attaches a contact to a contact.
+   */
+  label?: string;
   /** Omit where only one contact is ever chosen — nothing can already be attached. */
   linkedIds?: ReadonlySet<number>;
   onCreate: () => void;
   onLink: (contactId: number) => Promise<void>;
-  /** Replaces the default "Add contact" button. Must be a combobox trigger. */
+  /** Replaces the default action button entirely. Must be a combobox trigger. */
   trigger?: ReactNode;
   typeLabels: Record<ContactType, string>;
 }) {
@@ -88,7 +91,7 @@ export function AddContactCombobox({
         <ComboboxTrigger asChild>
           <Button size="sm" variant="outline">
             <PlusIcon />
-            Add contact
+            {label}
           </Button>
         </ComboboxTrigger>
       )}

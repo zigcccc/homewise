@@ -36,7 +36,7 @@ import {
 
 import { getMyHouseholdQueryOptions, listMyHouseholdActiveInvitesQueryOptions } from '@/modules/households';
 import { AddMemberTabs } from '@/modules/households/components';
-import { Actionbar } from '@/modules/shared';
+import { Actionbar, PageLayout } from '@/modules/shared';
 
 import { invitesTableColumns, membersTableColumns } from './-household-members.config';
 
@@ -87,7 +87,7 @@ function HouseholdMembersRoute() {
           </BreadcrumbList>
         </Breadcrumb>
       </Actionbar.Content>
-      <main className="flex-1 space-y-4 p-4">
+      <PageLayout className="space-y-4">
         <h1 className="font-medium text-lg">Manage "{household.name}" members</h1>
         <Tabs
           onValueChange={(tab) =>
@@ -153,7 +153,7 @@ function HouseholdMembersRoute() {
             />
           </DialogContent>
         </Dialog>
-      </main>
+      </PageLayout>
     </>
   );
 }

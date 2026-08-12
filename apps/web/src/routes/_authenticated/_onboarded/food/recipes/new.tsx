@@ -16,7 +16,7 @@ import {
 import { client, parseResponse } from '@/api/client';
 import { invalidateIngredients, listIngredientsQueryOptions } from '@/modules/ingredients';
 import { invalidateRecipes, listRecipeTagsQueryOptions, RecipeForm, type RecipeFormValues } from '@/modules/recipes';
-import { Actionbar, serverMessage } from '@/modules/shared';
+import { Actionbar, PageLayout, serverMessage } from '@/modules/shared';
 
 const $createRecipe = client.recipes.$post;
 
@@ -84,7 +84,7 @@ function NewRecipeRoute() {
         </Breadcrumb>
       </Actionbar.Content>
 
-      <main className="flex-1 space-y-4 p-4">
+      <PageLayout className="space-y-4">
         <div>
           <h1 className="font-medium text-lg">Add a recipe</h1>
           <p className="text-muted-foreground text-sm">Only the title is required — fill in the rest as you go.</p>
@@ -101,7 +101,7 @@ function NewRecipeRoute() {
           submitLabel="Save recipe"
           tagSuggestions={tags.map((tag) => tag.name)}
         />
-      </main>
+      </PageLayout>
     </>
   );
 }

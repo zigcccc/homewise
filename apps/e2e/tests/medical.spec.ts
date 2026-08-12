@@ -62,9 +62,16 @@ test.describe('medical information', () => {
     try {
       const medical = new MedicalPage(page);
 
-      // Searching and taking a suggestion writes the whole one-line address into the field.
       const dialog = await medical.openCreateContactDialog();
       await dialog.getByLabel('Name', { exact: true }).fill(picked);
+
+      // The field opts out of every browser-drawn assist, because each one paints its own popup on
+      // top of the suggestion list this box exists to show. Nothing on screen says so, so it would
+      // be deleted by anyone tidying attributes — assert it rather than rediscover it in a bug.
+      await expect(medical.addressField).toHaveAttribute('autocomplete', 'off');
+      await expect(medical.addressField).toHaveAttribute('spellcheck', 'false');
+
+      // Searching and taking a suggestion writes the whole one-line address into the field.
       await medical.pickAddress('Slovenska', pickedAddress);
       await expect(medical.addressField).toHaveValue(pickedAddress);
 
@@ -87,8 +94,8 @@ test.describe('medical information', () => {
       try {
         await removeManagedMember(page, kidName);
       } finally {
-        // Unlinking leaves the contact in the household, and there is no Contacts page to remove it
-        // from — so both go out of band, or they pile up in every later run's address book. Both,
+        // Unlinking leaves the contact in the household, so both go out of band rather than sending
+        // this spec off to the address book — otherwise they pile up in every later run. Both,
         // whichever way the member teardown went, and `Promise.all` rather than two awaits: it has
         // the second request away before the first can reject.
         await Promise.all([deleteOutOfBand(page, 'contacts', picked), deleteOutOfBand(page, 'contacts', typed)]);

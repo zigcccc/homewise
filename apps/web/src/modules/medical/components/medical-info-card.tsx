@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type InferRequestType, type InferResponseType } from 'hono';
-import { AtSignIcon, GlobeIcon, LinkIcon, MailIcon, MapPinIcon, PencilIcon, PhoneIcon, TrashIcon } from 'lucide-react';
+import { PencilIcon, TrashIcon } from 'lucide-react';
 import { useState } from 'react';
 import { type SubmitHandler, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -27,14 +27,16 @@ import {
 import { client, parseResponse } from '@/api/client';
 import {
   AddContactCombobox,
+  ContactFacts,
   ContactFormDialog,
   type ContactFormValues,
+  ContactLinkChips,
   contactTypeLabels,
   invalidateContacts,
   listContactsQueryOptions,
   petContactTypeLabels,
 } from '@/modules/contacts';
-import { ConfirmDeleteDialog, ExternalLink, UnsavedChangesDialog } from '@/modules/shared';
+import { ConfirmDeleteDialog, UnsavedChangesDialog } from '@/modules/shared';
 
 const $patchInfo = client['medical-info'][':id'].$patch;
 const $postContact = client['medical-info'][':id'].contacts.$post;
@@ -54,9 +56,6 @@ export type MedicalInfo = {
 type PatchInfoPayload = InferRequestType<typeof $patchInfo>['json'];
 
 const infoFormModel = patchMedicalInfoModel.required();
-
-/** Icon per link type — a website, a social profile, or anything else. */
-const linkIcons = { web: GlobeIcon, social: AtSignIcon, other: LinkIcon } as const;
 
 /**
  * The "Medical information" card shown below general info on both profile types. Owns its own forms and
@@ -212,43 +211,10 @@ export function MedicalInfoCard({
                     {contact.description ? (
                       <p className="text-muted-foreground text-sm">{contact.description}</p>
                     ) : null}
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground text-sm">
-                      {contact.email ? (
-                        <span className="flex items-center gap-1">
-                          <MailIcon className="size-3.5" />
-                          {contact.email}
-                        </span>
-                      ) : null}
-                      {contact.phone ? (
-                        <span className="flex items-center gap-1">
-                          <PhoneIcon className="size-3.5" />
-                          {contact.phone}
-                        </span>
-                      ) : null}
-                      {contact.address ? (
-                        <span className="flex items-center gap-1">
-                          <MapPinIcon className="size-3.5" />
-                          {contact.address}
-                        </span>
-                      ) : null}
-                    </div>
-                    {contact.links.length > 0 ? (
-                      <div className="flex flex-wrap gap-2 pt-0.5">
-                        {contact.links.map((link) => {
-                          const Icon = linkIcons[link.type];
-                          return (
-                            <ExternalLink
-                              className="flex items-center gap-1 rounded-full border px-2 py-0.5 text-muted-foreground text-xs hover:bg-accent hover:text-accent-foreground"
-                              href={link.url}
-                              key={link.id}
-                            >
-                              <Icon className="size-3" />
-                              {link.name}
-                            </ExternalLink>
-                          );
-                        })}
-                      </div>
-                    ) : null}
+                    {/* No birthday here: a contact attached to a medical record is a doctor or a vet,
+                        and whose birthday it is belongs on the contact's own page. */}
+                    <ContactFacts address={contact.address} email={contact.email} phone={contact.phone} />
+                    <ContactLinkChips links={contact.links} />
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
                     <Button

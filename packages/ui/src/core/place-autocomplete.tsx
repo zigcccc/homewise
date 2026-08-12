@@ -258,6 +258,14 @@ function PlaceAutocomplete({
             <SearchIcon />
           </InputGroupAddon>
           <InputGroupInput
+            // This box has its own dropdown; these keep browsers and password managers from drawing a
+            // second one over it. Chrome may ignore `autoComplete` on a field it reads as an address,
+            // and it decides that from the `name` the consumer passes — so that lever is the form's.
+            autoCapitalize="off"
+            autoComplete="off"
+            autoCorrect="off"
+            data-1p-ignore
+            data-lpignore="true"
             onChange={(event) => {
               commit(event.target.value);
               setSearchQuery(event.target.value);
@@ -275,6 +283,7 @@ function PlaceAutocomplete({
               }
             }}
             placeholder="Search for a place"
+            spellCheck={false}
             value={displayValue}
             {...props}
           />

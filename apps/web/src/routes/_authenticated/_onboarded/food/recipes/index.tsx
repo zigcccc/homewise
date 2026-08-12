@@ -41,6 +41,7 @@ import { listRecipesQueryOptions, listRecipeTagsQueryOptions, mealTypeLabels } f
 import {
   Actionbar,
   formatMinutes,
+  PageLayout,
   SELECT_ALL,
   SORT_LABELS,
   type SortDirectionLabels,
@@ -133,7 +134,7 @@ function RecipesRoute() {
         </Breadcrumb>
       </Actionbar.Content>
 
-      <main className="flex-1 space-y-6 p-4">
+      <PageLayout>
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="font-medium text-lg">Recipes</h1>
@@ -308,7 +309,7 @@ function RecipesRoute() {
             })}
           </div>
         )}
-      </main>
+      </PageLayout>
     </>
   );
 }

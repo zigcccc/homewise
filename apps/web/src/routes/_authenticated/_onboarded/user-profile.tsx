@@ -36,7 +36,7 @@ import {
 
 import { client, parseResponse } from '@/api/client';
 import { getSessionQueryOptions } from '@/auth/queries';
-import { Actionbar, formatDate, UnsavedChangesDialog } from '@/modules/shared';
+import { Actionbar, formatDate, PageLayout, UnsavedChangesDialog } from '@/modules/shared';
 
 const userProfileFormModel = z.object({
   id: z.string(),
@@ -123,7 +123,7 @@ function UserProfileRoute() {
           </BreadcrumbList>
         </Breadcrumb>
       </Actionbar.Content>
-      <main className="flex-1 space-y-4 p-4">
+      <PageLayout className="space-y-4">
         <h1 className="font-medium text-lg">Your profile</h1>
         <Form {...form}>
           <Card className="lg:max-w-1/2">
@@ -249,7 +249,7 @@ function UserProfileRoute() {
         </Form>
 
         <UnsavedChangesDialog when={isDirty} />
-      </main>
+      </PageLayout>
     </>
   );
 }

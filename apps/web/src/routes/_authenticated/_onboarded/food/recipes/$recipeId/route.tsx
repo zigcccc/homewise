@@ -21,7 +21,7 @@ import {
 
 import { client, parseResponse } from '@/api/client';
 import { getRecipeQueryOptions, invalidateRecipe, invalidateRecipes } from '@/modules/recipes';
-import { Actionbar, ConfirmDeleteDialog } from '@/modules/shared';
+import { Actionbar, ConfirmDeleteDialog, PageLayout } from '@/modules/shared';
 
 const $patchRecipe = client.recipes[':id'].$patch;
 const $deleteRecipe = client.recipes[':id'].$delete;
@@ -131,7 +131,7 @@ function RecipeLayout() {
         </Breadcrumb>
       </Actionbar.Content>
 
-      <main className="flex-1 space-y-4 p-4">
+      <PageLayout className="space-y-4">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="flex items-center gap-2 font-medium text-lg">
@@ -191,7 +191,7 @@ function RecipeLayout() {
           open={deleteOpen}
           title={`Delete "${recipe.title}"?`}
         />
-      </main>
+      </PageLayout>
     </>
   );
 }

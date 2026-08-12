@@ -28,6 +28,13 @@ const toISODate = (date: Date) => format(date, ISO_DAY);
 
 export const todayISO = () => toISODate(new UTCDate());
 
+/**
+ * Today as `MM-DD`, for the comparisons that are deliberately blind to the year — "whose birthday is
+ * next" being the one. Compared against `to_char(column, 'MM-DD')` it orders the calendar correctly
+ * without any date arithmetic, so 29 February needs no special case.
+ */
+export const todayMonthDay = () => format(new UTCDate(), 'MM-dd');
+
 export const addDays = (day: string, days: number) => toISODate(addDaysToDate(new UTCDate(day), days));
 
 /** The Monday of the week containing `day`. ISO weeks — Monday-first, as the rest of Europe counts. */

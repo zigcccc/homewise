@@ -38,8 +38,13 @@ Name relations for what they are (`child`, `creator`), never `member`. Export fr
 
 **2. Models** — `modules/<feature>/<feature>.model.ts`
 
-One flat file beside the app and service — the module is a trio plus a one-line `index.ts`
-re-exporting the app. No `models/` folder, no barrel.
+One flat file beside the app and service, plus a one-line `index.ts` re-exporting the app. No
+`models/` folder, no barrel.
+
+Keep it to schemas and the types inferred from them. A domain lookup table — a `Record` mapping one
+enum onto another, a set of fixed values — is not a schema and goes in `<feature>.constants.ts`
+beside it (see `contacts.constants.ts`), with its own `package.json#exports` subpath if the web needs
+it too.
 
 **Derive them from the table.** `createInsertSchema`/`createUpdateSchema` for anything that writes a
 row, `createSelectSchema(schema.xEnum)` for every enum — never a hand-written `z.enum([...])` mirror.

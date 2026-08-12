@@ -1,12 +1,14 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { PlusIcon, TrashIcon } from 'lucide-react';
 import { type SubmitHandler, useFieldArray, useForm } from 'react-hook-form';
-import type z from 'zod';
+import { toast } from 'sonner';
+import z from 'zod';
 
 import {
   type ContactLinkType,
   type ContactType,
   contactLinkType,
+  contactRelationRole,
   contactType,
   createContactModel,
 } from '@homewise/server/contacts';
@@ -30,12 +32,38 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
+  Spinner,
   Textarea,
 } from '@homewise/ui/core';
 
-import { contactLinkTypeLabels } from '../helpers';
+import { DateField } from '@/modules/shared';
 
-export type ContactFormValues = z.infer<typeof createContactModel>;
+import { type HouseholdContact } from '../contacts.queries';
+import { contactLinkTypeLabels, contactRelationRoleLabels, type RelationDraft, showsPersonalDetails } from '../helpers';
+import { AddContactCombobox } from './add-contact-combobox';
+
+/**
+ * The server's create model, plus what the *form* needs to show a relation and to tell an existing
+ * one from a new one.
+ *
+ * `relationId` and `relatedContactName` are deliberately not on the wire model — a payload has no
+ * business carrying the other contact's name, and zod would strip both on the way through the
+ * resolver, leaving the save unable to tell which rows it had already stored.
+ */
+const contactFormModel = createContactModel.extend({
+  relations: z
+    .array(
+      z.object({
+        relationId: z.number().optional(),
+        relatedContactId: z.number(),
+        relatedContactName: z.string(),
+        role: contactRelationRole,
+      })
+    )
+    .optional(),
+});
+
+export type ContactFormValues = z.infer<typeof contactFormModel>;
 
 /** The subset of a contact the form edits — matches what the profile response nests. */
 export type EditableContact = {
@@ -45,18 +73,23 @@ export type EditableContact = {
   email: string | null;
   phone: string | null;
   address: string | null;
+  dateOfBirth: string | null;
   links: { name: string; url: string; type: ContactLinkType }[];
+  /** Absent wherever a contact is edited without its relations to hand — a profile's vet. */
+  relations?: RelationDraft[];
 };
 
-function toDefaults(contact?: EditableContact): ContactFormValues {
+function toDefaults(contact?: EditableContact, defaultType: ContactType = 'medical'): ContactFormValues {
   return {
-    type: contact?.type ?? 'medical',
+    type: contact?.type ?? defaultType,
     name: contact?.name ?? '',
     description: contact?.description ?? '',
     email: contact?.email ?? '',
     phone: contact?.phone ?? '',
     address: contact?.address ?? '',
+    dateOfBirth: contact?.dateOfBirth ?? '',
     links: contact?.links ?? [],
+    relations: contact?.relations ?? [],
   };
 }
 
@@ -70,15 +103,24 @@ function toDefaults(contact?: EditableContact): ContactFormValues {
  */
 export function ContactFormDialog({
   contact,
+  defaultType,
+  isLoading = false,
   onOpenChange,
   onSubmit,
   open,
+  relatableContacts,
   typeLabels,
 }: {
   contact?: EditableContact;
+  /** What a new contact starts as. The owner that opens this decides — a vet, or an address-book entry. */
+  defaultType?: ContactType;
+  /** Holds the form back until the record it edits has arrived — its defaults only seed once. */
+  isLoading?: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (values: ContactFormValues) => Promise<void>;
   open: boolean;
+  /** Who this contact can be related to. Omitted, the relations section doesn't appear at all. */
+  relatableContacts?: HouseholdContact[];
   typeLabels: Record<ContactType, string>;
 }) {
   return (
@@ -90,7 +132,18 @@ export function ContactFormDialog({
             {contact ? 'Update this contact’s details.' : 'Add a doctor, vet, family member, or anyone else.'}
           </DialogDescription>
         </DialogHeader>
-        <ContactForm contact={contact} onDone={() => onOpenChange(false)} onSubmit={onSubmit} typeLabels={typeLabels} />
+        {isLoading ? (
+          <Spinner className="min-h-40" />
+        ) : (
+          <ContactForm
+            contact={contact}
+            defaultType={defaultType}
+            onDone={() => onOpenChange(false)}
+            onSubmit={onSubmit}
+            relatableContacts={relatableContacts}
+            typeLabels={typeLabels}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );
@@ -98,21 +151,39 @@ export function ContactFormDialog({
 
 function ContactForm({
   contact,
+  defaultType,
   onDone,
   onSubmit,
+  relatableContacts,
   typeLabels,
 }: {
   contact?: EditableContact;
+  defaultType?: ContactType;
   onDone: () => void;
   onSubmit: (values: ContactFormValues) => Promise<void>;
+  relatableContacts?: HouseholdContact[];
   typeLabels: Record<ContactType, string>;
 }) {
   const form = useForm<ContactFormValues>({
-    resolver: zodResolver(createContactModel),
-    defaultValues: toDefaults(contact),
+    resolver: zodResolver(contactFormModel),
+    defaultValues: toDefaults(contact, defaultType),
   });
 
+  // Watched rather than read once: these sections appear and disappear as the type is changed, in
+  // the same dialog, before anything is saved.
+  const selectedType = form.watch('type');
+  // The *live* value, not the loaded one. Gating on what the record arrived with would let a
+  // birthday typed for a family contact survive a switch to `business` — hidden, still in form
+  // state, and submitted anyway. The relations list has always read live field state this way.
+  const enteredBirthday = form.watch('dateOfBirth');
+  const offersBirthday = showsPersonalDetails(selectedType, Boolean(enteredBirthday));
+
   const links = useFieldArray({ control: form.control, name: 'links' });
+  const relations = useFieldArray({ control: form.control, name: 'relations' });
+
+  const offersRelations =
+    relatableContacts !== undefined && showsPersonalDetails(selectedType, relations.fields.length > 0);
+  const relatedIds = new Set(relations.fields.map((relation) => relation.relatedContactId));
 
   const submit: SubmitHandler<ContactFormValues> = async (values) => {
     await onSubmit(values);
@@ -186,6 +257,21 @@ function ContactForm({
               </FormItem>
             )}
           />
+          {offersBirthday && (
+            <FormField
+              control={form.control}
+              name="dateOfBirth"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Birthday (optional)</FormLabel>
+                  <FormControl>
+                    <DateField onChange={field.onChange} value={field.value ?? ''} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
         </div>
         <FormField
           control={form.control}
@@ -306,6 +392,75 @@ function ContactForm({
             </div>
           )}
         </div>
+
+        {offersRelations && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <FormLabel>Relations</FormLabel>
+              <AddContactCombobox
+                contacts={relatableContacts}
+                label="Add relation"
+                linkedIds={relatedIds}
+                onCreate={() => toast.info('Save this contact first, then add the other person.')}
+                onLink={async (relatedContactId) => {
+                  const related = relatableContacts.find((candidate) => candidate.id === relatedContactId);
+
+                  if (related) {
+                    // The reverse wording isn't asked for here — `INVERSE_ROLE` fills it in, and the
+                    // contact's own page is where an unusual one gets set.
+                    relations.append({ relatedContactId, relatedContactName: related.name, role: 'friend' });
+                  }
+                }}
+                typeLabels={typeLabels}
+              />
+            </div>
+            {relations.fields.length === 0 ? (
+              <p className="text-muted-foreground text-sm">No relations yet. Add a partner, parent or sibling.</p>
+            ) : (
+              <div className="space-y-2">
+                {relations.fields.map((item, index) => (
+                  <div className="flex items-center gap-2" key={item.id}>
+                    <span className="min-w-0 flex-1 truncate text-sm">{item.relatedContactName}</span>
+                    <span className="shrink-0 text-muted-foreground text-sm">is</span>
+                    <FormField
+                      control={form.control}
+                      name={`relations.${index}.role`}
+                      render={({ field }) => (
+                        <FormItem className="w-40 shrink-0">
+                          <Select onValueChange={field.onChange} value={field.value ?? 'friend'}>
+                            <FormControl>
+                              <SelectTrigger aria-label={`${item.relatedContactName}'s relation`} className="w-full">
+                                <span>{contactRelationRoleLabels[field.value ?? 'friend']}</span>
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {contactRelationRole.options.map((option) => (
+                                <SelectItem key={option} value={option}>
+                                  {contactRelationRoleLabels[option]}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Button
+                      aria-label={`Remove ${item.relatedContactName}`}
+                      className="shrink-0"
+                      onClick={() => relations.remove(index)}
+                      size="icon"
+                      type="button"
+                      variant="ghost"
+                    >
+                      <TrashIcon />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         <DialogFooter>
           <Button loading={form.formState.isSubmitting} type="submit">

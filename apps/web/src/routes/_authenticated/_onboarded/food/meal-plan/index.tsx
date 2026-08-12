@@ -35,7 +35,7 @@ import {
   useMealMove,
 } from '@/modules/meal-plan';
 import { listRecipesQueryOptions } from '@/modules/recipes';
-import { Actionbar } from '@/modules/shared';
+import { Actionbar, PageLayout } from '@/modules/shared';
 
 import { MealPlanDayRow } from './-components/meal-plan-day';
 
@@ -111,7 +111,7 @@ function MealPlanRoute() {
         </Breadcrumb>
       </Actionbar.Content>
 
-      <main className="flex-1 space-y-6 p-4">
+      <PageLayout>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="font-medium text-lg">Meal plan</h1>
@@ -182,7 +182,7 @@ function MealPlanRoute() {
             ))}
           </div>
         </DragDropProvider>
-      </main>
+      </PageLayout>
     </>
   );
 }

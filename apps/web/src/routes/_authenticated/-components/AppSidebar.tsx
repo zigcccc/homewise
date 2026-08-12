@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate, useRouteContext, useRouterState } from '@tanstack/react-router';
 import {
   BabyIcon,
+  BookUserIcon,
   CarrotIcon,
   CogIcon,
   CookingPotIcon,
@@ -105,7 +106,7 @@ export function AppSidebar() {
           </SidebarMenu>
         </SidebarGroup>
         <SidebarGroup>
-          <SidebarGroupLabel>Family</SidebarGroupLabel>
+          <SidebarGroupLabel>Family &amp; friends</SidebarGroupLabel>
           <SidebarMenu>
             <SidebarMenuItem>
               <Link to="/family/kids">
@@ -123,6 +124,16 @@ export function AppSidebar() {
                   <SidebarMenuButton isActive={isActive} tooltip="Pets">
                     <PawPrintIcon className="size-4" />
                     <span>Pets</span>
+                  </SidebarMenuButton>
+                )}
+              </Link>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <Link to="/family/contacts">
+                {({ isActive }) => (
+                  <SidebarMenuButton isActive={isActive} tooltip="Contacts">
+                    <BookUserIcon className="size-4" />
+                    <span>Contacts</span>
                   </SidebarMenuButton>
                 )}
               </Link>
