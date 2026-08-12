@@ -1,18 +1,114 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, Link } from '@tanstack/react-router';
+import { format } from 'date-fns';
+import { BookUserIcon, CookingPotIcon, ListTodoIcon, PlusIcon } from 'lucide-react';
+import { useState } from 'react';
 
-import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, Spinner } from '@homewise/ui/core';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbList,
+  BreadcrumbPage,
+  Button,
+  ButtonGroup,
+  Spinner,
+} from '@homewise/ui/core';
 
+import { listChildProfilesQueryOptions } from '@/modules/child-profiles';
+import { ContactDialog, listContactsQueryOptions } from '@/modules/contacts';
+import { ExpenseFormDialog } from '@/modules/expenses';
 import { getMyHouseholdQueryOptions } from '@/modules/households';
-import { Actionbar } from '@/modules/shared';
+import { listPetProfilesQueryOptions } from '@/modules/pet-profiles';
+import { Actionbar, formatDate, PageLayout, RouteError, todayISODay } from '@/modules/shared';
+
+import { BirthdaysCard } from './-components/birthdays-card';
+import { dashboardLoansQueryOptions, LoansCard } from './-components/loans-card';
+import { dashboardRecentRecipesQueryOptions, RecentRecipesCard } from './-components/recent-recipes-card';
+import { dashboardShoppingListsQueryOptions, ShoppingListsCard } from './-components/shopping-lists-card';
+import {
+  dashboardRecentExpensesQueryOptions,
+  dashboardSpendingSummaryQueryOptions,
+  SpendingCard,
+} from './-components/spending-card';
+import { WeekMealsCard, weekMealsQueryOptions } from './-components/week-meals-card';
 
 export const Route = createFileRoute('/_authenticated/_onboarded/')({
   component: HomeRoute,
   pendingComponent: () => <Spinner />,
+  errorComponent: () => <RouteError title="Couldn't load your dashboard" />,
   async loader({ context }) {
-    await context.queryClient.ensureQueryData(getMyHouseholdQueryOptions());
+    // Every card's query, warmed in parallel — each one reads its own with `useSuspenseQuery`, and
+    // without this the page would suspend six times in series on the way in.
+    await Promise.all([
+      context.queryClient.ensureQueryData(getMyHouseholdQueryOptions()),
+      context.queryClient.ensureQueryData(weekMealsQueryOptions()),
+      context.queryClient.ensureQueryData(dashboardShoppingListsQueryOptions()),
+      context.queryClient.ensureQueryData(dashboardSpendingSummaryQueryOptions()),
+      context.queryClient.ensureQueryData(dashboardRecentExpensesQueryOptions()),
+      context.queryClient.ensureQueryData(dashboardLoansQueryOptions()),
+      context.queryClient.ensureQueryData(dashboardRecentRecipesQueryOptions()),
+      context.queryClient.ensureQueryData(listContactsQueryOptions()),
+      context.queryClient.ensureQueryData(listChildProfilesQueryOptions()),
+      context.queryClient.ensureQueryData(listPetProfilesQueryOptions()),
+    ]);
   },
 });
+
+/** Read off the local clock, so it agrees with the day the user is actually having. */
+function greeting() {
+  const hour = new Date().getHours();
+
+  if (hour < 12) {
+    return 'Good morning';
+  }
+
+  return hour < 18 ? 'Good afternoon' : 'Good evening';
+}
+
+/**
+ * The four things worth starting from the dashboard.
+ *
+ * Two open a dialog the owning module already exports whole; two navigate, because creating a list
+ * or a meal is wired into its own page's state and lifting that out buys a click at the cost of a
+ * second copy of the flow.
+ */
+function QuickActions() {
+  const [expenseOpen, setExpenseOpen] = useState(false);
+  const [contactOpen, setContactOpen] = useState(false);
+
+  return (
+    <>
+      <ButtonGroup>
+        <Button onClick={() => setExpenseOpen(true)} size="sm" variant="outline">
+          <PlusIcon />
+          Expense
+        </Button>
+        <Button asChild size="sm" variant="outline">
+          <Link to="/food/shopping-lists">
+            <ListTodoIcon />
+            Shopping list
+          </Link>
+        </Button>
+        <Button asChild size="sm" variant="outline">
+          <Link to="/food/meal-plan">
+            <CookingPotIcon />
+            Plan a meal
+          </Link>
+        </Button>
+        <Button onClick={() => setContactOpen(true)} size="sm" variant="outline">
+          <BookUserIcon />
+          Contact
+        </Button>
+      </ButtonGroup>
+      {/* Mounted only while open, so each dialog's form reseeds its defaults instead of holding
+          whatever was last typed into it. */}
+      {expenseOpen && (
+        <ExpenseFormDialog defaultRecordedAt={todayISODay()} onOpenChange={setExpenseOpen} open={expenseOpen} />
+      )}
+      {contactOpen && <ContactDialog onOpenChange={setContactOpen} open={contactOpen} />}
+    </>
+  );
+}
 
 function HomeRoute() {
   const { user } = Route.useRouteContext();
@@ -29,12 +125,29 @@ function HomeRoute() {
           </BreadcrumbList>
         </Breadcrumb>
       </Actionbar.Content>
-      <div>
-        <h1>Hello {user.name}!</h1>
-        <div className="mt-4">
-          <h2>Your household: {household.name}</h2>
+      <PageLayout className="space-y-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="font-medium text-lg">
+              {greeting()}, {user.name}
+            </h1>
+            {/* Carries a testid because the household's name is also in the sidebar, and the page
+                sits inside a second <main> — neither a text nor a landmark query lands on one. */}
+            <p className="text-muted-foreground text-sm" data-testid="dashboard-greeting">
+              {format(new Date(), 'EEEE')}, {formatDate(new Date())} · {household.name}
+            </p>
+          </div>
+          <QuickActions />
         </div>
-      </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <WeekMealsCard />
+          <ShoppingListsCard />
+          <BirthdaysCard />
+          <SpendingCard />
+          <LoansCard />
+          <RecentRecipesCard />
+        </div>
+      </PageLayout>
     </>
   );
 }
