@@ -21,7 +21,10 @@ Each feature module lives in `src/modules/<feature>/` and is **flat** — no sub
 - `index.ts` — one line, `export { default } from './<feature>.app'`, so `src/index.ts` can mount it
   as `./modules/<feature>`
 
-Barrels earn their place only there. Everything else names its file — see `server-build-and-imports`.
+Barrels earn their place only there. That `index.ts` is the **one** sanctioned folder-barrel on the
+server, and it works because `src/index.ts` reaches it with a relative directory import that esbuild
+resolves — not through the `#imports` map, which does no directory resolution at all. Every other
+specifier names its file. See `server-build-and-imports`.
 
 Middleware chain: Logger → CORS → Auth session guard → Routes.
 

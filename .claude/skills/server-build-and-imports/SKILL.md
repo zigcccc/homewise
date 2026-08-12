@@ -16,12 +16,18 @@ back, and don't carry the web's barrel convention across: `apps/web` keeps
 `modules/<domain>/<mechanism>/index.ts` because `@/*` still resolves a folder, and the server
 deliberately does not.
 
-- **Every specifier names a file.** Node does no directory resolution and, unlike `tsc`, will not
-  fall through an array of fallback targets — so there is no folder-barrel to import: `#db/core`,
-  `#db/schema/core`, `#modules/ingredients/ingredients.model`. An `index.ts` that only re-exports one
-  sibling is a file and a hop for nothing; an `index.ts` that genuinely defines something (the db
-  client, the schema barrel over 11 files) is named `core.ts` instead. `src/index.ts` is the
-  exception and must keep its name — it is the Vercel Hono entrypoint.
+- **Every `#` specifier names a file.** Node does no directory resolution and, unlike `tsc`, will not
+  fall through an array of fallback targets — so there is no folder-barrel to import through the
+  `imports` map: `#db/core`, `#db/schema/core`, `#modules/ingredients/ingredients.model`. An
+  `index.ts` that only re-exports one sibling is a file and a hop for nothing; an `index.ts` that
+  genuinely defines something (the db client, the schema barrel over 11 files) is named `core.ts`
+  instead. `src/index.ts` is the exception and must keep its name — it is the Vercel Hono entrypoint.
+- **The one sanctioned folder-barrel is a feature module's `index.ts`**, and it is reached by a
+  *relative* directory import, not a `#` one: `src/index.ts` does `import usersApp from
+  './modules/users'`. Node could not resolve that either — esbuild is what turns it into something
+  runnable, which is the same reason the `.tsx` email templates work. So the rule is about the
+  `imports` map, not about the whole codebase: outside `src/index.ts`'s mount list, still name the
+  file.
 - **Adding a top-level directory under `src/` means adding a line to the `imports` map.** It is one
   wildcard per directory and stays that size.
 - **This is what lets the server ship no declarations.** The web resolves `@homewise/server` to
