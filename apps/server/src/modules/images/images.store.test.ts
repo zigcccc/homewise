@@ -5,7 +5,7 @@ import path from 'node:path';
 
 import { afterAll, describe, expect, it } from 'vitest';
 
-import { localStore, readLocalFile } from '#modules/images/images.store';
+import { localStore } from '#modules/images/images.store';
 
 // Namespaced per run so a concurrent E2E suite or `pnpm dev` writing into the same root can't be
 // mistaken for this file's own state.
@@ -13,8 +13,10 @@ const PREFIX = `store-tests/${randomUUID()}`;
 
 const bytes = () => Buffer.from([1, 2, 3, 4]);
 
+// Only this run's namespace — removing the whole `store-tests` root would pull the files out from
+// under a second run of this file going on at the same time.
 afterAll(async () => {
-  await rm(path.join(tmpdir(), 'homewise-files', 'store-tests'), { force: true, recursive: true });
+  await rm(path.join(tmpdir(), 'homewise-files', PREFIX), { force: true, recursive: true });
 });
 
 describe('localStore.put', () => {
@@ -111,11 +113,19 @@ describe('localStore.remove', () => {
   });
 });
 
-describe('readLocalFile', () => {
+describe('localStore.read', () => {
   it('should serve a stored blob with a content type derived from its extension', async () => {
     const { pathname } = await localStore.put(`${PREFIX}/served.png`, bytes(), { addRandomSuffix: false });
 
-    await expect(readLocalFile(pathname)).resolves.toEqual({ body: bytes(), contentType: 'image/png' });
+    await expect(localStore.read(pathname)).resolves.toEqual({ body: bytes(), contentType: 'image/png' });
+  });
+
+  it('should type a file the client named in upper case', async () => {
+    // Only shared avatars have their filename refined, so an `image` arrives as whatever it was
+    // called — and a missing content type leaves the route serving the bytes untyped.
+    const { pathname } = await localStore.put(`${PREFIX}/SHOUTED.PNG`, bytes(), { addRandomSuffix: false });
+
+    await expect(localStore.read(pathname)).resolves.toMatchObject({ contentType: 'image/png' });
   });
 
   it('should refuse to read outside the store root', async () => {
@@ -126,12 +136,14 @@ describe('readLocalFile', () => {
 
     // WHEN: a crafted URL walks out to it — the route hands this whatever followed /files/
     // THEN: it should be refused; the guard is all that stands between that URL and the disk
-    await expect(readLocalFile(`../${path.basename(outside)}`)).resolves.toBeNull();
-
-    await rm(outside, { force: true });
+    try {
+      await expect(localStore.read(`../${path.basename(outside)}`)).resolves.toBeNull();
+    } finally {
+      await rm(outside, { force: true });
+    }
   });
 
   it('should return null for a path that was never written', async () => {
-    await expect(readLocalFile(`${PREFIX}/missing.png`)).resolves.toBeNull();
+    await expect(localStore.read(`${PREFIX}/missing.png`)).resolves.toBeNull();
   });
 });

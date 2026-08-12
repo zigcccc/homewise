@@ -93,13 +93,16 @@ gallery of many images on one row) — and if you find yourself re-deriving the 
 ## Two backends, one seam (`images.store.ts`)
 
 `ImagesService` never touches `@vercel/blob`. Everything goes through `imageStore`
-(`apps/server/src/modules/images/images.store.ts`), which picks one of two drivers at boot:
+(`apps/server/src/modules/images/images.store.ts`), an `ImageStore` interface with two classes
+implementing it, one of which is picked at boot:
 
-- **`vercelStore`** — the real thing. Used in production and in `pnpm dev`.
-- **`localStore`** — writes under `os.tmpdir()/homewise-files` and hands out
-  `http://localhost:5173/files/<pathname>` URLs, which `index.ts` serves from a route registered
-  **before** the session guard (an `<img>` from another origin sends no cookies). Selected by
-  `HOMEWISE_LOCAL_FILE_STORAGE`, which `env.ts` refuses outside `NODE_ENV` development/test.
+- **`VercelStore`** — the real thing. Used in production and in `pnpm dev`.
+- **`LocalStore`** — writes under `os.tmpdir()/homewise-files` and hands out
+  `http://localhost:<SERVER_PORT>/files/<pathname>` URLs, which `index.ts` serves via `localStore.read`
+  from a route registered **before** the session guard (an `<img>` from another origin sends no
+  cookies). Selected by `HOMEWISE_LOCAL_FILE_STORAGE`, which `env.ts` refuses outside `NODE_ENV`
+  development/test. The port comes from `#config/server` — the store and `serve()` must agree, or
+  every stored picture 404s.
 
 **Why it exists:** Vercel bills `put`, `copy` and `list` as *advanced operations* — 2K/month, and
 exceeding it locks uploads out for the rest of the window. The E2E suite spent three per run on a
@@ -107,7 +110,7 @@ exceeding it locks uploads out for the rest of the window. The E2E suite spent t
 credential at all (nor does CI). `del` is free, and `head` is billed as the far cheaper *simple*
 operation — which is why `find` is a `head` lookup and not a `list`.
 
-Adding a store operation means adding it to **both** drivers. `localStore` deliberately mirrors
+Adding a store operation means adding it to the interface and **both** classes. `LocalStore` deliberately mirrors
 Vercel's semantics rather than approximating them — `addRandomSuffix` really does produce a distinct
 pathname, and a no-overwrite write really does fail when the pathname is taken (`wx`), because
 `putShared`'s race handler catches exactly that. It also refuses any pathname that resolves outside
