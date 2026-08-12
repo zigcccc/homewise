@@ -109,8 +109,9 @@ the browser unless the user explicitly asks (it's slow; the tests are fast and r
 Type-checking passing is not evidence a feature works: a swallowed `onClick` and a US-vs-European
 date parse both type-check fine. Clean up any test data you create.
 
-**Run the full suite as the final gate — once, not continuously.** After `check-types`/`lint`/`knip`
-are green, run `pnpm test:e2e` as the last step before telling the user you're done. Do **not** run
+**Run the full suite as the final gate — once, not continuously.** After all four static checks are
+green — `pnpm check-types`, `pnpm lint`, `pnpm knip`, `pnpm test` — run `pnpm test:e2e` as the last
+step before telling the user you're done. Do **not** run
 it repeatedly while developing — it's slow and needs Docker; it's a final verification, not an
 inner-loop tool. Report the result honestly: if it fails, say so with the output rather than
 declaring done.
