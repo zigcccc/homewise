@@ -96,10 +96,18 @@ export default defineConfig({
       // to boot, and the realtime specs assert that one browser sees another's change, which only
       // means anything against the real broker. It comes from apps/server/.env locally and the job
       // env on CI — a run without it fails at startup rather than passing on a mock.
+      // HOMEWISE_LOCAL_FILE_STORAGE: Vercel bills every `put` as an *advanced operation*, our
+      // scarcest quota by far (2K/month, and exceeding it locks uploads out for the rest of the
+      // window) — and the three photo specs spent one each, per run, on a 103-byte fixture. This
+      // stores them on local disk and serves them back from the server instead. The specs are
+      // unchanged: they still upload real bytes through the real endpoint and still assert the image
+      // comes back and renders. What's given up is proof that the Vercel SDK itself still works,
+      // which `pnpm dev` exercises by hand every day.
       env: {
         NODE_ENV: 'development',
         DATABASE_URL: TEST_DATABASE_URL,
         HOMEWISE_DISABLE_EMAILS: 'true',
+        HOMEWISE_LOCAL_FILE_STORAGE: 'true',
         HOMEWISE_REALTIME_NAMESPACE: REALTIME_NAMESPACE,
       },
     },
