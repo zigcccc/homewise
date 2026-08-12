@@ -5,10 +5,9 @@ description: How unit tests work on Homewise — Vitest in apps/server and apps/
 
 # Unit testing
 
-Vitest covers `apps/server` and `apps/web`. Read `CLAUDE.md` first — it wins on any conflict; this
-skill is the detail behind its "Unit testing" section.
+Vitest covers `apps/server` and `apps/web`. Read `CLAUDE.md` first — it wins on any conflict.
 
-**Playwright (`apps/e2e`) is still the default test layer.** This one exists for what E2E can't
+**Playwright (`apps/e2e`) is still the default test layer** — see the `e2e-testing` skill. This one exists for what E2E can't
 reach. Getting that boundary wrong in either direction is the main way this layer goes bad: unit
 tests that re-cover what a spec already drives are maintenance for nothing, and logic left untested
 because "there's no obvious place for it" usually means it's in the wrong place.
@@ -85,6 +84,9 @@ apps/server/vitest.setup.ts         # per-worker guard: DATABASE_URL must be the
 apps/web/vitest.config.ts           # project `web` — jsdom environment, setupFiles
 apps/web/vitest.setup.ts            # RTL cleanup after every test
 ```
+
+`apps/web/vitest.config.ts` is **written fresh, not extended from `vite.config.ts`** — that config's
+`tanstackRouter` plugin would regenerate `routeTree.gen.ts` on every test run.
 
 ```bash
 pnpm test                                # everything (brings the unit Postgres up and removes it)
