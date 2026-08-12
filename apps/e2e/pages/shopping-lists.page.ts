@@ -63,6 +63,20 @@ export class ShoppingListsPage {
   }
 
   /**
+   * Removes a list through the API, and fails if it didn't go.
+   *
+   * The counterpart to `createList`, for a spec that only needed a list to look at. `deleteListIfPresent`
+   * drives the UI and returns `false` when the pane doesn't render in ten seconds — which under a
+   * loaded run means a `finally` block can leave a list behind **silently**. That list then survives
+   * into the `exclusive` project, whose shopping-list specs need "this household has no lists" as a
+   * precondition, and the failure surfaces over there instead of here.
+   */
+  async deleteListViaApi(listId: string) {
+    const response = await this.page.context().request.delete(`${API_URL}/shopping-lists/${listId}`);
+    expect(response.ok(), `could not delete shopping list ${listId}`).toBe(true);
+  }
+
+  /**
    * Creates a list by clicking `New list`, waits for the detail pane to open on it, and returns its
    * id. Only safe where the household isn't being changed concurrently — see `createList`.
    *
@@ -456,36 +470,30 @@ export class ShoppingListsPage {
   }
 
   /**
-   * Removes every list the household still has. Only for the exclusive project, where one spec needs
-   * "no lists exist" as a precondition and owns the household while it runs.
+   * Removes every list the household still has, and leaves the page on the (now empty) column. Only
+   * for the exclusive project, where one spec needs "no lists exist" as a precondition and owns the
+   * household while it runs.
+   *
+   * Through the API, for the same reason `createList` is: this is a **precondition**, not the
+   * behaviour under test — deleting a list through the UI has its own spec.
+   *
+   * It used to scrape the master column instead, and that was racy in a way that only showed up
+   * under load. `showCompleted` waits for the URL, and the refetch it triggers lands *after* that —
+   * the same trap `sortBy` documents. So with a completed list in the household and none open, the
+   * scan read the still-unfiltered column, found no ids, and reported the household clean; the
+   * completed list then rendered a moment later, and the failure landed on whichever assertion came
+   * next rather than here.
    */
   async deleteAllLists() {
-    await this.goto();
-    await this.showCompleted(true);
+    // `includeCompleted`, or a finished list is invisible to this and survives the "clean" household.
+    const response = await this.page.context().request.get(`${API_URL}/shopping-lists?includeCompleted=true`);
+    expect(response.ok(), 'could not read the shopping lists').toBe(true);
 
-    // Re-read each time: deleting one re-renders the column, so a captured handle goes stale. Only
-    // hrefs ending in an id — "From meal plan" points at `/food/shopping-lists/import`, same prefix.
-    const attempted = new Set<string>();
-
-    for (;;) {
-      const hrefs = await this.page
-        .locator('a[href^="/food/shopping-lists/"]')
-        .evaluateAll((links) => links.map((link) => link.getAttribute('href') ?? ''));
-      const id = hrefs.map((href) => /\/food\/shopping-lists\/(\d+)/.exec(href)?.[1]).find(Boolean);
-
-      if (!id) {
-        return;
-      }
-
-      // A list that survives its own delete would otherwise keep reappearing until the test times
-      // out, and the failure would name the timeout rather than the list that wouldn't go.
-      expect(attempted.has(id), `list ${id} is still in the column after being deleted`).toBe(false);
-      attempted.add(id);
-
-      await this.deleteListIfPresent(id);
-      await this.goto();
-      await this.showCompleted(true);
+    for (const list of (await response.json()) as { id: number }[]) {
+      await this.deleteListViaApi(String(list.id));
     }
+
+    await this.goto();
   }
 
   private async openListMenu() {

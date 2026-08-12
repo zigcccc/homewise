@@ -14,8 +14,10 @@ export async function deleteHouseholdIfPresent(page: Page) {
   await page.goto('/');
 
   const createButton = page.getByRole('button', { name: 'Create', exact: true });
-  const householdHeading = page.getByRole('heading', { name: /Your household:/ });
-  await expect(createButton.or(householdHeading)).toBeVisible();
+  // The dashboard's greeting is the "a household exists" signal — it names the household, and it is
+  // the one element on that page which doesn't depend on any of the cards having data.
+  const greeting = page.getByTestId('dashboard-greeting');
+  await expect(createButton.or(greeting)).toBeVisible();
 
   // Household-less users are redirected to create-household — nothing to clean up.
   if (await createButton.isVisible()) {

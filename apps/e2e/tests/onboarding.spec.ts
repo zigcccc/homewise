@@ -1,7 +1,8 @@
-import { expect, test } from '@playwright/test';
+import { test } from '@playwright/test';
 
 import { SEED_ONBOARDING_USER } from '@homewise/server/seed-fixtures';
 
+import { DashboardPage } from '../pages/dashboard.page';
 import { OnboardingPage } from '../pages/onboarding.page';
 import { deleteHouseholdIfPresent } from '../support/households';
 import { ONBOARDING_STORAGE_STATE } from '../support/paths';
@@ -24,8 +25,7 @@ test.describe('onboarding', () => {
     await onboarding.createHousehold(householdName);
     await onboarding.skipInvites();
 
-    await expect(page.getByRole('heading', { name: `Hello ${SEED_ONBOARDING_USER.name}!` })).toBeVisible();
-    await expect(page.getByRole('heading', { name: `Your household: ${householdName}` })).toBeVisible();
+    await new DashboardPage(page).expectLoaded({ householdName, userName: SEED_ONBOARDING_USER.name });
 
     await deleteHouseholdIfPresent(page);
   });
