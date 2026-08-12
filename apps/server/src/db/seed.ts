@@ -502,6 +502,13 @@ async function seed() {
 
     let borrower = existingBorrower;
     if (!borrower) {
+      // The month and day come from the offset so the birthday is always still to come; the year is
+      // pushed back so it reads as a birth date rather than a diary entry. Backdating by a multiple
+      // of four keeps a 29 February landing on one — a 40-year step lands on a leap year whenever
+      // the offset date did.
+      const upcoming = addDays(todayISO(), SEED_STORAGE_CONTACT.birthdayOffsetDays);
+      const [year, monthDay] = [upcoming.slice(0, 4), upcoming.slice(4)];
+
       [borrower] = await db
         .insert(schema.contact)
         .values({
@@ -509,6 +516,7 @@ async function seed() {
           name: SEED_STORAGE_CONTACT.name,
           type: SEED_STORAGE_CONTACT.type,
           phone: SEED_STORAGE_CONTACT.phone,
+          dateOfBirth: `${Number(year) - 40}${monthDay}`,
         })
         .returning();
       console.log('▸ seeded storage borrower contact');
