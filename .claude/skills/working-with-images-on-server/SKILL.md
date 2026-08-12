@@ -7,7 +7,10 @@ description: How image/file uploads work on the Homewise server — the ImagesSe
 
 All server-side uploads go through **`ImagesService`** (`apps/server/src/modules/images/images.service.ts`)
 and are stored on **Vercel blob**. This skill is the architecture behind that service. Read `CLAUDE.md`
-first — it wins on any conflict; this skill is the detail its "Images & file uploads" bullet points to.
+first — it wins on any conflict.
+
+Files come in as multipart via `zValidator('form', …)` (see `users.app.ts` `/me`); on the web send
+them through the RPC client's `form` field.
 
 Reference implementations: `child-profiles.service.ts` and `pet-profiles.service.ts` (both use the
 managed-image API end to end) and their `patch*ProfileModel` request models.
@@ -116,7 +119,13 @@ gallery of many images on one row) — and if you find yourself re-deriving the 
 
 ## Rules & gotchas
 
-- **Never store a client-relative path.** Always the blob URL.
+- **`HOMEWISE_FILES_READ_WRITE_TOKEN` is required** — validated in `src/config/env.ts` and read
+  through `env`, never off `process.env`, so the server refuses to boot without it exactly like
+  `DATABASE_URL` and the Ably key. Every profile picture and kid/pet photo goes through it;
+  unvalidated, a missing token booted fine and then surfaced as an opaque storage-SDK error on the
+  first upload, far from the cause.
+- **Never store a client-relative path.** Always the blob URL — never `/some-asset.svg` pointing at
+  one app's bundled assets.
 - **`ownedPrefix` must be unique per entity type** (`pet-profiles`, `child-profiles`, …) — its first
   segment is the ownership guard. Two entity types sharing a prefix would let one delete the other's blobs.
 - **Shared assets are immutable and eternal** — never delete an `avatars/…` blob, never `put` over one
