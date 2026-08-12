@@ -1,4 +1,5 @@
 import {
+  addDays,
   differenceInCalendarDays,
   differenceInYears,
   endOfMonth,
@@ -102,6 +103,10 @@ export function parseDayFirst(input: string, allowFuture: boolean) {
 
 /** Today as the API spells a day. Local, so it can't hand anyone east of UTC yesterday's date. */
 export const todayISODay = () => format(new Date(), ISO_DAY_FORMAT);
+
+/** The seven days from `from`, as the API spells them — a week's grid, before any of it is filled. */
+export const daysOfWeek = (from: string) =>
+  Array.from({ length: 7 }, (_, offset) => format(addDays(parseISO(from), offset), ISO_DAY_FORMAT));
 
 /**
  * Whole years since `since` — how old a kid or a pet is. `null` when the date is absent, unparseable

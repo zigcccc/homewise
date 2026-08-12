@@ -27,9 +27,15 @@ Route nesting reflects auth/onboarding requirements:
 A spinner is right for a page whose shape is unknown until the data lands. **Where the layout is
 fixed and its headings, icons and links need no request, render that instead** — the dashboard's
 pending state is the real grid with `Skeleton` bodies. Keep the two from drifting by sharing the
-frame rather than describing it twice: a `DashboardShell` for the page, one `const CARD = { … }` per
-card feeding both the card and its exported `…Skeleton` (see
-`_authenticated/_onboarded/-components/`).
+frame rather than describing it twice: a `DashboardShell` for the page, and one
+`const CARD = { … } satisfies DashboardCardFrame` per card feeding both the card and its skeleton
+(see `_authenticated/_onboarded/-components/`). The `satisfies` is what puts a typo's error on the
+declaration instead of at every spread site, and buys autocomplete inside the literal.
+
+**A placeholder hangs off the component it stands in for** — `WeekMealsCard.Skeleton =
+WeekMealsCardSkeleton`, exported as one name. The skeleton is then always to hand wherever the card
+is, without a second import per card, and the pending state can't quietly reach for a skeleton whose
+card it isn't rendering.
 
 **And an `errorComponent`, scoped to that route** — `<RouteError title="…" />` from
 `@/modules/shared`. Without one, a loader rejection (or a realtime refetch landing on a 404 because

@@ -21,25 +21,16 @@ import { getMyHouseholdQueryOptions } from '@/modules/households';
 import { listPetProfilesQueryOptions } from '@/modules/pet-profiles';
 import { Actionbar, formatDate, PageLayout, RouteError, todayISODay } from '@/modules/shared';
 
-import { BirthdaysCard, BirthdaysCardSkeleton } from './-components/birthdays-card';
-import { dashboardLoansQueryOptions, LoansCard, LoansCardSkeleton } from './-components/loans-card';
-import {
-  dashboardRecentRecipesQueryOptions,
-  RecentRecipesCard,
-  RecentRecipesCardSkeleton,
-} from './-components/recent-recipes-card';
-import {
-  dashboardShoppingListsQueryOptions,
-  ShoppingListsCard,
-  ShoppingListsCardSkeleton,
-} from './-components/shopping-lists-card';
+import { BirthdaysCard } from './-components/birthdays-card';
+import { dashboardLoansQueryOptions, LoansCard } from './-components/loans-card';
+import { dashboardRecentRecipesQueryOptions, RecentRecipesCard } from './-components/recent-recipes-card';
+import { dashboardShoppingListsQueryOptions, ShoppingListsCard } from './-components/shopping-lists-card';
 import {
   dashboardRecentExpensesQueryOptions,
   dashboardSpendingSummaryQueryOptions,
   SpendingCard,
-  SpendingCardSkeleton,
 } from './-components/spending-card';
-import { WeekMealsCard, WeekMealsCardSkeleton, weekMealsQueryOptions } from './-components/week-meals-card';
+import { WeekMealsCard, weekMealsQueryOptions } from './-components/week-meals-card';
 
 export const Route = createFileRoute('/_authenticated/_onboarded/')({
   component: HomeRoute,
@@ -152,12 +143,12 @@ function DashboardPending() {
         </>
       }
     >
-      <WeekMealsCardSkeleton />
-      <ShoppingListsCardSkeleton />
-      <BirthdaysCardSkeleton />
-      <SpendingCardSkeleton />
-      <LoansCardSkeleton />
-      <RecentRecipesCardSkeleton />
+      <WeekMealsCard.Skeleton />
+      <ShoppingListsCard.Skeleton />
+      <BirthdaysCard.Skeleton />
+      <SpendingCard.Skeleton />
+      <LoansCard.Skeleton />
+      <RecentRecipesCard.Skeleton />
     </DashboardShell>
   );
 }

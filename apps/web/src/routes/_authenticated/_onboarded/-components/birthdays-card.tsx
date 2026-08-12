@@ -10,7 +10,13 @@ import { listContactsQueryOptions } from '@/modules/contacts';
 import { listPetProfilesQueryOptions } from '@/modules/pet-profiles';
 import { countdownLabel, nextBirthday } from '@/modules/shared';
 
-import { DashboardCard, DashboardCardEmpty, DashboardCardRow, DashboardCardRowsSkeleton } from './dashboard-card';
+import {
+  DashboardCard,
+  DashboardCardEmpty,
+  type DashboardCardFrame,
+  DashboardCardRow,
+  DashboardCardRowsSkeleton,
+} from './dashboard-card';
 
 /** Past this a birthday is a diary entry, not a heads-up. */
 const HORIZON_DAYS = 60;
@@ -19,7 +25,7 @@ const HORIZON_DAYS = 60;
 const SHOWN = 5;
 
 /** The frame, shared with the skeleton so a renamed card can't say two things at once. */
-const CARD = { icon: CakeIcon, title: 'Upcoming birthdays' };
+const CARD = { icon: CakeIcon, title: 'Upcoming birthdays' } satisfies DashboardCardFrame;
 
 type Kind = 'child' | 'contact' | 'pet';
 
@@ -54,7 +60,7 @@ function BirthdayName({ id, kind, name }: { id: number; kind: Kind; name: string
   );
 }
 
-export function BirthdaysCardSkeleton() {
+function BirthdaysCardSkeleton() {
   return (
     <DashboardCard {...CARD}>
       <DashboardCardRowsSkeleton rows={SHOWN} />
@@ -63,8 +69,7 @@ export function BirthdaysCardSkeleton() {
 }
 
 export function BirthdaysCard() {
-  // Three sources, because a birth date is a column on three tables. Contacts can be sorted by
-  // "whose is next" server-side, but merged with kids and pets that ordering has to be redone here.
+  // A birth date is a column on three tables, and merging them means redoing the server's ordering.
   const { data: contacts } = useSuspenseQuery(listContactsQueryOptions());
   const { data: children } = useSuspenseQuery(listChildProfilesQueryOptions());
   const { data: pets } = useSuspenseQuery(listPetProfilesQueryOptions());
@@ -131,3 +136,5 @@ export function BirthdaysCard() {
     </DashboardCard>
   );
 }
+
+BirthdaysCard.Skeleton = BirthdaysCardSkeleton;

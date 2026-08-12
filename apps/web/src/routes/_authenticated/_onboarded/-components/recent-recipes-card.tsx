@@ -8,7 +8,7 @@ import { cn } from '@homewise/ui/lib';
 import { listRecipesQueryOptions, mealTypeLabels } from '@/modules/recipes';
 import { formatMinutes } from '@/modules/shared';
 
-import { DashboardCard, DashboardCardEmpty } from './dashboard-card';
+import { DashboardCard, DashboardCardEmpty, type DashboardCardFrame } from './dashboard-card';
 
 /** A row of four on a wide screen, and the newest four are the ones anyone is still thinking about. */
 const SHOWN = 4;
@@ -26,7 +26,7 @@ const CARD = {
   className: 'md:col-span-2',
   icon: ScrollTextIcon,
   title: 'Recently added recipes',
-};
+} satisfies DashboardCardFrame;
 
 /** The newest recipes. `includeArchived` defaults to `false` on the endpoint. */
 export const dashboardRecentRecipesQueryOptions = () =>
@@ -35,7 +35,7 @@ export const dashboardRecentRecipesQueryOptions = () =>
 /** Uneven, so the placeholder reads as a row of titles. Also the tile keys. */
 const TILE_WIDTHS = ['w-32', 'w-24', 'w-28', 'w-20'];
 
-export function RecentRecipesCardSkeleton() {
+function RecentRecipesCardSkeleton() {
   return (
     <DashboardCard {...CARD}>
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
@@ -89,3 +89,5 @@ export function RecentRecipesCard() {
     </DashboardCard>
   );
 }
+
+RecentRecipesCard.Skeleton = RecentRecipesCardSkeleton;

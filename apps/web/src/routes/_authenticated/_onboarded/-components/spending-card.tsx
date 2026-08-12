@@ -8,7 +8,13 @@ import { cn } from '@homewise/ui/lib';
 import { expensesSummaryQueryOptions, listExpensesQueryOptions } from '@/modules/expenses';
 import { currentMonth, currentYear, formatAmount, formatDate, monthRange } from '@/modules/shared';
 
-import { DashboardCard, DashboardCardEmpty, DashboardCardRow, DashboardCardRowsSkeleton } from './dashboard-card';
+import {
+  DashboardCard,
+  DashboardCardEmpty,
+  type DashboardCardFrame,
+  DashboardCardRow,
+  DashboardCardRowsSkeleton,
+} from './dashboard-card';
 
 /** Enough to recognise the month's spending by; the table is one click away. */
 const SHOWN = 4;
@@ -25,17 +31,21 @@ const CARD = {
   ),
   icon: PiggyBankIcon,
   title: "This month's spending",
-};
+} satisfies DashboardCardFrame;
 
 /** Keyed by the same `monthRange` the expenses page uses, so the two share a cache entry. */
 export const dashboardSpendingSummaryQueryOptions = () =>
   expensesSummaryQueryOptions(monthRange(currentMonth(), currentYear()));
 
-/** Newest first. No `from`/`to` — the endpoint already defaults its window to the current month. */
+/** The same month as the total, spelled out: the endpoint's own default is the *UTC* month. */
 export const dashboardRecentExpensesQueryOptions = () =>
-  listExpensesQueryOptions({ sortDirection: 'desc', sortKey: 'recordedAt' });
+  listExpensesQueryOptions({
+    ...monthRange(currentMonth(), currentYear()),
+    sortDirection: 'desc',
+    sortKey: 'recordedAt',
+  });
 
-export function SpendingCardSkeleton() {
+function SpendingCardSkeleton() {
   return (
     <DashboardCard {...CARD}>
       {/* The month total sits above the rows, and it's the tallest thing in the card. */}
@@ -96,3 +106,5 @@ export function SpendingCard() {
     </DashboardCard>
   );
 }
+
+SpendingCard.Skeleton = SpendingCardSkeleton;

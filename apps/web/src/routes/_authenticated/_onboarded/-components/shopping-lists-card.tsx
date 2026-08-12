@@ -6,7 +6,13 @@ import { Badge, Button } from '@homewise/ui/core';
 
 import { listQueryFor, listShoppingListsQueryOptions, listTitle, remainingCount } from '@/modules/shopping-lists';
 
-import { DashboardCard, DashboardCardEmpty, DashboardCardRow, DashboardCardRowsSkeleton } from './dashboard-card';
+import {
+  DashboardCard,
+  DashboardCardEmpty,
+  type DashboardCardFrame,
+  DashboardCardRow,
+  DashboardCardRowsSkeleton,
+} from './dashboard-card';
 
 /** Enough to act on; the page has the rest. */
 const SHOWN = 4;
@@ -23,12 +29,12 @@ const CARD = {
   ),
   icon: ListTodoIcon,
   title: 'Shopping lists',
-};
+} satisfies DashboardCardFrame;
 
 /** Through `listQueryFor`, not a hand-written filter — two spellings of the query are two caches. */
 export const dashboardShoppingListsQueryOptions = () => listShoppingListsQueryOptions(listQueryFor({}));
 
-export function ShoppingListsCardSkeleton() {
+function ShoppingListsCardSkeleton() {
   return (
     <DashboardCard {...CARD}>
       <DashboardCardRowsSkeleton rows={SHOWN} />
@@ -70,3 +76,5 @@ export function ShoppingListsCard() {
     </DashboardCard>
   );
 }
+
+ShoppingListsCard.Skeleton = ShoppingListsCardSkeleton;

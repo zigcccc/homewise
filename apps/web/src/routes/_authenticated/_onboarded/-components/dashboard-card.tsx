@@ -1,13 +1,10 @@
 import { type LucideIcon } from 'lucide-react';
-import { type ReactNode } from 'react';
+import { type ComponentProps, type ReactNode } from 'react';
 
 import { Card, CardAction, CardContent, CardHeader, CardTitle, Skeleton } from '@homewise/ui/core';
 import { cn } from '@homewise/ui/lib';
 
-/**
- * The frame every dashboard card shares. `h-full` is load-bearing: two cards in a grid row are only
- * the same height if both claim it.
- */
+/** `h-full` is load-bearing: two cards in a grid row are only the same height if both claim it. */
 export function DashboardCard({
   action,
   children,
@@ -22,8 +19,6 @@ export function DashboardCard({
   icon: LucideIcon;
   title: string;
 }) {
-  // Named explicitly, because `CardTitle` renders a div rather than a heading for the region to
-  // borrow its name from.
   return (
     <Card aria-label={title} className={cn('h-full', className)} role="region">
       <CardHeader>
@@ -37,6 +32,9 @@ export function DashboardCard({
     </Card>
   );
 }
+
+/** Everything a card and its skeleton share — the body is the only part one of them hasn't got. */
+export type DashboardCardFrame = Omit<ComponentProps<typeof DashboardCard>, 'children'>;
 
 /** A card's "nothing here yet" line — not the page-level `Empty`, whose `md:p-12` would dwarf a card. */
 export function DashboardCardEmpty({ children }: { children: ReactNode }) {

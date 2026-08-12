@@ -9,15 +9,15 @@ import { cn } from '@homewise/ui/lib';
 import {
   currentWeekStart,
   dayLabel,
-  daysOfWeek,
   isToday,
   mealPlanRangeQueryOptions,
   rangeFor,
   toDaysWithMeals,
   weekdayLabel,
 } from '@/modules/meal-plan';
+import { daysOfWeek } from '@/modules/shared';
 
-import { DashboardCard } from './dashboard-card';
+import { DashboardCard, type DashboardCardFrame } from './dashboard-card';
 
 /** Spelled exactly as `/food/meal-plan` spells its default view, so the two share one cache entry. */
 export const weekMealsQueryOptions = () => mealPlanRangeQueryOptions(rangeFor(currentWeekStart(), 1));
@@ -35,7 +35,7 @@ const CARD = {
   className: 'md:col-span-2',
   icon: CookingPotIcon,
   title: "This week's meals",
-};
+} satisfies DashboardCardFrame;
 
 function WeekStrip({ children }: { children: ReactNode }) {
   return <div className="grid gap-2 sm:grid-cols-7">{children}</div>;
@@ -46,7 +46,6 @@ function Day({ children, day }: { children: ReactNode; day: string }) {
   return (
     <div className={cn('flex flex-col gap-1 rounded-lg border p-2', isToday(day) && 'border-primary/50 bg-primary/5')}>
       <div className="flex items-baseline justify-between gap-2 sm:flex-col sm:gap-0">
-        {/* Abbreviated in the seven-column grid, where "Wednesday" wraps every column. */}
         <span className="font-medium text-xs">
           <span className="sm:hidden">{weekdayLabel(day)}</span>
           <span className="hidden sm:inline">{weekdayLabel(day).slice(0, 3)}</span>
@@ -58,7 +57,7 @@ function Day({ children, day }: { children: ReactNode; day: string }) {
   );
 }
 
-export function WeekMealsCardSkeleton() {
+function WeekMealsCardSkeleton() {
   return (
     <DashboardCard {...CARD}>
       <WeekStrip>
@@ -97,3 +96,5 @@ export function WeekMealsCard() {
     </DashboardCard>
   );
 }
+
+WeekMealsCard.Skeleton = WeekMealsCardSkeleton;

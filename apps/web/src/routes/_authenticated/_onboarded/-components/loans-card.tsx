@@ -1,13 +1,20 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { ArrowRightIcon, PackageOpenIcon } from 'lucide-react';
+import { useMemo } from 'react';
 
 import { Badge, Button } from '@homewise/ui/core';
 
 import { formatDate } from '@/modules/shared';
 import { LOAN_STATUS_LABELS, listStorageItemsQueryOptions, resolveLoanStatus } from '@/modules/storage-items';
 
-import { DashboardCard, DashboardCardEmpty, DashboardCardRow, DashboardCardRowsSkeleton } from './dashboard-card';
+import {
+  DashboardCard,
+  DashboardCardEmpty,
+  type DashboardCardFrame,
+  DashboardCardRow,
+  DashboardCardRowsSkeleton,
+} from './dashboard-card';
 
 /** Enough to chase; the items table has the rest. */
 const SHOWN = 4;
@@ -24,12 +31,12 @@ const CARD = {
   ),
   icon: PackageOpenIcon,
   title: 'Out on loan',
-};
+} satisfies DashboardCardFrame;
 
 /** `onLoan` is `borrowed_on IS NOT NULL` server-side, so this includes the overdue ones. */
 export const dashboardLoansQueryOptions = () => listStorageItemsQueryOptions({ loanStatus: 'onLoan' });
 
-export function LoansCardSkeleton() {
+function LoansCardSkeleton() {
   return (
     <DashboardCard {...CARD}>
       <DashboardCardRowsSkeleton rows={SHOWN} />
@@ -41,14 +48,19 @@ export function LoansCard() {
   const { data: items } = useSuspenseQuery(dashboardLoansQueryOptions());
 
   // Overdue first: this card exists to be acted on, and what's late is what to act on.
-  const onLoan = items
-    .toSorted((a, b) => {
-      const overdue = Number(resolveLoanStatus(b.loan) === 'overdue') - Number(resolveLoanStatus(a.loan) === 'overdue');
+  const onLoan = useMemo(
+    () =>
+      items
+        .toSorted((a, b) => {
+          const overdue =
+            Number(resolveLoanStatus(b.loan) === 'overdue') - Number(resolveLoanStatus(a.loan) === 'overdue');
 
-      // An open-ended loan has no due date to rank by, so it settles behind anything that has one.
-      return overdue || (a.loan?.dueOn ?? '9999').localeCompare(b.loan?.dueOn ?? '9999');
-    })
-    .slice(0, SHOWN);
+          // An open-ended loan has no due date to rank by, so it settles behind anything with one.
+          return overdue || (a.loan?.dueOn ?? '9999').localeCompare(b.loan?.dueOn ?? '9999');
+        })
+        .slice(0, SHOWN),
+    [items]
+  );
 
   return (
     <DashboardCard {...CARD}>
@@ -77,3 +89,5 @@ export function LoansCard() {
     </DashboardCard>
   );
 }
+
+LoansCard.Skeleton = LoansCardSkeleton;
