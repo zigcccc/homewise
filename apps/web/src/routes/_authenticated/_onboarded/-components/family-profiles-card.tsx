@@ -105,7 +105,7 @@ export function FamilyProfilesCard() {
 
   // Kids first, then pets, each in the order its endpoint returns. Never sliced: a household has a
   // handful, and a roster that stops short is one that lies about who is in it.
-  const profiles: Profile[] = [
+  const profiles = [
     ...children.map((profile) => ({
       dateOfBirth: profile.dateOfBirth,
       detail: dictionaryLabel(profile.dictionary?.entryCount ?? 0),
