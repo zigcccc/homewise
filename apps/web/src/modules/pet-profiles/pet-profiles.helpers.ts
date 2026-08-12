@@ -10,3 +10,10 @@ export const petTypeLabels: Record<PetType, string> = {
   parrot: 'Parrot',
   other: 'Other',
 };
+
+/** A "Dog · Golden Retriever" line — type, breed, or both. Null when neither is set. */
+export function typeAndBreed(type: PetType | null, breed: string | null) {
+  const label = type ? petTypeLabels[type] : null;
+
+  return [label, breed].filter(Boolean).join(' · ') || null;
+}

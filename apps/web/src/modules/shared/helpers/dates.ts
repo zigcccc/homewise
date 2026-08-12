@@ -123,6 +123,17 @@ export function ageInYears(since: string | null | undefined) {
   return isValid(date) && !isFuture(date) ? differenceInYears(new Date(), date) : null;
 }
 
+/** How a kid or pet profile says its age, everywhere one is shown. */
+export function ageLabel(dateOfBirth: string | null | undefined) {
+  const age = ageInYears(dateOfBirth);
+
+  if (age === null) {
+    return 'Age not set';
+  }
+
+  return `${age} ${age === 1 ? 'year' : 'years'} old`;
+}
+
 /**
  * When someone's next birthday falls, how far off it is, and the age it brings. `null` for an
  * absent, unparseable or future date, like `ageInYears`.
