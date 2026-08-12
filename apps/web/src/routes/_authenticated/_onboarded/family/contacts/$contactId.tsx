@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { MoreHorizontal, PencilIcon, TrashIcon } from 'lucide-react';
+import { IdCardIcon, MoreHorizontal, PencilIcon, TrashIcon } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -22,6 +22,12 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
   Spinner,
 } from '@homewise/ui/core';
 
@@ -37,7 +43,7 @@ import {
   invalidateContacts,
   showsPersonalDetails,
 } from '@/modules/contacts';
-import { Actionbar, ConfirmDeleteDialog, RouteError, serverMessage } from '@/modules/shared';
+import { Actionbar, ConfirmDeleteDialog, PageLayout, RouteError, serverMessage } from '@/modules/shared';
 
 export const Route = createFileRoute('/_authenticated/_onboarded/family/contacts/$contactId')({
   async loader({ context, params }) {
@@ -84,6 +90,9 @@ function ContactDetailRoute() {
   };
 
   const showsRelations = showsPersonalDetails(contact.type, contact.relations.length > 0);
+  const hasDetails =
+    Boolean(contact.description || contact.address || contact.email || contact.phone || contact.dateOfBirth) ||
+    contact.links.length > 0;
 
   return (
     <>
@@ -109,7 +118,7 @@ function ContactDetailRoute() {
         </Breadcrumb>
       </Actionbar.Content>
 
-      <main className="flex-1 space-y-6 p-4">
+      <PageLayout>
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="flex items-center gap-3">
             <h1 className="font-medium text-lg">{contact.name}</h1>
@@ -142,26 +151,38 @@ function ContactDetailRoute() {
               <CardTitle>Details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {contact.description ? <p className="text-sm">{contact.description}</p> : null}
-              <ContactFacts
-                address={contact.address}
-                dateOfBirth={
-                  showsPersonalDetails(contact.type, Boolean(contact.dateOfBirth)) ? contact.dateOfBirth : null
-                }
-                email={contact.email}
-                phone={contact.phone}
-              />
-              <ContactLinkChips links={contact.links} />
-              {!contact.description &&
-              !contact.address &&
-              !contact.email &&
-              !contact.phone &&
-              !contact.dateOfBirth &&
-              contact.links.length === 0 ? (
-                <p className="text-muted-foreground text-sm">
-                  Nothing recorded yet — add a phone number, an email or a birthday.
-                </p>
-              ) : null}
+              {hasDetails ? (
+                <>
+                  {contact.description ? <p className="text-sm">{contact.description}</p> : null}
+                  <ContactFacts
+                    address={contact.address}
+                    dateOfBirth={
+                      showsPersonalDetails(contact.type, Boolean(contact.dateOfBirth)) ? contact.dateOfBirth : null
+                    }
+                    email={contact.email}
+                    phone={contact.phone}
+                  />
+                  <ContactLinkChips links={contact.links} />
+                </>
+              ) : (
+                <Empty>
+                  <EmptyHeader>
+                    <EmptyMedia variant="icon">
+                      <IdCardIcon />
+                    </EmptyMedia>
+                    <EmptyTitle>Nothing recorded yet</EmptyTitle>
+                    <EmptyDescription>
+                      A name is all this contact has. Add a phone number, an email, an address or a birthday.
+                    </EmptyDescription>
+                  </EmptyHeader>
+                  <EmptyContent>
+                    <Button onClick={() => setEditOpen(true)}>
+                      <PencilIcon />
+                      Edit contact
+                    </Button>
+                  </EmptyContent>
+                </Empty>
+              )}
             </CardContent>
           </Card>
 
@@ -182,7 +203,7 @@ function ContactDetailRoute() {
           open={deleteOpen}
           title={`Delete "${contact.name}"?`}
         />
-      </main>
+      </PageLayout>
     </>
   );
 }

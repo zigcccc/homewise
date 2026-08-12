@@ -1,4 +1,13 @@
-import { AtSignIcon, CakeIcon, GlobeIcon, LinkIcon, MailIcon, MapPinIcon, PhoneIcon } from 'lucide-react';
+import {
+  AtSignIcon,
+  CakeIcon,
+  GlobeIcon,
+  LinkIcon,
+  type LucideIcon,
+  MailIcon,
+  MapPinIcon,
+  PhoneIcon,
+} from 'lucide-react';
 
 import { type ContactLinkType } from '@homewise/server/contacts';
 
@@ -9,7 +18,7 @@ import { ageInYears, ExternalLink, formatDate } from '@/modules/shared';
  * than inferred from its own keys, so a link type added on the server fails the build here instead
  * of rendering `undefined` as a component.
  */
-const linkIcons: Record<ContactLinkType, typeof GlobeIcon> = {
+const linkIcons: Record<ContactLinkType, LucideIcon> = {
   web: GlobeIcon,
   social: AtSignIcon,
   other: LinkIcon,

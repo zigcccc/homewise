@@ -23,7 +23,7 @@ import {
   type HouseholdContact,
   invalidateContacts,
 } from '@/modules/contacts';
-import { ageInYears, ConfirmDeleteDialog, formatDate, serverMessage } from '@/modules/shared';
+import { ConfirmDeleteDialog, formatDate, serverMessage } from '@/modules/shared';
 
 const columnHelper = createColumnHelper<HouseholdContact>();
 
@@ -66,18 +66,11 @@ export const contactColumns = [
 ];
 
 function BirthdayCell({ dateOfBirth }: { dateOfBirth: string | null }) {
-  const age = ageInYears(dateOfBirth);
-
   if (!dateOfBirth) {
     return <span className="text-muted-foreground">—</span>;
   }
 
-  return (
-    <span className="flex items-baseline gap-1.5">
-      <span className="tabular-nums">{formatDate(dateOfBirth)}</span>
-      {age === null ? null : <span className="text-muted-foreground text-xs">{age}</span>}
-    </span>
-  );
+  return <span className="tabular-nums">{formatDate(dateOfBirth)}</span>;
 }
 
 function ContactRowActions({ contact }: { contact: HouseholdContact }) {

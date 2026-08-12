@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { XIcon } from 'lucide-react';
-import { useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 import { type ContactRelationRole, contactRelationRole } from '@homewise/server/contacts';
@@ -44,19 +44,23 @@ import { AddRelationDialog } from './add-relation-dialog';
  */
 export function ContactRelationsCard({ contact }: { contact: ContactDetail }) {
   const [picking, setPicking] = useState<{ id: number; name: string } | undefined>(undefined);
+  const titleId = useId();
 
   // The whole address book, so the picker can offer anyone; already-related contacts show disabled.
   const { data: allContacts = [] } = useQuery(listContactsQueryOptions());
 
-  const relatable = allContacts.filter(
-    (candidate) => candidate.id !== contact.id && showsPersonalDetails(candidate.type)
+  // Memoized for its identity rather than its cost: `AddContactCombobox` filters this inside a
+  // `useMemo` keyed on it, so handing it a fresh array each render is a memo that never hits.
+  const relatable = useMemo(
+    () => allContacts.filter((candidate) => candidate.id !== contact.id && showsPersonalDetails(candidate.type)),
+    [allContacts, contact.id]
   );
   const relatedIds = new Set(contact.relations.map((relation) => relation.contact.id));
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Relations</CardTitle>
+        <CardTitle id={titleId}>Relations</CardTitle>
         <CardDescription>How {contact.name} is related to the other people you keep track of.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -65,9 +69,11 @@ export function ContactRelationsCard({ contact }: { contact: ContactDetail }) {
             No relations yet. Record who this is a partner, parent or sibling of.
           </p>
         ) : (
-          /* Named: the card's heading doesn't reach the list itself, and a bare list of people is
-             indistinguishable from the sidebar's or a toast's to anything reading roles. */
-          <ul aria-label="Relations" className="space-y-2">
+          /* Named off the card's own heading: the heading doesn't reach the list by itself, and a
+             bare list of people is indistinguishable from the sidebar's or a toast's to anything
+             reading roles. Pointed at the title rather than spelled out, so renaming the card
+             renames the list with it. */
+          <ul aria-labelledby={titleId} className="space-y-2">
             {contact.relations.map((relation) => (
               <RelationRow contact={contact} key={relation.id} relation={relation} />
             ))}

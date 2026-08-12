@@ -1,26 +1,18 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMemo } from 'react';
 import { toast } from 'sonner';
 
 import { parseResponse } from '@/api/client';
 import { serverMessage } from '@/modules/shared';
 
 import {
-  $addContactRelation,
   $createContact,
   $patchContact,
-  $patchContactRelation,
-  $removeContactRelation,
   getContactQueryOptions,
   invalidateContacts,
   listContactsQueryOptions,
 } from '../contacts.queries';
-import {
-  contactTypeLabels,
-  type RelationDraft,
-  resolveRelationChanges,
-  showsPersonalDetails,
-  toRelationDrafts,
-} from '../helpers';
+import { applyRelationChanges, contactTypeLabels, showsPersonalDetails, toRelationDrafts } from '../helpers';
 import { ContactFormDialog, type ContactFormValues } from './contact-form-dialog';
 
 /**
@@ -47,8 +39,12 @@ export function ContactDialog({
   const { data: allContacts = [] } = useQuery(listContactsQueryOptions());
 
   const savedRelations = contact ? toRelationDrafts(contact.relations) : [];
-  const relatable = allContacts.filter(
-    (candidate) => candidate.id !== contactId && showsPersonalDetails(candidate.type)
+  // Memoized for its identity rather than its cost: `AddContactCombobox` filters this inside a
+  // `useMemo` keyed on it, and the form re-renders on every watched field, so a fresh array each
+  // time is a memo that never hits.
+  const relatable = useMemo(
+    () => allContacts.filter((candidate) => candidate.id !== contactId && showsPersonalDetails(candidate.type)),
+    [allContacts, contactId]
   );
 
   const submit = async (values: ContactFormValues) => {
@@ -97,33 +93,4 @@ export function ContactDialog({
       typeLabels={contactTypeLabels}
     />
   );
-}
-
-/**
- * Turns the form's relation list into the requests that make it true.
- *
- * A relation belongs to two contacts, so there is no payload on the contact that can carry the whole
- * set — each change is its own call. Run in series: they touch the same rows, and a removal racing
- * its own re-add is not worth the round trip saved.
- */
-async function applyRelationChanges(contactId: number, saved: RelationDraft[], next: RelationDraft[]) {
-  const { added, changed, removed } = resolveRelationChanges(saved, next);
-  const param = (relationId: number) => ({ id: contactId.toString(), relationId: relationId.toString() });
-
-  for (const relation of removed) {
-    await parseResponse($removeContactRelation({ param: param(relation.relationId!) }));
-  }
-
-  for (const relation of changed) {
-    await parseResponse($patchContactRelation({ json: { role: relation.role }, param: param(relation.relationId!) }));
-  }
-
-  for (const relation of added) {
-    await parseResponse(
-      $addContactRelation({
-        json: { relatedContactId: relation.relatedContactId, role: relation.role },
-        param: { id: contactId.toString() },
-      })
-    );
-  }
 }

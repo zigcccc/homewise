@@ -1,6 +1,13 @@
 import { type ContactRelationRole } from '@homewise/server/contacts';
 
-import { type ContactRelation } from '../contacts.queries';
+import { parseResponse } from '@/api/client';
+
+import {
+  $addContactRelation,
+  $patchContactRelation,
+  $removeContactRelation,
+  type ContactRelation,
+} from '../contacts.queries';
 
 /** A relation as the contact form carries it. No `relationId` means it hasn't been saved yet. */
 export type RelationDraft = {
@@ -50,4 +57,33 @@ export function resolveRelationChanges(saved: RelationDraft[], next: RelationDra
       return before !== undefined && before.role !== relation.role;
     }),
   };
+}
+
+/**
+ * Runs the requests that make `next` true, from the frame of the contact named by `contactId`.
+ *
+ * Kept beside the diff it enacts rather than in the dialog that calls it — the two halves are one
+ * decision, and neither is about rendering. Run in series: they touch the same rows, and a removal
+ * racing its own re-add isn't worth the round trip saved.
+ */
+export async function applyRelationChanges(contactId: number, saved: RelationDraft[], next: RelationDraft[]) {
+  const { added, changed, removed } = resolveRelationChanges(saved, next);
+  const param = (relationId: number) => ({ id: contactId.toString(), relationId: relationId.toString() });
+
+  for (const relation of removed) {
+    await parseResponse($removeContactRelation({ param: param(relation.relationId!) }));
+  }
+
+  for (const relation of changed) {
+    await parseResponse($patchContactRelation({ json: { role: relation.role }, param: param(relation.relationId!) }));
+  }
+
+  for (const relation of added) {
+    await parseResponse(
+      $addContactRelation({
+        json: { relatedContactId: relation.relatedContactId, role: relation.role },
+        param: { id: contactId.toString() },
+      })
+    );
+  }
 }
