@@ -18,6 +18,7 @@ import contactsApp from './modules/contacts';
 import expenseCategoriesApp from './modules/expense-categories';
 import expensesApp from './modules/expenses';
 import householdsApp from './modules/households';
+import { readLocalFile } from './modules/images/images.store';
 import ingredientsApp from './modules/ingredients';
 import mealPlanApp from './modules/meal-plan';
 import medicalApp from './modules/medical';
@@ -49,6 +50,23 @@ base.use(async (_c, next) => {
 // 3xx/4xx are excluded by default, which is what we want: the ~60 `HTTPException`s in the services
 // are expected 400/404/409 responses, not incidents.
 base.use(sentry(base));
+
+// Serves what `HOMEWISE_LOCAL_FILE_STORAGE` wrote (E2E only — the env refuses the flag outside
+// development/test). Registered on `base`, so it sits ahead of the session guard below and stays out
+// of `AppType`: these URLs are `<img src>`s from another origin, which carry no cookies and would
+// otherwise 401, and no client calls this through the RPC client.
+base.get('/files/*', async (c) => {
+  if (!env.HOMEWISE_LOCAL_FILE_STORAGE) {
+    return c.notFound();
+  }
+
+  const file = await readLocalFile(c.req.path.replace('/files/', ''));
+  if (!file) {
+    return c.notFound();
+  }
+
+  return c.body(file.body, 200, file.contentType ? { 'Content-Type': file.contentType } : undefined);
+});
 
 const app = base
   .use(logger())

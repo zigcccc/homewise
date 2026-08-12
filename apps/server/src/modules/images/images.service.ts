@@ -1,8 +1,7 @@
 import { captureException } from '@sentry/hono/node';
-import { del, list, put } from '@vercel/blob';
 import sharp from 'sharp';
 
-import { env } from '#config/env';
+import { imageStore } from './images.store';
 
 type PutImageOptions =
   | {
@@ -45,8 +44,6 @@ export type ManagedImageUpdate =
   | { changed: true; value: string | null; commit: () => Promise<void>; rollback: () => Promise<void> };
 
 export class ImagesService {
-  private static token = env.HOMEWISE_FILES_READ_WRITE_TOKEN;
-
   private static async resizeImage(file: File, width: number, height: number) {
     const buffer = Buffer.from(await file.arrayBuffer());
     return sharp(buffer)
@@ -63,23 +60,16 @@ export class ImagesService {
           'size' in options ? options.size : options.height
         )
       : file;
-    const image = await put(path, resizedImage, {
-      access: 'public',
-      token: ImagesService.token,
-      addRandomSuffix: true,
-    });
-
-    return image;
+    return await imageStore.put(path, resizedImage, { addRandomSuffix: true });
   }
 
   public static async delete(path: string) {
-    return await del(path, { token: ImagesService.token });
+    return await imageStore.remove(path);
   }
 
   /** Looks up an existing blob by its exact pathname, returning its public URL (or null). */
   public static async find(pathname: string) {
-    const { blobs } = await list({ prefix: pathname, token: ImagesService.token });
-    return blobs.find((blob) => blob.pathname === pathname)?.url ?? null;
+    return await imageStore.find(pathname);
   }
 
   /**
@@ -94,13 +84,7 @@ export class ImagesService {
     contentType: string,
     { allowOverwrite = true }: { allowOverwrite?: boolean } = {}
   ) {
-    const { url } = await put(pathname, body, {
-      access: 'public',
-      token: ImagesService.token,
-      addRandomSuffix: false,
-      allowOverwrite,
-      contentType,
-    });
+    const { url } = await imageStore.put(pathname, body, { addRandomSuffix: false, allowOverwrite, contentType });
 
     return url;
   }
@@ -143,15 +127,10 @@ export class ImagesService {
       return;
     }
 
-    let pathname: string;
-    try {
-      pathname = new URL(url).pathname;
-    } catch {
-      return;
-    }
-
-    const ownedRoot = `/${ownedPrefix.split('/')[0]}/`;
-    if (!pathname.startsWith(ownedRoot)) {
+    // Asking the store, rather than reading the URL here: the guard knows namespaces, and only the
+    // store knows how one of its own URLs maps back to a pathname.
+    const pathname = imageStore.pathnameOf(url);
+    if (!pathname?.startsWith(`${ownedPrefix.split('/')[0]}/`)) {
       return;
     }
 
@@ -206,13 +185,14 @@ export class ImagesService {
 
   /**
    * Runs the caller's DB write as the commit point for a resolved managed image. `write` must report
-   * whether it actually persisted a row: on `true` the old blob is retired; on `false` (the row
-   * vanished, e.g. a concurrent delete, so the update touched nothing) or a thrown error the freshly
-   * uploaded blob is rolled back so it isn't orphaned — the error is re-thrown. Returns whether the
-   * write persisted, so the caller can 404 a vanished target.
+   * what it persisted, and anything falsy means it persisted nothing: on a truthy result the old blob
+   * is retired; on a falsy one (the row vanished, e.g. a concurrent delete, so the update touched
+   * nothing) or a thrown error the freshly uploaded blob is rolled back so it isn't orphaned — the
+   * error is re-thrown. The write's own result comes back, so a caller can 404 a vanished target off
+   * a `Boolean(row)` or read the record it just wrote.
    */
-  public static async commitManagedImage(update: ManagedImageUpdate, write: () => PromiseLike<boolean>) {
-    let persisted: boolean;
+  public static async commitManagedImage<T>(update: ManagedImageUpdate, write: () => PromiseLike<T>) {
+    let persisted: T;
     try {
       persisted = await write();
     } catch (error) {
@@ -226,13 +206,13 @@ export class ImagesService {
       if (update.changed) {
         await update.rollback();
       }
-      return false;
+      return persisted;
     }
 
     if (update.changed) {
       await update.commit();
     }
 
-    return true;
+    return persisted;
   }
 }

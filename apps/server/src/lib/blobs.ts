@@ -10,4 +10,10 @@ export const blobPrefix = {
   childProfile: (profileId: number) => `child-profiles/${profileId}`,
   petProfile: (profileId: number) => `pet-profiles/${profileId}`,
   storageItemPhoto: (householdId: number) => `storage-items/${householdId}`,
+  /**
+   * Not `avatars/<userId>`, which is where these used to live: that root also holds the shared,
+   * deduplicated avatars several profiles point at, and the guard only checks the top-level segment
+   * — so retiring one user's picture could have taken an avatar everyone else was using with it.
+   */
+  userAvatar: (userId: string) => `user-avatars/${userId}`,
 };

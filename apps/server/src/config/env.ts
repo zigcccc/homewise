@@ -32,14 +32,23 @@ const envModel = z
      */
     HOMEWISE_ABLY_API_KEY: z.string().min(1),
     /**
-     * Vercel blob token. Required for the same reason as the two above: every profile picture, kid
-     * and pet photo goes through it, so without one the app boots fine and then fails the first time
-     * anyone uploads anything — as an opaque error from the storage SDK, far from the cause.
+     * Vercel blob token. Required unless `HOMEWISE_LOCAL_FILE_STORAGE` is on — see the refine below,
+     * which is what keeps the old guarantee: every profile picture, kid and pet photo goes through
+     * one store or the other, so with neither configured the app boots fine and then fails the first
+     * time anyone uploads anything — as an opaque error from the storage SDK, far from the cause.
      *
      * `.min(1)` because a declared-but-empty variable is the realistic mistake, and an empty token
      * reaches the SDK as a credential rather than as "unset".
      */
-    HOMEWISE_FILES_READ_WRITE_TOKEN: z.string().min(1),
+    HOMEWISE_FILES_READ_WRITE_TOKEN: z.string().min(1).optional(),
+    /**
+     * Stores uploads in a local directory this process serves, instead of Vercel blob. Set by the
+     * E2E suite's webServer: `put` bills as a Vercel *advanced operation*, by far our scarcest quota,
+     * and the three photo specs spent one each on every run — for 103 bytes nobody reads again. The
+     * specs are unchanged by it; they still upload real bytes through the real endpoint and still
+     * assert the image comes back and renders, now from us rather than from Vercel's CDN.
+     */
+    HOMEWISE_LOCAL_FILE_STORAGE: z.stringbool().default(false),
     /**
      * Channel prefix isolating one deployment's realtime traffic from another's. Household ids
      * repeat across databases — local, each PR preview and production all have a household `1` —
@@ -76,6 +85,29 @@ const envModel = z
     {
       message: 'HOMEWISE_DISABLE_EMAILS requires NODE_ENV to be explicitly set to development or test',
       path: ['HOMEWISE_DISABLE_EMAILS'],
+    }
+  )
+  // Serving uploads off the local disk is only ever right locally or under the E2E suite, and it has
+  // to be asked for deliberately — the same fail-closed shape as the check above, for the same
+  // reason. A deployment that fell into it would write every photo onto an ephemeral function
+  // filesystem and hand out `localhost` URLs, and nothing about that surfaces as an error.
+  .refine(
+    ({ HOMEWISE_LOCAL_FILE_STORAGE, NODE_ENV }) =>
+      !HOMEWISE_LOCAL_FILE_STORAGE || NODE_ENV === 'development' || NODE_ENV === 'test',
+    {
+      message: 'HOMEWISE_LOCAL_FILE_STORAGE requires NODE_ENV to be explicitly set to development or test',
+      path: ['HOMEWISE_LOCAL_FILE_STORAGE'],
+    }
+  )
+  // Exactly one store has to be configured. Uploads are the one thing here with two backends, so the
+  // token stops being unconditionally required — but "neither" must still refuse to boot, or the
+  // first upload fails as an opaque SDK error long after the mistake.
+  .refine(
+    ({ HOMEWISE_FILES_READ_WRITE_TOKEN, HOMEWISE_LOCAL_FILE_STORAGE }) =>
+      HOMEWISE_LOCAL_FILE_STORAGE || HOMEWISE_FILES_READ_WRITE_TOKEN !== undefined,
+    {
+      message: 'HOMEWISE_FILES_READ_WRITE_TOKEN is required unless HOMEWISE_LOCAL_FILE_STORAGE is set',
+      path: ['HOMEWISE_FILES_READ_WRITE_TOKEN'],
     }
   )
   // The `local` default below is a local-development convenience, and a deployment that merely

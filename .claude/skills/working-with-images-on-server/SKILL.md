@@ -64,13 +64,17 @@ Uploads the replacement blob **up front** and returns either `{ changed: false }
 `{ changed: true, value, commit, rollback }`, where `value` is the new column value (`string` URL or
 `null`). It does **not** touch the old blob yet.
 
-### `commitManagedImage(update, write) → boolean`
-Runs the caller's DB `write` as the **commit point**. `write` must report whether it actually
-**persisted a row** (do `.returning({ id })` and return `Boolean(row)`):
-- write returns **`true`** → the old blob is retired (best-effort, guarded); returns `true`.
-- write returns **`false`** → the row vanished (e.g. a **concurrent delete**), so the update touched
-  nothing and the new upload would be orphaned. It's rolled back; returns `false` → the caller throws 404.
+### `commitManagedImage(update, write) → the write's own result`
+Runs the caller's DB `write` as the **commit point**. `write` must report what it actually
+**persisted**, and anything falsy means nothing was (do `.returning({ id })` and return `Boolean(row)`):
+- write returns something **truthy** → the old blob is retired (best-effort, guarded).
+- write returns something **falsy** → the row vanished (e.g. a **concurrent delete**), so the update
+  touched nothing and the new upload would be orphaned. It's rolled back → the caller throws 404.
 - write **throws** → the freshly uploaded blob is rolled back and the error re-thrown.
+
+The write's result comes straight back, so a caller that needs the record it just wrote (`users.app.ts`
+returns better-auth's updated user) reads it from the return value. Don't smuggle it out through a
+`let` the closure assigns.
 
 This ordering (upload → DB write → retire-old / rollback-new) is why a failed *or* no-op update can never
 leave the row pointing at a deleted blob or orphan the new upload, and a shared avatar is never rolled back.
@@ -85,6 +89,30 @@ already succeeded) and never deletes outside `ownedPrefix`'s top-level namespace
 `putShared(pathname, file)`. Reach for these only for a shape the managed API doesn't cover (e.g. a
 gallery of many images on one row) — and if you find yourself re-deriving the guard/ordering, extend
 `ImagesService` instead of copying logic into a domain service.
+
+## Two backends, one seam (`images.store.ts`)
+
+`ImagesService` never touches `@vercel/blob`. Everything goes through `imageStore`
+(`apps/server/src/modules/images/images.store.ts`), which picks one of two drivers at boot:
+
+- **`vercelStore`** — the real thing. Used in production and in `pnpm dev`.
+- **`localStore`** — writes under `os.tmpdir()/homewise-files` and hands out
+  `http://localhost:5173/files/<pathname>` URLs, which `index.ts` serves from a route registered
+  **before** the session guard (an `<img>` from another origin sends no cookies). Selected by
+  `HOMEWISE_LOCAL_FILE_STORAGE`, which `env.ts` refuses outside `NODE_ENV` development/test.
+
+**Why it exists:** Vercel bills `put`, `copy` and `list` as *advanced operations* — 2K/month, and
+exceeding it locks uploads out for the rest of the window. The E2E suite spent three per run on a
+103-byte fixture. `apps/e2e/playwright.config.ts` sets the flag, so the suite now needs no blob
+credential at all (nor does CI). `del` is free, and `head` is billed as the far cheaper *simple*
+operation — which is why `find` is a `head` lookup and not a `list`.
+
+Adding a store operation means adding it to **both** drivers. `localStore` deliberately mirrors
+Vercel's semantics rather than approximating them — `addRandomSuffix` really does produce a distinct
+pathname, and a no-overwrite write really does fail when the pathname is taken (`wx`), because
+`putShared`'s race handler catches exactly that. It also refuses any pathname that resolves outside
+its root: `image` filenames are client-controlled (only `avatar` has the filename refine), so on a
+real filesystem that's a traversal.
 
 ## Recipe: add a managed picture to an entity
 
@@ -119,15 +147,19 @@ gallery of many images on one row) — and if you find yourself re-deriving the 
 
 ## Rules & gotchas
 
-- **`HOMEWISE_FILES_READ_WRITE_TOKEN` is required** — validated in `src/config/env.ts` and read
-  through `env`, never off `process.env`, so the server refuses to boot without it exactly like
-  `DATABASE_URL` and the Ably key. Every profile picture and kid/pet photo goes through it;
-  unvalidated, a missing token booted fine and then surfaced as an opaque storage-SDK error on the
-  first upload, far from the cause.
+- **A store must be configured** — `HOMEWISE_FILES_READ_WRITE_TOKEN` unless `HOMEWISE_LOCAL_FILE_STORAGE`
+  is on, enforced by a refine in `src/config/env.ts` and read through `env`, never off `process.env`,
+  so the server refuses to boot with neither exactly like `DATABASE_URL` and the Ably key. Every
+  profile picture and kid/pet photo goes through it; unvalidated, a missing token booted fine and then
+  surfaced as an opaque storage-SDK error on the first upload, far from the cause.
 - **Never store a client-relative path.** Always the blob URL — never `/some-asset.svg` pointing at
   one app's bundled assets.
-- **`ownedPrefix` must be unique per entity type** (`pet-profiles`, `child-profiles`, …) — its first
-  segment is the ownership guard. Two entity types sharing a prefix would let one delete the other's blobs.
+- **`ownedPrefix` must be unique per entity type** and must **never be `avatars/…`** (`pet-profiles`,
+  `child-profiles`, `user-avatars`, …) — its first segment is the ownership guard. Two entity types
+  sharing a prefix would let one delete the other's blobs, and an owned prefix under `avatars/` would
+  put every shared, never-deleted avatar inside somebody's cleanup namespace. That is exactly why user
+  avatars moved from `avatars/<userId>` to `blobPrefix.userAvatar` — blobs written under the old path
+  keep working and are simply never retired.
 - **Shared assets are immutable and eternal** — never delete an `avatars/…` blob, never `put` over one
   with random suffixes. `putShared` (find-or-`putStable`) is the only way to write them.
 - **Cleanups after a committed DB change are best-effort** — they log (`console.error`) and swallow, so

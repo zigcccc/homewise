@@ -1,4 +1,4 @@
-import { type ListBlobResult, type PutBlobResult } from '@vercel/blob';
+import { BlobNotFoundError, type HeadBlobResult, type PutBlobResult } from '@vercel/blob';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ImagesService, type ManagedImageUpdate } from '#modules/images/images.service';
@@ -8,6 +8,7 @@ const blobUrl = (pathname: string) => `https://blob.example/${pathname}`;
 /** A stored blob, as the store describes one. */
 const storedBlob = (pathname: string) =>
   ({
+    cacheControl: 'public, max-age=31536000',
     contentDisposition: `inline; filename="${pathname}"`,
     contentType: 'image/jpeg',
     downloadUrl: `${blobUrl(pathname)}?download=1`,
@@ -16,28 +17,29 @@ const storedBlob = (pathname: string) =>
     size: 4,
     uploadedAt: new Date('2026-08-06T00:00:00.000Z'),
     url: blobUrl(pathname),
-  }) satisfies PutBlobResult & ListBlobResult['blobs'][number];
-
-const listing = (...pathnames: string[]) =>
-  ({ blobs: pathnames.map(storedBlob), hasMore: false }) satisfies ListBlobResult;
+  }) satisfies HeadBlobResult & PutBlobResult;
 
 const photo = () => new File([new Uint8Array(4)], 'photo.jpg', { type: 'image/jpeg' });
 const avatar = () => new File([new Uint8Array(4)], 'bear.svg', { type: 'image/svg+xml' });
 
 // Vercel blob is an external service — the one category these tests are allowed to stand in for.
-vi.mock('@vercel/blob', () => ({
+// The real module is spread back in first because a lookup miss is narrowed with `instanceof
+// BlobNotFoundError`, which a stubbed-out class would never satisfy.
+vi.mock('@vercel/blob', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@vercel/blob')>()),
   del: vi.fn(async () => undefined),
-  list: vi.fn(async () => listing()),
+  head: vi.fn(async (pathname: string) => storedBlob(pathname)),
   put: vi.fn(async (pathname: string) => storedBlob(pathname)),
 }));
 
-const { del, list, put } = await import('@vercel/blob');
+const { del, head, put } = await import('@vercel/blob');
 
 beforeEach(() => {
   vi.mocked(del).mockClear();
   vi.mocked(put).mockClear();
-  vi.mocked(list).mockClear();
-  vi.mocked(list).mockResolvedValue(listing());
+  vi.mocked(head).mockClear();
+  // Nothing stored yet — which `head` reports by throwing, not by resolving to an absence.
+  vi.mocked(head).mockRejectedValue(new BlobNotFoundError());
 });
 
 /** A resolved update whose commit/rollback just record that they ran. */
@@ -242,7 +244,7 @@ describe('resolveManagedImage', () => {
 
   it('should reuse an existing shared avatar instead of uploading again', async () => {
     // GIVEN: the chosen avatar is already in the shared namespace
-    vi.mocked(list).mockResolvedValue(listing('avatars/bear.svg'));
+    vi.mocked(head).mockResolvedValue(storedBlob('avatars/bear.svg'));
 
     // WHEN: it is resolved
     const update = await ImagesService.resolveManagedImage({ avatar: avatar() }, null, config);
@@ -256,7 +258,9 @@ describe('resolveManagedImage', () => {
     // GIVEN: two members pick the same new avatar at once, so the loser's no-overwrite put conflicts
     // and the blob exists by the time it looks again
     vi.mocked(put).mockRejectedValueOnce(new Error('blob already exists'));
-    vi.mocked(list).mockResolvedValueOnce(listing()).mockResolvedValueOnce(listing('avatars/bear.svg'));
+    vi.mocked(head)
+      .mockRejectedValueOnce(new BlobNotFoundError())
+      .mockResolvedValueOnce(storedBlob('avatars/bear.svg'));
 
     // WHEN: the loser resolves its avatar
     const update = await ImagesService.resolveManagedImage({ avatar: avatar() }, null, config);
