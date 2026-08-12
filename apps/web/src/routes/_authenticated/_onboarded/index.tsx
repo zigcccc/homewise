@@ -37,8 +37,7 @@ export const Route = createFileRoute('/_authenticated/_onboarded/')({
   pendingComponent: () => <Spinner />,
   errorComponent: () => <RouteError title="Couldn't load your dashboard" />,
   async loader({ context }) {
-    // Every card's query, warmed in parallel — each one reads its own with `useSuspenseQuery`, and
-    // without this the page would suspend six times in series on the way in.
+    // Warmed in parallel, or the page suspends once per card on the way in.
     await Promise.all([
       context.queryClient.ensureQueryData(getMyHouseholdQueryOptions()),
       context.queryClient.ensureQueryData(weekMealsQueryOptions()),
@@ -54,7 +53,7 @@ export const Route = createFileRoute('/_authenticated/_onboarded/')({
   },
 });
 
-/** Read off the local clock, so it agrees with the day the user is actually having. */
+/** Off the local clock, so it agrees with the day the user is actually having. */
 function greeting() {
   const hour = new Date().getHours();
 
@@ -66,11 +65,8 @@ function greeting() {
 }
 
 /**
- * The four things worth starting from the dashboard.
- *
  * Two open a dialog the owning module already exports whole; two navigate, because creating a list
- * or a meal is wired into its own page's state and lifting that out buys a click at the cost of a
- * second copy of the flow.
+ * or a meal is wired into its own page's state.
  */
 function QuickActions() {
   const [expenseOpen, setExpenseOpen] = useState(false);
@@ -100,8 +96,7 @@ function QuickActions() {
           Contact
         </Button>
       </ButtonGroup>
-      {/* Mounted only while open, so each dialog's form reseeds its defaults instead of holding
-          whatever was last typed into it. */}
+      {/* Mounted only while open, so each dialog's form reseeds its defaults. */}
       {expenseOpen && (
         <ExpenseFormDialog defaultRecordedAt={todayISODay()} onOpenChange={setExpenseOpen} open={expenseOpen} />
       )}
@@ -131,8 +126,7 @@ function HomeRoute() {
             <h1 className="font-medium text-lg">
               {greeting()}, {user.name}
             </h1>
-            {/* Carries a testid because the household's name is also in the sidebar, and the page
-                sits inside a second <main> — neither a text nor a landmark query lands on one. */}
+            {/* A testid, because the sidebar names the household too and `main` is ambiguous. */}
             <p className="text-muted-foreground text-sm" data-testid="dashboard-greeting">
               {format(new Date(), 'EEEE')}, {formatDate(new Date())} · {household.name}
             </p>

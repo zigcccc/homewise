@@ -8,18 +8,16 @@ import { listQueryFor, listShoppingListsQueryOptions, listTitle, remainingCount 
 
 import { DashboardCard, DashboardCardEmpty, DashboardCardRow } from './dashboard-card';
 
-/** How many lists fit before the card starts competing with the page it links to. */
+/** Enough to act on; the page has the rest. */
 const SHOWN = 4;
 
-/**
- * The open lists, keyed through `listQueryFor` rather than a hand-written `{ includeCompleted:
- * 'false' }`. That helper exists precisely so the spelling can't fork: two spellings of the query
- * are two cache entries, and the dashboard would refetch what `/food/shopping-lists` already holds.
- */
+/** Through `listQueryFor`, not a hand-written filter — two spellings of the query are two caches. */
 export const dashboardShoppingListsQueryOptions = () => listShoppingListsQueryOptions(listQueryFor({}));
 
 export function ShoppingListsCard() {
   const { data: lists } = useSuspenseQuery(dashboardShoppingListsQueryOptions());
+
+  const open = lists.slice(0, SHOWN);
 
   return (
     <DashboardCard
@@ -34,11 +32,11 @@ export function ShoppingListsCard() {
       icon={ListTodoIcon}
       title="Shopping lists"
     >
-      {lists.length === 0 ? (
+      {open.length === 0 ? (
         <DashboardCardEmpty>Nothing to buy — no list is open.</DashboardCardEmpty>
       ) : (
         <div className="divide-y">
-          {lists.slice(0, SHOWN).map((list) => {
+          {open.map((list) => {
             const remaining = remainingCount(list);
 
             return (

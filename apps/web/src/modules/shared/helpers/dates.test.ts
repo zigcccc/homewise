@@ -258,8 +258,7 @@ describe('nextBirthday', () => {
     freezeAt('2026-08-06T12:00:00');
 
     // WHEN: the next one is worked out
-    // THEN: it should be next January's, not a negative count back to the last one — this is the
-    // whole reason the widget can't just sort on the stored date
+    // THEN: it should be next January's, not a negative count back to the last one
     expect(asISO(nextBirthday('1990-01-05')?.date)).toBe('2027-01-05');
     expect(nextBirthday('1990-01-05')).toMatchObject({ inDays: 152, turning: 37 });
   });
@@ -272,8 +271,7 @@ describe('nextBirthday', () => {
     const january = nextBirthday('1990-01-05')!;
     const december = nextBirthday('1990-12-31')!;
 
-    // THEN: December should come round first, because January's has already gone. This is the
-    // ordering the birthdays card sorts on, and the one `ContactsService` reproduces in SQL
+    // THEN: December should come round first, because January's has already gone
     expect(december.inDays).toBeLessThan(january.inDays);
   });
 
@@ -282,8 +280,7 @@ describe('nextBirthday', () => {
     freezeAt('2026-08-06T23:30:00');
 
     // WHEN: the next one is worked out
-    // THEN: it should be today. Comparing against the raw moment rather than the start of the day
-    // reads midnight-this-morning as already past, and announces the birthday as a year away
+    // THEN: it should be today — against the raw moment, this morning's midnight reads as past
     expect(nextBirthday('1990-08-06')).toMatchObject({ inDays: 0, turning: 36 });
   });
 
@@ -299,8 +296,7 @@ describe('nextBirthday', () => {
     freezeAt('2027-01-15T12:00:00');
 
     // WHEN: the next one is worked out
-    // THEN: it should roll forward to 1 March, which is what `setFullYear` does. 28 February is no
-    // more correct — this is pinned so the convention can't drift silently
+    // THEN: it should roll forward to 1 March, as `setFullYear` does — pinned so it can't drift
     expect(asISO(nextBirthday('2000-02-29')?.date)).toBe('2027-03-01');
     expect(nextBirthday('2000-02-29')?.turning).toBe(27);
   });

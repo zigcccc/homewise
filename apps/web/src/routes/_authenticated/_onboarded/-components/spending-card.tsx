@@ -12,18 +12,11 @@ import { DashboardCard, DashboardCardEmpty, DashboardCardRow } from './dashboard
 /** Enough to recognise the month's spending by; the table is one click away. */
 const SHOWN = 4;
 
-/**
- * The month's total, keyed by the same `monthRange` the expenses page uses so the two share a cache
- * entry. The summary takes no search or category — it describes the whole window.
- */
+/** Keyed by the same `monthRange` the expenses page uses, so the two share a cache entry. */
 export const dashboardSpendingSummaryQueryOptions = () =>
   expensesSummaryQueryOptions(monthRange(currentMonth(), currentYear()));
 
-/**
- * The month's expenses, newest first. No `from`/`to`: the endpoint defaults its window to the
- * current month server-side, which is exactly what this card wants and one less thing to keep in
- * step with the clock.
- */
+/** Newest first. No `from`/`to` — the endpoint already defaults its window to the current month. */
 export const dashboardRecentExpensesQueryOptions = () =>
   listExpensesQueryOptions({ sortDirection: 'desc', sortKey: 'recordedAt' });
 
@@ -46,8 +39,7 @@ export function SpendingCard() {
       icon={PiggyBankIcon}
       title="This month's spending"
     >
-      {/* `totals` is a list because a household can change what it counts in, and past rows keep the
-          currency they were logged in — the same reason the expenses page renders one line each. */}
+      {/* A list, because past rows keep whatever currency they were logged in. */}
       {summary.totals.length === 0 ? (
         <DashboardCardEmpty>Nothing logged this month.</DashboardCardEmpty>
       ) : (

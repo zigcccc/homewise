@@ -17,11 +17,7 @@ import {
 
 import { DashboardCard } from './dashboard-card';
 
-/**
- * The current week, spelled exactly the way `/food/meal-plan` spells its default view — `rangeFor`
- * over `currentWeekStart()`. Same arguments, same query key, so the two share one cache entry and
- * following the link renders the week already in hand instead of refetching it.
- */
+/** Spelled exactly as `/food/meal-plan` spells its default view, so the two share one cache entry. */
 export const weekMealsQueryOptions = () => mealPlanRangeQueryOptions(rangeFor(currentWeekStart(), 1));
 
 export function WeekMealsCard() {
@@ -52,8 +48,7 @@ export function WeekMealsCard() {
             key={day.day}
           >
             <div className="flex items-baseline justify-between gap-2 sm:flex-col sm:gap-0">
-              {/* The weekday in full below `sm`, where each day is its own row and there is space for
-                  it; abbreviated in the seven-column grid, where "Wednesday" would wrap every column. */}
+              {/* Abbreviated in the seven-column grid, where "Wednesday" wraps every column. */}
               <span className="font-medium text-xs">
                 <span className="sm:hidden">{weekdayLabel(day.day)}</span>
                 <span className="hidden sm:inline">{weekdayLabel(day.day).slice(0, 3)}</span>

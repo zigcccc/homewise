@@ -12,15 +12,14 @@ import { DashboardCard, DashboardCardEmpty } from './dashboard-card';
 /** A row of four on a wide screen, and the newest four are the ones anyone is still thinking about. */
 const SHOWN = 4;
 
-/**
- * The newest recipes. `includeArchived` defaults to `false` on the endpoint, so nothing anyone has
- * put away comes back here without asking for it.
- */
+/** The newest recipes. `includeArchived` defaults to `false` on the endpoint. */
 export const dashboardRecentRecipesQueryOptions = () =>
   listRecipesQueryOptions({ sortDirection: 'desc', sortKey: 'createdAt' });
 
 export function RecentRecipesCard() {
   const { data: recipes } = useSuspenseQuery(dashboardRecentRecipesQueryOptions());
+
+  const recent = recipes.slice(0, SHOWN);
 
   return (
     <DashboardCard
@@ -36,11 +35,11 @@ export function RecentRecipesCard() {
       icon={ScrollTextIcon}
       title="Recently added recipes"
     >
-      {recipes.length === 0 ? (
+      {recent.length === 0 ? (
         <DashboardCardEmpty>No recipes yet.</DashboardCardEmpty>
       ) : (
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-          {recipes.slice(0, SHOWN).map((recipe) => {
+          {recent.map((recipe) => {
             const totalTime = formatMinutes((recipe.prepTimeMinutes ?? 0) + (recipe.cookTimeMinutes ?? 0));
 
             return (

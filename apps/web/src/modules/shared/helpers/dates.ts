@@ -119,22 +119,12 @@ export function ageInYears(since: string | null | undefined) {
 }
 
 /**
- * When someone's next birthday falls, how many days off it is, and the age it brings. Beside
- * `ageInYears` because it reads the same column: contacts, kids and pets all carry a `dateOfBirth`,
- * and a countdown re-derived per widget is a countdown that disagrees with itself.
+ * When someone's next birthday falls, how far off it is, and the age it brings. `null` for an
+ * absent, unparseable or future date, like `ageInYears`.
  *
- * `startOfDay` on today is load-bearing, and not for the arithmetic: it's the comparison below that
- * needs it. Against the raw moment, a birthday falling *today* is midnight versus whatever o'clock
- * it now is, so from 00:01 onwards it reads as already gone and the card announces it as a full year
- * away. Both sides are floored to the day, which also makes the day count exact.
- *
- * A 29 February birth date lands on **1 March** in a common year: `setYear` goes through
- * `setFullYear`, which rolls the impossible date forward. Kept rather than corrected — 28 February
- * is no more correct, and picking the other convention here would disagree with the birthday
- * ordering `ContactsService` already does in SQL.
- *
- * `null` for an absent, unparseable or future date, matching `ageInYears`: a birth date ahead of
- * today is bad data, and "turning -2" is worse on a card than showing nothing.
+ * Both sides are floored to the day, or a birthday falling today reads as already gone from 00:01.
+ * A 29 February birth date lands on 1 March in a common year — `setFullYear` rolls it, and that
+ * matches how `ContactsService` already orders birthdays in SQL.
  */
 export function nextBirthday(dateOfBirth: string | null | undefined) {
   if (!dateOfBirth) {
@@ -149,10 +139,19 @@ export function nextBirthday(dateOfBirth: string | null | undefined) {
 
   const today = startOfDay(new Date());
   const thisYear = startOfDay(setYear(born, getYear(today)));
-  // Been and gone already this year, so the next one to come round is next year's.
+  // Been and gone already this year, so the next one round is next year's.
   const date = thisYear < today ? startOfDay(setYear(born, getYear(today) + 1)) : thisYear;
 
   return { date, inDays: differenceInCalendarDays(date, today), turning: getYear(date) - getYear(born) };
+}
+
+/** A day count as words. "in 0 days" is not how anyone says it. */
+export function countdownLabel(inDays: number) {
+  if (inDays === 0) {
+    return 'Today';
+  }
+
+  return inDays === 1 ? 'Tomorrow' : `in ${inDays} days`;
 }
 
 /**
