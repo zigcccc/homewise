@@ -131,6 +131,7 @@ Each of these has already shipped as a bug or cost real time. Where a skill is n
 15. **Every user-facing feature ships with an E2E flow**, and E2E is how you verify — don't hand-drive the browser unless explicitly asked. Type-checking green is not evidence a feature works. → `e2e-testing`
 16. **Before finishing, run all four**: `pnpm check-types`, `pnpm lint` (zero diagnostics), `pnpm knip`, `pnpm test`. Then run `pnpm test:e2e` **once** as the final gate — not while iterating. Report the result honestly: if it fails, say so with the output rather than declaring done.
 17. **Never truncate or seed the dev database on :8765.** The E2E and unit suites own :8766 and :8767 and reset those themselves.
+18. **Comments are short — one line, or none.** Write only what the code can't say itself: a live constraint or a trap. Not rationale essays, not the archaeology of how the code got here; the PR body and git history hold those. A comment that needs a paragraph is a sign the code needs the work instead.
 
 ## Keeping this file small
 
