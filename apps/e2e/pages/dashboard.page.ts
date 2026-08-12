@@ -12,12 +12,8 @@ export class DashboardPage {
   }
 
   /**
-   * Asserts the dashboard rendered, for the seeded user and household unless told otherwise — the
-   * onboarding spec lands here as a different user, on a household it just named.
-   *
-   * **`auth.setup.ts` waits on this before it saves `storageState`**, so every spec in the suite
-   * starts behind it — which is why it stays cheap and asserts the greeting rather than any card.
-   * A card is data, and data is what the parallel workers are all changing underneath each other.
+   * `auth.setup.ts` waits on this before saving `storageState`, so every spec starts behind it —
+   * hence the greeting rather than any card, whose data the parallel workers keep changing.
    */
   async expectLoaded({
     householdName = SEED_HOUSEHOLD_NAME,
@@ -27,16 +23,11 @@ export class DashboardPage {
     userName?: string;
   } = {}) {
     await expect(this.page.getByRole('heading', { level: 1 })).toContainText(userName);
-    // By testid, not by text or landmark: the sidebar names the household too ('Manage "…"'), and
-    // `getByRole('main')` is ambiguous — `SidebarInset` is a <main> and the page renders another
-    // inside it.
+    // By testid: the sidebar names the household too, and `getByRole('main')` matches two elements.
     await expect(this.page.getByTestId('dashboard-greeting')).toContainText(householdName);
   }
 
-  /**
-   * One card, by its title. Each is a labelled `region`, so an assertion can be scoped to the card
-   * it means — the dashboard shows six lists at once and a bare `getByText` would find any of them.
-   */
+  /** One card, by its title. Six lists are on screen at once, so assertions must be scoped. */
   card(title: string) {
     return this.page.getByRole('region', { name: title });
   }
