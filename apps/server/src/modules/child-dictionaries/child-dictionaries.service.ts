@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, ilike, or } from 'drizzle-orm';
 
 import { db, schema } from '#db/core';
-import { emptyToNull, type Filters } from '#db/utils';
+import { changedColumns, emptyToNull, type Filters } from '#db/utils';
 import { notFound, somethingWentWrong } from '#lib/errors';
 
 import {
@@ -117,15 +117,12 @@ export class ChildDictionariesService {
     entryId: number,
     data: PatchChildDictionaryEntry
   ) {
-    await ChildDictionariesService.readEntry(householdId, dictionaryId, entryId);
+    const existing = await ChildDictionariesService.readEntry(householdId, dictionaryId, entryId);
+    const set = { ...data, notes: emptyToNull(data.notes), firstHeardOn: emptyToNull(data.firstHeardOn) };
 
     const [updated] = await db
       .update(schema.childDictionaryEntry)
-      .set({
-        ...data,
-        notes: emptyToNull(data.notes),
-        firstHeardOn: emptyToNull(data.firstHeardOn),
-      })
+      .set(set)
       .where(
         and(eq(schema.childDictionaryEntry.dictionaryId, dictionaryId), eq(schema.childDictionaryEntry.id, entryId))
       )
@@ -135,7 +132,10 @@ export class ChildDictionariesService {
       throw somethingWentWrong();
     }
 
-    return ChildDictionariesService.readEntryWithCreator(dictionaryId, updated.id);
+    return {
+      data: await ChildDictionariesService.readEntryWithCreator(dictionaryId, updated.id),
+      changeset: changedColumns(existing, set),
+    };
   }
 
   public static async deleteEntry(householdId: number, dictionaryId: number, entryId: number) {

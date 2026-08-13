@@ -29,6 +29,10 @@ import { ShoppingListsService } from './shopping-lists.service';
  * anything outside one, and this way the list id is checked against the household before either is
  * touched. Every mutation returns the whole list, because a single write routinely moves more than
  * the row it names — auto-placing an item can mint a section, deleting one re-homes its items.
+ *
+ * Only what happens to a *list* is activity — started, renamed, finished, reopened, thrown away.
+ * Items and sections emit with `label: null`: a shop is dozens of ticks, and a feed that logged each
+ * one would bury every other thing the household did that day under a single trip to the shops.
  */
 const shoppingListsApp = new Hono<AppContext>()
   .use(withHousehold)
@@ -48,14 +52,19 @@ const shoppingListsApp = new Hono<AppContext>()
     const list = await ShoppingListsService.importFromMealPlan(c.var.household.id, c.req.valid('json'), c.var.user.id);
 
     // Without a target the import mints a list, and no other client has heard of that id yet.
-    c.var.emit({ entity: 'shopping_list', id: list.id, operation: listId === undefined ? 'create' : 'update' });
+    c.var.emit({
+      entity: 'shopping_list',
+      id: list.id,
+      operation: listId === undefined ? 'create' : 'update',
+      label: list.name,
+    });
 
     return c.json(list, 201);
   })
   .post('/', zValidator('json', createShoppingListModel), async (c) => {
     const list = await ShoppingListsService.create(c.var.household.id, c.req.valid('json'), c.var.user.id);
 
-    c.var.emit({ entity: 'shopping_list', id: list.id, operation: 'create' });
+    c.var.emit({ entity: 'shopping_list', id: list.id, operation: 'create', label: list.name });
 
     return c.json(list, 201);
   })
@@ -69,18 +78,28 @@ const shoppingListsApp = new Hono<AppContext>()
     zValidator('param', shoppingListPathParamsModel),
     zValidator('json', patchShoppingListModel),
     async (c) => {
-      const list = await ShoppingListsService.patch(c.var.household.id, c.req.valid('param').id, c.req.valid('json'));
+      const { data: list, changeset } = await ShoppingListsService.patch(
+        c.var.household.id,
+        c.req.valid('param').id,
+        c.req.valid('json')
+      );
 
-      c.var.emit({ entity: 'shopping_list', id: list.id, operation: 'update' });
+      c.var.emit({
+        entity: 'shopping_list',
+        id: list.id,
+        operation: 'update',
+        label: list.name,
+        changes: changeset,
+      });
 
       return c.json(list, 200);
     }
   )
   .delete('/:id', zValidator('param', shoppingListPathParamsModel), async (c) => {
     const { id } = c.req.valid('param');
-    await ShoppingListsService.delete(c.var.household.id, id);
+    const deleted = await ShoppingListsService.delete(c.var.household.id, id);
 
-    c.var.emit({ entity: 'shopping_list', id, operation: 'delete' });
+    c.var.emit({ entity: 'shopping_list', id, operation: 'delete', label: deleted.name });
 
     return c.json({ success: true }, 202);
   })
@@ -89,26 +108,32 @@ const shoppingListsApp = new Hono<AppContext>()
     zValidator('param', shoppingListPathParamsModel),
     zValidator('json', completeShoppingListModel),
     async (c) => {
-      const result = await ShoppingListsService.complete(
+      const { data: result, changeset } = await ShoppingListsService.complete(
         c.var.household.id,
         c.req.valid('param').id,
         c.req.valid('json')
       );
 
-      c.var.emit({ entity: 'shopping_list', id: result.list.id, operation: 'update' });
+      c.var.emit({
+        entity: 'shopping_list',
+        id: result.list.id,
+        operation: 'update',
+        label: result.list.name,
+        changes: changeset,
+      });
 
-      // Carrying the leftovers mints a second list, which no invalidation of the first would reach.
+      // A second list no invalidation of the first would reach. Unlogged: one act of finishing a shop.
       if (result.carriedListId !== null) {
-        c.var.emit({ entity: 'shopping_list', id: result.carriedListId, operation: 'create' });
+        c.var.emit({ entity: 'shopping_list', id: result.carriedListId, operation: 'create', label: null });
       }
 
       return c.json(result, 200);
     }
   )
   .post('/:id/reopen', zValidator('param', shoppingListPathParamsModel), async (c) => {
-    const list = await ShoppingListsService.reopen(c.var.household.id, c.req.valid('param').id);
+    const { data: list, changeset } = await ShoppingListsService.reopen(c.var.household.id, c.req.valid('param').id);
 
-    c.var.emit({ entity: 'shopping_list', id: list.id, operation: 'update' });
+    c.var.emit({ entity: 'shopping_list', id: list.id, operation: 'update', label: list.name, changes: changeset });
 
     return c.json(list, 200);
   })
@@ -123,7 +148,7 @@ const shoppingListsApp = new Hono<AppContext>()
         c.req.valid('json')
       );
 
-      c.var.emit({ entity: 'shopping_list', id: list.id, operation: 'update' });
+      c.var.emit({ entity: 'shopping_list', id: list.id, operation: 'update', label: null });
 
       return c.json(list, 201);
     }
@@ -136,7 +161,7 @@ const shoppingListsApp = new Hono<AppContext>()
       const { id, sectionId } = c.req.valid('param');
       const list = await ShoppingListsService.patchSection(c.var.household.id, id, sectionId, c.req.valid('json'));
 
-      c.var.emit({ entity: 'shopping_list', id: list.id, operation: 'update' });
+      c.var.emit({ entity: 'shopping_list', id: list.id, operation: 'update', label: null });
 
       return c.json(list, 200);
     }
@@ -145,7 +170,7 @@ const shoppingListsApp = new Hono<AppContext>()
     const { id, sectionId } = c.req.valid('param');
     const list = await ShoppingListsService.deleteSection(c.var.household.id, id, sectionId);
 
-    c.var.emit({ entity: 'shopping_list', id: list.id, operation: 'update' });
+    c.var.emit({ entity: 'shopping_list', id: list.id, operation: 'update', label: null });
 
     return c.json(list, 200);
   })
@@ -161,7 +186,7 @@ const shoppingListsApp = new Hono<AppContext>()
         c.var.user.id
       );
 
-      c.var.emit({ entity: 'shopping_list', id: list.id, operation: 'update' });
+      c.var.emit({ entity: 'shopping_list', id: list.id, operation: 'update', label: null });
 
       return c.json(list, 201);
     }
@@ -180,7 +205,7 @@ const shoppingListsApp = new Hono<AppContext>()
         c.var.user.id
       );
 
-      c.var.emit({ entity: 'shopping_list', id: list.id, operation: 'update' });
+      c.var.emit({ entity: 'shopping_list', id: list.id, operation: 'update', label: null });
 
       return c.json(list, 200);
     }
@@ -189,7 +214,7 @@ const shoppingListsApp = new Hono<AppContext>()
     const { id, itemId } = c.req.valid('param');
     const list = await ShoppingListsService.deleteItem(c.var.household.id, id, itemId);
 
-    c.var.emit({ entity: 'shopping_list', id: list.id, operation: 'update' });
+    c.var.emit({ entity: 'shopping_list', id: list.id, operation: 'update', label: null });
 
     return c.json(list, 200);
   });

@@ -30,7 +30,7 @@ const recipesApp = new Hono<AppContext>()
     const { tagId } = c.req.valid('param');
     await RecipesService.deleteTag(c.var.household.id, tagId);
 
-    c.var.emit({ entity: 'recipe_tag', id: tagId, operation: 'delete' });
+    c.var.emit({ entity: 'recipe_tag', id: tagId, operation: 'delete', label: null });
 
     return c.json({ success: true }, 202);
   })
@@ -43,11 +43,10 @@ const recipesApp = new Hono<AppContext>()
     const { household, user } = c.var;
     const recipe = await RecipesService.create(household.id, c.req.valid('json'), user.id);
 
-    // Saving a recipe is also when the names on it get minted into the ingredient library, so the
-    // library changed too even though nobody asked for an ingredient.
+    // Saving a recipe mints its names into the ingredient library. Unlogged: nobody asked for one.
     c.var.emit(
-      { entity: 'recipe', id: recipe.id, operation: 'create' },
-      { entity: 'ingredient', id: null, operation: 'update' }
+      { entity: 'recipe', id: recipe.id, operation: 'create', label: recipe.title },
+      { entity: 'ingredient', id: null, operation: 'update', label: null }
     );
 
     return c.json(recipe, 201);
@@ -58,22 +57,28 @@ const recipesApp = new Hono<AppContext>()
     return c.json(recipe, 200);
   })
   .patch('/:id', zValidator('param', recipePathParamsModel), zValidator('json', patchRecipeModel), async (c) => {
-    const recipe = await RecipesService.patch(c.var.household.id, c.req.valid('param').id, c.req.valid('json'));
+    const { data: recipe, changeset } = await RecipesService.patch(
+      c.var.household.id,
+      c.req.valid('param').id,
+      c.req.valid('json')
+    );
 
     c.var.emit(
-      { entity: 'recipe', id: recipe.id, operation: 'update' },
-      { entity: 'ingredient', id: null, operation: 'update' }
+      { entity: 'recipe', id: recipe.id, operation: 'update', label: recipe.title, changes: changeset },
+      { entity: 'ingredient', id: null, operation: 'update', label: null }
     );
 
     return c.json(recipe, 200);
   })
   .delete('/:id', zValidator('param', recipePathParamsModel), async (c) => {
     const { id } = c.req.valid('param');
-    await RecipesService.delete(c.var.household.id, id);
+    const deleted = await RecipesService.delete(c.var.household.id, id);
 
-    // Any meal plan that referenced it just had the title tombstoned onto it, so those cards changed
-    // too — and the plan's cache is keyed by date range, which no recipe id can address.
-    c.var.emit({ entity: 'recipe', id, operation: 'delete' }, { entity: 'meal_plan', id: null, operation: 'update' });
+    // Plans that referenced it keep a tombstoned title, and their cache is keyed by date range, not id.
+    c.var.emit(
+      { entity: 'recipe', id, operation: 'delete', label: deleted.title },
+      { entity: 'meal_plan', id: null, operation: 'update', label: null }
+    );
 
     return c.json({ success: true }, 202);
   });

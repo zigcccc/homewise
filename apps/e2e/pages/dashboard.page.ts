@@ -60,6 +60,10 @@ export class DashboardPage {
     return this.card('Family profiles');
   }
 
+  activity() {
+    return this.card('Recent activity');
+  }
+
   /** The quick action, not the expenses page's toolbar button — hence `Expense`, not `Add expense`. */
   async openExpenseDialog() {
     await this.page.getByRole('button', { exact: true, name: 'Expense' }).click();

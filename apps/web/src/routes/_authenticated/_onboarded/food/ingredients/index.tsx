@@ -1,8 +1,7 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute, redirect } from '@tanstack/react-router';
-import { CarrotIcon, PlusIcon, SearchIcon } from 'lucide-react';
+import { CarrotIcon, PlusIcon } from 'lucide-react';
 import { useState } from 'react';
-import { useDebounceCallback } from 'usehooks-ts';
 import z from 'zod';
 
 import { ingredientCategory, ingredientSortKey } from '@homewise/server/ingredients';
@@ -16,9 +15,6 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
   Select,
   SelectContent,
   SelectItem,
@@ -33,7 +29,7 @@ import {
   ingredientCategoryLabels,
   listIngredientsQueryOptions,
 } from '@/modules/ingredients';
-import { SELECT_ALL, SELECT_NONE, SortDirectionToggle } from '@/modules/shared';
+import { SELECT_ALL, SELECT_NONE, SearchInput, SortDirectionToggle, useSearchParamSetter } from '@/modules/shared';
 import { listStoresQueryOptions, StoreSelectItems } from '@/modules/stores';
 
 import { ingredientsTableColumns } from './-ingredients-table.config';
@@ -49,8 +45,6 @@ const searchParamsModel = z.object({
   sortKey: ingredientSortKey.default('name').catch('name'),
   sortDirection: sortDirection.default('asc').catch('asc'),
 });
-
-type SearchParams = z.infer<typeof searchParamsModel>;
 
 export const Route = createFileRoute('/_authenticated/_onboarded/food/ingredients/')({
   validateSearch: searchParamsModel,
@@ -74,7 +68,6 @@ export const Route = createFileRoute('/_authenticated/_onboarded/food/ingredient
 
 function IngredientsRoute() {
   const searchParams = Route.useSearch();
-  const navigate = Route.useNavigate();
 
   // The header's own "Add ingredient" lives in the layout, which an `<Outlet />` can't hand state
   // to. This one belongs to the empty state's call to action; both open the same dialog.
@@ -83,10 +76,7 @@ function IngredientsRoute() {
   const { data: ingredients } = useSuspenseQuery(listIngredientsQueryOptions(searchParams));
   const { data: stores } = useSuspenseQuery(listStoresQueryOptions());
 
-  const setSearchParam = <Key extends keyof SearchParams>(key: Key, value: SearchParams[Key]) =>
-    navigate({ to: '.', search: { ...searchParams, [key]: value } });
-
-  const debouncedSearch = useDebounceCallback((value: string) => setSearchParam('search', value || undefined), 400);
+  const setSearchParam = useSearchParamSetter(Route);
 
   const table = useDataTable({
     data: ingredients,
@@ -105,16 +95,12 @@ function IngredientsRoute() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-2">
-        <InputGroup className="w-full sm:w-auto sm:flex-1">
-          <InputGroupInput
-            defaultValue={searchParams.search ?? ''}
-            onChange={(evt) => debouncedSearch(evt.target.value)}
-            placeholder="Search ingredients"
-          />
-          <InputGroupAddon>
-            <SearchIcon />
-          </InputGroupAddon>
-        </InputGroup>
+        <SearchInput
+          label="Search ingredients"
+          onChange={(next) => setSearchParam('search', next, { replace: true })}
+          placeholder="Search ingredients"
+          value={searchParams.search}
+        />
 
         <Select
           onValueChange={(value) => setSearchParam('category', value === SELECT_ALL ? undefined : (value as never))}

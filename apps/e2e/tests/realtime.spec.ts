@@ -1,7 +1,9 @@
 import { expect, test } from '@playwright/test';
 
-import { SEED_INGREDIENTS } from '@homewise/server/seed-fixtures';
+import { SEED_INGREDIENTS, SEED_SECOND_USER } from '@homewise/server/seed-fixtures';
 
+import { ActivityPage } from '../pages/activity.page';
+import { ContactsPage } from '../pages/contacts.page';
 import { IngredientsPage } from '../pages/ingredients.page';
 import { MealPlanPage } from '../pages/meal-plan.page';
 import { ShoppingListsPage } from '../pages/shopping-lists.page';
@@ -106,6 +108,42 @@ test.describe('realtime', () => {
     } finally {
       await actorContext.close();
       await observer.deleteListIfPresent(listId);
+    }
+  });
+
+  /**
+   * The activity feed has no entity of its own — it refreshes off *any* delivered message, once per
+   * message rather than once per event. So this is the case that proves the wiring: a change to a
+   * completely different domain has to move a list that domain knows nothing about.
+   */
+  test('shows another member’s change arriving in the activity feed, without a reload', async ({ page, browser }) => {
+    test.slow();
+    const name = `E2E Realtime Feed ${Date.now()}`;
+
+    // The observer: parked on the feed, already filtered to a name that cannot exist yet.
+    const observer = new ActivityPage(page);
+    await observer.goto();
+    await observer.find(name);
+    await expect(observer.entry(name)).toHaveCount(0);
+
+    const actorContext = await browser.newContext({ storageState: SECOND_USER_STORAGE_STATE });
+    const actorPage = await actorContext.newPage();
+    const actor = new ContactsPage(actorPage);
+
+    try {
+      await actor.goto();
+      await actor.add(name);
+
+      // The observer hasn't touched its page — only a delivered event can put this line on screen.
+      await expect(observer.entry(name)).toBeVisible();
+      await expect(observer.entry(name)).toContainText(SEED_SECOND_USER.name);
+    } finally {
+      try {
+        await actor.goto();
+        await actor.deleteIfPresent(name);
+      } finally {
+        await actorContext.close();
+      }
     }
   });
 });

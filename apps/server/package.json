@@ -91,6 +91,10 @@
     "./realtime": {
       "types": "./src/modules/realtime/realtime.model.ts",
       "import": "./src/modules/realtime/realtime.model.ts"
+    },
+    "./activity": {
+      "types": "./src/modules/activity/activity.model.ts",
+      "import": "./src/modules/activity/activity.model.ts"
     }
   },
   "scripts": {

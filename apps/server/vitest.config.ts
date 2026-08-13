@@ -20,6 +20,8 @@ export default defineConfig({
       HOMEWISE_FILES_READ_WRITE_TOKEN: 'unit-test-blob-token',
       HOMEWISE_RESEND_API_KEY: 'unit-test-resend-key',
       NODE_ENV: 'test',
+      // Same reason as the web project: a date test must not depend on where it runs.
+      TZ: 'UTC',
     },
     globalSetup: './vitest.global-setup.ts',
     include: ['src/**/*.test.ts'],

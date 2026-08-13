@@ -197,6 +197,59 @@ export const SEED_EXPENSE_CATEGORIES = [{ name: 'Groceries' }, { name: 'Utilitie
  * The e2e suite logs its own expenses in far-future months and only ever *reads* these — the monthly
  * total is a shared aggregate, so a spec that wrote here would race every other worker.
  */
+/**
+ * A few logged changes, so the feed and the card open on something real. Written directly, because
+ * the log is written by `withHousehold` and the seed talks to the database rather than the API.
+ *
+ * `hoursAgo` is resolved at seed time, so the feed always spans more than one day heading.
+ */
+export const SEED_ACTIVITY = [
+  { actor: 'owner', entity: 'contact', operation: 'create', label: 'Ana Novak', hoursAgo: 2, count: 1, changes: [] },
+  {
+    actor: 'second',
+    entity: 'shopping_list',
+    operation: 'update',
+    label: 'Weekly shop',
+    hoursAgo: 5,
+    count: 1,
+    changes: [{ field: 'name', from: 'Shopping list', to: 'Weekly shop' }],
+  },
+  { actor: 'owner', entity: 'expense', operation: 'create', label: 'Electricity', hoursAgo: 9, count: 1, changes: [] },
+  {
+    actor: 'second',
+    entity: 'recipe',
+    operation: 'update',
+    label: 'Garlic Butter Pasta',
+    hoursAgo: 27,
+    count: 3,
+    // A folded run, stored the way one is written: every edit in order, one field moved twice. The
+    // feed collapses it to "Cook time minutes 30 → 45".
+    changes: [
+      { field: 'cookTimeMinutes', from: 30, to: 40 },
+      { field: 'servings', from: 4, to: 6 },
+      { field: 'cookTimeMinutes', from: 40, to: 45 },
+    ],
+  },
+  {
+    actor: 'owner',
+    entity: 'storage_item',
+    operation: 'update',
+    label: 'Drill',
+    hoursAgo: 32,
+    count: 1,
+    changes: [{ field: 'borrowedByName', from: null, to: 'Ana Novak' }],
+  },
+  {
+    actor: 'owner',
+    entity: 'child_profile',
+    operation: 'create',
+    label: 'Robbie',
+    hoursAgo: 74,
+    count: 1,
+    changes: [],
+  },
+] as const;
+
 export const SEED_EXPENSES = [
   { title: 'Weekly shop', amount: 87.4, category: 'Groceries', dayOfMonth: 3, paidBack: false },
   { title: 'Electricity', amount: 62.15, category: 'Utilities', dayOfMonth: 8, paidBack: false },

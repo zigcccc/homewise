@@ -4,6 +4,7 @@ import { HTTPException } from 'hono/http-exception';
 import { render } from 'react-email';
 
 import { db, schema } from '#db/core';
+import { changedColumns } from '#db/utils';
 import { JoinHousehold } from '#emails/JoinHousehold';
 import { auth } from '#lib/auth';
 import { notFound, somethingWentWrong } from '#lib/errors';
@@ -45,6 +46,17 @@ export class HouseholdsService {
     user?: { name: string } | null;
   }) {
     return firstFilled(member.nickname, member.user?.name, member.name) ?? 'Unknown';
+  }
+
+  /** The same name for a caller holding only an id — a profile's delete, once its own row is gone. */
+  public static async readMemberDisplayName(householdId: number, memberId: number) {
+    const member = await db.query.householdMember.findFirst({
+      where: and(eq(schema.householdMember.householdId, householdId), eq(schema.householdMember.id, memberId)),
+      columns: { name: true, nickname: true },
+      with: { user: { columns: { name: true } } },
+    });
+
+    return member ? HouseholdsService.memberDisplayName(member) : 'Unknown';
   }
 
   public static toMemberResponse<M extends MemberWithUser>(member: M, ownerId: string) {
@@ -147,17 +159,19 @@ export class HouseholdsService {
   }
 
   public static async patch(householdId: number, partialData: PatchHousehold) {
+    const existing = await db.query.household.findFirst({ where: eq(schema.household.id, householdId) });
+
     const [updatedHousehold] = await db
       .update(schema.household)
       .set(partialData)
       .where(eq(schema.household.id, householdId))
       .returning();
 
-    if (!updatedHousehold) {
+    if (!existing || !updatedHousehold) {
       throw somethingWentWrong();
     }
 
-    return updatedHousehold;
+    return { data: updatedHousehold, changeset: changedColumns(existing, partialData) };
   }
 
   public static async delete(householdId: number) {
@@ -229,7 +243,7 @@ export class HouseholdsService {
       throw somethingWentWrong();
     }
 
-    return updated;
+    return { data: updated, changeset: changedColumns(existing, patch) };
   }
 
   public static async deleteHouseholdMember(householdId: number, memberId: number) {
@@ -385,7 +399,7 @@ export class HouseholdsService {
 
     if (existingMembership) {
       await HouseholdsService.deleteInvite(invite.householdId, invite.id);
-      return existingMembership;
+      return { data: existingMembership, joined: false };
     }
 
     let householdMember: typeof schema.householdMember.$inferSelect | undefined;
@@ -417,7 +431,7 @@ export class HouseholdsService {
 
     await HouseholdsService.deleteInvite(invite.householdId, invite.id);
 
-    return householdMember;
+    return { data: householdMember, joined: true };
   }
 
   public static async listActiveInvitesForHousehold(householdId: number) {

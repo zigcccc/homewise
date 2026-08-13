@@ -1,8 +1,7 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
-import { BookHeartIcon, PlusIcon, SearchIcon } from 'lucide-react';
+import { BookHeartIcon, PlusIcon } from 'lucide-react';
 import { useState } from 'react';
-import { useDebounceCallback } from 'usehooks-ts';
 import z from 'zod';
 
 import { childDictionaryEntrySortKey } from '@homewise/server/child-dictionaries';
@@ -21,9 +20,6 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
   Label,
   Select,
   SelectContent,
@@ -35,7 +31,14 @@ import {
 
 import { listChildDictionaryEntriesQueryOptions } from '@/modules/child-dictionaries';
 import { getChildProfileQueryOptions } from '@/modules/child-profiles';
-import { SORT_LABELS, type SortDirectionLabels, SortDirectionToggle } from '@/modules/shared';
+import {
+  SearchInput,
+  type SearchParamSetter,
+  SORT_LABELS,
+  type SortDirectionLabels,
+  SortDirectionToggle,
+  useSearchParamSetter,
+} from '@/modules/shared';
 
 import { createEntriesTableColumns, EntryForm } from './-components/entries-table.config';
 
@@ -90,12 +93,10 @@ export const Route = createFileRoute('/_authenticated/_onboarded/family/kids/$pr
 function DictionaryTab() {
   const { profileId } = Route.useParams();
   const searchParams = Route.useSearch();
-  const navigate = Route.useNavigate();
 
   const { data: profile } = useSuspenseQuery(getChildProfileQueryOptions(Number(profileId)));
 
-  const setSearchParam = <Key extends keyof SearchParams>(key: Key, value: SearchParams[Key]) =>
-    navigate({ to: '.', search: { ...searchParams, [key]: value } });
+  const setSearchParam = useSearchParamSetter(Route);
 
   // Guard before the entries query runs — otherwise a dictionary-less profile would request
   // `/entries/0` and 404 into the route error state instead of showing this empty state.
@@ -135,11 +136,9 @@ function DictionaryEntries({
   dictionary: { id: number; entryCount: number };
   profileId: number;
   searchParams: SearchParams;
-  setSearchParam: <Key extends keyof SearchParams>(key: Key, value: SearchParams[Key]) => void;
+  setSearchParam: SearchParamSetter<typeof Route>;
 }) {
   const [addOpen, setAddOpen] = useState(false);
-
-  const debouncedSearch = useDebounceCallback((value: string) => setSearchParam('search', value || undefined), 400);
 
   const { data: entries } = useSuspenseQuery(
     listChildDictionaryEntriesQueryOptions(dictionary.id, toQuery(searchParams))
@@ -163,16 +162,12 @@ function DictionaryEntries({
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <InputGroup className="w-full sm:w-auto sm:flex-1">
-          <InputGroupInput
-            defaultValue={searchParams.search ?? ''}
-            onChange={(evt) => debouncedSearch(evt.target.value)}
-            placeholder="Search words or translations"
-          />
-          <InputGroupAddon>
-            <SearchIcon />
-          </InputGroupAddon>
-        </InputGroup>
+        <SearchInput
+          label="Search dictionary"
+          onChange={(next) => setSearchParam('search', next, { replace: true })}
+          placeholder="Search words or translations"
+          value={searchParams.search}
+        />
 
         <Select onValueChange={(value) => setSearchParam('sortKey', value as never)} value={searchParams.sortKey}>
           <SelectTrigger className="w-56">

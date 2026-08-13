@@ -19,15 +19,19 @@ member's change without refreshing.
   effect. `POST /recipes` emits `recipe` *and* `ingredient`, because saving a recipe also mints
   library rows; `POST /medical-info/:id/contacts` emits `contact` and `medical_info`. A handler that
   mutates and doesn't emit is a bug that only shows up as a stale second browser.
-- The payload is `{ entity, id, parentId?, operation }` (`modules/realtime/realtime.model.ts`) —
-  **never the entity itself**. `parentId` is only for entities the client caches under their parent
-  (a dictionary entry's `dictionaryId`). Add an entity to the `householdEventEntity` enum and the
-  web's `invalidators` record fails to compile until it's mapped.
+- The payload is `{ entity, id, parentId?, operation, label }` (`modules/realtime/realtime.model.ts`)
+  — **never the entity itself**. `parentId` is only for entities the client caches under their parent
+  (a dictionary entry's `dictionaryId`). Add an entity to the `householdActivityEntityEnum` — the
+  DB enum `householdEventEntity` is derived from — and the web's `invalidators` record fails to
+  compile until it's mapped.
+- **`label` decides whether the event is also *activity*** (see below). It is `string | null` and
+  **required**, so every emit site has to choose.
 - **Never derive a household id anywhere but `c.var.household`.** Channel names come from
   `RealtimeService.channelName`, and the token's capability is minted against that same string, so a
   tab is cryptographically confined to one household's channel — clients get `subscribe` only, never
-  `publish`. Routes outside `withHousehold` (households, members, invites, `/users/me`) don't emit
-  yet — `emit` is that middleware's context variable, so it doesn't exist there.
+  `publish`. `/users/me` doesn't emit — it isn't household-scoped, so `emit` doesn't exist there.
+  `/households/my/*` **is** scoped and does emit; only creating a household and accepting an invite
+  sit outside, and both call `ActivityService.record` directly.
 - Nothing is emitted when a request fails: a thrown `HTTPException` never reaches the flush, and a
   validator's 400 leaves `c.res.ok` false.
 - `HOMEWISE_ABLY_API_KEY` is **required** — the server refuses to boot without it, like
@@ -40,6 +44,70 @@ member's change without refreshing.
 
 **Nothing fails loudly if you skip the emit** — the only symptom is a second member's browser quietly
 showing stale data. A new mutating endpoint isn't done until it emits and its entity is mapped.
+
+## The same buffer writes the activity log
+
+`withHousehold` **records before it publishes**, from the one buffer: `ActivityService.record(...)`
+then `RealtimeService.publish(...)`. Recorded first so a tab that refetches the instant the message
+lands finds the line already there. `record` swallows and Sentry-reports its own failures exactly as
+`publish` does — by that point the mutation has committed, and a failed log insert must not turn a
+change that landed into an error the user sees.
+
+**`label` is what separates the two jobs**, and it is required so no site can skip the decision by
+omission:
+
+- **A string logs it** — the affected thing's *display name*, snapshotted, because after a delete
+  there is nothing left to look it up from. Never a pre-built sentence: the web composes
+  "{actor} {verb} {noun} {label}" from `ACTIVITY_ENTITY_NOUNS`.
+- **`null` invalidates quietly.** Two cases, and only two: the **cascade** halves of a multi-entity
+  mutation (deleting a shop also touches every ingredient — that's the shop's line, not three more),
+  and **chatter** (shopping-list items and sections; a shop is dozens of ticks and would bury the day).
+
+**`changes` is what the line says happened**, and it is how a patch route earns its place in the
+feed. Build it with `changedColumns(existing, set)` (`#db/utils`) — the **normalized** `set` against
+the stored row, never the raw payload, since a form posts `''` where the column holds NULL and
+diffing before `emptyToNull` calls every save a change. Nearly every patch service already reads the
+row as its 404 guard, so it costs nothing. Three rules the helper applies for you: a foreign key and an identity number are **named,
+not quoted**; anything that isn't a column (a recipe's ingredients, a contact's links) has no diff to
+take and is compared with `sameList` and pushed by hand.
+
+**A service that takes a diff returns `{ data, changeset }`**, never the row with the diff spread
+into it. The route names both halves and answers with the first:
+
+```ts
+const { data: contact, changeset } = await ContactsService.patch(…);
+c.var.emit({ entity: 'contact', id: contact.id, operation: 'update', label: contact.name, changes: changeset });
+return c.json(contact, 200);
+```
+
+Spreading looked cheaper and is the trap: the route has to spread a second time to strip the diff
+back off, and a route that *forgets* silently publishes it as part of the API. Under `data` a forgetful
+route hands the client `{ data, changeset }` instead of the record and the compiler says so. Anything
+else the route needs but the client doesn't (`createdContact` on a loan) sits beside `data`, for the
+same reason.
+
+Then mind what the two empty states mean, because they are not the same:
+
+- **`changes: []`** — a diff ran and found nothing. The event still invalidates, and is **not logged
+  at all**: opening a form and pressing Save is not household history.
+- **`changes` absent** — no diff was taken. Logged the way it always was.
+
+A deletion needs its label read *before* the row goes. Most services already `.returning()` it. Where
+the name lives on a join rather than the row — a child or pet profile, whose name is on the member —
+the service resolves it and returns it alongside (`HouseholdsService.readMemberDisplayName`).
+
+**A row is a feed line, not a change.** `record` folds a repeated *update* into the household's
+newest line — same actor, same entity, same id, same label, within an hour — and counts it there
+(`count`), so five saves of one form read as "made 5 updates to …" rather than five identical
+sentences. Only the newest line is ever a candidate, which is what keeps this invisible to the read
+path: the folded row stays newest, so no id changes and the keyset cursor, the page size and every
+filter are untouched. Two consequences for an emit site: a labelled update may not produce a new row,
+and `updatedAt` — not `createdAt` — is when the line last happened, which is what the feed dates and
+groups by.
+
+**The feed itself has no entity.** `RealtimeSync` calls `invalidateActivity(queryClient)` **once per
+message**, outside the per-event loop: every logged change already produces a message, so a dedicated
+entity would only ever be emitted alongside another one.
 
 ## Web: invalidation is the subscriber's only job
 

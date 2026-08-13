@@ -3,6 +3,7 @@ import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
 
 import { notFound } from '#lib/errors';
+import { ActivityService } from '#modules/activity/activity.service';
 import { type HouseholdSummary, HouseholdsService } from '#modules/households/households.service';
 import { type HouseholdEvent } from '#modules/realtime/realtime.model';
 import { RealtimeService } from '#modules/realtime/realtime.service';
@@ -12,8 +13,12 @@ export type HouseholdContext = {
   Variables: AppContext['Variables'] & {
     household: HouseholdSummary;
     /**
-     * Announces what this request changed to the rest of the household. Buffered and published once
-     * the handler succeeds — call it as many times as the handler has distinct effects.
+     * Announces what this request changed to the rest of the household, and records it in the
+     * activity log. Buffered and flushed once the handler succeeds — call it as many times as the
+     * handler has distinct effects.
+     *
+     * Each event's `label` decides whether it is *also* activity: the affected thing's name to log
+     * it, `null` to invalidate quietly. Cascades and chatter take `null`.
      */
     emit: (...events: HouseholdEvent[]) => void;
   };
@@ -56,8 +61,13 @@ export const withHousehold = createMiddleware<HouseholdContext>(async (c, next) 
   }
 
   // Awaited rather than fired and forgotten: on a serverless host the invocation can freeze the
-  // moment the response is returned, which would drop the publish silently. One batched round trip
-  // for the whole request, and `publish` swallows its own failures.
+  // moment the response is returned, which would drop these silently. One batched round trip each
+  // for the whole request, and both swallow their own failures.
+  //
+  // Recorded before it's announced, so a tab that refetches the moment the message lands finds the
+  // line already there. Only events carrying a `label` become rows — see `householdEventModel`.
+  await ActivityService.record(household.id, c.var.user, buffered);
+
   await RealtimeService.publish(household.id, {
     actorId: c.var.user.id,
     events: buffered,

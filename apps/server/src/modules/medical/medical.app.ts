@@ -19,9 +19,14 @@ const medicalApp = new Hono<AppContext>()
     zValidator('param', medicalInfoPathParamsModel),
     zValidator('json', patchMedicalInfoModel),
     async (c) => {
-      const info = await MedicalService.patchInfo(c.var.household.id, c.req.valid('param').id, c.req.valid('json'));
+      const { data: info, changeset } = await MedicalService.patchInfo(
+        c.var.household.id,
+        c.req.valid('param').id,
+        c.req.valid('json')
+      );
+      const owner = await MedicalService.readOwnerDisplayName(c.var.household.id, info.id);
 
-      c.var.emit({ entity: 'medical_info', id: info.id, operation: 'update' });
+      c.var.emit({ entity: 'medical_info', id: info.id, operation: 'update', label: owner, changes: changeset });
 
       return c.json(info, 200);
     }
@@ -34,11 +39,10 @@ const medicalApp = new Hono<AppContext>()
       const id = c.req.valid('param').id;
       const contact = await MedicalService.addContact(c.var.household.id, id, c.req.valid('json'));
 
-      // One request, two effects: a brand new contact in the household's address book, and a record
-      // that now points at it.
+      // Two effects, neither logged: attaching a doctor is a detail of the record, not a household event.
       c.var.emit(
-        { entity: 'contact', id: contact.id, operation: 'create' },
-        { entity: 'medical_info', id, operation: 'update' }
+        { entity: 'contact', id: contact.id, operation: 'create', label: null },
+        { entity: 'medical_info', id, operation: 'update', label: null }
       );
 
       return c.json(contact, 201);
@@ -48,7 +52,7 @@ const medicalApp = new Hono<AppContext>()
     const { id, contactId } = c.req.valid('param');
     const contact = await MedicalService.linkContact(c.var.household.id, id, contactId);
 
-    c.var.emit({ entity: 'medical_info', id, operation: 'update' });
+    c.var.emit({ entity: 'medical_info', id, operation: 'update', label: null });
 
     return c.json(contact, 201);
   })
@@ -56,7 +60,7 @@ const medicalApp = new Hono<AppContext>()
     const { id, contactId } = c.req.valid('param');
     await MedicalService.unlinkContact(c.var.household.id, id, contactId);
 
-    c.var.emit({ entity: 'medical_info', id, operation: 'update' });
+    c.var.emit({ entity: 'medical_info', id, operation: 'update', label: null });
 
     return c.json({ success: true }, 202);
   });

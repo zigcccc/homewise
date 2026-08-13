@@ -2,10 +2,11 @@ import { and, asc, desc, eq, ilike, isNotNull, isNull, lt, or } from 'drizzle-or
 import { HTTPException } from 'hono/http-exception';
 
 import { db, schema } from '#db/core';
-import { emptyToNull, type Filters, writesAnything } from '#db/utils';
+import { changedColumns, emptyToNull, type Filters, writesAnything } from '#db/utils';
 import { blobPrefix } from '#lib/blobs';
 import { todayISO } from '#lib/dates';
 import { notFound, somethingWentWrong } from '#lib/errors';
+import { type FieldChange } from '#lib/models';
 import { ContactsService } from '#modules/contacts/contacts.service';
 import { ImagesService } from '#modules/images/images.service';
 import { StorageLocationsService } from '#modules/storage-locations/storage-locations.service';
@@ -194,12 +195,16 @@ export class StorageItemsService {
       ownedPrefix: blobPrefix.storageItemPhoto(householdId),
       size: 512,
     });
+    // Taken before the photo joins the set — a blob URL is not something to read in a feed.
+    const changeset = changedColumns(existing, set);
+
     if (photo.changed) {
       set.photoUrl = photo.value;
+      changeset.push({ field: 'photoUrl' });
     }
 
     if (!writesAnything(set)) {
-      return StorageItemsService.read(householdId, itemId);
+      return { data: await StorageItemsService.read(householdId, itemId), changeset };
     }
 
     const persisted = await ImagesService.commitManagedImage(photo, async () => {
@@ -217,7 +222,7 @@ export class StorageItemsService {
       throw notFound('Item');
     }
 
-    return StorageItemsService.read(householdId, itemId);
+    return { data: await StorageItemsService.read(householdId, itemId), changeset };
   }
 
   /**
@@ -235,21 +240,27 @@ export class StorageItemsService {
     }
 
     const createdContact = 'contact' in data;
+    // Filled inside the transaction: the borrower is only resolved (or minted) there.
+    let changeset: FieldChange[] = [];
 
     await db.transaction(async (tx) => {
       const borrower = createdContact
         ? await ContactsService.create(householdId, data.contact, tx)
         : await ContactsService.readContactRow(householdId, data.contactId, tx);
 
+      const set = {
+        borrowedByContactId: borrower.id,
+        // Stored beside the link so a later contact deletion leaves a name rather than a hole.
+        borrowedByName: borrower.name,
+        borrowedOn: data.borrowedOn ?? todayISO(),
+        dueOn: emptyToNull(data.dueOn) ?? null,
+      };
+
+      changeset = changedColumns(item, set);
+
       const [updated] = await tx
         .update(schema.storageItem)
-        .set({
-          borrowedByContactId: borrower.id,
-          // Stored beside the link so a later contact deletion leaves a name rather than a hole.
-          borrowedByName: borrower.name,
-          borrowedOn: data.borrowedOn ?? todayISO(),
-          dueOn: emptyToNull(data.dueOn) ?? null,
-        })
+        .set(set)
         // `isNull` repeats the check above deliberately: that one read outside this transaction, so
         // it can only speak for the moment before it. This is what makes one loan win a race.
         .where(
@@ -276,14 +287,18 @@ export class StorageItemsService {
       }
     });
 
-    return { item: await StorageItemsService.read(householdId, itemId), createdContact };
+    return { data: await StorageItemsService.read(householdId, itemId), changeset, createdContact };
   }
 
   /** Marks the item back in. The loan is not history — there is one current answer, or none. */
   public static async markReturned(householdId: number, itemId: number) {
+    // Read first: after the update there is nothing on the row to name the borrower with.
+    const existing = await StorageItemsService.readItemRow(householdId, itemId);
+    const set = { borrowedByContactId: null, borrowedByName: null, borrowedOn: null, dueOn: null };
+
     const [updated] = await db
       .update(schema.storageItem)
-      .set({ borrowedByContactId: null, borrowedByName: null, borrowedOn: null, dueOn: null })
+      .set(set)
       .where(and(eq(schema.storageItem.householdId, householdId), eq(schema.storageItem.id, itemId)))
       .returning({ id: schema.storageItem.id });
 
@@ -291,7 +306,7 @@ export class StorageItemsService {
       throw notFound('Item');
     }
 
-    return StorageItemsService.read(householdId, itemId);
+    return { data: await StorageItemsService.read(householdId, itemId), changeset: changedColumns(existing, set) };
   }
 
   public static async delete(householdId: number, itemId: number) {

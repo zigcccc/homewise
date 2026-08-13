@@ -26,7 +26,7 @@ const expenseCategoriesApp = new Hono<AppContext>()
   .post('/', zValidator('json', createExpenseCategoryModel), async (c) => {
     const category = await ExpenseCategoriesService.create(c.var.household.id, c.req.valid('json'));
 
-    c.var.emit({ entity: 'expense_category', id: category.id, operation: 'create' });
+    c.var.emit({ entity: 'expense_category', id: category.id, operation: 'create', label: null });
 
     return c.json(category, 201);
   })
@@ -41,7 +41,7 @@ const expenseCategoriesApp = new Hono<AppContext>()
         c.req.valid('json')
       );
 
-      c.var.emit({ entity: 'expense_category', id: category.id, operation: 'update' });
+      c.var.emit({ entity: 'expense_category', id: category.id, operation: 'update', label: null });
 
       return c.json(category, 200);
     }
@@ -53,8 +53,8 @@ const expenseCategoriesApp = new Hono<AppContext>()
     // Also an expense change — every row filed here just became uncategorised, and the table shows
     // the category's name off the join.
     c.var.emit(
-      { entity: 'expense_category', id, operation: 'delete' },
-      { entity: 'expense', id: null, operation: 'update' }
+      { entity: 'expense_category', id, operation: 'delete', label: null },
+      { entity: 'expense', id: null, operation: 'update', label: null }
     );
 
     return c.json({ success: true }, 202);

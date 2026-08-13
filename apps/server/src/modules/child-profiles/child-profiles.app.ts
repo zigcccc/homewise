@@ -23,7 +23,7 @@ const childProfilesApp = new Hono<AppContext>()
     const { household } = c.var;
     const profile = await ChildProfilesService.create(household.id, c.req.valid('json'), household.ownerId);
 
-    c.var.emit({ entity: 'child_profile', id: profile.id, operation: 'create' });
+    c.var.emit({ entity: 'child_profile', id: profile.id, operation: 'create', label: profile.child.displayName });
 
     return c.json(profile, 201);
   })
@@ -39,23 +39,29 @@ const childProfilesApp = new Hono<AppContext>()
     zValidator('form', patchChildProfileModel),
     async (c) => {
       const { household } = c.var;
-      const profile = await ChildProfilesService.patch(
+      const { data: profile, changeset } = await ChildProfilesService.patch(
         household.id,
         c.req.valid('param').id,
         c.req.valid('form'),
         household.ownerId
       );
 
-      c.var.emit({ entity: 'child_profile', id: profile.id, operation: 'update' });
+      c.var.emit({
+        entity: 'child_profile',
+        id: profile.id,
+        operation: 'update',
+        label: profile.child.displayName,
+        changes: changeset,
+      });
 
       return c.json(profile, 200);
     }
   )
   .delete('/:id', zValidator('param', childProfilePathParamsModel), async (c) => {
     const { id } = c.req.valid('param');
-    await ChildProfilesService.delete(c.var.household.id, id);
+    const deleted = await ChildProfilesService.delete(c.var.household.id, id);
 
-    c.var.emit({ entity: 'child_profile', id, operation: 'delete' });
+    c.var.emit({ entity: 'child_profile', id, operation: 'delete', label: deleted.displayName });
 
     return c.json({ success: true }, 202);
   });

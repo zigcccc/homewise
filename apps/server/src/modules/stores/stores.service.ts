@@ -1,7 +1,7 @@
 import { and, asc, count, desc, eq, ilike, inArray, ne, or, sql } from 'drizzle-orm';
 
 import { db, schema } from '#db/core';
-import { type Executor, emptyToNull, type Filters, isUniqueViolation, writesAnything } from '#db/utils';
+import { changedColumns, type Executor, emptyToNull, type Filters, isUniqueViolation, writesAnything } from '#db/utils';
 import { alreadyExists, couldNotResolve, notFound, somethingWentWrong } from '#lib/errors';
 import { ShoppingListsService } from '#modules/shopping-lists/shopping-lists.service';
 
@@ -172,19 +172,19 @@ export class StoresService {
   }
 
   public static async patch(householdId: number, storeId: number, data: PatchStore) {
-    await StoresService.readStoreRow(householdId, storeId);
+    const existing = await StoresService.readStoreRow(householdId, storeId);
 
     if (data.name !== undefined) {
       await StoresService.assertNameAvailable(householdId, data.name, storeId);
     }
 
     const set = { name: data.name, notes: emptyToNull(data.notes) };
+    const changeset = changedColumns(existing, set);
 
     if (!writesAnything(set)) {
-      const current = await StoresService.readStoreRow(householdId, storeId);
       const usage = await StoresService.countIngredientUsage(householdId, [storeId]);
 
-      return { ...current, ingredientCount: usage.get(storeId) ?? 0 };
+      return { data: { ...existing, ingredientCount: usage.get(storeId) ?? 0 }, changeset };
     }
 
     const [updated] = await db
@@ -205,7 +205,7 @@ export class StoresService {
 
     const usage = await StoresService.countIngredientUsage(householdId, [storeId]);
 
-    return { ...updated, ingredientCount: usage.get(storeId) ?? 0 };
+    return { data: { ...updated, ingredientCount: usage.get(storeId) ?? 0 }, changeset };
   }
 
   /**

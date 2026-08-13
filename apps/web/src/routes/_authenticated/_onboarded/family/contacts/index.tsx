@@ -1,8 +1,7 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { BookUserIcon, PlusIcon, SearchIcon } from 'lucide-react';
+import { BookUserIcon, PlusIcon } from 'lucide-react';
 import { useState } from 'react';
-import { useDebounceCallback } from 'usehooks-ts';
 import z from 'zod';
 
 import { contactSortKey, contactType } from '@homewise/server/contacts';
@@ -23,9 +22,6 @@ import {
   EmptyMedia,
   EmptyTitle,
   getRowId,
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
   Select,
   SelectContent,
   SelectItem,
@@ -40,9 +36,11 @@ import {
   Actionbar,
   PageLayout,
   RouteError,
+  SearchInput,
   SORT_LABELS,
   type SortDirectionLabels,
   SortDirectionToggle,
+  useSearchParamSetter,
 } from '@/modules/shared';
 
 import { contactColumns } from './-contacts-table.config';
@@ -53,8 +51,6 @@ const searchParamsModel = z.object({
   sortKey: contactSortKey.default('name').catch('name'),
   sortDirection: sortDirection.default('asc').catch('asc'),
 });
-
-type SearchParams = z.infer<typeof searchParamsModel>;
 
 type ContactSortKey = z.infer<typeof contactSortKey>;
 
@@ -94,10 +90,7 @@ function ContactsRoute() {
 
   const { data: contacts } = useSuspenseQuery(listContactsQueryOptions(searchParams));
 
-  const setSearchParam = <Key extends keyof SearchParams>(key: Key, value: SearchParams[Key]) =>
-    navigate({ to: '.', search: { ...searchParams, [key]: value } });
-
-  const debouncedSearch = useDebounceCallback((value: string) => setSearchParam('search', value || undefined), 400);
+  const setSearchParam = useSearchParamSetter(Route);
 
   const table = useDataTable({ columns: contactColumns, data: contacts, getRowId });
 
@@ -138,16 +131,12 @@ function ContactsRoute() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <InputGroup className="w-full sm:w-auto sm:flex-1">
-            <InputGroupInput
-              defaultValue={searchParams.search ?? ''}
-              onChange={(evt) => debouncedSearch(evt.target.value)}
-              placeholder="Search names, phones and emails"
-            />
-            <InputGroupAddon>
-              <SearchIcon />
-            </InputGroupAddon>
-          </InputGroup>
+          <SearchInput
+            label="Search contacts"
+            onChange={(next) => setSearchParam('search', next, { replace: true })}
+            placeholder="Search names, phones and emails"
+            value={searchParams.search}
+          />
 
           <Select
             onValueChange={(value) => setSearchParam('type', value === 'all' ? undefined : contactType.parse(value))}

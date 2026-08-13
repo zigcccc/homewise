@@ -19,6 +19,7 @@ import { ExpenseFormDialog } from '@/modules/expenses';
 import { getMyHouseholdQueryOptions } from '@/modules/households';
 import { Actionbar, formatDate, PageLayout, RouteError, todayISODay } from '@/modules/shared';
 
+import { ActivityCard, dashboardActivityQueryOptions } from './-components/activity-card';
 import { BirthdaysCard } from './-components/birthdays-card';
 import {
   dashboardChildProfilesQueryOptions,
@@ -52,6 +53,7 @@ export const Route = createFileRoute('/_authenticated/_onboarded/')({
       context.queryClient.ensureQueryData(listContactsQueryOptions()),
       context.queryClient.ensureQueryData(dashboardChildProfilesQueryOptions()),
       context.queryClient.ensureQueryData(dashboardPetProfilesQueryOptions()),
+      context.queryClient.ensureQueryData(dashboardActivityQueryOptions()),
     ]);
   },
 });
@@ -153,6 +155,7 @@ function DashboardPending() {
       <LoansCard.Skeleton />
       <RecentRecipesCard.Skeleton />
       <FamilyProfilesCard.Skeleton />
+      <ActivityCard.Skeleton />
     </DashboardShell>
   );
 }
@@ -185,6 +188,7 @@ function HomeRoute() {
       <LoansCard />
       <RecentRecipesCard />
       <FamilyProfilesCard />
+      <ActivityCard />
     </DashboardShell>
   );
 }

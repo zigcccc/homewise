@@ -15,6 +15,9 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
+    // Pinned, because dates are formatted for reading in local time: a machine west of UTC renders a
+    // `Z` timestamp on the previous day, and the assertion that catches a month-first bug fails there.
+    env: { TZ: 'UTC' },
     include: ['src/**/*.test.{ts,tsx}'],
     name: 'web',
     setupFiles: ['./vitest.setup.ts'],

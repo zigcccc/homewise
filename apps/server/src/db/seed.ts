@@ -8,6 +8,7 @@ import { Pool } from 'pg';
 import { addDays, endOfMonth, startOfISOWeek, startOfMonth, todayISO } from '../lib/dates';
 import * as schema from './schema/core';
 import {
+  SEED_ACTIVITY,
   SEED_CHILD_MEMBER,
   SEED_EXPENSE_CATEGORIES,
   SEED_EXPENSES,
@@ -570,6 +571,47 @@ async function seed() {
       console.log(`▸ seeded ${missingItems.length} storage items`);
     } else {
       console.log('▸ storage items already present — skipping');
+    }
+
+    // 13. The activity feed, last: these are a record of the work above, so they read as its history.
+    const existingActivity = await db
+      .select({ id: schema.householdActivity.id })
+      .from(schema.householdActivity)
+      .where(eq(schema.householdActivity.householdId, household.id));
+
+    if (existingActivity.length === 0) {
+      const now = Date.now();
+      const actorsBySlug = {
+        owner: { id: user.id, name: SEED_USER.name },
+        second: { id: secondUser.id, name: SEED_SECOND_USER.name },
+      };
+
+      await db.insert(schema.householdActivity).values(
+        // Oldest first: the feed orders by `id`, so a serial has to ascend with time.
+        [...SEED_ACTIVITY].reverse().map((fixture) => {
+          const actor = actorsBySlug[fixture.actor];
+          const lastAt = new Date(now - fixture.hoursAgo * 60 * 60 * 1000);
+
+          return {
+            householdId: household.id,
+            actorId: actor.id,
+            actorName: actor.name,
+            entity: fixture.entity,
+            operation: fixture.operation,
+            entityId: null,
+            parentId: null,
+            label: fixture.label,
+            count: fixture.count,
+            changes: fixture.changes.map((change) => ({ ...change })),
+            // A run started with the first of its edits; `updatedAt` is the last, and dates the line.
+            createdAt: new Date(lastAt.getTime() - (fixture.count - 1) * 10 * 60 * 1000),
+            updatedAt: lastAt,
+          };
+        })
+      );
+      console.log(`▸ seeded ${SEED_ACTIVITY.length} activity entries`);
+    } else {
+      console.log('▸ activity already present — skipping');
     }
 
     console.log('✓ seed complete');

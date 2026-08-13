@@ -8,7 +8,7 @@ export class DictionaryPage {
   private readonly searchBox: SearchBox;
 
   constructor(private readonly page: Page) {
-    this.searchBox = new SearchBox(page, 'Search words or translations');
+    this.searchBox = new SearchBox(page, 'Search dictionary');
   }
 
   /** Switches to the Dictionary tab (from anywhere on the profile). */

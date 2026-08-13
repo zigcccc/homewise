@@ -71,6 +71,54 @@ List/filter/sort state belongs in **URL search params** via `validateSearch` + `
 `@homewise/server/models` rather than a local copy, so the route validates against the same schema
 the endpoint does.
 
+**Every route sets its params through `useSearchParamSetter`** (`modules/shared/hooks`) — never a
+local `navigate({ search: { ...searchParams, [key]: value }, to: '.' })`, which every list view had
+its own copy of:
+
+```ts
+const setSearchParam = useSearchParamSetter(Route);
+
+setSearchParam('type', 'family');
+setSearchParam('search', term, { replace: true });
+```
+
+**It takes the `Route`, not a navigate function and not a type argument.** The keys and values come
+off that route's own `validateSearch` (`Route['types']['fullSearchSchema']`), so an unknown key or a
+value outside an enum is a compile error, and the navigation is bound to the route. Note the route's
+search shape is *not* recoverable from `Route.useNavigate()`: `UseNavigateResult` carries the path
+only as a **default** for a type parameter, which `infer` cannot reach, so it erases to `string`.
+Pass the setter to a child component as `SearchParamSetter<typeof Route>`.
+
+**It merges through `navigate`'s search *reducer*, never a spread of the current params** — that is
+the load-bearing part, not a style choice. A spread captures the other params at the render that
+built the setter, so any call that lands late writes that snapshot back wholesale: a debounced search
+term firing after a filter click reinstates the params from before the click and silently drops the
+filter. Reading them from the router at navigation time makes a stale call impossible rather than
+something each caller has to defend against, and it makes the setter identity-stable as a side
+effect. `use-search-param-setter.test.tsx` holds it, against a real memory-history router.
+
+`replace` for a change not worth a history entry. A committed search term would otherwise be its own
+entry, so Back walks the word backwards a few letters at a time instead of leaving the page; filters
+and sorts still push.
+
+**Searching is `SearchInput`** (`modules/shared`), never a hand-rolled `InputGroupInput` plus a
+`useDebounceCallback`. It owns the debounce, the accessible name and — the part that is easy to get
+wrong — keeping what is typed in sync with the URL. Feeding the input straight off the search param
+lags a keystroke behind the debounce; holding it purely locally leaves a box claiming a filter the
+list is not applying. **react-hook-form's `values` option is that trade**, not a pair of `useState`s:
+it re-syncs the field when the param moves on its own (a Back button, a filter cleared elsewhere)
+while typing stays ahead of the debounce.
+
+**A search box needs an `aria-label`.** A placeholder is not an accessible name; it disappears the
+moment anyone types, and a spec that can only find the control by placeholder is a spec proving it
+has no name. E2E locates these by role and name.
+
+Worth knowing, because it looks like a bug the first time you read the code: `useDebounceCallback`
+rebuilds its debouncer whenever the callback identity changes and never cancels the previous one, so
+a re-render mid-typing can leave two timers pending. That is harmless *here* only because the setter
+merges at navigation time — a late timer writes the right thing. Don't reach for a latest-handler ref
+to tidy it up; if a debounced callback ever does need stability, fix what it closes over instead.
+
 ## The API client
 
 API calls use the **Hono RPC client** (`src/api/client.ts`) initialized with `hc<AppType>()`, giving
@@ -93,6 +141,12 @@ components.
 **Wrap RPC calls in `parseResponse`.** A `mutationFn` returning a raw Hono call swallows 4xx/5xx;
 `parseResponse` makes errors throw so the mutation's error path actually runs.
 
+**A switch over a wire union ends in `default: return assertNever(value)`** (`modules/shared`).
+Leaving a case out is then a compile error naming it, rather than a `switch` that silently falls
+through to `undefined`. It still runs, because the union came off the wire: a server shipping a new
+enum value ahead of this build reaches it, logs through `console.error` (which is how we reach
+Sentry — never `Sentry.logger.*`) and renders nothing instead of crashing the route.
+
 ## Data fetching
 
 Data fetching uses **TanStack Query** with `queryOptions` helpers in a single
@@ -113,6 +167,24 @@ Put helpers in the module (`invalidateDictionary(queryClient, id)`) and type the
 
 Those same `invalidate*` helpers are what the realtime subscriber calls — a new domain also needs an
 entry in the `invalidators` record, which is a compile error until you add it. See `realtime-events`.
+
+### Paging a list that grows without bound
+
+Every list endpoint but one returns its table whole, which is fine for a household's contacts or
+recipes. The activity log is the exception — it only ever grows — and is the one place with a cursor.
+`activity.queries.ts` is the pattern to copy if a second ever needs one:
+
+- **`infiniteQueryOptions`**, with `initialPageParam: undefined as number | undefined` and
+  `getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined`. The page param is a **row id**,
+  not an ordinal — the first page has none because it starts at the newest row — and `undefined`
+  rather than `null` so it drops straight into the RPC query the endpoint declares.
+- **The cursor is not in the query key** — only the filters are. It is the page pointer, and
+  TanStack Query tracks it per page; putting it in the key gives every page its own cache entry.
+- **Keyset, not offset**, which is the server's `readPage` (`server-conventions`). An offset would
+  re-serve a row the moment anyone else wrote while a member was scrolling.
+- **A card wanting the newest few uses its own plain `queryOptions`** with a `limit`, on its own key
+  (`['activity', 'recent']`), so paging the full page can't disturb it. `ensureInfiniteQueryData` is
+  the loader's call for the infinite one.
 
 ## Module structure
 

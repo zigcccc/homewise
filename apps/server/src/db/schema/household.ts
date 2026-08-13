@@ -3,6 +3,7 @@ import { boolean, integer, pgEnum, pgTable, text } from 'drizzle-orm/pg-core';
 
 import { baseDbEntityFields } from './__shared/base';
 import { currencyEnum } from './__shared/currency';
+import { householdActivity } from './activity';
 import { childProfile } from './child-profile';
 import { expense, expenseCategory } from './expense';
 import { plannedDayNote, plannedMeal, plannedMealMember } from './meal-plan';
@@ -61,6 +62,7 @@ export const householdMemberRelations = relations(householdMember, ({ many, one 
 }));
 
 export const householdRelations = relations(household, ({ many, one }) => ({
+  activity: many(householdActivity),
   childProfiles: many(childProfile),
   petProfiles: many(petProfile),
   expenseCategories: many(expenseCategory),

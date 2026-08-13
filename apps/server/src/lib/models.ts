@@ -52,9 +52,45 @@ export const searchQueryParam = z
   .optional()
   .catch(undefined);
 
+/**
+ * One column a save actually changed, as the activity log carries it.
+ *
+ * `from`/`to` are optional rather than nullable, and the difference matters: `null` is a value a
+ * column can hold (cleared), while an absent key means "this changed, but there is nothing worth
+ * showing" — a foreign key, whose value is an id nobody can read, or a relation that isn't a column
+ * at all. The line then names the field and stops.
+ *
+ * Values are stored raw and formatted for reading on the web, so a date stays a date rather than
+ * becoming one locale's idea of one on its way into the database.
+ */
+const columnValue = z.union([z.string(), z.number(), z.boolean()]).nullable();
+
+export const fieldChangeModel = z.object({
+  field: z.string(),
+  from: columnValue.optional(),
+  to: columnValue.optional(),
+});
+export type FieldChange = z.infer<typeof fieldChangeModel>;
+
 /** Which way a list is sorted. Nothing about this is per-entity — only the sort *key* is. */
 export const sortDirection = z.enum(['asc', 'desc']);
 export type SortDirection = z.infer<typeof sortDirection>;
+
+/** The page size no caller may exceed, whatever it asks for. */
+export const MAX_PAGE_SIZE = 100;
+
+/**
+ * The `?cursor=&limit=` half of a paginated list, to `.extend()` onto that endpoint's filters.
+ *
+ * `cursor` is the id of the last row already shown, never an offset: rows written mid-scroll shift
+ * every offset after them, which shows one page's last row again at the top of the next.
+ */
+export const pageQueryParams = (defaultSize: number) =>
+  z.object({
+    cursor: z.coerce.number<number>().int().positive().optional().catch(undefined),
+    limit: z.coerce.number<number>().int().min(1).max(MAX_PAGE_SIZE).default(defaultSize).catch(defaultSize),
+  });
+export type PageParams = z.infer<ReturnType<typeof pageQueryParams>>;
 
 /** A `date` column a form can blank. `''` is "cleared", which the service normalizes to NULL. */
 export const clearableDate = z.iso.date({ error: 'Use a valid date' }).or(z.literal(''));

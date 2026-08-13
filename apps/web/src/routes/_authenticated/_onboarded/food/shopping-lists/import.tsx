@@ -28,7 +28,7 @@ import {
 
 import { parseResponse } from '@/api/client';
 import { formatQuantity } from '@/modules/ingredients';
-import { DateField, serverMessage } from '@/modules/shared';
+import { DateField, serverMessage, useSearchParamSetter } from '@/modules/shared';
 import {
   $importFromMealPlan,
   invalidateShoppingLists,
@@ -101,13 +101,12 @@ export const Route = createFileRoute('/_authenticated/_onboarded/food/shopping-l
  */
 function ImportRoute() {
   const searchParams = Route.useSearch();
-  const navigate = useNavigate();
+  const setSearchParam = useSearchParamSetter(Route);
 
   const range = rangeFor(searchParams);
   const { data: preview } = useSuspenseQuery(mealPlanPreviewQueryOptions(range));
 
-  const setRange = (key: 'from' | 'to', value: string) =>
-    navigate({ search: { ...searchParams, [key]: value || undefined }, to: '.' });
+  const setRange = (key: 'from' | 'to', value: string) => setSearchParam(key, value || undefined);
 
   return (
     <div className="space-y-4">

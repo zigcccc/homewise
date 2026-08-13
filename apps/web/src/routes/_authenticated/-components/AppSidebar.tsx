@@ -7,6 +7,7 @@ import {
   CarrotIcon,
   CogIcon,
   CookingPotIcon,
+  HistoryIcon,
   LayoutDashboardIcon,
   ListTodoIcon,
   LogOutIcon,
@@ -234,6 +235,16 @@ export function AppSidebar() {
                   <SidebarMenuButton isActive={isActive} tooltip="Household members">
                     <UsersIcon className="size-4" />
                     <span>Household members</span>
+                  </SidebarMenuButton>
+                )}
+              </Link>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <Link to="/manage/activity">
+                {({ isActive }) => (
+                  <SidebarMenuButton isActive={isActive} tooltip="Activity">
+                    <HistoryIcon className="size-4" />
+                    <span>Activity</span>
                   </SidebarMenuButton>
                 )}
               </Link>

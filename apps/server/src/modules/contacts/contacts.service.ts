@@ -2,7 +2,15 @@ import { and, asc, desc, eq, ilike, or, sql } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 
 import { db, schema } from '#db/core';
-import { type Executor, emptyToNull, type Filters, isUniqueViolation, writesAnything } from '#db/utils';
+import {
+  changedColumns,
+  type Executor,
+  emptyToNull,
+  type Filters,
+  isUniqueViolation,
+  sameList,
+  writesAnything,
+} from '#db/utils';
 import { todayMonthDay } from '#lib/dates';
 import { alreadyExists, notFound, somethingWentWrong } from '#lib/errors';
 
@@ -15,6 +23,9 @@ import {
   type PatchContact,
   type PatchContactRelation,
 } from './contacts.model';
+
+/** How a link is compared against the stored one: replace-all, so only its content can differ. */
+const linkKey = (link: { name: string; type: string; url: string }) => `${link.type}|${link.name}|${link.url}`;
 
 /** Enough of the far contact to name it and link to it — a relation is not a place to nest a record. */
 const relatedContactColumns = { id: true, name: true, type: true, dateOfBirth: true } as const;
@@ -231,7 +242,8 @@ export class ContactsService {
   }
 
   public static async patch(householdId: number, contactId: number, data: PatchContact) {
-    await ContactsService.readContactRow(householdId, contactId);
+    // With its links, at the same cost as the plain row — they are half of what a save can change.
+    const existing = await ContactsService.readWithLinks(householdId, contactId);
 
     const set = {
       type: data.type,
@@ -242,6 +254,12 @@ export class ContactsService {
       address: emptyToNull(data.address),
       dateOfBirth: emptyToNull(data.dateOfBirth),
     };
+
+    const changeset = changedColumns(existing, set);
+
+    if (data.links !== undefined && !sameList(existing.links.map(linkKey), data.links.map(linkKey))) {
+      changeset.push({ field: 'links' });
+    }
 
     await db.transaction(async (tx) => {
       // Skip the update when only links changed — an all-undefined `set` has nothing to write.
@@ -259,7 +277,7 @@ export class ContactsService {
       }
     });
 
-    return ContactsService.readWithLinks(householdId, contactId);
+    return { data: await ContactsService.readWithLinks(householdId, contactId), changeset };
   }
 
   public static async delete(householdId: number, contactId: number) {

@@ -1,8 +1,7 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
-import { PlusIcon, SearchIcon, StoreIcon } from 'lucide-react';
+import { PlusIcon, StoreIcon } from 'lucide-react';
 import { useState } from 'react';
-import { useDebounceCallback } from 'usehooks-ts';
 import z from 'zod';
 
 import { searchQueryParam, sortDirection } from '@homewise/server/models';
@@ -16,14 +15,11 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
   Spinner,
   useDataTable,
 } from '@homewise/ui/core';
 
-import { SortDirectionToggle } from '@/modules/shared';
+import { SearchInput, SortDirectionToggle, useSearchParamSetter } from '@/modules/shared';
 import { listStoresQueryOptions, StoreFormDialog } from '@/modules/stores';
 
 import { storesTableColumns } from './-stores-table.config';
@@ -33,8 +29,6 @@ const searchParamsModel = z.object({
   sortKey: storeSortKey.default('name').catch('name'),
   sortDirection: sortDirection.default('asc').catch('asc'),
 });
-
-type SearchParams = z.infer<typeof searchParamsModel>;
 
 export const Route = createFileRoute('/_authenticated/_onboarded/food/ingredients/stores')({
   validateSearch: searchParamsModel,
@@ -48,7 +42,6 @@ export const Route = createFileRoute('/_authenticated/_onboarded/food/ingredient
 
 function StoresRoute() {
   const searchParams = Route.useSearch();
-  const navigate = Route.useNavigate();
 
   // The header's own "Add shop" lives in the layout, which an `<Outlet />` can't hand state to.
   // This one belongs to the empty state's call to action; both open the same dialog.
@@ -56,10 +49,7 @@ function StoresRoute() {
 
   const { data: stores } = useSuspenseQuery(listStoresQueryOptions(searchParams));
 
-  const setSearchParam = <Key extends keyof SearchParams>(key: Key, value: SearchParams[Key]) =>
-    navigate({ to: '.', search: { ...searchParams, [key]: value } });
-
-  const debouncedSearch = useDebounceCallback((value: string) => setSearchParam('search', value || undefined), 400);
+  const setSearchParam = useSearchParamSetter(Route);
 
   const table = useDataTable({
     data: stores,
@@ -71,16 +61,12 @@ function StoresRoute() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-2">
-        <InputGroup className="w-full sm:w-auto sm:flex-1">
-          <InputGroupInput
-            defaultValue={searchParams.search ?? ''}
-            onChange={(evt) => debouncedSearch(evt.target.value)}
-            placeholder="Search shops"
-          />
-          <InputGroupAddon>
-            <SearchIcon />
-          </InputGroupAddon>
-        </InputGroup>
+        <SearchInput
+          label="Search shops"
+          onChange={(next) => setSearchParam('search', next, { replace: true })}
+          placeholder="Search shops"
+          value={searchParams.search}
+        />
 
         <SortDirectionToggle
           onChange={(next) => setSearchParam('sortDirection', next)}

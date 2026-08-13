@@ -5,6 +5,7 @@ import { zValidator } from '#lib/validation';
 import { withHousehold, withHouseholdOwner } from '#middleware/household.middleware';
 import { type AppContext } from '#types/app.type';
 
+import { ActivityService } from '../activity/activity.service';
 import { ErrorsService } from '../errors/errors.service';
 import {
   acceptHouseholdInvitePathParamsModel,
@@ -42,7 +43,18 @@ const myHouseholdApp = new Hono<AppContext>()
     return c.json(mappedHousehold, 200);
   })
   .patch('/', withHouseholdOwner, zValidator('json', patchHouseholdModel), async (c) => {
-    const updatedHousehold = await HouseholdsService.patch(c.var.household.id, c.req.valid('json'));
+    const { data: updatedHousehold, changeset } = await HouseholdsService.patch(
+      c.var.household.id,
+      c.req.valid('json')
+    );
+
+    c.var.emit({
+      entity: 'household',
+      id: updatedHousehold.id,
+      operation: 'update',
+      label: updatedHousehold.name,
+      changes: changeset,
+    });
 
     return c.json(updatedHousehold, 200);
   })
@@ -64,7 +76,19 @@ const myHouseholdApp = new Hono<AppContext>()
         throw new HTTPException(403, { message: 'Only household owners can edit members other than themselves.' });
       }
 
-      const updatedMember = await HouseholdsService.patchHouseholdMember(household.id, member.id, c.req.valid('json'));
+      const { data: updatedMember, changeset } = await HouseholdsService.patchHouseholdMember(
+        household.id,
+        member.id,
+        c.req.valid('json')
+      );
+
+      c.var.emit({
+        entity: 'household_member',
+        id: updatedMember.id,
+        operation: 'update',
+        label: HouseholdsService.memberDisplayName(updatedMember),
+        changes: changeset,
+      });
 
       return c.json(updatedMember, 200);
     }
@@ -78,12 +102,29 @@ const myHouseholdApp = new Hono<AppContext>()
       throw new HTTPException(403, { message: 'Only household owners can delete members other than themselves.' });
     }
 
-    await HouseholdsService.deleteHouseholdMember(household.id, member.id);
+    const deleted = await HouseholdsService.deleteHouseholdMember(household.id, member.id);
+
+    c.var.emit({
+      entity: 'household_member',
+      id: member.id,
+      operation: 'delete',
+      label: HouseholdsService.memberDisplayName(deleted),
+    });
 
     return c.json({ success: true }, 202);
   })
   .post('/members', zValidator('json', createHouseholdMembersModel), async (c) => {
     const members = await HouseholdsService.addHouseholdMembers(c.var.household.id, c.req.valid('json').members);
+
+    // One line each: adding three people is three things that happened, not one.
+    c.var.emit(
+      ...members.map((member) => ({
+        entity: 'household_member' as const,
+        id: member.id,
+        operation: 'create' as const,
+        label: HouseholdsService.memberDisplayName(member),
+      }))
+    );
 
     return c.json(members, 201);
   })
@@ -99,6 +140,9 @@ const myHouseholdApp = new Hono<AppContext>()
 
       await HouseholdsService.inviteExistingMember(c.var.household, memberId, email, callbackUrl, c.req.raw.headers);
 
+      // The invite has no id worth sending — the client refetches the active list either way.
+      c.var.emit({ entity: 'household_invite', id: null, operation: 'create', label: email });
+
       return c.json({ success: true }, 200);
     }
   )
@@ -108,8 +152,18 @@ const myHouseholdApp = new Hono<AppContext>()
     zValidator('query', inviteHouseholdMembersQueryParamsModel),
     async (c) => {
       const { callbackUrl } = c.req.valid('query');
+      const payload = c.req.valid('json');
 
-      await HouseholdsService.invite(c.var.household, c.req.valid('json'), callbackUrl, c.req.raw.headers);
+      await HouseholdsService.invite(c.var.household, payload, callbackUrl, c.req.raw.headers);
+
+      c.var.emit(
+        ...payload.members.map((member) => ({
+          entity: 'household_invite' as const,
+          id: null,
+          operation: 'create' as const,
+          label: member.email,
+        }))
+      );
 
       return c.json({ success: true }, 200);
     }
@@ -120,7 +174,9 @@ const myHouseholdApp = new Hono<AppContext>()
     return c.json(invites, 200);
   })
   .delete('/invites/:id', withHouseholdOwner, zValidator('param', deleteHouseholdInvitePathParamsModel), async (c) => {
-    await HouseholdsService.deleteInvite(c.var.household.id, c.req.valid('param').id);
+    const deleted = await HouseholdsService.deleteInvite(c.var.household.id, c.req.valid('param').id);
+
+    c.var.emit({ entity: 'household_invite', id: deleted.id, operation: 'delete', label: deleted.email });
 
     return c.json({ success: true }, 202);
   });
@@ -135,6 +191,12 @@ const householdsApp = new Hono<AppContext>()
     }
 
     const newHousehold = await HouseholdsService.create({ ...c.req.valid('json'), ownerId: userId });
+
+    // Outside `withHousehold`: there was no household to resolve, and nobody else is here to announce to.
+    await ActivityService.record(newHousehold.id, c.var.user, [
+      { entity: 'household', id: newHousehold.id, operation: 'create', label: newHousehold.name },
+    ]);
+
     return c.json(newHousehold, 201);
   })
   .route('/my', myHouseholdApp)
@@ -157,7 +219,15 @@ const householdsApp = new Hono<AppContext>()
       const { token } = c.req.valid('query');
       const { id } = c.req.valid('param');
 
-      await HouseholdsService.acceptInvite(id, token, c.var.user.id);
+      const { data: member, joined } = await HouseholdsService.acceptInvite(id, token, c.var.user.id);
+
+      // Also outside `withHousehold`: the accepting user had no household until this call returned.
+      // Only a first accept is a joining — a second one just retires a duplicate invite.
+      if (joined) {
+        await ActivityService.record(member.householdId, c.var.user, [
+          { entity: 'household_member', id: member.id, operation: 'create', label: c.var.user.name },
+        ]);
+      }
 
       return c.json({ success: true }, 202);
     }

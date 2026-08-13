@@ -1,4 +1,4 @@
-import { queryOptions } from '@tanstack/react-query';
+import { type QueryClient, queryOptions } from '@tanstack/react-query';
 
 import { client, parseResponse } from '@/api/client';
 
@@ -37,4 +37,9 @@ export function listMyHouseholdActiveInvitesQueryOptions() {
     queryKey: ['households', 'activeInvites', 'list'],
     queryFn: async () => parseResponse(client.households.my.invites.active.$get()),
   });
+}
+
+/** All three keys: adding a member, accepting an invite and renaming all move the same screens. */
+export function invalidateHouseholds(queryClient: QueryClient) {
+  void queryClient.invalidateQueries({ queryKey: ['households'] });
 }

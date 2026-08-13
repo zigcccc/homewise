@@ -27,11 +27,11 @@ const ingredientsApp = new Hono<AppContext>()
     const payload = c.req.valid('json');
     const ingredient = await IngredientsService.create(c.var.household.id, payload);
 
-    c.var.emit({ entity: 'ingredient', id: ingredient.id, operation: 'create' });
+    c.var.emit({ entity: 'ingredient', id: ingredient.id, operation: 'create', label: null });
 
-    // A named shop is found-or-created by the same write, so the shop list may have grown too.
+    // A named shop is found-or-created here. Unlogged: naming one while adding an ingredient is one act.
     if (payload.storeName !== undefined) {
-      c.var.emit({ entity: 'store', id: ingredient.storeId, operation: 'create' });
+      c.var.emit({ entity: 'store', id: ingredient.storeId, operation: 'create', label: null });
     }
 
     return c.json(ingredient, 201);
@@ -44,13 +44,12 @@ const ingredientsApp = new Hono<AppContext>()
       const payload = c.req.valid('json');
       const ingredient = await IngredientsService.patch(c.var.household.id, c.req.valid('param').id, payload);
 
-      // An all-undefined patch is a genuine no-op, but announcing it anyway costs one refetch and
-      // keeps the handler from having to diff. Invalidation is idempotent.
-      c.var.emit({ entity: 'ingredient', id: ingredient.id, operation: 'update' });
+      // An all-undefined patch is a no-op, but announcing it costs one refetch and needs no diff here.
+      c.var.emit({ entity: 'ingredient', id: ingredient.id, operation: 'update', label: null });
 
       // A named shop is found-or-created by the same write, so the shop list may have grown too.
       if (payload.storeName !== undefined) {
-        c.var.emit({ entity: 'store', id: ingredient.storeId, operation: 'create' });
+        c.var.emit({ entity: 'store', id: ingredient.storeId, operation: 'create', label: null });
       }
 
       return c.json(ingredient, 200);
@@ -60,7 +59,7 @@ const ingredientsApp = new Hono<AppContext>()
     const { id } = c.req.valid('param');
     await IngredientsService.delete(c.var.household.id, id);
 
-    c.var.emit({ entity: 'ingredient', id, operation: 'delete' });
+    c.var.emit({ entity: 'ingredient', id, operation: 'delete', label: null });
 
     return c.json({ success: true }, 202);
   });

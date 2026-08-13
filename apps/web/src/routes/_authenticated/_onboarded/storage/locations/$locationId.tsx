@@ -7,12 +7,10 @@ import {
   PackageOpenIcon,
   PencilIcon,
   PlusIcon,
-  SearchIcon,
   TrashIcon,
 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { useDebounceCallback } from 'usehooks-ts';
 import z from 'zod';
 
 import { searchQueryParam, sortDirection } from '@homewise/server/models';
@@ -42,9 +40,6 @@ import {
   EmptyMedia,
   EmptyTitle,
   getRowId,
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
   Select,
   SelectContent,
   SelectItem,
@@ -61,8 +56,10 @@ import {
   ExternalLink,
   PageLayout,
   RouteError,
+  SearchInput,
   SortDirectionToggle,
   serverMessage,
+  useSearchParamSetter,
 } from '@/modules/shared';
 import {
   createStorageItemColumns,
@@ -89,8 +86,6 @@ const searchParamsModel = z.object({
   sortKey: storageItemSortKey.default('name').catch('name'),
   sortDirection: sortDirection.default('asc').catch('asc'),
 });
-
-type SearchParams = z.infer<typeof searchParamsModel>;
 
 export const Route = createFileRoute('/_authenticated/_onboarded/storage/locations/$locationId')({
   validateSearch: searchParamsModel,
@@ -125,7 +120,6 @@ const columns = createStorageItemColumns({ showLocation: false });
 function StorageLocationRoute() {
   const { locationId } = Route.useParams();
   const searchParams = Route.useSearch();
-  const navigate = Route.useNavigate();
   const [addOpen, setAddOpen] = useState(false);
 
   const { data: location } = useSuspenseQuery(getStorageLocationQueryOptions(Number(locationId)));
@@ -133,10 +127,7 @@ function StorageLocationRoute() {
     listStorageItemsQueryOptions({ ...searchParams, locationId: Number(locationId) })
   );
 
-  const setSearchParam = <Key extends keyof SearchParams>(key: Key, value: SearchParams[Key]) =>
-    navigate({ to: '.', search: { ...searchParams, [key]: value } });
-
-  const debouncedSearch = useDebounceCallback((value: string) => setSearchParam('search', value || undefined), 400);
+  const setSearchParam = useSearchParamSetter(Route);
 
   const table = useDataTable({ columns, data: items, getRowId });
 
@@ -205,16 +196,12 @@ function StorageLocationRoute() {
         </Card>
 
         <div className="flex flex-wrap items-center gap-2">
-          <InputGroup className="w-full sm:w-auto sm:flex-1">
-            <InputGroupInput
-              defaultValue={searchParams.search ?? ''}
-              onChange={(evt) => debouncedSearch(evt.target.value)}
-              placeholder="Search this location"
-            />
-            <InputGroupAddon>
-              <SearchIcon />
-            </InputGroupAddon>
-          </InputGroup>
+          <SearchInput
+            label="Search items in this location"
+            onChange={(next) => setSearchParam('search', next, { replace: true })}
+            placeholder="Search this location"
+            value={searchParams.search}
+          />
 
           <Select
             onValueChange={(value) => setSearchParam('loanStatus', searchParamsModel.shape.loanStatus.parse(value))}

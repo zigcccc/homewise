@@ -2,11 +2,12 @@ import { and, eq } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 
 import { db, schema } from '#db/core';
-import { emptyToNull } from '#db/utils';
+import { changedColumns, emptyToNull } from '#db/utils';
 import { notFound } from '#lib/errors';
 
 import { type CreateContact } from '../contacts/contacts.model';
 import { ContactsService } from '../contacts/contacts.service';
+import { HouseholdsService } from '../households/households.service';
 import { type PatchMedicalInfo } from './medical.model';
 
 /**
@@ -33,6 +34,26 @@ export class MedicalService {
     const contacts = info.links.map((link) => link.contact).sort((a, b) => a.name.localeCompare(b.name));
 
     return { id: info.id, medicalIdNumber: info.medicalIdNumber, contacts };
+  }
+
+  /**
+   * Whose record this is. The row carries no name of its own — it belongs to a child or a pet
+   * profile — and an activity line that can't say whose medical record changed isn't worth writing.
+   */
+  public static async readOwnerDisplayName(householdId: number, medicalInfoId: number) {
+    const info = await db.query.medicalInfo.findFirst({
+      where: (fields, { and, eq }) => and(eq(fields.householdId, householdId), eq(fields.id, medicalInfoId)),
+      columns: {},
+      with: {
+        childProfile: { columns: { memberId: true } },
+        petProfile: { columns: { memberId: true } },
+      },
+    });
+
+    // Exactly one of the two is set — the table's check constraint says so.
+    const memberId = info?.childProfile?.memberId ?? info?.petProfile?.memberId;
+
+    return memberId ? HouseholdsService.readMemberDisplayName(householdId, memberId) : 'Unknown';
   }
 
   /** Existence + household-scoping check. */
@@ -63,9 +84,19 @@ export class MedicalService {
   }
 
   public static async patchInfo(householdId: number, medicalInfoId: number, data: PatchMedicalInfo) {
+    const existing = await db.query.medicalInfo.findFirst({
+      where: (fields, { and, eq }) => and(eq(fields.householdId, householdId), eq(fields.id, medicalInfoId)),
+    });
+
+    if (!existing) {
+      throw notFound('Medical info');
+    }
+
+    const set = { medicalIdNumber: emptyToNull(data.medicalIdNumber) };
+
     const [updated] = await db
       .update(schema.medicalInfo)
-      .set({ medicalIdNumber: emptyToNull(data.medicalIdNumber) })
+      .set(set)
       .where(and(eq(schema.medicalInfo.householdId, householdId), eq(schema.medicalInfo.id, medicalInfoId)))
       .returning({ id: schema.medicalInfo.id });
 
@@ -73,7 +104,7 @@ export class MedicalService {
       throw notFound('Medical info');
     }
 
-    return MedicalService.read(householdId, medicalInfoId);
+    return { data: await MedicalService.read(householdId, medicalInfoId), changeset: changedColumns(existing, set) };
   }
 
   /** Creates a contact and links it to the medical info in one transaction. */

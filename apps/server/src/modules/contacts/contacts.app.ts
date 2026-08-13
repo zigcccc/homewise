@@ -24,6 +24,9 @@ import { ContactsService } from './contacts.service';
  * A relation mutation emits for the contact the route names, not for both ends. The web's `contact`
  * invalidator refreshes the whole `['contacts']` prefix and ignores the id, so the far end's page
  * refetches from the one event — a second emit would be the same work announced twice.
+ *
+ * Relations are unlogged: every one of them would read "updated the contact X", which says nothing
+ * about the relation and buries the contact's own edits under three indistinguishable lines.
  */
 const contactsApp = new Hono<AppContext>()
   .use(withHousehold)
@@ -35,7 +38,7 @@ const contactsApp = new Hono<AppContext>()
   .post('/', zValidator('json', createContactModel), async (c) => {
     const contact = await ContactsService.create(c.var.household.id, c.req.valid('json'));
 
-    c.var.emit({ entity: 'contact', id: contact.id, operation: 'create' });
+    c.var.emit({ entity: 'contact', id: contact.id, operation: 'create', label: contact.name });
 
     return c.json(contact, 201);
   })
@@ -45,17 +48,21 @@ const contactsApp = new Hono<AppContext>()
     return c.json(contact, 200);
   })
   .patch('/:id', zValidator('param', contactPathParamsModel), zValidator('json', patchContactModel), async (c) => {
-    const contact = await ContactsService.patch(c.var.household.id, c.req.valid('param').id, c.req.valid('json'));
+    const { data: contact, changeset } = await ContactsService.patch(
+      c.var.household.id,
+      c.req.valid('param').id,
+      c.req.valid('json')
+    );
 
-    c.var.emit({ entity: 'contact', id: contact.id, operation: 'update' });
+    c.var.emit({ entity: 'contact', id: contact.id, operation: 'update', label: contact.name, changes: changeset });
 
     return c.json(contact, 200);
   })
   .delete('/:id', zValidator('param', contactPathParamsModel), async (c) => {
     const { id } = c.req.valid('param');
-    await ContactsService.delete(c.var.household.id, id);
+    const deleted = await ContactsService.delete(c.var.household.id, id);
 
-    c.var.emit({ entity: 'contact', id, operation: 'delete' });
+    c.var.emit({ entity: 'contact', id, operation: 'delete', label: deleted.name });
 
     return c.json({ success: true }, 202);
   })
@@ -67,7 +74,7 @@ const contactsApp = new Hono<AppContext>()
       const { id } = c.req.valid('param');
       const contact = await ContactsService.addRelation(c.var.household.id, id, c.req.valid('json'));
 
-      c.var.emit({ entity: 'contact', id, operation: 'update' });
+      c.var.emit({ entity: 'contact', id, operation: 'update', label: null });
 
       return c.json(contact, 201);
     }
@@ -80,7 +87,7 @@ const contactsApp = new Hono<AppContext>()
       const { id, relationId } = c.req.valid('param');
       const contact = await ContactsService.patchRelation(c.var.household.id, id, relationId, c.req.valid('json'));
 
-      c.var.emit({ entity: 'contact', id, operation: 'update' });
+      c.var.emit({ entity: 'contact', id, operation: 'update', label: null });
 
       return c.json(contact, 200);
     }
@@ -89,7 +96,7 @@ const contactsApp = new Hono<AppContext>()
     const { id, relationId } = c.req.valid('param');
     const contact = await ContactsService.removeRelation(c.var.household.id, id, relationId);
 
-    c.var.emit({ entity: 'contact', id, operation: 'update' });
+    c.var.emit({ entity: 'contact', id, operation: 'update', label: null });
 
     return c.json(contact, 200);
   });

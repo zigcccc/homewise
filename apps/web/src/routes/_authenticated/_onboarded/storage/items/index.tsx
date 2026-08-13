@@ -1,8 +1,7 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { PackageOpenIcon, PlusIcon, SearchIcon } from 'lucide-react';
+import { PackageOpenIcon, PlusIcon } from 'lucide-react';
 import { useState } from 'react';
-import { useDebounceCallback } from 'usehooks-ts';
 import z from 'zod';
 
 import { searchQueryParam, sortDirection } from '@homewise/server/models';
@@ -23,9 +22,6 @@ import {
   EmptyMedia,
   EmptyTitle,
   getRowId,
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
   Select,
   SelectContent,
   SelectItem,
@@ -35,7 +31,14 @@ import {
   useDataTable,
 } from '@homewise/ui/core';
 
-import { Actionbar, PageLayout, RouteError, SortDirectionToggle } from '@/modules/shared';
+import {
+  Actionbar,
+  PageLayout,
+  RouteError,
+  SearchInput,
+  SortDirectionToggle,
+  useSearchParamSetter,
+} from '@/modules/shared';
 import {
   createStorageItemColumns,
   ItemFormDialog,
@@ -52,8 +55,6 @@ const searchParamsModel = z.object({
   sortKey: storageItemSortKey.default('name').catch('name'),
   sortDirection: sortDirection.default('asc').catch('asc'),
 });
-
-type SearchParams = z.infer<typeof searchParamsModel>;
 
 export const Route = createFileRoute('/_authenticated/_onboarded/storage/items/')({
   validateSearch: searchParamsModel,
@@ -73,7 +74,6 @@ const columns = createStorageItemColumns({ showLocation: true });
 
 function StorageItemsRoute() {
   const searchParams = Route.useSearch();
-  const navigate = Route.useNavigate();
   const [addOpen, setAddOpen] = useState(false);
 
   const { data: items } = useSuspenseQuery(listStorageItemsQueryOptions(searchParams));
@@ -81,10 +81,7 @@ function StorageItemsRoute() {
   // every time anybody in the household stored something.
   const { data: locations } = useSuspenseQuery(listStorageLocationOptionsQueryOptions());
 
-  const setSearchParam = <Key extends keyof SearchParams>(key: Key, value: SearchParams[Key]) =>
-    navigate({ to: '.', search: { ...searchParams, [key]: value } });
-
-  const debouncedSearch = useDebounceCallback((value: string) => setSearchParam('search', value || undefined), 400);
+  const setSearchParam = useSearchParamSetter(Route);
 
   const table = useDataTable({ columns, data: items, getRowId });
 
@@ -127,16 +124,12 @@ function StorageItemsRoute() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <InputGroup className="w-full sm:w-auto sm:flex-1">
-            <InputGroupInput
-              defaultValue={searchParams.search ?? ''}
-              onChange={(evt) => debouncedSearch(evt.target.value)}
-              placeholder="Search items and notes"
-            />
-            <InputGroupAddon>
-              <SearchIcon />
-            </InputGroupAddon>
-          </InputGroup>
+          <SearchInput
+            label="Search items"
+            onChange={(next) => setSearchParam('search', next, { replace: true })}
+            placeholder="Search items and notes"
+            value={searchParams.search}
+          />
 
           <Select
             onValueChange={(value) => setSearchParam('locationId', value === 'all' ? undefined : Number(value))}
