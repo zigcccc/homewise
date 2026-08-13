@@ -6,12 +6,22 @@ import {
   type TableOptions,
   useReactTable,
 } from '@tanstack/react-table';
-import { Rows3Icon } from 'lucide-react';
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ChevronsLeftIcon,
+  ChevronsRightIcon,
+  MoreHorizontalIcon,
+  Rows3Icon,
+} from 'lucide-react';
 import { type ReactNode } from 'react';
 
 import { cn } from '#lib/utils';
 
+import { Button } from './button';
+import { ButtonGroup } from './button-group';
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from './empty';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './table';
 
 declare module '@tanstack/react-table' {
@@ -72,6 +82,158 @@ function DefaultEmptyComponent() {
  * opening the row-actions menu also navigates away from the row you were acting on.
  */
 const INTERACTIVE_IN_ROW = 'a, button, input, select, textarea, [role="menuitem"], [role="option"]';
+
+/** How many page buttons the bar shows, ellipses included, so its width never changes as you page. */
+const PAGE_WINDOW = 7;
+/** The current page keeps a neighbour either side once both ends are pinned and both ellipses are in. */
+const AROUND_CURRENT = 1;
+
+/**
+ * Which pages the bar offers: the first, the last, the current and its neighbours, with a gap
+ * standing in for each run it skips.
+ *
+ * Always {@link PAGE_WINDOW} entries once there are more pages than that, which is the point — a bar
+ * that grew and shrank as you paged would move the button you were about to click. The two gaps are
+ * named rather than both being `'ellipsis'` so every entry is its own React key.
+ */
+export function pageWindow(page: number, pageCount: number): (number | 'gap-before' | 'gap-after')[] {
+  const all = Array.from({ length: pageCount }, (_, index) => index + 1);
+
+  if (pageCount <= PAGE_WINDOW) {
+    return all;
+  }
+
+  // Near either end there is nothing to elide on that side, so the run grows to spend the slot the
+  // missing gap freed rather than leaving a hole.
+  const runLength = PAGE_WINDOW - 3;
+
+  if (page <= runLength) {
+    return [...all.slice(0, runLength + 1), 'gap-after', pageCount];
+  }
+
+  if (page > pageCount - runLength) {
+    return [1, 'gap-before', ...all.slice(-(runLength + 1))];
+  }
+
+  return [1, 'gap-before', ...all.slice(page - 1 - AROUND_CURRENT, page + AROUND_CURRENT), 'gap-after', pageCount];
+}
+
+/**
+ * The bar under a paginated list: how many rows to a page, which of them you're looking at, and the
+ * pages to jump to.
+ *
+ * Deliberately unaware of `table` — sorting and filtering here are server-side and live in the URL,
+ * and so does the page, so there is no table state to read. That also lets a list with no table at
+ * all (the recipe grid) use the same bar.
+ *
+ * `page` is the page the **server** answered with, not the one the URL asked for; the two differ when
+ * rows are deleted out from under a reader on the last page. Pass the response's.
+ */
+export function DataTablePagination({
+  className,
+  onPageChange,
+  onPageSizeChange,
+  page,
+  pageSize,
+  pageSizeOptions,
+  total,
+}: {
+  className?: string;
+  page: number;
+  pageSize: number;
+  pageSizeOptions: readonly number[];
+  total: number;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (pageSize: number) => void;
+}) {
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  const first = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const last = Math.min(page * pageSize, total);
+
+  const isFirstPage = page <= 1;
+  const isLastPage = page >= pageCount;
+
+  return (
+    <div className={cn('flex flex-wrap items-center justify-between gap-4', className)}>
+      <div className="flex items-center gap-2">
+        <Select onValueChange={(value) => onPageSizeChange(Number(value))} value={pageSize.toString()}>
+          <SelectTrigger aria-label="Rows per page" className="w-20" size="sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {pageSizeOptions.map((option) => (
+              <SelectItem key={option} value={option.toString()}>
+                {option}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-muted-foreground text-sm">
+          {first}–{last} of {total}
+        </p>
+      </div>
+
+      <ButtonGroup aria-label="Pagination">
+        <Button
+          aria-label="First page"
+          disabled={isFirstPage}
+          onClick={() => onPageChange(1)}
+          size="icon-sm"
+          variant="outline"
+        >
+          <ChevronsLeftIcon />
+        </Button>
+        <Button
+          aria-label="Previous page"
+          disabled={isFirstPage}
+          onClick={() => onPageChange(page - 1)}
+          size="icon-sm"
+          variant="outline"
+        >
+          <ChevronLeftIcon />
+        </Button>
+
+        {pageWindow(page, pageCount).map((entry) =>
+          typeof entry === 'string' ? (
+            <Button aria-hidden disabled key={entry} size="icon-sm" tabIndex={-1} variant="outline">
+              <MoreHorizontalIcon />
+            </Button>
+          ) : (
+            <Button
+              aria-current={entry === page ? 'page' : undefined}
+              aria-label={`Page ${entry}`}
+              key={entry}
+              onClick={() => onPageChange(entry)}
+              size="icon-sm"
+              variant={entry === page ? 'default' : 'outline'}
+            >
+              {entry}
+            </Button>
+          )
+        )}
+
+        <Button
+          aria-label="Next page"
+          disabled={isLastPage}
+          onClick={() => onPageChange(page + 1)}
+          size="icon-sm"
+          variant="outline"
+        >
+          <ChevronRightIcon />
+        </Button>
+        <Button
+          aria-label="Last page"
+          disabled={isLastPage}
+          onClick={() => onPageChange(pageCount)}
+          size="icon-sm"
+          variant="outline"
+        >
+          <ChevronsRightIcon />
+        </Button>
+      </ButtonGroup>
+    </div>
+  );
+}
 
 export function DataTable<Data extends Record<string, unknown>>({
   emptyContent = <DefaultEmptyComponent />,

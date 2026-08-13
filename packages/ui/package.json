@@ -25,7 +25,8 @@
     "@types/leaflet": "catalog:",
     "@types/node": "catalog:",
     "@types/react-dom": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "catalog:",
