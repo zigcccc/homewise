@@ -400,7 +400,7 @@ export class ShoppingListsService {
 
   public static async patch(householdId: number, listId: number, data: PatchShoppingList) {
     const existing = await ShoppingListsService.readListRow(householdId, listId);
-    const changedFields = changedColumns(existing, { name: data.name });
+    const changeset = changedColumns(existing, { name: data.name });
 
     if (data.name !== undefined) {
       await db
@@ -409,7 +409,7 @@ export class ShoppingListsService {
         .where(and(eq(schema.shoppingList.householdId, householdId), eq(schema.shoppingList.id, listId)));
     }
 
-    return { ...(await ShoppingListsService.read(householdId, listId)), changedFields };
+    return { data: await ShoppingListsService.read(householdId, listId), changeset };
   }
 
   public static async delete(householdId: number, listId: number) {
@@ -519,9 +519,8 @@ export class ShoppingListsService {
     });
 
     return {
-      carriedListId,
-      changedFields: changedColumns(list, { completedAt }),
-      list: await ShoppingListsService.read(householdId, listId),
+      data: { carriedListId, list: await ShoppingListsService.read(householdId, listId) },
+      changeset: changedColumns(list, { completedAt }),
     };
   }
 
@@ -535,8 +534,8 @@ export class ShoppingListsService {
       .where(and(eq(schema.shoppingList.householdId, householdId), eq(schema.shoppingList.id, listId)));
 
     return {
-      ...(await ShoppingListsService.read(householdId, listId)),
-      changedFields: changedColumns(existing, { completedAt: null }),
+      data: await ShoppingListsService.read(householdId, listId),
+      changeset: changedColumns(existing, { completedAt: null }),
     };
   }
 

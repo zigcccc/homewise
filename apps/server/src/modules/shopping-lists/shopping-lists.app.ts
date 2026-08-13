@@ -78,7 +78,7 @@ const shoppingListsApp = new Hono<AppContext>()
     zValidator('param', shoppingListPathParamsModel),
     zValidator('json', patchShoppingListModel),
     async (c) => {
-      const { changedFields, ...list } = await ShoppingListsService.patch(
+      const { data: list, changeset } = await ShoppingListsService.patch(
         c.var.household.id,
         c.req.valid('param').id,
         c.req.valid('json')
@@ -89,7 +89,7 @@ const shoppingListsApp = new Hono<AppContext>()
         id: list.id,
         operation: 'update',
         label: list.name,
-        changes: changedFields,
+        changes: changeset,
       });
 
       return c.json(list, 200);
@@ -108,7 +108,7 @@ const shoppingListsApp = new Hono<AppContext>()
     zValidator('param', shoppingListPathParamsModel),
     zValidator('json', completeShoppingListModel),
     async (c) => {
-      const { changedFields, ...result } = await ShoppingListsService.complete(
+      const { data: result, changeset } = await ShoppingListsService.complete(
         c.var.household.id,
         c.req.valid('param').id,
         c.req.valid('json')
@@ -119,11 +119,10 @@ const shoppingListsApp = new Hono<AppContext>()
         id: result.list.id,
         operation: 'update',
         label: result.list.name,
-        changes: changedFields,
+        changes: changeset,
       });
 
-      // Carrying the leftovers mints a second list, which no invalidation of the first would reach.
-      // Unlogged: it is the same act of finishing a shop, and the line above already reports it.
+      // A second list no invalidation of the first would reach. Unlogged: one act of finishing a shop.
       if (result.carriedListId !== null) {
         c.var.emit({ entity: 'shopping_list', id: result.carriedListId, operation: 'create', label: null });
       }
@@ -132,9 +131,9 @@ const shoppingListsApp = new Hono<AppContext>()
     }
   )
   .post('/:id/reopen', zValidator('param', shoppingListPathParamsModel), async (c) => {
-    const { changedFields, ...list } = await ShoppingListsService.reopen(c.var.household.id, c.req.valid('param').id);
+    const { data: list, changeset } = await ShoppingListsService.reopen(c.var.household.id, c.req.valid('param').id);
 
-    c.var.emit({ entity: 'shopping_list', id: list.id, operation: 'update', label: list.name, changes: changedFields });
+    c.var.emit({ entity: 'shopping_list', id: list.id, operation: 'update', label: list.name, changes: changeset });
 
     return c.json(list, 200);
   })

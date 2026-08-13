@@ -19,14 +19,14 @@ const medicalApp = new Hono<AppContext>()
     zValidator('param', medicalInfoPathParamsModel),
     zValidator('json', patchMedicalInfoModel),
     async (c) => {
-      const { changedFields, ...info } = await MedicalService.patchInfo(
+      const { data: info, changeset } = await MedicalService.patchInfo(
         c.var.household.id,
         c.req.valid('param').id,
         c.req.valid('json')
       );
       const owner = await MedicalService.readOwnerDisplayName(c.var.household.id, info.id);
 
-      c.var.emit({ entity: 'medical_info', id: info.id, operation: 'update', label: owner, changes: changedFields });
+      c.var.emit({ entity: 'medical_info', id: info.id, operation: 'update', label: owner, changes: changeset });
 
       return c.json(info, 200);
     }
@@ -39,9 +39,7 @@ const medicalApp = new Hono<AppContext>()
       const id = c.req.valid('param').id;
       const contact = await MedicalService.addContact(c.var.household.id, id, c.req.valid('json'));
 
-      // One request, two effects: a brand new contact in the household's address book, and a record
-      // that now points at it. Neither is logged — attaching a doctor is a detail of the record, not
-      // a household event, and the contact it mints is a by-product of the same gesture.
+      // Two effects, neither logged: attaching a doctor is a detail of the record, not a household event.
       c.var.emit(
         { entity: 'contact', id: contact.id, operation: 'create', label: null },
         { entity: 'medical_info', id, operation: 'update', label: null }

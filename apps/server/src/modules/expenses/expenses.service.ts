@@ -204,12 +204,11 @@ export class ExpensesService {
     // Decided before the category is resolved, so `PATCH {}` can't mint one on its way to doing
     // nothing.
     if (!writesAnything(data)) {
-      return { ...(await ExpensesService.readExpenseWithRelations(householdId, expenseId)), changedFields: [] };
+      return { data: await ExpensesService.readExpenseWithRelations(householdId, expenseId), changeset: [] };
     }
 
-    // Filled inside the transaction, because the category has to be resolved (and possibly minted)
-    // before there is a full set of values to compare against the stored row.
-    let changedFields: FieldChange[] = [];
+    // Filled inside the transaction: the category is only resolved (or minted) there.
+    let changeset: FieldChange[] = [];
 
     await db.transaction(async (tx) => {
       const set = {
@@ -222,7 +221,7 @@ export class ExpensesService {
           data.paidBack === undefined ? undefined : data.paidBack ? (existing.paidBackAt ?? new Date()) : null,
       };
 
-      changedFields = changedColumns(existing, set);
+      changeset = changedColumns(existing, set);
 
       const [updated] = await tx
         .update(schema.expense)
@@ -235,7 +234,7 @@ export class ExpensesService {
       }
     });
 
-    return { ...(await ExpensesService.readExpenseWithRelations(householdId, expenseId)), changedFields };
+    return { data: await ExpensesService.readExpenseWithRelations(householdId, expenseId), changeset };
   }
 
   /** Hard delete. An expense holds nothing of its own, and a mistyped one is just a mistake. */

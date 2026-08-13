@@ -53,7 +53,7 @@ export class MedicalService {
     // Exactly one of the two is set — the table's check constraint says so.
     const memberId = info?.childProfile?.memberId ?? info?.petProfile?.memberId;
 
-    return memberId ? HouseholdsService.readMemberDisplayName(memberId) : 'Unknown';
+    return memberId ? HouseholdsService.readMemberDisplayName(householdId, memberId) : 'Unknown';
   }
 
   /** Existence + household-scoping check. */
@@ -104,7 +104,7 @@ export class MedicalService {
       throw notFound('Medical info');
     }
 
-    return { ...(await MedicalService.read(householdId, medicalInfoId)), changedFields: changedColumns(existing, set) };
+    return { data: await MedicalService.read(householdId, medicalInfoId), changeset: changedColumns(existing, set) };
   }
 
   /** Creates a contact and links it to the medical info in one transaction. */

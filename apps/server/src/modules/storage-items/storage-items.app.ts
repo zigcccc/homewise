@@ -45,7 +45,7 @@ const storageItemsApp = new Hono<AppContext>()
     zValidator('param', storageItemPathParamsModel),
     zValidator('form', patchStorageItemModel),
     async (c) => {
-      const { changedFields, ...item } = await StorageItemsService.patch(
+      const { data: item, changeset } = await StorageItemsService.patch(
         c.var.household.id,
         c.req.valid('param').id,
         c.req.valid('form')
@@ -57,7 +57,7 @@ const storageItemsApp = new Hono<AppContext>()
         operation: 'update',
         parentId: item.locationId,
         label: item.name,
-        changes: changedFields,
+        changes: changeset,
       });
 
       return c.json(item, 200);
@@ -68,11 +68,11 @@ const storageItemsApp = new Hono<AppContext>()
     zValidator('param', storageItemPathParamsModel),
     zValidator('json', lendStorageItemModel),
     async (c) => {
-      const { item, changedFields, createdContact } = await StorageItemsService.lend(
-        c.var.household.id,
-        c.req.valid('param').id,
-        c.req.valid('json')
-      );
+      const {
+        data: item,
+        changeset,
+        createdContact,
+      } = await StorageItemsService.lend(c.var.household.id, c.req.valid('param').id, c.req.valid('json'));
 
       c.var.emit({
         entity: 'storage_item',
@@ -80,11 +80,10 @@ const storageItemsApp = new Hono<AppContext>()
         operation: 'update',
         parentId: item.locationId,
         label: item.name,
-        changes: changedFields,
+        changes: changeset,
       });
 
-      // Lending to someone new adds them to the household's address book, which other features read.
-      // Unlogged: naming a borrower while lending is one action, and the loan's line above is it.
+      // A new borrower joins the address book. Unlogged: the loan's line above is the whole action.
       if (createdContact) {
         c.var.emit({ entity: 'contact', id: item.loan?.contactId ?? null, operation: 'create', label: null });
       }
@@ -93,7 +92,7 @@ const storageItemsApp = new Hono<AppContext>()
     }
   )
   .delete('/:id/loan', zValidator('param', storageItemPathParamsModel), async (c) => {
-    const { changedFields, ...item } = await StorageItemsService.markReturned(
+    const { data: item, changeset } = await StorageItemsService.markReturned(
       c.var.household.id,
       c.req.valid('param').id
     );
@@ -104,7 +103,7 @@ const storageItemsApp = new Hono<AppContext>()
       operation: 'update',
       parentId: item.locationId,
       label: item.name,
-      changes: changedFields,
+      changes: changeset,
     });
 
     return c.json(item, 200);

@@ -125,13 +125,12 @@ export class PetProfilesService {
       existing.profilePicture,
       { ownedPrefix: blobPrefix.petProfile(profileId), size: 256 }
     );
-    // Taken before the picture joins the patch: a blob URL is not something to read in a feed, so a
-    // changed photo is named and left at that.
-    const changedFields = changedColumns(existing, patch);
+    // Taken before the picture joins the patch — a blob URL is not something to read in a feed.
+    const changeset = changedColumns(existing, patch);
 
     if (picture.changed) {
       patch.profilePicture = picture.value;
-      changedFields.push({ field: 'profilePicture' });
+      changeset.push({ field: 'profilePicture' });
     }
 
     const persisted = await ImagesService.commitManagedImage(picture, async () => {
@@ -148,7 +147,7 @@ export class PetProfilesService {
       throw notFound('Profile');
     }
 
-    return { ...(await PetProfilesService.read(householdId, profileId, ownerId)), changedFields };
+    return { data: await PetProfilesService.read(householdId, profileId, ownerId), changeset };
   }
 
   public static async delete(householdId: number, profileId: number) {
@@ -164,8 +163,7 @@ export class PetProfilesService {
     // The row is already gone — cleanup is best-effort and guarded to this pet's own uploads.
     await ImagesService.cleanupOwnedImage(deleted.profilePicture, blobPrefix.petProfile(profileId));
 
-    // The member outlives the profile, so the name is still there to be read — and the caller has
-    // nothing else left to name this pet by.
-    return { ...deleted, displayName: await HouseholdsService.readMemberDisplayName(deleted.memberId) };
+    // The member outlives the profile, and is all the caller has left to name this pet by.
+    return { ...deleted, displayName: await HouseholdsService.readMemberDisplayName(householdId, deleted.memberId) };
   }
 }

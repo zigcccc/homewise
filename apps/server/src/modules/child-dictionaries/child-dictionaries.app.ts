@@ -65,7 +65,7 @@ const childDictionariesApp = new Hono<AppContext>()
     zValidator('json', patchChildDictionaryEntryModel),
     async (c) => {
       const { id, entryId } = c.req.valid('param');
-      const { changedFields, ...entry } = await ChildDictionariesService.patchEntry(
+      const { data: entry, changeset } = await ChildDictionariesService.patchEntry(
         c.var.household.id,
         id,
         entryId,
@@ -78,7 +78,7 @@ const childDictionariesApp = new Hono<AppContext>()
         operation: 'update',
         parentId: id,
         label: entry.childPhrase,
-        changes: changedFields,
+        changes: changeset,
       });
 
       return c.json(entry, 200);

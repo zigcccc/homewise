@@ -43,9 +43,7 @@ const recipesApp = new Hono<AppContext>()
     const { household, user } = c.var;
     const recipe = await RecipesService.create(household.id, c.req.valid('json'), user.id);
 
-    // Saving a recipe is also when the names on it get minted into the ingredient library, so the
-    // library changed too even though nobody asked for an ingredient — and for that reason it is not
-    // its own line in the feed.
+    // Saving a recipe mints its names into the ingredient library. Unlogged: nobody asked for one.
     c.var.emit(
       { entity: 'recipe', id: recipe.id, operation: 'create', label: recipe.title },
       { entity: 'ingredient', id: null, operation: 'update', label: null }
@@ -59,14 +57,14 @@ const recipesApp = new Hono<AppContext>()
     return c.json(recipe, 200);
   })
   .patch('/:id', zValidator('param', recipePathParamsModel), zValidator('json', patchRecipeModel), async (c) => {
-    const { changedFields, ...recipe } = await RecipesService.patch(
+    const { data: recipe, changeset } = await RecipesService.patch(
       c.var.household.id,
       c.req.valid('param').id,
       c.req.valid('json')
     );
 
     c.var.emit(
-      { entity: 'recipe', id: recipe.id, operation: 'update', label: recipe.title, changes: changedFields },
+      { entity: 'recipe', id: recipe.id, operation: 'update', label: recipe.title, changes: changeset },
       { entity: 'ingredient', id: null, operation: 'update', label: null }
     );
 
@@ -76,9 +74,7 @@ const recipesApp = new Hono<AppContext>()
     const { id } = c.req.valid('param');
     const deleted = await RecipesService.delete(c.var.household.id, id);
 
-    // Any meal plan that referenced it just had the title tombstoned onto it, so those cards changed
-    // too — and the plan's cache is keyed by date range, which no recipe id can address. Unlogged:
-    // nobody edited the plan, the recipe under it went.
+    // Plans that referenced it keep a tombstoned title, and their cache is keyed by date range, not id.
     c.var.emit(
       { entity: 'recipe', id, operation: 'delete', label: deleted.title },
       { entity: 'meal_plan', id: null, operation: 'update', label: null }

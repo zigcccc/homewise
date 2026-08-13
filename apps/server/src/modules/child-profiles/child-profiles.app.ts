@@ -39,7 +39,7 @@ const childProfilesApp = new Hono<AppContext>()
     zValidator('form', patchChildProfileModel),
     async (c) => {
       const { household } = c.var;
-      const { changedFields, ...profile } = await ChildProfilesService.patch(
+      const { data: profile, changeset } = await ChildProfilesService.patch(
         household.id,
         c.req.valid('param').id,
         c.req.valid('form'),
@@ -51,7 +51,7 @@ const childProfilesApp = new Hono<AppContext>()
         id: profile.id,
         operation: 'update',
         label: profile.child.displayName,
-        changes: changedFields,
+        changes: changeset,
       });
 
       return c.json(profile, 200);

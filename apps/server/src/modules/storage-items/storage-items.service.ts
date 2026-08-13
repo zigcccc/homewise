@@ -195,17 +195,16 @@ export class StorageItemsService {
       ownedPrefix: blobPrefix.storageItemPhoto(householdId),
       size: 512,
     });
-    // Taken before the photo joins the set: a blob URL is not something to read in a feed, so a
-    // changed picture is named and left at that.
-    const changedFields = changedColumns(existing, set);
+    // Taken before the photo joins the set — a blob URL is not something to read in a feed.
+    const changeset = changedColumns(existing, set);
 
     if (photo.changed) {
       set.photoUrl = photo.value;
-      changedFields.push({ field: 'photoUrl' });
+      changeset.push({ field: 'photoUrl' });
     }
 
     if (!writesAnything(set)) {
-      return { ...(await StorageItemsService.read(householdId, itemId)), changedFields };
+      return { data: await StorageItemsService.read(householdId, itemId), changeset };
     }
 
     const persisted = await ImagesService.commitManagedImage(photo, async () => {
@@ -223,7 +222,7 @@ export class StorageItemsService {
       throw notFound('Item');
     }
 
-    return { ...(await StorageItemsService.read(householdId, itemId)), changedFields };
+    return { data: await StorageItemsService.read(householdId, itemId), changeset };
   }
 
   /**
@@ -242,7 +241,7 @@ export class StorageItemsService {
 
     const createdContact = 'contact' in data;
     // Filled inside the transaction: the borrower is only resolved (or minted) there.
-    let changedFields: FieldChange[] = [];
+    let changeset: FieldChange[] = [];
 
     await db.transaction(async (tx) => {
       const borrower = createdContact
@@ -257,7 +256,7 @@ export class StorageItemsService {
         dueOn: emptyToNull(data.dueOn) ?? null,
       };
 
-      changedFields = changedColumns(item, set);
+      changeset = changedColumns(item, set);
 
       const [updated] = await tx
         .update(schema.storageItem)
@@ -288,13 +287,12 @@ export class StorageItemsService {
       }
     });
 
-    return { item: await StorageItemsService.read(householdId, itemId), changedFields, createdContact };
+    return { data: await StorageItemsService.read(householdId, itemId), changeset, createdContact };
   }
 
   /** Marks the item back in. The loan is not history — there is one current answer, or none. */
   public static async markReturned(householdId: number, itemId: number) {
-    // Read first so the log can say who it came back from — after the update there is nothing left
-    // on the row to name them with.
+    // Read first: after the update there is nothing on the row to name the borrower with.
     const existing = await StorageItemsService.readItemRow(householdId, itemId);
     const set = { borrowedByContactId: null, borrowedByName: null, borrowedOn: null, dueOn: null };
 
@@ -308,7 +306,7 @@ export class StorageItemsService {
       throw notFound('Item');
     }
 
-    return { ...(await StorageItemsService.read(householdId, itemId)), changedFields: changedColumns(existing, set) };
+    return { data: await StorageItemsService.read(householdId, itemId), changeset: changedColumns(existing, set) };
   }
 
   public static async delete(householdId: number, itemId: number) {

@@ -39,7 +39,7 @@ const petProfilesApp = new Hono<AppContext>()
     zValidator('form', patchPetProfileModel),
     async (c) => {
       const { household } = c.var;
-      const { changedFields, ...profile } = await PetProfilesService.patch(
+      const { data: profile, changeset } = await PetProfilesService.patch(
         household.id,
         c.req.valid('param').id,
         c.req.valid('form'),
@@ -51,7 +51,7 @@ const petProfilesApp = new Hono<AppContext>()
         id: profile.id,
         operation: 'update',
         label: profile.pet.displayName,
-        changes: changedFields,
+        changes: changeset,
       });
 
       return c.json(profile, 200);

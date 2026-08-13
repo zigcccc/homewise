@@ -194,10 +194,10 @@ export class StorageLocationsService {
       ...(movesPin ? StorageLocationsService.resolvePin(existing, data) : {}),
     };
 
-    const changedFields = changedColumns(existing, set);
+    const changeset = changedColumns(existing, set);
 
     if (!writesAnything(set)) {
-      return { ...(await StorageLocationsService.read(householdId, locationId)), changedFields };
+      return { data: await StorageLocationsService.read(householdId, locationId), changeset };
     }
 
     const [updated] = await db
@@ -216,7 +216,7 @@ export class StorageLocationsService {
       throw notFound('Storage location');
     }
 
-    return { ...(await StorageLocationsService.read(householdId, locationId)), changedFields };
+    return { data: await StorageLocationsService.read(householdId, locationId), changeset };
   }
 
   /**

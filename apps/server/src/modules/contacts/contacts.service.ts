@@ -242,8 +242,7 @@ export class ContactsService {
   }
 
   public static async patch(householdId: number, contactId: number, data: PatchContact) {
-    // Read with its links, at the same cost as the plain row: the links are half of what a save can
-    // change, and the activity log has to be able to say so.
+    // With its links, at the same cost as the plain row — they are half of what a save can change.
     const existing = await ContactsService.readWithLinks(householdId, contactId);
 
     const set = {
@@ -256,10 +255,10 @@ export class ContactsService {
       dateOfBirth: emptyToNull(data.dateOfBirth),
     };
 
-    const changedFields = changedColumns(existing, set);
+    const changeset = changedColumns(existing, set);
 
     if (data.links !== undefined && !sameList(existing.links.map(linkKey), data.links.map(linkKey))) {
-      changedFields.push({ field: 'links' });
+      changeset.push({ field: 'links' });
     }
 
     await db.transaction(async (tx) => {
@@ -278,9 +277,7 @@ export class ContactsService {
       }
     });
 
-    const contact = await ContactsService.readWithLinks(householdId, contactId);
-
-    return { ...contact, changedFields };
+    return { data: await ContactsService.readWithLinks(householdId, contactId), changeset };
   }
 
   public static async delete(householdId: number, contactId: number) {

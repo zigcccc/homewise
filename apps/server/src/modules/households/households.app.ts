@@ -43,7 +43,7 @@ const myHouseholdApp = new Hono<AppContext>()
     return c.json(mappedHousehold, 200);
   })
   .patch('/', withHouseholdOwner, zValidator('json', patchHouseholdModel), async (c) => {
-    const { changedFields, ...updatedHousehold } = await HouseholdsService.patch(
+    const { data: updatedHousehold, changeset } = await HouseholdsService.patch(
       c.var.household.id,
       c.req.valid('json')
     );
@@ -53,7 +53,7 @@ const myHouseholdApp = new Hono<AppContext>()
       id: updatedHousehold.id,
       operation: 'update',
       label: updatedHousehold.name,
-      changes: changedFields,
+      changes: changeset,
     });
 
     return c.json(updatedHousehold, 200);
@@ -76,7 +76,7 @@ const myHouseholdApp = new Hono<AppContext>()
         throw new HTTPException(403, { message: 'Only household owners can edit members other than themselves.' });
       }
 
-      const { changedFields, ...updatedMember } = await HouseholdsService.patchHouseholdMember(
+      const { data: updatedMember, changeset } = await HouseholdsService.patchHouseholdMember(
         household.id,
         member.id,
         c.req.valid('json')
@@ -87,7 +87,7 @@ const myHouseholdApp = new Hono<AppContext>()
         id: updatedMember.id,
         operation: 'update',
         label: HouseholdsService.memberDisplayName(updatedMember),
-        changes: changedFields,
+        changes: changeset,
       });
 
       return c.json(updatedMember, 200);
@@ -192,8 +192,7 @@ const householdsApp = new Hono<AppContext>()
 
     const newHousehold = await HouseholdsService.create({ ...c.req.valid('json'), ownerId: userId });
 
-    // Outside `withHousehold` — there was no household to resolve when the request arrived — so the
-    // log is written directly. Nobody else is here yet, which is also why nothing is announced.
+    // Outside `withHousehold`: there was no household to resolve, and nobody else is here to announce to.
     await ActivityService.record(newHousehold.id, c.var.user, [
       { entity: 'household', id: newHousehold.id, operation: 'create', label: newHousehold.name },
     ]);
@@ -220,12 +219,15 @@ const householdsApp = new Hono<AppContext>()
       const { token } = c.req.valid('query');
       const { id } = c.req.valid('param');
 
-      const member = await HouseholdsService.acceptInvite(id, token, c.var.user.id);
+      const { data: member, joined } = await HouseholdsService.acceptInvite(id, token, c.var.user.id);
 
       // Also outside `withHousehold`: the accepting user had no household until this call returned.
-      await ActivityService.record(member.householdId, c.var.user, [
-        { entity: 'household_member', id: member.id, operation: 'create', label: c.var.user.name },
-      ]);
+      // Only a first accept is a joining — a second one just retires a duplicate invite.
+      if (joined) {
+        await ActivityService.record(member.householdId, c.var.user, [
+          { entity: 'household_member', id: member.id, operation: 'create', label: c.var.user.name },
+        ]);
+      }
 
       return c.json({ success: true }, 202);
     }

@@ -26,13 +26,13 @@ const storesApp = new Hono<AppContext>()
     return c.json(store, 201);
   })
   .patch('/:id', zValidator('param', storePathParamsModel), zValidator('json', patchStoreModel), async (c) => {
-    const { changedFields, ...store } = await StoresService.patch(
+    const { data: store, changeset } = await StoresService.patch(
       c.var.household.id,
       c.req.valid('param').id,
       c.req.valid('json')
     );
 
-    c.var.emit({ entity: 'store', id: store.id, operation: 'update', label: store.name, changes: changedFields });
+    c.var.emit({ entity: 'store', id: store.id, operation: 'update', label: store.name, changes: changeset });
 
     return c.json(store, 200);
   })
@@ -40,9 +40,7 @@ const storesApp = new Hono<AppContext>()
     const { id } = c.req.valid('param');
     const deleted = await StoresService.delete(c.var.household.id, id);
 
-    // Also an ingredient change — every row that defaulted to this shop just lost that default — and
-    // a shopping-list one, since the sections that stood for it were tombstoned with its name. Both
-    // unlogged: they are this one deletion's wake, not two more things somebody did.
+    // Ingredients lost a default and list sections were tombstoned. Unlogged: this deletion's wake.
     c.var.emit(
       { entity: 'store', id, operation: 'delete', label: deleted.name },
       { entity: 'ingredient', id: null, operation: 'update', label: null },

@@ -48,13 +48,13 @@ const contactsApp = new Hono<AppContext>()
     return c.json(contact, 200);
   })
   .patch('/:id', zValidator('param', contactPathParamsModel), zValidator('json', patchContactModel), async (c) => {
-    const { changedFields, ...contact } = await ContactsService.patch(
+    const { data: contact, changeset } = await ContactsService.patch(
       c.var.household.id,
       c.req.valid('param').id,
       c.req.valid('json')
     );
 
-    c.var.emit({ entity: 'contact', id: contact.id, operation: 'update', label: contact.name, changes: changedFields });
+    c.var.emit({ entity: 'contact', id: contact.id, operation: 'update', label: contact.name, changes: changeset });
 
     return c.json(contact, 200);
   })

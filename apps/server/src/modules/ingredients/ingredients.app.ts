@@ -29,8 +29,7 @@ const ingredientsApp = new Hono<AppContext>()
 
     c.var.emit({ entity: 'ingredient', id: ingredient.id, operation: 'create', label: null });
 
-    // A named shop is found-or-created by the same write, so the shop list may have grown too.
-    // Unlogged: naming a shop while adding an ingredient is one action, and it reads as one line.
+    // A named shop is found-or-created here. Unlogged: naming one while adding an ingredient is one act.
     if (payload.storeName !== undefined) {
       c.var.emit({ entity: 'store', id: ingredient.storeId, operation: 'create', label: null });
     }
@@ -45,8 +44,7 @@ const ingredientsApp = new Hono<AppContext>()
       const payload = c.req.valid('json');
       const ingredient = await IngredientsService.patch(c.var.household.id, c.req.valid('param').id, payload);
 
-      // An all-undefined patch is a genuine no-op, but announcing it anyway costs one refetch and
-      // keeps the handler from having to diff. Invalidation is idempotent.
+      // An all-undefined patch is a no-op, but announcing it costs one refetch and needs no diff here.
       c.var.emit({ entity: 'ingredient', id: ingredient.id, operation: 'update', label: null });
 
       // A named shop is found-or-created by the same write, so the shop list may have grown too.

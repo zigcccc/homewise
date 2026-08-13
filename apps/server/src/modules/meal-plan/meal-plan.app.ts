@@ -45,13 +45,13 @@ const mealPlanApp = new Hono<AppContext>()
     zValidator('param', plannedMealPathParamsModel),
     zValidator('json', patchPlannedMealModel),
     async (c) => {
-      const { changedFields, ...meal } = await MealPlanService.patchMeal(
+      const { data: meal, changeset } = await MealPlanService.patchMeal(
         c.var.household.id,
         c.req.valid('param').id,
         c.req.valid('json')
       );
 
-      c.var.emit({ entity: 'meal_plan', id: meal.id, operation: 'update', label: meal.label, changes: changedFields });
+      c.var.emit({ entity: 'meal_plan', id: meal.id, operation: 'update', label: meal.label, changes: changeset });
 
       return c.json(meal, 200);
     }
@@ -69,20 +69,19 @@ const mealPlanApp = new Hono<AppContext>()
     zValidator('param', mealPlanDayPathParamsModel),
     zValidator('json', putDayNoteModel),
     async (c) => {
-      const { changedFields, ...saved } = await MealPlanService.putDayNote(
+      const { data: saved, changeset } = await MealPlanService.putDayNote(
         c.var.household.id,
         c.req.valid('param').day,
         c.req.valid('json').note
       );
 
-      // A day note has no id worth sending — its key is a date, which is what `id: null` is for, and
-      // the day is also the only thing the activity line can name it by.
+      // A day note's key is a date, not an id — which is also all the line has to name it by.
       c.var.emit({
         entity: 'meal_plan',
         id: null,
         operation: 'update',
         label: formatDayFirst(saved.day),
-        changes: changedFields,
+        changes: changeset,
       });
 
       return c.json(saved, 200);

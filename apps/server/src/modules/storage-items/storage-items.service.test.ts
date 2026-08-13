@@ -103,7 +103,7 @@ describe('a loan whose contact is deleted', () => {
       { locationId: ourLocation, name: `Pressure washer ${randomUUID()}` },
       ours.userId
     );
-    const { item: lent } = await StorageItemsService.lend(ours.householdId, item.id, {
+    const { data: lent } = await StorageItemsService.lend(ours.householdId, item.id, {
       contact: { name: 'Ana Novak', type: 'other', phone: '+386 40 000 000' },
       dueOn: '2099-01-01',
     });

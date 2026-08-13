@@ -133,8 +133,8 @@ export class ChildDictionariesService {
     }
 
     return {
-      ...(await ChildDictionariesService.readEntryWithCreator(dictionaryId, updated.id)),
-      changedFields: changedColumns(existing, set),
+      data: await ChildDictionariesService.readEntryWithCreator(dictionaryId, updated.id),
+      changeset: changedColumns(existing, set),
     };
   }
 

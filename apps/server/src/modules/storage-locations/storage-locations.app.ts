@@ -40,7 +40,7 @@ const storageLocationsApp = new Hono<AppContext>()
     zValidator('param', storageLocationPathParamsModel),
     zValidator('json', patchStorageLocationModel),
     async (c) => {
-      const { changedFields, ...location } = await StorageLocationsService.patch(
+      const { data: location, changeset } = await StorageLocationsService.patch(
         c.var.household.id,
         c.req.valid('param').id,
         c.req.valid('json')
@@ -51,7 +51,7 @@ const storageLocationsApp = new Hono<AppContext>()
         id: location.id,
         operation: 'update',
         label: location.name,
-        changes: changedFields,
+        changes: changeset,
       });
 
       return c.json(location, 200);
@@ -61,8 +61,7 @@ const storageLocationsApp = new Hono<AppContext>()
     const { id } = c.req.valid('param');
     const deleted = await StorageLocationsService.delete(c.var.household.id, id);
 
-    // Also an item change — everything that was in here went with it. Unlogged: naming every item
-    // individually is what the location's own line stands for.
+    // Everything in here went with it. Unlogged: the location's own line stands for all of them.
     c.var.emit(
       { entity: 'storage_location', id, operation: 'delete', label: deleted.name },
       { entity: 'storage_item', id: null, operation: 'delete', label: null }

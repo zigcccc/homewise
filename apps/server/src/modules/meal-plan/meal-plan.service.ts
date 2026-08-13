@@ -303,7 +303,7 @@ export class MealPlanService {
 
   public static async patchMeal(householdId: number, mealId: number, data: PatchPlannedMeal) {
     // Filled inside the transaction: the merged values a save resolves to are only known there.
-    let changedFields: FieldChange[] = [];
+    let changeset: FieldChange[] = [];
 
     await db.transaction(async (tx) => {
       const existing = await MealPlanService.readMealRow(householdId, mealId, tx);
@@ -333,7 +333,7 @@ export class MealPlanService {
         note: data.note === undefined ? undefined : (emptyToNull(data.note) ?? null),
       };
 
-      changedFields = changedColumns(existing, set);
+      changeset = changedColumns(existing, set);
 
       await tx
         .update(schema.plannedMeal)
@@ -357,14 +357,14 @@ export class MealPlanService {
         const eating = await MealPlanService.readMemberKeys(tx, mealId);
 
         if (!sameList(eating, MealPlanService.memberKeys(data.memberIds))) {
-          changedFields.push({ field: 'memberIds' });
+          changeset.push({ field: 'memberIds' });
         }
 
         await MealPlanService.replaceMembers(tx, mealId, data.memberIds);
       }
     });
 
-    return { ...(await MealPlanService.readMealWithRelations(householdId, mealId)), changedFields };
+    return { data: await MealPlanService.readMealWithRelations(householdId, mealId), changeset };
   }
 
   public static async deleteMeal(householdId: number, mealId: number) {
@@ -396,14 +396,14 @@ export class MealPlanService {
     const existing = await db.query.plannedDayNote.findFirst({
       where: (fields, { and, eq }) => and(eq(fields.householdId, householdId), eq(fields.day, day)),
     });
-    const changedFields = changedColumns({ note: existing?.note ?? null }, { note: emptyToNull(note) ?? null });
+    const changeset = changedColumns({ note: existing?.note ?? null }, { note: emptyToNull(note) ?? null });
 
     if (note === '') {
       await db
         .delete(schema.plannedDayNote)
         .where(and(eq(schema.plannedDayNote.householdId, householdId), eq(schema.plannedDayNote.day, day)));
 
-      return { day, note: null, changedFields };
+      return { data: { day, note: null }, changeset };
     }
 
     const [saved] = await db
@@ -419,6 +419,6 @@ export class MealPlanService {
       throw somethingWentWrong();
     }
 
-    return { day: saved.day, note: saved.note, changedFields };
+    return { data: { day: saved.day, note: saved.note }, changeset };
   }
 }

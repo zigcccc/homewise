@@ -179,12 +179,12 @@ export class StoresService {
     }
 
     const set = { name: data.name, notes: emptyToNull(data.notes) };
-    const changedFields = changedColumns(existing, set);
+    const changeset = changedColumns(existing, set);
 
     if (!writesAnything(set)) {
       const usage = await StoresService.countIngredientUsage(householdId, [storeId]);
 
-      return { ...existing, ingredientCount: usage.get(storeId) ?? 0, changedFields };
+      return { data: { ...existing, ingredientCount: usage.get(storeId) ?? 0 }, changeset };
     }
 
     const [updated] = await db
@@ -205,7 +205,7 @@ export class StoresService {
 
     const usage = await StoresService.countIngredientUsage(householdId, [storeId]);
 
-    return { ...updated, ingredientCount: usage.get(storeId) ?? 0, changedFields };
+    return { data: { ...updated, ingredientCount: usage.get(storeId) ?? 0 }, changeset };
   }
 
   /**

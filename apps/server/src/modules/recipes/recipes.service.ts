@@ -20,12 +20,12 @@ type ResolvedRecipeIngredient = Omit<RecipeIngredient, 'ingredientId' | 'ingredi
 const creatorWith = { columns: { id: true, name: true, image: true } } as const;
 
 /**
- * How a save's children are compared against the stored ones, for the activity log. Both are
- * replace-all lists, so position is part of the key: moving a step *is* an edit.
- *
- * Normalized exactly as `replaceIngredients` writes them — a form posts `''` where the column holds
- * NULL, and comparing the two raw would call every save a change.
+ * How a save's children compare against the stored ones. Replace-all lists, so position is part of
+ * the key — moving a step *is* an edit — and normalized exactly as `replaceIngredients` writes them.
  */
+/** Tags resolve by name into a set, so order, case and repeats are all noise rather than an edit. */
+const tagKeys = (names: string[]) => [...new Set(names.map((name) => name.toLowerCase()))].sort();
+
 const stepKey = (step: { instruction: string }) => step.instruction;
 
 const lineKey = (line: {
@@ -388,22 +388,14 @@ export class RecipesService {
       archived: data.archived,
     };
 
-    const changedFields = changedColumns(existing, set);
+    const changeset = changedColumns(existing, set);
 
     if (data.steps !== undefined && !sameList(existing.steps.map(stepKey), data.steps.map(stepKey))) {
-      changedFields.push({ field: 'steps' });
+      changeset.push({ field: 'steps' });
     }
 
-    // Sorted and case-folded, because tags are a set resolved by name — reordering the chips in the
-    // form is not an edit, and neither is retyping one with a different capitalisation.
-    if (
-      data.tags !== undefined &&
-      !sameList(
-        existing.tags.map((tag) => tag.name.toLowerCase()).sort(),
-        data.tags.map((name) => name.toLowerCase()).sort()
-      )
-    ) {
-      changedFields.push({ field: 'tags' });
+    if (data.tags !== undefined && !sameList(tagKeys(existing.tags.map((tag) => tag.name)), tagKeys(data.tags))) {
+      changeset.push({ field: 'tags' });
     }
 
     await db.transaction(async (tx) => {
@@ -415,7 +407,7 @@ export class RecipesService {
 
       // Compared after resolution, because a line naming a new ingredient only gets its id here.
       if (lines !== undefined && !sameList(existing.ingredients.map(lineKey), lines.map(lineKey))) {
-        changedFields.push({ field: 'ingredients' });
+        changeset.push({ field: 'ingredients' });
       }
 
       // Skip the update when only children changed — an all-undefined `set` has nothing to write.
@@ -439,7 +431,7 @@ export class RecipesService {
       }
     });
 
-    return { ...(await RecipesService.readRecipeWithRelations(householdId, recipeId)), changedFields };
+    return { data: await RecipesService.readRecipeWithRelations(householdId, recipeId), changeset };
   }
 
   /**

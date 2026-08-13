@@ -39,8 +39,7 @@ const expensesApp = new Hono<AppContext>()
 
     c.var.emit({ entity: 'expense', id: expense.id, operation: 'create', label: expense.title });
 
-    // A named category is found-or-created by the same write, so the category list may have grown.
-    // Unlogged: naming a category while logging an expense is one action, and it reads as one line.
+    // A named category is found-or-created here. Unlogged: it is part of logging the expense.
     if (payload.categoryName !== undefined) {
       c.var.emit({ entity: 'expense_category', id: expense.categoryId, operation: 'create', label: null });
     }
@@ -49,7 +48,7 @@ const expensesApp = new Hono<AppContext>()
   })
   .patch('/:id', zValidator('param', expensePathParamsModel), zValidator('json', patchExpenseModel), async (c) => {
     const payload = c.req.valid('json');
-    const { changedFields, ...expense } = await ExpensesService.patch(
+    const { data: expense, changeset } = await ExpensesService.patch(
       c.var.household.id,
       c.req.valid('param').id,
       payload
@@ -60,7 +59,7 @@ const expensesApp = new Hono<AppContext>()
       id: expense.id,
       operation: 'update',
       label: expense.title,
-      changes: changedFields,
+      changes: changeset,
     });
 
     if (payload.categoryName !== undefined) {

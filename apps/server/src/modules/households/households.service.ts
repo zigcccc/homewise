@@ -48,13 +48,10 @@ export class HouseholdsService {
     return firstFilled(member.nickname, member.user?.name, member.name) ?? 'Unknown';
   }
 
-  /**
-   * The same name, for callers holding only an id — a profile's delete, which has to label the
-   * activity line after the row that named the child is already gone.
-   */
-  public static async readMemberDisplayName(memberId: number) {
+  /** The same name for a caller holding only an id — a profile's delete, once its own row is gone. */
+  public static async readMemberDisplayName(householdId: number, memberId: number) {
     const member = await db.query.householdMember.findFirst({
-      where: eq(schema.householdMember.id, memberId),
+      where: and(eq(schema.householdMember.householdId, householdId), eq(schema.householdMember.id, memberId)),
       columns: { name: true, nickname: true },
       with: { user: { columns: { name: true } } },
     });
@@ -174,7 +171,7 @@ export class HouseholdsService {
       throw somethingWentWrong();
     }
 
-    return { ...updatedHousehold, changedFields: changedColumns(existing, partialData) };
+    return { data: updatedHousehold, changeset: changedColumns(existing, partialData) };
   }
 
   public static async delete(householdId: number) {
@@ -246,7 +243,7 @@ export class HouseholdsService {
       throw somethingWentWrong();
     }
 
-    return { ...updated, changedFields: changedColumns(existing, patch) };
+    return { data: updated, changeset: changedColumns(existing, patch) };
   }
 
   public static async deleteHouseholdMember(householdId: number, memberId: number) {
@@ -402,7 +399,7 @@ export class HouseholdsService {
 
     if (existingMembership) {
       await HouseholdsService.deleteInvite(invite.householdId, invite.id);
-      return existingMembership;
+      return { data: existingMembership, joined: false };
     }
 
     let householdMember: typeof schema.householdMember.$inferSelect | undefined;
@@ -434,7 +431,7 @@ export class HouseholdsService {
 
     await HouseholdsService.deleteInvite(invite.householdId, invite.id);
 
-    return householdMember;
+    return { data: householdMember, joined: true };
   }
 
   public static async listActiveInvitesForHousehold(householdId: number) {
