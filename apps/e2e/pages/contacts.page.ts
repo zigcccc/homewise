@@ -157,6 +157,17 @@ export class ContactsPage {
     await this.page.getByRole('option', { name: option, exact: true }).click();
   }
 
+  /** Edits one field on an open contact's page and saves. */
+  async editField(label: string, value: string) {
+    await this.page.getByRole('button', { name: 'Open menu' }).click();
+    await this.page.getByRole('menuitem', { name: 'Edit contact' }).click();
+
+    const dialog = this.page.getByRole('dialog');
+    await dialog.getByLabel(label).fill(value);
+    await dialog.getByRole('button', { name: 'Save changes' }).click();
+    await expect(dialog).toBeHidden();
+  }
+
   /**
    * Drops a relation through the *edit* dialog rather than the detail card, and saves — the path
    * that has to work out for itself which relations were already stored.

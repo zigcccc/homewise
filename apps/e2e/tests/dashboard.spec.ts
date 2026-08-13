@@ -51,6 +51,7 @@ test.describe('dashboard', () => {
     await expect(dashboard.loans()).toBeVisible();
     await expect(dashboard.recentRecipes()).toBeVisible();
     await expect(dashboard.familyProfiles()).toBeVisible();
+    await expect(dashboard.activity()).toBeVisible();
 
     // Every spec that writes a meal writes it on a far-future week, so this week is the seed's.
     await expect(dashboard.weekMeals()).toContainText(SEED_RECIPE.title);
