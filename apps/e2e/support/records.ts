@@ -1,5 +1,7 @@
 import { type Page } from '@playwright/test';
 
+import { MAX_PAGE_SIZE } from '@homewise/server/models';
+
 import { API_URL } from '../playwright.config';
 
 /**
@@ -15,13 +17,18 @@ import { API_URL } from '../playwright.config';
  * the same reason, call it from an inner `finally`, so a failed UI teardown can't skip it.
  */
 export async function deleteOutOfBand(page: Page, path: 'contacts' | 'storage-items', name: string) {
-  const list = await page.context().request.get(`${API_URL}/${path}`);
+  // Searched and asked for a full page, because these lists are paginated: the row a spec left
+  // behind is rarely on the first page of a household several parallel specs have been adding to.
+  const list = await page
+    .context()
+    .request.get(`${API_URL}/${path}?search=${encodeURIComponent(name)}&pageSize=${MAX_PAGE_SIZE}`);
 
   if (!list.ok()) {
     throw new Error(`Could not list ${path} to clean up "${name}": ${list.status()} ${list.statusText()}`);
   }
 
-  const row = (await list.json()).find((candidate: { name: string }) => candidate.name === name);
+  const { items } = (await list.json()) as { items: { id: number; name: string }[] };
+  const row = items.find((candidate) => candidate.name === name);
 
   if (row) {
     const deleted = await page.context().request.delete(`${API_URL}/${path}/${row.id}`);
