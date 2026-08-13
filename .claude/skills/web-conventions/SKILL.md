@@ -108,7 +108,7 @@ untouched.
 
 ### A paginated list
 
-A list route spreads `...pagedQueryParams.shape` into its `searchParamsModel` (from
+A list route spreads `...pagedQueryParams().shape` into its `searchParamsModel` (from
 `@homewise/server/models`, the same object the endpoint validates against), reads `data.items` for
 its rows, and ends with `<ListPagination page={data} setSearchParam={…} />` from `modules/shared`.
 `loaderDeps` already forwards the whole search object, so `page`/`pageSize` reach the query key and
@@ -193,23 +193,29 @@ Put helpers in the module (`invalidateDictionary(queryClient, id)`) and type the
 Those same `invalidate*` helpers are what the realtime subscriber calls — a new domain also needs an
 entry in the `invalidators` record, which is a compile error until you add it. See `realtime-events`.
 
-### Paging a list that grows without bound
+### Infinite scroll, on the same offset pagination
 
-Every list endpoint but one returns its table whole, which is fine for a household's contacts or
-recipes. The activity log is the exception — it only ever grows — and is the one place with a cursor.
-`activity.queries.ts` is the pattern to copy if a second ever needs one:
+There is one pagination concept and it is an offset (`server-conventions`); an infinite scroll is
+just a UI that keeps asking for `page + 1` and concatenates. The activity feed is the only one, and
+`activity.queries.ts` is the pattern to copy:
 
-- **`infiniteQueryOptions`**, with `initialPageParam: undefined as number | undefined` and
-  `getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined`. The page param is a **row id**,
-  not an ordinal — the first page has none because it starts at the newest row — and `undefined`
-  rather than `null` so it drops straight into the RPC query the endpoint declares.
-- **The cursor is not in the query key** — only the filters are. It is the page pointer, and
-  TanStack Query tracks it per page; putting it in the key gives every page its own cache entry.
-- **Keyset, not offset**, which is the server's `readPage` (`server-conventions`). An offset would
-  re-serve a row the moment anyone else wrote while a member was scrolling.
-- **A card wanting the newest few uses its own plain `queryOptions`** with a `limit`, on its own key
-  (`['activity', 'recent']`), so paging the full page can't disturb it. `ensureInfiniteQueryData` is
-  the loader's call for the infinite one.
+- **`infiniteQueryOptions`**, `initialPageParam: { page: 1 }`, and `getNextPageParam` deriving
+  "is there more" from `page * pageSize < total`.
+- **The page param is not in the query key** — only the filters are. TanStack Query tracks the param
+  per page; putting it in the key gives every page its own cache entry.
+- **A feed that grows at the head carries an anchor.** Every mutation in the household writes an
+  activity line, so an offset counting from a moving top repeats a row across a page boundary. The
+  param carries a `maxId` — the newest id the *first* page saw — forward to every later page, and the
+  server applies it as a filter.
+- **The anchor is never on the first page**, and that is what keeps a realtime invalidation correct.
+  On a refetch, `infiniteQueryBehavior` re-uses only the first page's stored param and recomputes
+  every later one through `getNextPageParam` — so the first page comes back unanchored with the new
+  rows in it, and the pages behind it re-anchor to the new top. Pinning `maxId` into
+  `initialPageParam` would freeze the feed against live updates instead.
+  `activity.queries.test.ts` covers the derivation.
+- **A card wanting the newest few uses its own plain `queryOptions`** with a `pageSize`, on its own
+  key (`['activity', 'recent']`), so paging the full page can't disturb it. `ensureInfiniteQueryData`
+  is the loader's call for the infinite one.
 
 ## Module structure
 

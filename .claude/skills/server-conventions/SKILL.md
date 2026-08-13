@@ -163,20 +163,26 @@ Path params use `z.coerce.number<number>()`.
   `search`, `sortKey`, `sortDirection` and any filters as query params. Don't nest a full collection
   inside its parent's detail response — the detail endpoint returns metadata plus a **count**
   (`entryCount`), so filtering a list never refetches parent metadata.
-- **Pagination comes in two shapes, and the UI decides which** — neither is re-derived per module.
-  Both are a model half (`#lib/models`) and a read half (`#db/utils`):
-  - **A numbered list — every table and the recipe grid.** The model spreads `...pagedQueryParams.shape`
-    onto its filters; the service hands its `filters`, the `page`/`pageSize` and its table to
-    `readPagedList`, which answers `{ items, page, pageSize, total }`. An offset, because a pager
-    whose point is jumping to page 7 has to be able to count pages. The `page` it returns may not be
-    the one asked for: an offset past the end re-reads at the last real page, so the web renders the
-    bar from the **response**, never from the URL.
-  - **A feed — the activity log, and only it so far.** The model extends with
-    `cursorQueryParams(size).shape`; the service hands the id column to `readCursorPage`, which
-    answers `{ entries, nextCursor }` and reads one row past the page as its has-more probe rather
-    than counting. The cursor is a row id and the ordering must agree with it (`desc(columns.id)`),
-    which is what makes "older than the last one shown" complete — and why a feed can only ever walk
-    forward.
+- **There is exactly one pagination concept: an offset.** The model spreads `...pagedQueryParams().shape`
+  onto its filters; the service hands its `filters`, the `page`/`pageSize` and its table to
+  `readPagedList` (`#db/utils`), which answers `{ items, page, pageSize, total }`. Pass a size to the
+  factory where a list wants its own default (`pagedQueryParams(20)` for the activity feed).
+
+  **Do not add a keyset cursor back.** One was tried and removed: an offset serves both a numbered
+  pager *and* an infinite scroll, where a cursor can only serve the second — it has no notion of "the
+  7th page" without walking there, so it cannot number pages, jump, or offer a last page. Two
+  mechanisms also meant two response shapes and the question of which one a new endpoint should pick.
+
+  The `page` that comes back may not be the one asked for: an offset past the end re-reads at the
+  last real page, so the web renders its bar from the **response**, never from the URL.
+
+  **A feed that grows at the head freezes itself with a filter, not with a second mechanism.**
+  `activity` is the only such list — every mutation in the household writes a line — and an offset
+  counting from a moving top would repeat a row across a page boundary. It takes a `maxId`: the
+  newest id the reader has already seen, applied as `lte(columns.id, maxId)` beside `search` and
+  `entity`. It narrows *which* rows; `page` still says which slice. The web sends it from the second
+  page onward (see `activity.queries.ts`), and never on the first — which is what lets an
+  invalidation pick up new rows and re-anchor instead of staying pinned to a stale id.
 
   **Every paginated `orderBy` ends with its `id`**, in the sort's own direction. Rows tied on the sort
   key are otherwise free to come back in a different order per query, which drops one between two
