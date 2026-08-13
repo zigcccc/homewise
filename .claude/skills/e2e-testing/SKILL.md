@@ -41,7 +41,12 @@ pnpm --filter @homewise/e2e db:test:down   # Remove the test Postgres
 - **Selectors**: prefer role/label queries; add a `data-testid` only when semantics aren't enough.
   Make CRUD specs **self-contained** — create a uniquely-named row (e.g. `` `Thing ${Date.now()}` ``),
   assert, then remove it — so they're idempotent across reruns and never mutate the shared seed
-  fixture.
+  fixture. Create it **inside the `try`**, so a helper that throws part-way still reaches the
+  cleanup. Don't `expect` in the `finally` — a failing cleanup assertion replaces the failure you
+  actually wanted to read.
+- **Comment the trap, not the phase.** The GIVEN/WHEN/THEN labels are the Vitest layer's convention
+  (see `unit-testing`) and don't belong here: a spec already reads as a sequence of user actions, so
+  labelling them adds a line per step and says nothing. Comment what a reader would get wrong.
 
 A form control with no `<label>` still needs an accessible name — inline table cells are the case,
 since the column header names the column, not the input. Locate them by that name; a spec matching a

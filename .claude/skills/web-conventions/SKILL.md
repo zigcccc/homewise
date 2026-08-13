@@ -71,17 +71,39 @@ List/filter/sort state belongs in **URL search params** via `validateSearch` + `
 `@homewise/server/models` rather than a local copy, so the route validates against the same schema
 the endpoint does.
 
+**Every route sets its params through `useSearchParamSetter`** (`modules/shared/hooks`) — never a
+local `navigate({ search: { ...searchParams, [key]: value }, to: '.' })`, which every list view had
+its own copy of:
+
+```ts
+const setSearchParam = useSearchParamSetter(searchParams);
+
+setSearchParam('type', 'family');
+setSearchParam('search', term, { replace: true });
+```
+
+`replace` for a change not worth a history entry. A committed search term would otherwise be its own
+entry, so Back walks the word backwards a few letters at a time instead of leaving the page; filters
+and sorts still push. Pass the setter to a child component as `SearchParamSetter<SearchParams>`
+rather than restating its signature.
+
 **Searching is `SearchInput`** (`modules/shared`), never a hand-rolled `InputGroupInput` plus a
 `useDebounceCallback`. It owns the debounce, the accessible name and — the part that is easy to get
 wrong — keeping what is typed in sync with the URL. Feeding the input straight off the search param
 lags a keystroke behind the debounce; holding it purely locally leaves a box claiming a filter the
-list is not applying. That trade is `useEchoedState` (`modules/shared/hooks`): local state that
-follows the outside value when it moves on its own, re-syncing **during render** rather than in an
-effect, which would paint the stale value first and fight the debounce on every change of our own.
+list is not applying. **react-hook-form's `values` option is that trade**, not a pair of `useState`s:
+it re-syncs the field when the param moves on its own (a Back button, a filter cleared elsewhere)
+while typing stays ahead of the debounce.
 
-Its navigation **replaces** rather than pushes: `setSearchParam(key, value, true)`. Each committed
-search term would otherwise be its own history entry, so Back walks the word backwards a few letters
-at a time instead of leaving the page. Filters and sorts still push.
+Two traps live in that component, both covered by `search-input.test.tsx`:
+
+- **`useDebounceCallback` rebuilds its debouncer whenever the callback identity changes, and leaves
+  the previous one's timer running.** An inline `onChange` therefore fires against a search-param
+  snapshot taken *before* the last filter click, silently dropping the filter. Keep what it closes
+  over stable — a ref holding the latest handler — rather than letting the callback change.
+- **A search box needs an `aria-label`.** A placeholder is not an accessible name; it disappears the
+  moment anyone types, and a spec that can only find the control by placeholder is a spec proving it
+  has no name. E2E locates these by role and name.
 
 ## The API client
 
