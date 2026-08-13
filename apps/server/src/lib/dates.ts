@@ -35,6 +35,13 @@ export const todayISO = () => toISODate(new UTCDate());
  */
 export const todayMonthDay = () => format(new UTCDate(), 'MM-dd');
 
+/**
+ * A day as the app writes days, `dd. MM. yyyy` — the one place the server produces display text
+ * rather than storing a date. Activity labels are snapshots, so what a line says is settled when it
+ * is written; this keeps it saying the same thing the rest of the app does.
+ */
+export const formatDayFirst = (day: string) => format(new UTCDate(day), 'dd. MM. yyyy');
+
 export const addDays = (day: string, days: number) => toISODate(addDaysToDate(new UTCDate(day), days));
 
 /** The Monday of the week containing `day`. ISO weeks — Monday-first, as the rest of Europe counts. */

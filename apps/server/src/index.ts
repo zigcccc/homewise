@@ -13,6 +13,7 @@ import { env } from './config/env';
 import { SERVER_PORT } from './config/server';
 import { closeDb } from './db/core';
 import { auth } from './lib/auth';
+import activityApp from './modules/activity';
 import childDictionariesApp from './modules/child-dictionaries';
 import childProfilesApp from './modules/child-profiles';
 import contactsApp from './modules/contacts';
@@ -116,7 +117,8 @@ const routes = app
   .route('/expense-categories', expenseCategoriesApp)
   .route('/storage-locations', storageLocationsApp)
   .route('/storage-items', storageItemsApp)
-  .route('/realtime', realtimeApp);
+  .route('/realtime', realtimeApp)
+  .route('/activity', activityApp);
 
 if (env.NODE_ENV === 'development') {
   console.log(`Serving app on port ${SERVER_PORT}...`);

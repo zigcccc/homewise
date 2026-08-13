@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 
+import { formatDayFirst } from '#lib/dates';
 import { zValidator } from '#lib/validation';
 import { withHousehold } from '#middleware/household.middleware';
 import { type AppContext } from '#types/app.type';
@@ -35,7 +36,7 @@ const mealPlanApp = new Hono<AppContext>()
     const { household, user } = c.var;
     const meal = await MealPlanService.createMeal(household.id, c.req.valid('json'), user.id);
 
-    c.var.emit({ entity: 'meal_plan', id: meal.id, operation: 'create' });
+    c.var.emit({ entity: 'meal_plan', id: meal.id, operation: 'create', label: meal.label });
 
     return c.json(meal, 201);
   })
@@ -44,18 +45,22 @@ const mealPlanApp = new Hono<AppContext>()
     zValidator('param', plannedMealPathParamsModel),
     zValidator('json', patchPlannedMealModel),
     async (c) => {
-      const meal = await MealPlanService.patchMeal(c.var.household.id, c.req.valid('param').id, c.req.valid('json'));
+      const { changedFields, ...meal } = await MealPlanService.patchMeal(
+        c.var.household.id,
+        c.req.valid('param').id,
+        c.req.valid('json')
+      );
 
-      c.var.emit({ entity: 'meal_plan', id: meal.id, operation: 'update' });
+      c.var.emit({ entity: 'meal_plan', id: meal.id, operation: 'update', label: meal.label, changes: changedFields });
 
       return c.json(meal, 200);
     }
   )
   .delete('/meals/:id', zValidator('param', plannedMealPathParamsModel), async (c) => {
     const { id } = c.req.valid('param');
-    await MealPlanService.deleteMeal(c.var.household.id, id);
+    const deleted = await MealPlanService.deleteMeal(c.var.household.id, id);
 
-    c.var.emit({ entity: 'meal_plan', id, operation: 'delete' });
+    c.var.emit({ entity: 'meal_plan', id, operation: 'delete', label: deleted.label });
 
     return c.json({ success: true }, 202);
   })
@@ -64,14 +69,21 @@ const mealPlanApp = new Hono<AppContext>()
     zValidator('param', mealPlanDayPathParamsModel),
     zValidator('json', putDayNoteModel),
     async (c) => {
-      const saved = await MealPlanService.putDayNote(
+      const { changedFields, ...saved } = await MealPlanService.putDayNote(
         c.var.household.id,
         c.req.valid('param').day,
         c.req.valid('json').note
       );
 
-      // A day note has no id worth sending — its key is a date, which is what `id: null` is for.
-      c.var.emit({ entity: 'meal_plan', id: null, operation: 'update' });
+      // A day note has no id worth sending — its key is a date, which is what `id: null` is for, and
+      // the day is also the only thing the activity line can name it by.
+      c.var.emit({
+        entity: 'meal_plan',
+        id: null,
+        operation: 'update',
+        label: formatDayFirst(saved.day),
+        changes: changedFields,
+      });
 
       return c.json(saved, 200);
     }

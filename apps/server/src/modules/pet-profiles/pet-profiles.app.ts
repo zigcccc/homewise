@@ -23,7 +23,7 @@ const petProfilesApp = new Hono<AppContext>()
     const { household } = c.var;
     const profile = await PetProfilesService.create(household.id, c.req.valid('json'), household.ownerId);
 
-    c.var.emit({ entity: 'pet_profile', id: profile.id, operation: 'create' });
+    c.var.emit({ entity: 'pet_profile', id: profile.id, operation: 'create', label: profile.pet.displayName });
 
     return c.json(profile, 201);
   })
@@ -39,23 +39,29 @@ const petProfilesApp = new Hono<AppContext>()
     zValidator('form', patchPetProfileModel),
     async (c) => {
       const { household } = c.var;
-      const profile = await PetProfilesService.patch(
+      const { changedFields, ...profile } = await PetProfilesService.patch(
         household.id,
         c.req.valid('param').id,
         c.req.valid('form'),
         household.ownerId
       );
 
-      c.var.emit({ entity: 'pet_profile', id: profile.id, operation: 'update' });
+      c.var.emit({
+        entity: 'pet_profile',
+        id: profile.id,
+        operation: 'update',
+        label: profile.pet.displayName,
+        changes: changedFields,
+      });
 
       return c.json(profile, 200);
     }
   )
   .delete('/:id', zValidator('param', petProfilePathParamsModel), async (c) => {
     const { id } = c.req.valid('param');
-    await PetProfilesService.delete(c.var.household.id, id);
+    const deleted = await PetProfilesService.delete(c.var.household.id, id);
 
-    c.var.emit({ entity: 'pet_profile', id, operation: 'delete' });
+    c.var.emit({ entity: 'pet_profile', id, operation: 'delete', label: deleted.displayName });
 
     return c.json({ success: true }, 202);
   });

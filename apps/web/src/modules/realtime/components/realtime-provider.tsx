@@ -14,11 +14,13 @@ import {
 } from '@homewise/server/realtime';
 
 import { CLIENT_ID } from '@/api/client';
+import { invalidateActivity } from '@/modules/activity';
 import { invalidateChildDictionaryEntries } from '@/modules/child-dictionaries';
 import { invalidateChildProfile, invalidateChildProfiles } from '@/modules/child-profiles';
 import { invalidateContacts } from '@/modules/contacts';
 import { invalidateExpenseCategories } from '@/modules/expense-categories';
 import { invalidateExpenses } from '@/modules/expenses';
+import { invalidateHouseholds } from '@/modules/households';
 import { invalidateIngredients } from '@/modules/ingredients';
 import { invalidateMealPlan } from '@/modules/meal-plan';
 import { invalidatePetProfile, invalidatePetProfiles } from '@/modules/pet-profiles';
@@ -74,6 +76,15 @@ const invalidators: Record<HouseholdEventEntity, (queryClient: QueryClient, even
     // The expense table shows the category's name off the join, so a rename relabels rows there and
     // a delete clears the cell on every expense that pointed at it — and moves them in the breakdown.
     invalidateExpenses(queryClient);
+  },
+  // The household's own three. Before the activity log these routes emitted nothing at all, so a
+  // rename or a new member simply never reached a second tab.
+  household: (queryClient) => invalidateHouseholds(queryClient),
+  household_invite: (queryClient) => invalidateHouseholds(queryClient),
+  household_member: (queryClient) => {
+    invalidateHouseholds(queryClient);
+    // Kid and pet profiles show their member's name, and a removed member takes its profile with it.
+    invalidateProfiles(queryClient);
   },
   ingredient: (queryClient) => invalidateIngredients(queryClient),
   // Keyed by date range, so no id in the event can address a single cache entry — the whole domain
@@ -183,6 +194,11 @@ function RealtimeSync({ channel }: { channel: string }) {
     for (const event of parsed.data.events) {
       invalidators[event.entity](queryClient, event);
     }
+
+    // Once for the whole message, not once per event: every logged change arrives here, and the feed
+    // is one list that any of them can land at the top of. This is why the activity log needs no
+    // entity of its own — it would only ever be emitted alongside something else.
+    invalidateActivity(queryClient);
   });
 
   useConnectionStateListener('connected', () => {

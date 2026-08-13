@@ -37,32 +37,43 @@ const expensesApp = new Hono<AppContext>()
     const payload = c.req.valid('json');
     const expense = await ExpensesService.create(c.var.household.id, payload);
 
-    c.var.emit({ entity: 'expense', id: expense.id, operation: 'create' });
+    c.var.emit({ entity: 'expense', id: expense.id, operation: 'create', label: expense.title });
 
     // A named category is found-or-created by the same write, so the category list may have grown.
+    // Unlogged: naming a category while logging an expense is one action, and it reads as one line.
     if (payload.categoryName !== undefined) {
-      c.var.emit({ entity: 'expense_category', id: expense.categoryId, operation: 'create' });
+      c.var.emit({ entity: 'expense_category', id: expense.categoryId, operation: 'create', label: null });
     }
 
     return c.json(expense, 201);
   })
   .patch('/:id', zValidator('param', expensePathParamsModel), zValidator('json', patchExpenseModel), async (c) => {
     const payload = c.req.valid('json');
-    const expense = await ExpensesService.patch(c.var.household.id, c.req.valid('param').id, payload);
+    const { changedFields, ...expense } = await ExpensesService.patch(
+      c.var.household.id,
+      c.req.valid('param').id,
+      payload
+    );
 
-    c.var.emit({ entity: 'expense', id: expense.id, operation: 'update' });
+    c.var.emit({
+      entity: 'expense',
+      id: expense.id,
+      operation: 'update',
+      label: expense.title,
+      changes: changedFields,
+    });
 
     if (payload.categoryName !== undefined) {
-      c.var.emit({ entity: 'expense_category', id: expense.categoryId, operation: 'create' });
+      c.var.emit({ entity: 'expense_category', id: expense.categoryId, operation: 'create', label: null });
     }
 
     return c.json(expense, 200);
   })
   .delete('/:id', zValidator('param', expensePathParamsModel), async (c) => {
     const { id } = c.req.valid('param');
-    await ExpensesService.delete(c.var.household.id, id);
+    const deleted = await ExpensesService.delete(c.var.household.id, id);
 
-    c.var.emit({ entity: 'expense', id, operation: 'delete' });
+    c.var.emit({ entity: 'expense', id, operation: 'delete', label: deleted.title });
 
     return c.json({ success: true }, 202);
   });

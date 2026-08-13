@@ -1,4 +1,4 @@
-import { queryOptions } from '@tanstack/react-query';
+import { type QueryClient, queryOptions } from '@tanstack/react-query';
 
 import { client, parseResponse } from '@/api/client';
 
@@ -37,4 +37,14 @@ export function listMyHouseholdActiveInvitesQueryOptions() {
     queryKey: ['households', 'activeInvites', 'list'],
     queryFn: async () => parseResponse(client.households.my.invites.active.$get()),
   });
+}
+
+/**
+ * The household, its members and its open invites — all three keys under one prefix.
+ *
+ * Deliberately the whole prefix: adding a member, accepting an invite and renaming the household all
+ * change what the members page and the sidebar show, and none of them is addressed by a single key.
+ */
+export function invalidateHouseholds(queryClient: QueryClient) {
+  void queryClient.invalidateQueries({ queryKey: ['households'] });
 }

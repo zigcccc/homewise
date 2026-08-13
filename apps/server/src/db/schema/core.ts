@@ -1,4 +1,5 @@
 export * from './__shared/currency';
+export * from './activity';
 export * from './child-dictionary';
 export * from './child-profile';
 export * from './contact';

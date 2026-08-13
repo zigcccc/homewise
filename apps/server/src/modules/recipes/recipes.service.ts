@@ -1,7 +1,7 @@
 import { and, asc, count, desc, eq, ilike, inArray, or } from 'drizzle-orm';
 
 import { db, schema } from '#db/core';
-import { type Executor, emptyToNull, type Filters } from '#db/utils';
+import { changedColumns, type Executor, emptyToNull, type Filters, sameList } from '#db/utils';
 import { couldNotResolve, notFound, somethingWentWrong } from '#lib/errors';
 import { IngredientsService } from '#modules/ingredients/ingredients.service';
 import { MealPlanService } from '#modules/meal-plan/meal-plan.service';
@@ -18,6 +18,30 @@ import {
 type ResolvedRecipeIngredient = Omit<RecipeIngredient, 'ingredientId' | 'ingredientName'> & { ingredientId: number };
 
 const creatorWith = { columns: { id: true, name: true, image: true } } as const;
+
+/**
+ * How a save's children are compared against the stored ones, for the activity log. Both are
+ * replace-all lists, so position is part of the key: moving a step *is* an edit.
+ *
+ * Normalized exactly as `replaceIngredients` writes them — a form posts `''` where the column holds
+ * NULL, and comparing the two raw would call every save a change.
+ */
+const stepKey = (step: { instruction: string }) => step.instruction;
+
+const lineKey = (line: {
+  ingredientId: number;
+  note?: string | null;
+  quantity?: number | null;
+  section?: string | null;
+  unit?: string | null;
+}) =>
+  [
+    line.ingredientId,
+    line.quantity ?? '',
+    line.unit ?? '',
+    emptyToNull(line.note) ?? '',
+    emptyToNull(line.section) ?? '',
+  ].join('|');
 
 /** Tag links are a join-table detail — the API exposes a flat `tags` array instead. */
 const flattenTags = <T extends { tagLinks: { tag: { id: number; name: string } }[] }>({ tagLinks, ...rest }: T) => ({
@@ -346,7 +370,9 @@ export class RecipesService {
   }
 
   public static async patch(householdId: number, recipeId: number, data: PatchRecipe) {
-    await RecipesService.readRecipeRow(householdId, recipeId);
+    // Read whole rather than as a bare row: three of the four things a save can change are children,
+    // and the activity log has to be able to tell "renamed it" from "rewrote the method".
+    const existing = await RecipesService.readRecipeWithRelations(householdId, recipeId);
 
     const set = {
       title: data.title,
@@ -362,12 +388,35 @@ export class RecipesService {
       archived: data.archived,
     };
 
+    const changedFields = changedColumns(existing, set);
+
+    if (data.steps !== undefined && !sameList(existing.steps.map(stepKey), data.steps.map(stepKey))) {
+      changedFields.push({ field: 'steps' });
+    }
+
+    // Sorted and case-folded, because tags are a set resolved by name — reordering the chips in the
+    // form is not an edit, and neither is retyping one with a different capitalisation.
+    if (
+      data.tags !== undefined &&
+      !sameList(
+        existing.tags.map((tag) => tag.name.toLowerCase()).sort(),
+        data.tags.map((name) => name.toLowerCase()).sort()
+      )
+    ) {
+      changedFields.push({ field: 'tags' });
+    }
+
     await db.transaction(async (tx) => {
       // Resolved up front, so a bad id or an unresolvable name aborts before anything is written.
       const lines =
         data.ingredients === undefined
           ? undefined
           : await RecipesService.resolveLineIngredients(tx, householdId, data.ingredients);
+
+      // Compared after resolution, because a line naming a new ingredient only gets its id here.
+      if (lines !== undefined && !sameList(existing.ingredients.map(lineKey), lines.map(lineKey))) {
+        changedFields.push({ field: 'ingredients' });
+      }
 
       // Skip the update when only children changed — an all-undefined `set` has nothing to write.
       if (Object.values(set).some((value) => value !== undefined)) {
@@ -390,7 +439,7 @@ export class RecipesService {
       }
     });
 
-    return RecipesService.readRecipeWithRelations(householdId, recipeId);
+    return { ...(await RecipesService.readRecipeWithRelations(householdId, recipeId)), changedFields };
   }
 
   /**

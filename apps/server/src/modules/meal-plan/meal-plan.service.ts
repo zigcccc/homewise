@@ -2,9 +2,10 @@ import { and, asc, eq, gte, inArray, lte, ne } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 
 import { db, schema } from '#db/core';
-import { type Executor, emptyToNull } from '#db/utils';
+import { changedColumns, type Executor, emptyToNull, sameList } from '#db/utils';
 import { addDays, clampRange, eachDayInclusive, startOfISOWeek, todayISO } from '#lib/dates';
 import { notFound, somethingWentWrong } from '#lib/errors';
+import { type FieldChange } from '#lib/models';
 import { HouseholdsService } from '#modules/households/households.service';
 
 import {
@@ -139,6 +140,24 @@ export class MealPlanService {
       .update(schema.plannedMeal)
       .set({ recipeId: null, title })
       .where(eq(schema.plannedMeal.recipeId, recipeId));
+  }
+
+  /**
+   * Who is currently down for a meal, as one sorted list of keys — what the activity log compares a
+   * save's assignment against. Order and duplicates are not part of the set, so both are normalized
+   * away on either side.
+   */
+  private static async readMemberKeys(executor: Executor, mealId: number) {
+    const rows = await executor
+      .select({ memberId: schema.plannedMealMember.householdMemberId })
+      .from(schema.plannedMealMember)
+      .where(eq(schema.plannedMealMember.plannedMealId, mealId));
+
+    return MealPlanService.memberKeys(rows.map((row) => row.memberId));
+  }
+
+  private static memberKeys(memberIds: number[]) {
+    return [...new Set(memberIds)].sort((a, b) => a - b).map(String);
   }
 
   /** Replace-all: the submitted set becomes the meal's assignment. Empty clears it back to everyone. */
@@ -283,6 +302,9 @@ export class MealPlanService {
   }
 
   public static async patchMeal(householdId: number, mealId: number, data: PatchPlannedMeal) {
+    // Filled inside the transaction: the merged values a save resolves to are only known there.
+    let changedFields: FieldChange[] = [];
+
     await db.transaction(async (tx) => {
       const existing = await MealPlanService.readMealRow(householdId, mealId, tx);
       const targetDay = data.day ?? existing.day;
@@ -304,14 +326,18 @@ export class MealPlanService {
         throw new HTTPException(400, { message: MEAL_LABEL_ERROR });
       }
 
+      const set = {
+        day: targetDay,
+        recipeId: nextRecipeId,
+        title: nextTitle,
+        note: data.note === undefined ? undefined : (emptyToNull(data.note) ?? null),
+      };
+
+      changedFields = changedColumns(existing, set);
+
       await tx
         .update(schema.plannedMeal)
-        .set({
-          day: targetDay,
-          recipeId: nextRecipeId,
-          title: nextTitle,
-          note: data.note === undefined ? undefined : (emptyToNull(data.note) ?? null),
-        })
+        .set(set)
         .where(and(eq(schema.plannedMeal.householdId, householdId), eq(schema.plannedMeal.id, mealId)));
 
       if (data.day !== undefined || data.position !== undefined) {
@@ -328,15 +354,28 @@ export class MealPlanService {
       }
 
       if (data.memberIds !== undefined) {
+        const eating = await MealPlanService.readMemberKeys(tx, mealId);
+
+        if (!sameList(eating, MealPlanService.memberKeys(data.memberIds))) {
+          changedFields.push({ field: 'memberIds' });
+        }
+
         await MealPlanService.replaceMembers(tx, mealId, data.memberIds);
       }
     });
 
-    return MealPlanService.readMealWithRelations(householdId, mealId);
+    return { ...(await MealPlanService.readMealWithRelations(householdId, mealId)), changedFields };
   }
 
   public static async deleteMeal(householdId: number, mealId: number) {
     return db.transaction(async (tx) => {
+      // Read first: a recipe-backed meal keeps its name on the recipe, and `title` is NULL while one
+      // is attached — so after the delete there is nothing left to call it.
+      const existing = await tx.query.plannedMeal.findFirst({
+        where: (fields, { and, eq }) => and(eq(fields.householdId, householdId), eq(fields.id, mealId)),
+        with: { recipe: recipeColumns },
+      });
+
       const [deleted] = await tx
         .delete(schema.plannedMeal)
         .where(and(eq(schema.plannedMeal.householdId, householdId), eq(schema.plannedMeal.id, mealId)))
@@ -348,18 +387,23 @@ export class MealPlanService {
 
       await MealPlanService.resequenceDay(tx, householdId, deleted.day);
 
-      return deleted;
+      return { ...deleted, label: existing?.recipe?.title ?? deleted.title ?? 'Untitled' };
     });
   }
 
   /** Sets or clears a day's note. An empty note removes the row rather than storing a blank one. */
   public static async putDayNote(householdId: number, day: string, note: string) {
+    const existing = await db.query.plannedDayNote.findFirst({
+      where: (fields, { and, eq }) => and(eq(fields.householdId, householdId), eq(fields.day, day)),
+    });
+    const changedFields = changedColumns({ note: existing?.note ?? null }, { note: emptyToNull(note) ?? null });
+
     if (note === '') {
       await db
         .delete(schema.plannedDayNote)
         .where(and(eq(schema.plannedDayNote.householdId, householdId), eq(schema.plannedDayNote.day, day)));
 
-      return { day, note: null };
+      return { day, note: null, changedFields };
     }
 
     const [saved] = await db
@@ -375,6 +419,6 @@ export class MealPlanService {
       throw somethingWentWrong();
     }
 
-    return { day: saved.day, note: saved.note };
+    return { day: saved.day, note: saved.note, changedFields };
   }
 }

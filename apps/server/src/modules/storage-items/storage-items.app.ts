@@ -30,7 +30,13 @@ const storageItemsApp = new Hono<AppContext>()
   .post('/', zValidator('form', createStorageItemModel), async (c) => {
     const item = await StorageItemsService.create(c.var.household.id, c.req.valid('form'), c.var.user.id);
 
-    c.var.emit({ entity: 'storage_item', id: item.id, operation: 'create', parentId: item.locationId });
+    c.var.emit({
+      entity: 'storage_item',
+      id: item.id,
+      operation: 'create',
+      parentId: item.locationId,
+      label: item.name,
+    });
 
     return c.json(item, 201);
   })
@@ -39,9 +45,20 @@ const storageItemsApp = new Hono<AppContext>()
     zValidator('param', storageItemPathParamsModel),
     zValidator('form', patchStorageItemModel),
     async (c) => {
-      const item = await StorageItemsService.patch(c.var.household.id, c.req.valid('param').id, c.req.valid('form'));
+      const { changedFields, ...item } = await StorageItemsService.patch(
+        c.var.household.id,
+        c.req.valid('param').id,
+        c.req.valid('form')
+      );
 
-      c.var.emit({ entity: 'storage_item', id: item.id, operation: 'update', parentId: item.locationId });
+      c.var.emit({
+        entity: 'storage_item',
+        id: item.id,
+        operation: 'update',
+        parentId: item.locationId,
+        label: item.name,
+        changes: changedFields,
+      });
 
       return c.json(item, 200);
     }
@@ -51,26 +68,44 @@ const storageItemsApp = new Hono<AppContext>()
     zValidator('param', storageItemPathParamsModel),
     zValidator('json', lendStorageItemModel),
     async (c) => {
-      const { item, createdContact } = await StorageItemsService.lend(
+      const { item, changedFields, createdContact } = await StorageItemsService.lend(
         c.var.household.id,
         c.req.valid('param').id,
         c.req.valid('json')
       );
 
-      c.var.emit({ entity: 'storage_item', id: item.id, operation: 'update', parentId: item.locationId });
+      c.var.emit({
+        entity: 'storage_item',
+        id: item.id,
+        operation: 'update',
+        parentId: item.locationId,
+        label: item.name,
+        changes: changedFields,
+      });
 
       // Lending to someone new adds them to the household's address book, which other features read.
+      // Unlogged: naming a borrower while lending is one action, and the loan's line above is it.
       if (createdContact) {
-        c.var.emit({ entity: 'contact', id: item.loan?.contactId ?? null, operation: 'create' });
+        c.var.emit({ entity: 'contact', id: item.loan?.contactId ?? null, operation: 'create', label: null });
       }
 
       return c.json(item, 200);
     }
   )
   .delete('/:id/loan', zValidator('param', storageItemPathParamsModel), async (c) => {
-    const item = await StorageItemsService.markReturned(c.var.household.id, c.req.valid('param').id);
+    const { changedFields, ...item } = await StorageItemsService.markReturned(
+      c.var.household.id,
+      c.req.valid('param').id
+    );
 
-    c.var.emit({ entity: 'storage_item', id: item.id, operation: 'update', parentId: item.locationId });
+    c.var.emit({
+      entity: 'storage_item',
+      id: item.id,
+      operation: 'update',
+      parentId: item.locationId,
+      label: item.name,
+      changes: changedFields,
+    });
 
     return c.json(item, 200);
   })
@@ -78,7 +113,13 @@ const storageItemsApp = new Hono<AppContext>()
     const { id } = c.req.valid('param');
     const deleted = await StorageItemsService.delete(c.var.household.id, id);
 
-    c.var.emit({ entity: 'storage_item', id, operation: 'delete', parentId: deleted.locationId });
+    c.var.emit({
+      entity: 'storage_item',
+      id,
+      operation: 'delete',
+      parentId: deleted.locationId,
+      label: deleted.name,
+    });
 
     return c.json({ success: true }, 202);
   });

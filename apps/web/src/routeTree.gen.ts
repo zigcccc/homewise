@@ -24,6 +24,7 @@ import { Route as AuthenticatedOnboardingInviteMembersRouteImport } from './rout
 import { Route as AuthenticatedOnboardedExpensesMonthlyExpensesRouteRouteImport } from './routes/_authenticated/_onboarded/expenses/monthly-expenses/route'
 import { Route as AuthenticatedOnboardedFoodIngredientsRouteRouteImport } from './routes/_authenticated/_onboarded/food/ingredients/route'
 import { Route as AuthenticatedOnboardedFoodShoppingListsRouteRouteImport } from './routes/_authenticated/_onboarded/food/shopping-lists/route'
+import { Route as AuthenticatedOnboardedManageActivityRouteImport } from './routes/_authenticated/_onboarded/manage/activity'
 import { Route as AuthenticatedOnboardedManageHouseholdMembersRouteImport } from './routes/_authenticated/_onboarded/manage/household-members'
 import { Route as AuthenticatedOnboardedManageSettingsRouteImport } from './routes/_authenticated/_onboarded/manage/settings'
 import { Route as AuthenticatedOnboardedExpensesMonthlyExpensesIndexRouteImport } from './routes/_authenticated/_onboarded/expenses/monthly-expenses/index'
@@ -135,6 +136,12 @@ const AuthenticatedOnboardedFoodShoppingListsRouteRoute =
   AuthenticatedOnboardedFoodShoppingListsRouteRouteImport.update({
     id: '/food/shopping-lists',
     path: '/food/shopping-lists',
+    getParentRoute: () => AuthenticatedOnboardedRoute,
+  } as any)
+const AuthenticatedOnboardedManageActivityRoute =
+  AuthenticatedOnboardedManageActivityRouteImport.update({
+    id: '/manage/activity',
+    path: '/manage/activity',
     getParentRoute: () => AuthenticatedOnboardedRoute,
   } as any)
 const AuthenticatedOnboardedManageHouseholdMembersRoute =
@@ -328,6 +335,7 @@ export interface FileRoutesByFullPath {
   '/expenses/monthly-expenses': typeof AuthenticatedOnboardedExpensesMonthlyExpensesRouteRouteWithChildren
   '/food/ingredients': typeof AuthenticatedOnboardedFoodIngredientsRouteRouteWithChildren
   '/food/shopping-lists': typeof AuthenticatedOnboardedFoodShoppingListsRouteRouteWithChildren
+  '/manage/activity': typeof AuthenticatedOnboardedManageActivityRoute
   '/manage/household-members': typeof AuthenticatedOnboardedManageHouseholdMembersRoute
   '/manage/settings': typeof AuthenticatedOnboardedManageSettingsRoute
   '/family/kids/$profileId': typeof AuthenticatedOnboardedFamilyKidsProfileIdRouteRouteWithChildren
@@ -368,6 +376,7 @@ export interface FileRoutesByTo {
   '/onboarding/create-household': typeof AuthenticatedOnboardingCreateHouseholdRoute
   '/onboarding/invite-members': typeof AuthenticatedOnboardingInviteMembersRoute
   '/onboarding': typeof AuthenticatedOnboardingIndexRoute
+  '/manage/activity': typeof AuthenticatedOnboardedManageActivityRoute
   '/manage/household-members': typeof AuthenticatedOnboardedManageHouseholdMembersRoute
   '/manage/settings': typeof AuthenticatedOnboardedManageSettingsRoute
   '/expenses/monthly-expenses/categories': typeof AuthenticatedOnboardedExpensesMonthlyExpensesCategoriesRoute
@@ -412,6 +421,7 @@ export interface FileRoutesById {
   '/_authenticated/_onboarded/expenses/monthly-expenses': typeof AuthenticatedOnboardedExpensesMonthlyExpensesRouteRouteWithChildren
   '/_authenticated/_onboarded/food/ingredients': typeof AuthenticatedOnboardedFoodIngredientsRouteRouteWithChildren
   '/_authenticated/_onboarded/food/shopping-lists': typeof AuthenticatedOnboardedFoodShoppingListsRouteRouteWithChildren
+  '/_authenticated/_onboarded/manage/activity': typeof AuthenticatedOnboardedManageActivityRoute
   '/_authenticated/_onboarded/manage/household-members': typeof AuthenticatedOnboardedManageHouseholdMembersRoute
   '/_authenticated/_onboarded/manage/settings': typeof AuthenticatedOnboardedManageSettingsRoute
   '/_authenticated/_onboarded/family/kids/$profileId': typeof AuthenticatedOnboardedFamilyKidsProfileIdRouteRouteWithChildren
@@ -458,6 +468,7 @@ export interface FileRouteTypes {
     | '/expenses/monthly-expenses'
     | '/food/ingredients'
     | '/food/shopping-lists'
+    | '/manage/activity'
     | '/manage/household-members'
     | '/manage/settings'
     | '/family/kids/$profileId'
@@ -498,6 +509,7 @@ export interface FileRouteTypes {
     | '/onboarding/create-household'
     | '/onboarding/invite-members'
     | '/onboarding'
+    | '/manage/activity'
     | '/manage/household-members'
     | '/manage/settings'
     | '/expenses/monthly-expenses/categories'
@@ -541,6 +553,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_onboarded/expenses/monthly-expenses'
     | '/_authenticated/_onboarded/food/ingredients'
     | '/_authenticated/_onboarded/food/shopping-lists'
+    | '/_authenticated/_onboarded/manage/activity'
     | '/_authenticated/_onboarded/manage/household-members'
     | '/_authenticated/_onboarded/manage/settings'
     | '/_authenticated/_onboarded/family/kids/$profileId'
@@ -684,6 +697,13 @@ declare module '@tanstack/react-router' {
       path: '/food/shopping-lists'
       fullPath: '/food/shopping-lists'
       preLoaderRoute: typeof AuthenticatedOnboardedFoodShoppingListsRouteRouteImport
+      parentRoute: typeof AuthenticatedOnboardedRoute
+    }
+    '/_authenticated/_onboarded/manage/activity': {
+      id: '/_authenticated/_onboarded/manage/activity'
+      path: '/manage/activity'
+      fullPath: '/manage/activity'
+      preLoaderRoute: typeof AuthenticatedOnboardedManageActivityRouteImport
       parentRoute: typeof AuthenticatedOnboardedRoute
     }
     '/_authenticated/_onboarded/manage/household-members': {
@@ -1032,6 +1052,7 @@ interface AuthenticatedOnboardedRouteChildren {
   AuthenticatedOnboardedExpensesMonthlyExpensesRouteRoute: typeof AuthenticatedOnboardedExpensesMonthlyExpensesRouteRouteWithChildren
   AuthenticatedOnboardedFoodIngredientsRouteRoute: typeof AuthenticatedOnboardedFoodIngredientsRouteRouteWithChildren
   AuthenticatedOnboardedFoodShoppingListsRouteRoute: typeof AuthenticatedOnboardedFoodShoppingListsRouteRouteWithChildren
+  AuthenticatedOnboardedManageActivityRoute: typeof AuthenticatedOnboardedManageActivityRoute
   AuthenticatedOnboardedManageHouseholdMembersRoute: typeof AuthenticatedOnboardedManageHouseholdMembersRoute
   AuthenticatedOnboardedManageSettingsRoute: typeof AuthenticatedOnboardedManageSettingsRoute
   AuthenticatedOnboardedFamilyKidsProfileIdRouteRoute: typeof AuthenticatedOnboardedFamilyKidsProfileIdRouteRouteWithChildren
@@ -1060,6 +1081,8 @@ const AuthenticatedOnboardedRouteChildren: AuthenticatedOnboardedRouteChildren =
       AuthenticatedOnboardedFoodIngredientsRouteRouteWithChildren,
     AuthenticatedOnboardedFoodShoppingListsRouteRoute:
       AuthenticatedOnboardedFoodShoppingListsRouteRouteWithChildren,
+    AuthenticatedOnboardedManageActivityRoute:
+      AuthenticatedOnboardedManageActivityRoute,
     AuthenticatedOnboardedManageHouseholdMembersRoute:
       AuthenticatedOnboardedManageHouseholdMembersRoute,
     AuthenticatedOnboardedManageSettingsRoute:

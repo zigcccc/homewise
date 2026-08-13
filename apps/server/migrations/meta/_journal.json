@@ -134,6 +134,27 @@
       "when": 1786442035683,
       "tag": "0018_mysterious_doomsday",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1786561874200,
+      "tag": "0019_natural_maggott",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1786599292926,
+      "tag": "0020_fantastic_yellow_claw",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1786601491657,
+      "tag": "0021_windy_shaman",
+      "breakpoints": true
     }
   ]
 }

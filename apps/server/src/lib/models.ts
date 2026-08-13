@@ -52,6 +52,26 @@ export const searchQueryParam = z
   .optional()
   .catch(undefined);
 
+/**
+ * One column a save actually changed, as the activity log carries it.
+ *
+ * `from`/`to` are optional rather than nullable, and the difference matters: `null` is a value a
+ * column can hold (cleared), while an absent key means "this changed, but there is nothing worth
+ * showing" — a foreign key, whose value is an id nobody can read, or a relation that isn't a column
+ * at all. The line then names the field and stops.
+ *
+ * Values are stored raw and formatted for reading on the web, so a date stays a date rather than
+ * becoming one locale's idea of one on its way into the database.
+ */
+const columnValue = z.union([z.string(), z.number(), z.boolean()]).nullable();
+
+export const fieldChangeModel = z.object({
+  field: z.string(),
+  from: columnValue.optional(),
+  to: columnValue.optional(),
+});
+export type FieldChange = z.infer<typeof fieldChangeModel>;
+
 /** Which way a list is sorted. Nothing about this is per-entity — only the sort *key* is. */
 export const sortDirection = z.enum(['asc', 'desc']);
 export type SortDirection = z.infer<typeof sortDirection>;

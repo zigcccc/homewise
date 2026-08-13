@@ -2,7 +2,7 @@ import { and, count, eq, inArray } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 
 import { db, schema } from '#db/core';
-import { emptyToNull } from '#db/utils';
+import { changedColumns, emptyToNull } from '#db/utils';
 import { blobPrefix } from '#lib/blobs';
 import { notFound } from '#lib/errors';
 
@@ -156,8 +156,13 @@ export class ChildProfilesService {
       existing.profilePicture,
       { ownedPrefix: blobPrefix.childProfile(profileId), size: 256 }
     );
+    // Taken before the picture joins the patch: a blob URL is not something to read in a feed, so a
+    // changed photo is named and left at that.
+    const changedFields = changedColumns(existing, patch);
+
     if (picture.changed) {
       patch.profilePicture = picture.value;
+      changedFields.push({ field: 'profilePicture' });
     }
 
     const persisted = await ImagesService.commitManagedImage(picture, async () => {
@@ -174,7 +179,7 @@ export class ChildProfilesService {
       throw notFound('Profile');
     }
 
-    return ChildProfilesService.read(householdId, profileId, ownerId);
+    return { ...(await ChildProfilesService.read(householdId, profileId, ownerId)), changedFields };
   }
 
   public static async delete(householdId: number, profileId: number) {
@@ -190,6 +195,8 @@ export class ChildProfilesService {
     // The row is already gone — cleanup is best-effort and guarded to this child's own uploads.
     await ImagesService.cleanupOwnedImage(deleted.profilePicture, blobPrefix.childProfile(profileId));
 
-    return deleted;
+    // The member outlives the profile, so the name is still there to be read — and the caller has
+    // nothing else left to name this child by.
+    return { ...deleted, displayName: await HouseholdsService.readMemberDisplayName(deleted.memberId) };
   }
 }

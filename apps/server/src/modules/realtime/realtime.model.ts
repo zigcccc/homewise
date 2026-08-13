@@ -1,4 +1,8 @@
+import { createSelectSchema } from 'drizzle-zod';
 import z from 'zod';
+
+import * as schema from '#db/schema/core';
+import { fieldChangeModel } from '#lib/models';
 
 /**
  * The Ably message name every household change is published under. A single name (rather than one
@@ -8,38 +12,21 @@ import z from 'zod';
 export const HOUSEHOLD_EVENT_NAME = 'change';
 
 /**
- * What changed, named for the domain rather than the table. Households, members, invites and users
- * are deliberately absent — those routes don't run inside `withHousehold` and need their own
- * handling.
+ * What changed, named for the domain rather than the table — straight off the DB enum, because every
+ * labelled event is also persisted as a row of `household_activity`.
+ *
+ * Users are absent: `/users/me` doesn't run inside `withHousehold` and has no household to announce
+ * to. Households, members and invites are here — `/households/my/*` **is** household-scoped.
  */
-export const householdEventEntity = z.enum([
-  'child_dictionary_entry',
-  'child_profile',
-  'contact',
-  'expense',
-  'expense_category',
-  'ingredient',
-  /** Any change to a planned meal or a day note — the client caches the window under one range key. */
-  'meal_plan',
-  'medical_info',
-  'pet_profile',
-  'recipe',
-  'recipe_tag',
-  /** Any change to a list, its sections or its items — the client caches the whole list under one key. */
-  'shopping_list',
-  /** An item, its move between locations, or its loan. `parentId` is the location it's now in. */
-  'storage_item',
-  'storage_location',
-  'store',
-]);
+export const householdEventEntity = createSelectSchema(schema.householdActivityEntityEnum);
 export type HouseholdEventEntity = z.infer<typeof householdEventEntity>;
 
-export const householdEventOperation = z.enum(['create', 'update', 'delete']);
+export const householdEventOperation = createSelectSchema(schema.householdActivityOperationEnum);
 export type HouseholdEventOperation = z.infer<typeof householdEventOperation>;
 
 /**
  * Deliberately not the entity itself — only enough for a subscriber to pick the query keys it needs
- * to invalidate and refetch on its own terms.
+ * to invalidate, plus what the activity log has to keep.
  */
 export const householdEventModel = z.object({
   entity: householdEventEntity,
@@ -52,6 +39,24 @@ export const householdEventModel = z.object({
    */
   parentId: z.number().int().positive().optional(),
   operation: householdEventOperation,
+  /**
+   * What to call the affected thing in the activity feed — snapshotted here because after a delete
+   * there is nothing left to look it up from.
+   *
+   * `null` means "invalidate, but don't log": the cascade halves of a multi-entity mutation, and the
+   * chatter (ticking a shopping-list item) that would bury a day's real changes. Required rather than
+   * optional so every emit site has to decide, and no new one can skip the log by forgetting.
+   */
+  label: z.string().nullable(),
+  /**
+   * What the save changed, from `changedColumns`. Optional, unlike `label`: most events have no diff
+   * to take, and the absent case is meaningfully different from the empty one.
+   *
+   * An **empty array** means the diff ran and found nothing — that save is not logged at all, because
+   * opening a form and closing it is not household history. **Absent** means no diff was taken, and
+   * the line is logged the way it always was.
+   */
+  changes: z.array(fieldChangeModel).optional(),
 });
 export type HouseholdEvent = z.infer<typeof householdEventModel>;
 
@@ -63,7 +68,7 @@ export const householdEventMessageModel = z.object({
    * user, which are showing stale data — acts on it.
    */
   origin: z.string().nullable(),
-  /** Who did it. Nothing reads it yet; it's here so attribution UX needs no wire change. */
+  /** Who did it. Read by the activity log, which stores it alongside a snapshot of the name. */
   actorId: z.string(),
   events: z.array(householdEventModel).min(1),
 });

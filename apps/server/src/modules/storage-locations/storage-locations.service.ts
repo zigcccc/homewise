@@ -2,7 +2,7 @@ import { and, asc, count, desc, eq, ilike, inArray, ne, or, sql } from 'drizzle-
 import { HTTPException } from 'hono/http-exception';
 
 import { db, schema } from '#db/core';
-import { emptyToNull, type Filters, isUniqueViolation, writesAnything } from '#db/utils';
+import { changedColumns, emptyToNull, type Filters, isUniqueViolation, writesAnything } from '#db/utils';
 import { blobPrefix } from '#lib/blobs';
 import { alreadyExists, notFound, somethingWentWrong } from '#lib/errors';
 import { ImagesService } from '#modules/images/images.service';
@@ -194,8 +194,10 @@ export class StorageLocationsService {
       ...(movesPin ? StorageLocationsService.resolvePin(existing, data) : {}),
     };
 
+    const changedFields = changedColumns(existing, set);
+
     if (!writesAnything(set)) {
-      return await StorageLocationsService.read(householdId, locationId);
+      return { ...(await StorageLocationsService.read(householdId, locationId)), changedFields };
     }
 
     const [updated] = await db
@@ -214,7 +216,7 @@ export class StorageLocationsService {
       throw notFound('Storage location');
     }
 
-    return await StorageLocationsService.read(householdId, locationId);
+    return { ...(await StorageLocationsService.read(householdId, locationId)), changedFields };
   }
 
   /**

@@ -24,12 +24,12 @@ const CARD = {
       </Button>
     </ButtonGroup>
   ),
-  className: 'md:col-span-2',
   icon: UsersIcon,
   title: 'Family profiles',
 } satisfies DashboardCardFrame;
 
-const TILE_GRID = 'grid gap-2 sm:grid-cols-2 lg:grid-cols-4';
+/** One per row: the card shares its row with the activity feed, and a tile needs the width to read. */
+const TILE_GRID = 'grid gap-2';
 
 type Profile = {
   dateOfBirth: string | null;
@@ -78,8 +78,8 @@ export const dashboardChildProfilesQueryOptions = () => listChildProfilesQueryOp
 
 export const dashboardPetProfilesQueryOptions = () => listPetProfilesQueryOptions();
 
-/** Uneven, so the placeholder reads as a row of names. Also the tile keys. */
-const TILE_WIDTHS = ['w-24', 'w-16', 'w-20', 'w-14'];
+/** Uneven, so the placeholder reads as a list of names. Also the tile keys. */
+const TILE_WIDTHS = ['w-24', 'w-16', 'w-20'];
 
 function FamilyProfilesCardSkeleton() {
   return (

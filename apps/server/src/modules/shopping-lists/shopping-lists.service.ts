@@ -2,7 +2,7 @@ import { and, asc, count, eq, gte, inArray, isNotNull, isNull, lte, ne, sql } fr
 import { HTTPException } from 'hono/http-exception';
 
 import { db, schema } from '#db/core';
-import { type Executor, emptyToNull, isUniqueViolation, writesAnything } from '#db/utils';
+import { changedColumns, type Executor, emptyToNull, isUniqueViolation, writesAnything } from '#db/utils';
 import { addDays, clampRange, todayISO } from '#lib/dates';
 import { alreadyExists, couldNotResolve, notFound, somethingWentWrong } from '#lib/errors';
 import { type Amount, formatAmount, scaleAmount, sumAmounts } from '#modules/ingredients/units';
@@ -399,7 +399,8 @@ export class ShoppingListsService {
   }
 
   public static async patch(householdId: number, listId: number, data: PatchShoppingList) {
-    await ShoppingListsService.readListRow(householdId, listId);
+    const existing = await ShoppingListsService.readListRow(householdId, listId);
+    const changedFields = changedColumns(existing, { name: data.name });
 
     if (data.name !== undefined) {
       await db
@@ -408,7 +409,7 @@ export class ShoppingListsService {
         .where(and(eq(schema.shoppingList.householdId, householdId), eq(schema.shoppingList.id, listId)));
     }
 
-    return ShoppingListsService.read(householdId, listId);
+    return { ...(await ShoppingListsService.read(householdId, listId)), changedFields };
   }
 
   public static async delete(householdId: number, listId: number) {
@@ -439,6 +440,9 @@ export class ShoppingListsService {
     if (list.completedAt) {
       throw new HTTPException(409, { message: 'This list is already done' });
     }
+
+    // Taken before the transaction so the same instant is both written and reported.
+    const completedAt = new Date();
 
     const carriedListId = await db.transaction(async (tx) => {
       const pending =
@@ -509,24 +513,31 @@ export class ShoppingListsService {
         }
       }
 
-      await tx.update(schema.shoppingList).set({ completedAt: new Date() }).where(eq(schema.shoppingList.id, listId));
+      await tx.update(schema.shoppingList).set({ completedAt }).where(eq(schema.shoppingList.id, listId));
 
       return nextListId;
     });
 
-    return { carriedListId, list: await ShoppingListsService.read(householdId, listId) };
+    return {
+      carriedListId,
+      changedFields: changedColumns(list, { completedAt }),
+      list: await ShoppingListsService.read(householdId, listId),
+    };
   }
 
   /** Undoes `complete`, for the mis-tap that would otherwise strand a list among the done ones. */
   public static async reopen(householdId: number, listId: number) {
-    await ShoppingListsService.readListRow(householdId, listId);
+    const existing = await ShoppingListsService.readListRow(householdId, listId);
 
     await db
       .update(schema.shoppingList)
       .set({ completedAt: null })
       .where(and(eq(schema.shoppingList.householdId, householdId), eq(schema.shoppingList.id, listId)));
 
-    return ShoppingListsService.read(householdId, listId);
+    return {
+      ...(await ShoppingListsService.read(householdId, listId)),
+      changedFields: changedColumns(existing, { completedAt: null }),
+    };
   }
 
   public static async createSection(householdId: number, listId: number, data: CreateSection) {

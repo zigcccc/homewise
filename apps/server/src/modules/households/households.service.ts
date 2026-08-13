@@ -4,6 +4,7 @@ import { HTTPException } from 'hono/http-exception';
 import { render } from 'react-email';
 
 import { db, schema } from '#db/core';
+import { changedColumns } from '#db/utils';
 import { JoinHousehold } from '#emails/JoinHousehold';
 import { auth } from '#lib/auth';
 import { notFound, somethingWentWrong } from '#lib/errors';
@@ -45,6 +46,20 @@ export class HouseholdsService {
     user?: { name: string } | null;
   }) {
     return firstFilled(member.nickname, member.user?.name, member.name) ?? 'Unknown';
+  }
+
+  /**
+   * The same name, for callers holding only an id — a profile's delete, which has to label the
+   * activity line after the row that named the child is already gone.
+   */
+  public static async readMemberDisplayName(memberId: number) {
+    const member = await db.query.householdMember.findFirst({
+      where: eq(schema.householdMember.id, memberId),
+      columns: { name: true, nickname: true },
+      with: { user: { columns: { name: true } } },
+    });
+
+    return member ? HouseholdsService.memberDisplayName(member) : 'Unknown';
   }
 
   public static toMemberResponse<M extends MemberWithUser>(member: M, ownerId: string) {
@@ -147,17 +162,19 @@ export class HouseholdsService {
   }
 
   public static async patch(householdId: number, partialData: PatchHousehold) {
+    const existing = await db.query.household.findFirst({ where: eq(schema.household.id, householdId) });
+
     const [updatedHousehold] = await db
       .update(schema.household)
       .set(partialData)
       .where(eq(schema.household.id, householdId))
       .returning();
 
-    if (!updatedHousehold) {
+    if (!existing || !updatedHousehold) {
       throw somethingWentWrong();
     }
 
-    return updatedHousehold;
+    return { ...updatedHousehold, changedFields: changedColumns(existing, partialData) };
   }
 
   public static async delete(householdId: number) {
@@ -229,7 +246,7 @@ export class HouseholdsService {
       throw somethingWentWrong();
     }
 
-    return updated;
+    return { ...updated, changedFields: changedColumns(existing, patch) };
   }
 
   public static async deleteHouseholdMember(householdId: number, memberId: number) {

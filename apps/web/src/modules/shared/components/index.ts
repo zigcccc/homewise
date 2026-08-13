@@ -7,4 +7,5 @@ export * from './inline-text-field';
 export * from './page-layout';
 export * from './route-error';
 export * from './sort-direction-toggle';
+export * from './time-ago';
 export * from './unsaved-changes-dialog';

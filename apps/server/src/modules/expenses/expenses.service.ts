@@ -1,9 +1,10 @@
 import { and, asc, desc, eq, gte, ilike, isNull, lte, sql } from 'drizzle-orm';
 
 import { db, schema } from '#db/core';
-import { type Executor, type Filters, writesAnything } from '#db/utils';
+import { changedColumns, type Executor, type Filters, writesAnything } from '#db/utils';
 import { clampRange, endOfMonth, startOfMonth, todayISO } from '#lib/dates';
 import { notFound, somethingWentWrong } from '#lib/errors';
+import { type FieldChange } from '#lib/models';
 import { ExpenseCategoriesService } from '#modules/expense-categories/expense-categories.service';
 import { HouseholdsService } from '#modules/households/households.service';
 
@@ -203,21 +204,29 @@ export class ExpensesService {
     // Decided before the category is resolved, so `PATCH {}` can't mint one on its way to doing
     // nothing.
     if (!writesAnything(data)) {
-      return ExpensesService.readExpenseWithRelations(householdId, expenseId);
+      return { ...(await ExpensesService.readExpenseWithRelations(householdId, expenseId)), changedFields: [] };
     }
 
+    // Filled inside the transaction, because the category has to be resolved (and possibly minted)
+    // before there is a full set of values to compare against the stored row.
+    let changedFields: FieldChange[] = [];
+
     await db.transaction(async (tx) => {
+      const set = {
+        title: data.title,
+        amount: data.amount,
+        recordedAt: data.recordedAt,
+        categoryId: await ExpensesService.resolveCategoryId(tx, householdId, data),
+        // Re-marking an already-returned expense keeps the original moment rather than moving it.
+        paidBackAt:
+          data.paidBack === undefined ? undefined : data.paidBack ? (existing.paidBackAt ?? new Date()) : null,
+      };
+
+      changedFields = changedColumns(existing, set);
+
       const [updated] = await tx
         .update(schema.expense)
-        .set({
-          title: data.title,
-          amount: data.amount,
-          recordedAt: data.recordedAt,
-          categoryId: await ExpensesService.resolveCategoryId(tx, householdId, data),
-          // Re-marking an already-returned expense keeps the original moment rather than moving it.
-          paidBackAt:
-            data.paidBack === undefined ? undefined : data.paidBack ? (existing.paidBackAt ?? new Date()) : null,
-        })
+        .set(set)
         .where(and(eq(schema.expense.householdId, householdId), eq(schema.expense.id, expenseId)))
         .returning({ id: schema.expense.id });
 
@@ -226,7 +235,7 @@ export class ExpensesService {
       }
     });
 
-    return ExpensesService.readExpenseWithRelations(householdId, expenseId);
+    return { ...(await ExpensesService.readExpenseWithRelations(householdId, expenseId)), changedFields };
   }
 
   /** Hard delete. An expense holds nothing of its own, and a mistyped one is just a mistake. */
