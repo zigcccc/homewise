@@ -59,6 +59,7 @@ import {
   SearchInput,
   SortDirectionToggle,
   serverMessage,
+  useSearchParamSetter,
 } from '@/modules/shared';
 import {
   createStorageItemColumns,
@@ -85,8 +86,6 @@ const searchParamsModel = z.object({
   sortKey: storageItemSortKey.default('name').catch('name'),
   sortDirection: sortDirection.default('asc').catch('asc'),
 });
-
-type SearchParams = z.infer<typeof searchParamsModel>;
 
 export const Route = createFileRoute('/_authenticated/_onboarded/storage/locations/$locationId')({
   validateSearch: searchParamsModel,
@@ -121,7 +120,6 @@ const columns = createStorageItemColumns({ showLocation: false });
 function StorageLocationRoute() {
   const { locationId } = Route.useParams();
   const searchParams = Route.useSearch();
-  const navigate = Route.useNavigate();
   const [addOpen, setAddOpen] = useState(false);
 
   const { data: location } = useSuspenseQuery(getStorageLocationQueryOptions(Number(locationId)));
@@ -129,8 +127,7 @@ function StorageLocationRoute() {
     listStorageItemsQueryOptions({ ...searchParams, locationId: Number(locationId) })
   );
 
-  const setSearchParam = <Key extends keyof SearchParams>(key: Key, value: SearchParams[Key], replace = false) =>
-    navigate({ to: '.', search: { ...searchParams, [key]: value }, replace });
+  const setSearchParam = useSearchParamSetter(searchParams);
 
   const table = useDataTable({ columns, data: items, getRowId });
 
@@ -201,7 +198,7 @@ function StorageLocationRoute() {
         <div className="flex flex-wrap items-center gap-2">
           <SearchInput
             label="Search items in this location"
-            onChange={(next) => setSearchParam('search', next, true)}
+            onChange={(next) => setSearchParam('search', next, { replace: true })}
             placeholder="Search this location"
             value={searchParams.search}
           />

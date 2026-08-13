@@ -31,7 +31,14 @@ import {
 
 import { listChildDictionaryEntriesQueryOptions } from '@/modules/child-dictionaries';
 import { getChildProfileQueryOptions } from '@/modules/child-profiles';
-import { SearchInput, SORT_LABELS, type SortDirectionLabels, SortDirectionToggle } from '@/modules/shared';
+import {
+  SearchInput,
+  type SearchParamSetter,
+  SORT_LABELS,
+  type SortDirectionLabels,
+  SortDirectionToggle,
+  useSearchParamSetter,
+} from '@/modules/shared';
 
 import { createEntriesTableColumns, EntryForm } from './-components/entries-table.config';
 
@@ -86,12 +93,10 @@ export const Route = createFileRoute('/_authenticated/_onboarded/family/kids/$pr
 function DictionaryTab() {
   const { profileId } = Route.useParams();
   const searchParams = Route.useSearch();
-  const navigate = Route.useNavigate();
 
   const { data: profile } = useSuspenseQuery(getChildProfileQueryOptions(Number(profileId)));
 
-  const setSearchParam = <Key extends keyof SearchParams>(key: Key, value: SearchParams[Key], replace = false) =>
-    navigate({ to: '.', search: { ...searchParams, [key]: value }, replace });
+  const setSearchParam = useSearchParamSetter(searchParams);
 
   // Guard before the entries query runs — otherwise a dictionary-less profile would request
   // `/entries/0` and 404 into the route error state instead of showing this empty state.
@@ -131,7 +136,7 @@ function DictionaryEntries({
   dictionary: { id: number; entryCount: number };
   profileId: number;
   searchParams: SearchParams;
-  setSearchParam: <Key extends keyof SearchParams>(key: Key, value: SearchParams[Key], replace?: boolean) => void;
+  setSearchParam: SearchParamSetter<SearchParams>;
 }) {
   const [addOpen, setAddOpen] = useState(false);
 
@@ -159,7 +164,7 @@ function DictionaryEntries({
       <div className="flex flex-wrap items-center gap-2">
         <SearchInput
           label="Search dictionary"
-          onChange={(next) => setSearchParam('search', next, true)}
+          onChange={(next) => setSearchParam('search', next, { replace: true })}
           placeholder="Search words or translations"
           value={searchParams.search}
         />

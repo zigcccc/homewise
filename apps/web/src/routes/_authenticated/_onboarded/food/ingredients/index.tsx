@@ -29,7 +29,7 @@ import {
   ingredientCategoryLabels,
   listIngredientsQueryOptions,
 } from '@/modules/ingredients';
-import { SELECT_ALL, SELECT_NONE, SearchInput, SortDirectionToggle } from '@/modules/shared';
+import { SELECT_ALL, SELECT_NONE, SearchInput, SortDirectionToggle, useSearchParamSetter } from '@/modules/shared';
 import { listStoresQueryOptions, StoreSelectItems } from '@/modules/stores';
 
 import { ingredientsTableColumns } from './-ingredients-table.config';
@@ -45,8 +45,6 @@ const searchParamsModel = z.object({
   sortKey: ingredientSortKey.default('name').catch('name'),
   sortDirection: sortDirection.default('asc').catch('asc'),
 });
-
-type SearchParams = z.infer<typeof searchParamsModel>;
 
 export const Route = createFileRoute('/_authenticated/_onboarded/food/ingredients/')({
   validateSearch: searchParamsModel,
@@ -70,7 +68,6 @@ export const Route = createFileRoute('/_authenticated/_onboarded/food/ingredient
 
 function IngredientsRoute() {
   const searchParams = Route.useSearch();
-  const navigate = Route.useNavigate();
 
   // The header's own "Add ingredient" lives in the layout, which an `<Outlet />` can't hand state
   // to. This one belongs to the empty state's call to action; both open the same dialog.
@@ -79,8 +76,7 @@ function IngredientsRoute() {
   const { data: ingredients } = useSuspenseQuery(listIngredientsQueryOptions(searchParams));
   const { data: stores } = useSuspenseQuery(listStoresQueryOptions());
 
-  const setSearchParam = <Key extends keyof SearchParams>(key: Key, value: SearchParams[Key], replace = false) =>
-    navigate({ to: '.', search: { ...searchParams, [key]: value }, replace });
+  const setSearchParam = useSearchParamSetter(searchParams);
 
   const table = useDataTable({
     data: ingredients,
@@ -101,7 +97,7 @@ function IngredientsRoute() {
       <div className="flex flex-wrap items-center gap-2">
         <SearchInput
           label="Search ingredients"
-          onChange={(next) => setSearchParam('search', next, true)}
+          onChange={(next) => setSearchParam('search', next, { replace: true })}
           placeholder="Search ingredients"
           value={searchParams.search}
         />

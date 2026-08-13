@@ -50,6 +50,7 @@ import {
   PageLayout,
   RouteError,
   SearchInput,
+  useSearchParamSetter,
   yearOptions,
 } from '@/modules/shared';
 
@@ -135,8 +136,7 @@ function MonthlyExpensesLayout() {
   const { data: expenses } = useSuspenseQuery(listExpensesQueryOptions(queryFor(searchParams)));
   const { data: summary } = useSuspenseQuery(expensesSummaryQueryOptions(range));
 
-  const setSearchParam = <Key extends keyof SearchParams>(key: Key, value: SearchParams[Key], replace = false) =>
-    navigate({ search: { ...searchParams, [key]: value }, to: '.', replace });
+  const setSearchParam = useSearchParamSetter(searchParams);
 
   // Only the search value is debounced — debouncing the whole setter lets a month change land behind
   // a stale keystroke and get overwritten by it.
@@ -222,7 +222,7 @@ function MonthlyExpensesLayout() {
           <SearchInput
             className="w-full sm:w-72"
             label="Search expenses"
-            onChange={(next) => setSearchParam('search', next, true)}
+            onChange={(next) => setSearchParam('search', next, { replace: true })}
             placeholder="Search expenses"
             value={searchParams.search}
           />

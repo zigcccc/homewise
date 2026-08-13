@@ -40,6 +40,7 @@ import {
   SORT_LABELS,
   type SortDirectionLabels,
   SortDirectionToggle,
+  useSearchParamSetter,
 } from '@/modules/shared';
 
 import { contactColumns } from './-contacts-table.config';
@@ -50,8 +51,6 @@ const searchParamsModel = z.object({
   sortKey: contactSortKey.default('name').catch('name'),
   sortDirection: sortDirection.default('asc').catch('asc'),
 });
-
-type SearchParams = z.infer<typeof searchParamsModel>;
 
 type ContactSortKey = z.infer<typeof contactSortKey>;
 
@@ -91,8 +90,7 @@ function ContactsRoute() {
 
   const { data: contacts } = useSuspenseQuery(listContactsQueryOptions(searchParams));
 
-  const setSearchParam = <Key extends keyof SearchParams>(key: Key, value: SearchParams[Key], replace = false) =>
-    navigate({ to: '.', search: { ...searchParams, [key]: value }, replace });
+  const setSearchParam = useSearchParamSetter(searchParams);
 
   const table = useDataTable({ columns: contactColumns, data: contacts, getRowId });
 
@@ -135,7 +133,7 @@ function ContactsRoute() {
         <div className="flex flex-wrap items-center gap-2">
           <SearchInput
             label="Search contacts"
-            onChange={(next) => setSearchParam('search', next, true)}
+            onChange={(next) => setSearchParam('search', next, { replace: true })}
             placeholder="Search names, phones and emails"
             value={searchParams.search}
           />

@@ -43,6 +43,7 @@ import {
   SORT_LABELS,
   type SortDirectionLabels,
   SortDirectionToggle,
+  useSearchParamSetter,
 } from '@/modules/shared';
 
 const searchParamsModel = z.object({
@@ -99,13 +100,11 @@ export const Route = createFileRoute('/_authenticated/_onboarded/food/recipes/')
 
 function RecipesRoute() {
   const searchParams = Route.useSearch();
-  const navigate = Route.useNavigate();
 
   const { data: recipes } = useSuspenseQuery(listRecipesQueryOptions(toQuery(searchParams)));
   const { data: tags } = useSuspenseQuery(listRecipeTagsQueryOptions());
 
-  const setSearchParam = <Key extends keyof SearchParams>(key: Key, value: SearchParams[Key], replace = false) =>
-    navigate({ to: '.', search: { ...searchParams, [key]: value }, replace });
+  const setSearchParam = useSearchParamSetter(searchParams);
 
   const isFiltered = Boolean(
     searchParams.search || searchParams.mealType || searchParams.tagId || searchParams.favoritesOnly
@@ -148,7 +147,7 @@ function RecipesRoute() {
         <div className="flex flex-wrap items-center gap-2">
           <SearchInput
             label="Search recipes"
-            onChange={(next) => setSearchParam('search', next, true)}
+            onChange={(next) => setSearchParam('search', next, { replace: true })}
             placeholder="Search recipes or ingredients"
             value={searchParams.search}
           />

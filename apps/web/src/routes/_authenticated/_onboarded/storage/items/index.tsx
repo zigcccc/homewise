@@ -31,7 +31,14 @@ import {
   useDataTable,
 } from '@homewise/ui/core';
 
-import { Actionbar, PageLayout, RouteError, SearchInput, SortDirectionToggle } from '@/modules/shared';
+import {
+  Actionbar,
+  PageLayout,
+  RouteError,
+  SearchInput,
+  SortDirectionToggle,
+  useSearchParamSetter,
+} from '@/modules/shared';
 import {
   createStorageItemColumns,
   ItemFormDialog,
@@ -48,8 +55,6 @@ const searchParamsModel = z.object({
   sortKey: storageItemSortKey.default('name').catch('name'),
   sortDirection: sortDirection.default('asc').catch('asc'),
 });
-
-type SearchParams = z.infer<typeof searchParamsModel>;
 
 export const Route = createFileRoute('/_authenticated/_onboarded/storage/items/')({
   validateSearch: searchParamsModel,
@@ -69,7 +74,6 @@ const columns = createStorageItemColumns({ showLocation: true });
 
 function StorageItemsRoute() {
   const searchParams = Route.useSearch();
-  const navigate = Route.useNavigate();
   const [addOpen, setAddOpen] = useState(false);
 
   const { data: items } = useSuspenseQuery(listStorageItemsQueryOptions(searchParams));
@@ -77,8 +81,7 @@ function StorageItemsRoute() {
   // every time anybody in the household stored something.
   const { data: locations } = useSuspenseQuery(listStorageLocationOptionsQueryOptions());
 
-  const setSearchParam = <Key extends keyof SearchParams>(key: Key, value: SearchParams[Key], replace = false) =>
-    navigate({ to: '.', search: { ...searchParams, [key]: value }, replace });
+  const setSearchParam = useSearchParamSetter(searchParams);
 
   const table = useDataTable({ columns, data: items, getRowId });
 
@@ -123,7 +126,7 @@ function StorageItemsRoute() {
         <div className="flex flex-wrap items-center gap-2">
           <SearchInput
             label="Search items"
-            onChange={(next) => setSearchParam('search', next, true)}
+            onChange={(next) => setSearchParam('search', next, { replace: true })}
             placeholder="Search items and notes"
             value={searchParams.search}
           />

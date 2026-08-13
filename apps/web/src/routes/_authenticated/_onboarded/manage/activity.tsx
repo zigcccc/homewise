@@ -1,7 +1,6 @@
 import { useSuspenseInfiniteQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { HistoryIcon } from 'lucide-react';
-import type z from 'zod';
 
 import { activityFiltersModel } from '@homewise/server/activity';
 import { householdEventEntity } from '@homewise/server/realtime';
@@ -40,9 +39,7 @@ import {
   listActivityQueryOptions,
 } from '@/modules/activity';
 import { getMyHouseholdQueryOptions } from '@/modules/households';
-import { Actionbar, PageLayout, RouteError, SearchInput, TimeAgo } from '@/modules/shared';
-
-type SearchParams = z.infer<typeof activityFiltersModel>;
+import { Actionbar, PageLayout, RouteError, SearchInput, TimeAgo, useSearchParamSetter } from '@/modules/shared';
 
 /**
  * One line of the feed. A row is one or two lines high depending on whether the save left a diff,
@@ -84,15 +81,13 @@ export const Route = createFileRoute('/_authenticated/_onboarded/manage/activity
 
 function ActivityRoute() {
   const searchParams = Route.useSearch();
-  const navigate = Route.useNavigate();
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useSuspenseInfiniteQuery(
     listActivityQueryOptions(searchParams)
   );
   const { data: household } = useSuspenseQuery(getMyHouseholdQueryOptions());
 
-  const setSearchParam = <Key extends keyof SearchParams>(key: Key, value: SearchParams[Key], replace = false) =>
-    navigate({ to: '.', search: { ...searchParams, [key]: value }, replace });
+  const setSearchParam = useSearchParamSetter(searchParams);
 
   const entries = data.pages.flatMap((page) => page.entries);
   const groups = groupByDay(entries);
@@ -130,7 +125,7 @@ function ActivityRoute() {
         <div className="flex flex-wrap items-center gap-2">
           <SearchInput
             label="Search activity"
-            onChange={(next) => setSearchParam('search', next, true)}
+            onChange={(next) => setSearchParam('search', next, { replace: true })}
             placeholder="Search what changed"
             value={searchParams.search}
           />

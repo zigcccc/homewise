@@ -34,7 +34,14 @@ import {
   Spinner,
 } from '@homewise/ui/core';
 
-import { Actionbar, PageLayout, RouteError, SearchInput, SortDirectionToggle } from '@/modules/shared';
+import {
+  Actionbar,
+  PageLayout,
+  RouteError,
+  SearchInput,
+  SortDirectionToggle,
+  useSearchParamSetter,
+} from '@/modules/shared';
 import { LocationFormDialog, listStorageLocationsQueryOptions } from '@/modules/storage-locations';
 
 const searchParamsModel = z.object({
@@ -42,8 +49,6 @@ const searchParamsModel = z.object({
   sortKey: storageLocationSortKey.default('name').catch('name'),
   sortDirection: sortDirection.default('asc').catch('asc'),
 });
-
-type SearchParams = z.infer<typeof searchParamsModel>;
 
 export const Route = createFileRoute('/_authenticated/_onboarded/storage/locations/')({
   validateSearch: searchParamsModel,
@@ -58,13 +63,11 @@ export const Route = createFileRoute('/_authenticated/_onboarded/storage/locatio
 
 function StorageLocationsRoute() {
   const searchParams = Route.useSearch();
-  const navigate = Route.useNavigate();
   const [addOpen, setAddOpen] = useState(false);
 
   const { data: locations } = useSuspenseQuery(listStorageLocationsQueryOptions(searchParams));
 
-  const setSearchParam = <Key extends keyof SearchParams>(key: Key, value: SearchParams[Key], replace = false) =>
-    navigate({ to: '.', search: { ...searchParams, [key]: value }, replace });
+  const setSearchParam = useSearchParamSetter(searchParams);
 
   const isFiltered = Boolean(searchParams.search);
   const pinned = locations.filter((location) => location.latitude !== null && location.longitude !== null);
@@ -104,7 +107,7 @@ function StorageLocationsRoute() {
         <div className="flex flex-wrap items-center gap-2">
           <SearchInput
             label="Search locations"
-            onChange={(next) => setSearchParam('search', next, true)}
+            onChange={(next) => setSearchParam('search', next, { replace: true })}
             placeholder="Search locations and addresses"
             value={searchParams.search}
           />

@@ -19,7 +19,7 @@ import {
   useDataTable,
 } from '@homewise/ui/core';
 
-import { SearchInput, SortDirectionToggle } from '@/modules/shared';
+import { SearchInput, SortDirectionToggle, useSearchParamSetter } from '@/modules/shared';
 import { listStoresQueryOptions, StoreFormDialog } from '@/modules/stores';
 
 import { storesTableColumns } from './-stores-table.config';
@@ -29,8 +29,6 @@ const searchParamsModel = z.object({
   sortKey: storeSortKey.default('name').catch('name'),
   sortDirection: sortDirection.default('asc').catch('asc'),
 });
-
-type SearchParams = z.infer<typeof searchParamsModel>;
 
 export const Route = createFileRoute('/_authenticated/_onboarded/food/ingredients/stores')({
   validateSearch: searchParamsModel,
@@ -44,7 +42,6 @@ export const Route = createFileRoute('/_authenticated/_onboarded/food/ingredient
 
 function StoresRoute() {
   const searchParams = Route.useSearch();
-  const navigate = Route.useNavigate();
 
   // The header's own "Add shop" lives in the layout, which an `<Outlet />` can't hand state to.
   // This one belongs to the empty state's call to action; both open the same dialog.
@@ -52,8 +49,7 @@ function StoresRoute() {
 
   const { data: stores } = useSuspenseQuery(listStoresQueryOptions(searchParams));
 
-  const setSearchParam = <Key extends keyof SearchParams>(key: Key, value: SearchParams[Key], replace = false) =>
-    navigate({ to: '.', search: { ...searchParams, [key]: value }, replace });
+  const setSearchParam = useSearchParamSetter(searchParams);
 
   const table = useDataTable({
     data: stores,
@@ -67,7 +63,7 @@ function StoresRoute() {
       <div className="flex flex-wrap items-center gap-2">
         <SearchInput
           label="Search shops"
-          onChange={(next) => setSearchParam('search', next, true)}
+          onChange={(next) => setSearchParam('search', next, { replace: true })}
           placeholder="Search shops"
           value={searchParams.search}
         />
