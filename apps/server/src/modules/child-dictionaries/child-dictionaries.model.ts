@@ -59,6 +59,6 @@ export const listChildDictionaryEntriesQueryParamsModel = z.object({
   sortKey: childDictionaryEntrySortKey.default('childPhrase').catch('childPhrase'),
   sortDirection: sortDirection.default('asc').catch('asc'),
   includeArchived: z.stringbool().default(false).catch(false),
-  ...pagedQueryParams.shape,
+  ...pagedQueryParams().shape,
 });
 export type ListChildDictionaryEntriesQueryParams = z.infer<typeof listChildDictionaryEntriesQueryParamsModel>;

@@ -63,7 +63,7 @@ describe('ActivityService.record', () => {
     await ActivityService.record(ownHouseholdId, actor, [event({ label })]);
 
     // THEN: it should be readable back as a feed row
-    const { entries } = await ActivityService.list(ownHouseholdId, { limit: 20 });
+    const { items: entries } = await ActivityService.list(ownHouseholdId, { page: 1, pageSize: 20 });
 
     expect(entries).toHaveLength(1);
     expect(entries[0]).toMatchObject({ actorName: 'Test Owner', label });
@@ -81,7 +81,7 @@ describe('ActivityService.record', () => {
     ]);
 
     // THEN: only the labelled one should have become a row — the cascade is invalidation, not history
-    const { entries } = await ActivityService.list(ownHouseholdId, { limit: 20 });
+    const { items: entries } = await ActivityService.list(ownHouseholdId, { page: 1, pageSize: 20 });
 
     expect(entries).toHaveLength(1);
     expect(entries[0]?.label).toBe(label);
@@ -98,7 +98,7 @@ describe('ActivityService.record', () => {
     ]);
 
     // THEN: the feed should still be empty
-    const { entries } = await ActivityService.list(ownHouseholdId, { limit: 20 });
+    const { items: entries } = await ActivityService.list(ownHouseholdId, { page: 1, pageSize: 20 });
 
     expect(entries).toHaveLength(0);
   });
@@ -112,7 +112,7 @@ describe('ActivityService.record', () => {
     await db.update(schema.user).set({ name: 'Renamed' }).where(eq(schema.user.id, userId));
 
     // THEN: the line should still say who it was at the time
-    const { entries } = await ActivityService.list(ownHouseholdId, { limit: 20 });
+    const { items: entries } = await ActivityService.list(ownHouseholdId, { page: 1, pageSize: 20 });
 
     expect(entries[0]?.actorName).toBe('Original Name');
   });
@@ -133,7 +133,7 @@ describe('ActivityService.record folding', () => {
     await ActivityService.record(ownHouseholdId, actor, [edit()]);
 
     // THEN: the feed should read "made 3 updates", not the same sentence three times
-    const { entries } = await ActivityService.list(ownHouseholdId, { limit: 20 });
+    const { items: entries } = await ActivityService.list(ownHouseholdId, { page: 1, pageSize: 20 });
 
     expect(entries).toHaveLength(1);
     expect(entries[0]?.count).toBe(3);
@@ -143,11 +143,11 @@ describe('ActivityService.record folding', () => {
     // GIVEN: one recorded edit
     const { householdId: ownHouseholdId } = await createHousehold('activity-fold-place');
     await ActivityService.record(ownHouseholdId, actor, [edit()]);
-    const before = (await ActivityService.list(ownHouseholdId, { limit: 20 })).entries[0]!;
+    const before = (await ActivityService.list(ownHouseholdId, { page: 1, pageSize: 20 })).items[0]!;
 
     // WHEN: the same row is edited again
     await ActivityService.record(ownHouseholdId, actor, [edit()]);
-    const after = (await ActivityService.list(ownHouseholdId, { limit: 20 })).entries[0]!;
+    const after = (await ActivityService.list(ownHouseholdId, { page: 1, pageSize: 20 })).items[0]!;
 
     // THEN: it should still be the same row at the same id — the cursor pages by id, so a fold that
     // moved a line would skip or repeat one — started when it started, and dated by the last edit
@@ -166,7 +166,7 @@ describe('ActivityService.record folding', () => {
     await ActivityService.record(ownHouseholdId, actor, [edit()]);
 
     // THEN: it should be its own line — folding it would move it above work that came after it
-    const { entries } = await ActivityService.list(ownHouseholdId, { limit: 20 });
+    const { items: entries } = await ActivityService.list(ownHouseholdId, { page: 1, pageSize: 20 });
 
     expect(entries.map((entry) => entry.label)).toStrictEqual(['John', 'Robbie', 'John']);
     expect(entries.every((entry) => entry.count === 1)).toBe(true);
@@ -181,7 +181,7 @@ describe('ActivityService.record folding', () => {
     await ActivityService.record(ownHouseholdId, { id: userId, name: 'Someone Else' }, [edit()]);
 
     // THEN: both should be named — a line is attributed to one person
-    const { entries } = await ActivityService.list(ownHouseholdId, { limit: 20 });
+    const { items: entries } = await ActivityService.list(ownHouseholdId, { page: 1, pageSize: 20 });
 
     expect(entries.map((entry) => entry.actorName)).toStrictEqual(['Someone Else', 'Test Owner']);
   });
@@ -195,7 +195,7 @@ describe('ActivityService.record folding', () => {
     await ActivityService.record(ownHouseholdId, actor, [edit({ label: 'Jonathan' })]);
 
     // THEN: both names should survive — folding would silently rewrite what the earlier edit was to
-    const { entries } = await ActivityService.list(ownHouseholdId, { limit: 20 });
+    const { items: entries } = await ActivityService.list(ownHouseholdId, { page: 1, pageSize: 20 });
 
     expect(entries.map((entry) => entry.label)).toStrictEqual(['Jonathan', 'John']);
   });
@@ -209,7 +209,7 @@ describe('ActivityService.record folding', () => {
     await ActivityService.record(ownHouseholdId, actor, [edit({ id: 8 })]);
 
     // THEN: they should stay two lines — the name is a snapshot, the id is what says which row
-    const { entries } = await ActivityService.list(ownHouseholdId, { limit: 20 });
+    const { items: entries } = await ActivityService.list(ownHouseholdId, { page: 1, pageSize: 20 });
 
     expect(entries).toHaveLength(2);
   });
@@ -225,7 +225,7 @@ describe('ActivityService.record folding', () => {
 
     // THEN: they should stay two lines — a row can only be created once, so two of these are two
     // different things that happen to share a label
-    const { entries } = await ActivityService.list(ownHouseholdId, { limit: 20 });
+    const { items: entries } = await ActivityService.list(ownHouseholdId, { page: 1, pageSize: 20 });
 
     expect(entries).toHaveLength(2);
   });
@@ -244,7 +244,7 @@ describe('ActivityService.record folding', () => {
 
     // THEN: it should be a new line — this evening's work is not this morning's, and a line has to
     // sit under the day it happened on
-    const { entries } = await ActivityService.list(ownHouseholdId, { limit: 20 });
+    const { items: entries } = await ActivityService.list(ownHouseholdId, { page: 1, pageSize: 20 });
 
     expect(entries).toHaveLength(2);
   });
@@ -258,7 +258,7 @@ describe('ActivityService.record folding', () => {
     await ActivityService.record(ownHouseholdId, actor, [edit(), event({ entity: 'contact', label: 'Ana Novak' })]);
 
     // THEN: the repeat should fold and the other effect should still get its own line
-    const { entries } = await ActivityService.list(ownHouseholdId, { limit: 20 });
+    const { items: entries } = await ActivityService.list(ownHouseholdId, { page: 1, pageSize: 20 });
 
     expect(entries.map((entry) => entry.label)).toStrictEqual(['Ana Novak', 'John']);
     expect(entries[1]?.count).toBe(2);
@@ -279,7 +279,7 @@ describe('ActivityService.record change detail', () => {
     ]);
 
     // THEN: the line should be able to say what it was, not only that something happened
-    const { entries } = await ActivityService.list(ownHouseholdId, { limit: 20 });
+    const { items: entries } = await ActivityService.list(ownHouseholdId, { page: 1, pageSize: 20 });
 
     expect(entries[0]?.changes).toStrictEqual([{ field: 'dateOfBirth', from: '2019-07-03', to: '2019-07-04' }]);
   });
@@ -294,7 +294,7 @@ describe('ActivityService.record change detail', () => {
 
     // THEN: the feed should be unmoved — an accepted save that wrote no column is not history, and
     // an empty diff is how that is told apart from a save nobody took a diff of
-    const { entries } = await ActivityService.list(ownHouseholdId, { limit: 20 });
+    const { items: entries } = await ActivityService.list(ownHouseholdId, { page: 1, pageSize: 20 });
 
     expect(entries).toHaveLength(1);
     expect(entries[0]?.count).toBe(1);
@@ -308,7 +308,7 @@ describe('ActivityService.record change detail', () => {
     await ActivityService.record(ownHouseholdId, actor, [event({ label: 'Ana Novak' })]);
 
     // THEN: absent must not be read as "changed nothing" — that would silence every create
-    const { entries } = await ActivityService.list(ownHouseholdId, { limit: 20 });
+    const { items: entries } = await ActivityService.list(ownHouseholdId, { page: 1, pageSize: 20 });
 
     expect(entries).toHaveLength(1);
     expect(entries[0]?.changes).toStrictEqual([]);
@@ -329,7 +329,7 @@ describe('ActivityService.record change detail', () => {
 
     // THEN: the row should hold all three, appended rather than merged — the feed collapses them for
     // reading, and only the whole sequence can say a field started at 03 and ended at 05
-    const { entries } = await ActivityService.list(ownHouseholdId, { limit: 20 });
+    const { items: entries } = await ActivityService.list(ownHouseholdId, { page: 1, pageSize: 20 });
 
     expect(entries).toHaveLength(1);
     expect(entries[0]?.changes).toStrictEqual([
@@ -349,7 +349,7 @@ describe('ActivityService.record change detail', () => {
 
     // THEN: the stored value should be clipped — this table grows without bound, and a feed line is
     // one line however long the note behind it is
-    const { entries } = await ActivityService.list(ownHouseholdId, { limit: 20 });
+    const { items: entries } = await ActivityService.list(ownHouseholdId, { page: 1, pageSize: 20 });
     const stored = entries[0]?.changes[0]?.to;
 
     expect(stored).toMatch(/^x+…$/);
@@ -358,25 +358,24 @@ describe('ActivityService.record change detail', () => {
 });
 
 describe('ActivityService.list paging', () => {
-  it('should hand back a cursor only while there is another page', async () => {
+  it('should report how many lines there are behind the page', async () => {
     // GIVEN: five recorded changes
-    const { householdId: ownHouseholdId } = await createHousehold('activity-cursor');
+    const { householdId: ownHouseholdId } = await createHousehold('activity-total');
     await ActivityService.record(
       ownHouseholdId,
       actor,
       Array.from({ length: 5 }, () => event())
     );
 
-    // WHEN: they are read in pages of two
-    const first = await ActivityService.list(ownHouseholdId, { limit: 2 });
-    const last = await ActivityService.list(ownHouseholdId, { limit: 10 });
+    // WHEN: they are read two at a time
+    const page = await ActivityService.list(ownHouseholdId, { page: 1, pageSize: 2 });
 
-    // THEN: a short page should point at the next one, and a page that exhausted the table should not
-    expect(first.nextCursor).not.toBeNull();
-    expect(last.nextCursor).toBeNull();
+    // THEN: the page should be short and the total should say there is more behind it
+    expect(page.items).toHaveLength(2);
+    expect(page.total).toBe(5);
   });
 
-  it('should continue exactly where the previous page stopped', async () => {
+  it('should walk the whole feed without skipping or repeating a row', async () => {
     // GIVEN: six recorded changes
     const { householdId: ownHouseholdId } = await createHousehold('activity-continue');
     await ActivityService.record(
@@ -387,13 +386,11 @@ describe('ActivityService.list paging', () => {
 
     // WHEN: the feed is walked two rows at a time
     const seen: number[] = [];
-    let cursor: number | undefined;
 
-    do {
-      const page = await ActivityService.list(ownHouseholdId, { cursor, limit: 2 });
-      seen.push(...page.entries.map((entry) => entry.id));
-      cursor = page.nextCursor ?? undefined;
-    } while (cursor);
+    for (let page = 1; page <= 3; page++) {
+      const read = await ActivityService.list(ownHouseholdId, { page, pageSize: 2 });
+      seen.push(...read.items.map((entry) => entry.id));
+    }
 
     // THEN: every row should appear exactly once, newest first — no row skipped, none repeated
     expect(seen).toHaveLength(6);
@@ -409,18 +406,23 @@ describe('ActivityService.list paging', () => {
       actor,
       Array.from({ length: 4 }, () => event())
     );
-    const first = await ActivityService.list(ownHouseholdId, { limit: 2 });
+    const first = await ActivityService.list(ownHouseholdId, { page: 1, pageSize: 2 });
+    const anchor = first.items[0]!.id;
 
-    // WHEN: somebody else records something before the second page is asked for — the case an
-    // offset would get wrong, shifting every later row down by one and re-serving one already shown
+    // WHEN: somebody else records something before the second page is asked for
     await ActivityService.record(ownHouseholdId, actor, [event({ label: 'Landed mid-scroll' })]);
-    const second = await ActivityService.list(ownHouseholdId, { cursor: first.nextCursor!, limit: 2 });
+    const second = await ActivityService.list(ownHouseholdId, { maxId: anchor, page: 2, pageSize: 2 });
 
     // THEN: the second page should hold rows the first one didn't
-    const firstIds = first.entries.map((entry) => entry.id);
-    const secondIds = second.entries.map((entry) => entry.id);
+    const firstIds = first.items.map((entry) => entry.id);
 
-    expect(secondIds.filter((id) => firstIds.includes(id))).toStrictEqual([]);
+    expect(second.items.map((entry) => entry.id).filter((id) => firstIds.includes(id))).toStrictEqual([]);
+
+    // THEN: and the anchor is what did it — the same read without one counts from a feed that has
+    // grown by a row, so the boundary slips and page one's last row is served again
+    const unanchored = await ActivityService.list(ownHouseholdId, { page: 2, pageSize: 2 });
+
+    expect(unanchored.items.map((entry) => entry.id).filter((id) => firstIds.includes(id))).not.toStrictEqual([]);
   });
 });
 
@@ -433,7 +435,7 @@ describe('ActivityService.list filters', () => {
     await ActivityService.record(theirs.householdId, actor, [event({ label: 'Theirs' })]);
 
     // WHEN: one household reads its feed
-    const { entries } = await ActivityService.list(mine.householdId, { limit: 20 });
+    const { items: entries } = await ActivityService.list(mine.householdId, { page: 1, pageSize: 20 });
 
     // THEN: the other household's history should be invisible to it
     expect(entries.map((entry) => entry.label)).toStrictEqual(['Mine']);
@@ -451,10 +453,11 @@ describe('ActivityService.list filters', () => {
     await ActivityService.record(ownHouseholdId, other, [event({ entity: 'contact', label: 'Ana Kovac' })]);
 
     // WHEN: all three filters are applied at once
-    const { entries } = await ActivityService.list(ownHouseholdId, {
+    const { items: entries } = await ActivityService.list(ownHouseholdId, {
       actorId: userId,
       entity: 'contact',
-      limit: 20,
+      page: 1,
+      pageSize: 20,
       search: 'ana',
     });
 
@@ -468,7 +471,7 @@ describe('ActivityService.list filters', () => {
     await ActivityService.record(ownHouseholdId, actor, [event({ label: 'The Big Garage Shelf' })]);
 
     // WHEN: it is searched for by a lowercase fragment
-    const { entries } = await ActivityService.list(ownHouseholdId, { limit: 20, search: 'garage' });
+    const { items: entries } = await ActivityService.list(ownHouseholdId, { page: 1, pageSize: 20, search: 'garage' });
 
     // THEN: it should be found
     expect(entries).toHaveLength(1);

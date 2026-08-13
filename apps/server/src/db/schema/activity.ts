@@ -66,7 +66,7 @@ export const householdActivity = pgTable(
     changes: jsonb('changes').$type<FieldChange[]>().notNull().default([]),
   },
   (table) => [
-    // `id` is serial, so it orders like `createdAt` and the keyset cursor is just an id.
+    // `id` is serial, so it orders like `createdAt` and the feed's anchor is just an id.
     index('household_activity_household_idx').on(table.householdId, table.id.desc()),
   ]
 );

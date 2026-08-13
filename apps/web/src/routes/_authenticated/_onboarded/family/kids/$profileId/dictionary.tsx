@@ -49,7 +49,7 @@ const searchParamsModel = z.object({
   sortKey: childDictionaryEntrySortKey.default('childPhrase').catch('childPhrase'),
   sortDirection: sortDirection.default('asc').catch('asc'),
   includeArchived: z.boolean().default(false).catch(false),
-  ...pagedQueryParams.shape,
+  ...pagedQueryParams().shape,
 });
 
 type SearchParams = z.infer<typeof searchParamsModel>;

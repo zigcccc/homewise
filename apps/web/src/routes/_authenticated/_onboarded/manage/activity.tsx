@@ -89,7 +89,7 @@ function ActivityRoute() {
 
   const setSearchParam = useSearchParamSetter(Route);
 
-  const entries = data.pages.flatMap((page) => page.entries);
+  const entries = data.pages.flatMap((page) => page.items);
   const groups = groupByDay(entries);
   const isFiltered = Boolean(searchParams.search) || Boolean(searchParams.entity) || Boolean(searchParams.actorId);
 

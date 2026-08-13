@@ -81,11 +81,11 @@ export function ActivityCard() {
 
   return (
     <DashboardCard {...CARD}>
-      {data.entries.length === 0 ? (
+      {data.items.length === 0 ? (
         <DashboardCardEmpty>Nothing has happened yet.</DashboardCardEmpty>
       ) : (
         <div className="divide-y">
-          {data.entries.map((entry) => (
+          {data.items.map((entry) => (
             <DashboardCardRow className="items-start" key={entry.id}>
               <ActivityCardLine entry={entry} />
               <TimeAgo className="shrink-0 text-muted-foreground text-xs" value={entry.updatedAt} />

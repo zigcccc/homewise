@@ -85,7 +85,7 @@ const searchParamsModel = z.object({
     .union([z.literal('none'), z.number().int().positive()])
     .optional()
     .catch(undefined),
-  ...pagedQueryParams.shape,
+  ...pagedQueryParams().shape,
 });
 
 type SearchParams = z.infer<typeof searchParamsModel>;

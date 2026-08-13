@@ -79,24 +79,6 @@ export type SortDirection = z.infer<typeof sortDirection>;
 /** The page size no caller may exceed, whatever it asks for. */
 export const MAX_PAGE_SIZE = 100;
 
-/**
- * The `?cursor=&limit=` half of a **feed**, to `.extend()` onto that endpoint's filters.
- *
- * `cursor` is the id of the last row already shown, and the ordering has to agree with it
- * (`desc(id)`) — that is what makes "older than the last one shown" a complete condition. Rows
- * written mid-scroll shift every offset after them, so an offset feed shows one page's last row
- * again at the top of the next; a cursor cannot.
- *
- * The trade-off is that a cursor only ever walks forward, so it can answer "what follows this row"
- * and nothing else. A list the reader jumps around in wants {@link pagedQueryParams} instead.
- */
-export const cursorQueryParams = (defaultSize: number) =>
-  z.object({
-    cursor: z.coerce.number<number>().int().positive().optional().catch(undefined),
-    limit: z.coerce.number<number>().int().min(1).max(MAX_PAGE_SIZE).default(defaultSize).catch(defaultSize),
-  });
-export type CursorParams = z.infer<ReturnType<typeof cursorQueryParams>>;
-
 /** The page a numbered list opens on, and how many rows it holds. */
 export const DEFAULT_PAGE_SIZE = 25;
 
@@ -104,27 +86,25 @@ export const DEFAULT_PAGE_SIZE = 25;
 export const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
 
 /**
- * The `?page=&pageSize=` half of a **numbered** list, to spread onto that endpoint's filters.
+ * The `?page=&pageSize=` every paginated list takes, to spread onto that endpoint's filters.
  *
- * An offset, deliberately, where {@link cursorQueryParams} refuses one: a pager whose whole point is
- * jumping to page 7 has to be able to count pages, which a cursor cannot do. The cost is the one
- * every numbered pager pays — a row inserted while you read shifts the ones after it — and it is
- * bounded by the ordering being stable, so every paginated list ends its `orderBy` with its id.
+ * **The only pagination this API has.** An offset serves both shapes of UI — a numbered pager, and
+ * an infinite scroll that keeps asking for the next page — where a keyset cursor can only ever serve
+ * the second: it has no notion of "the 7th page" without walking to it, so it cannot number pages or
+ * jump. The cost is that rows arriving at the *head* mid-read shift every offset after them; a feed
+ * that has that problem freezes itself with an ordinary filter (see `activity`'s `maxId`) rather
+ * than with a second pagination concept.
  *
- * The web spreads this same shape into the route's `validateSearch`, so the URL and the endpoint
+ * Ordering must be total, or a row falls between two pages — every paginated `orderBy` ends with its
+ * id. The web spreads this same shape into the route's `validateSearch`, so the URL and the endpoint
  * cannot drift.
  */
-export const pagedQueryParams = z.object({
-  page: z.coerce.number<number>().int().min(1).default(1).catch(1),
-  pageSize: z.coerce
-    .number<number>()
-    .int()
-    .min(1)
-    .max(MAX_PAGE_SIZE)
-    .default(DEFAULT_PAGE_SIZE)
-    .catch(DEFAULT_PAGE_SIZE),
-});
-export type PagedParams = z.infer<typeof pagedQueryParams>;
+export const pagedQueryParams = (defaultSize: number = DEFAULT_PAGE_SIZE) =>
+  z.object({
+    page: z.coerce.number<number>().int().min(1).default(1).catch(1),
+    pageSize: z.coerce.number<number>().int().min(1).max(MAX_PAGE_SIZE).default(defaultSize).catch(defaultSize),
+  });
+export type PagedParams = z.infer<ReturnType<typeof pagedQueryParams>>;
 
 /** A `date` column a form can blank. `''` is "cleared", which the service normalizes to NULL. */
 export const clearableDate = z.iso.date({ error: 'Use a valid date' }).or(z.literal(''));

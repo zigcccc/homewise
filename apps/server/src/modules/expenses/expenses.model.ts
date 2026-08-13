@@ -87,7 +87,7 @@ export const listExpensesQueryParamsModel = z.object({
     .catch(undefined),
   sortKey: expenseSortKey.default('recordedAt').catch('recordedAt'),
   sortDirection: sortDirection.default('desc').catch('desc'),
-  ...pagedQueryParams.shape,
+  ...pagedQueryParams().shape,
 });
 export type ListExpensesQueryParams = z.infer<typeof listExpensesQueryParamsModel>;
 

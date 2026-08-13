@@ -33,6 +33,6 @@ export const listStoresQueryParamsModel = z.object({
   search: searchQueryParam,
   sortKey: storeSortKey.default('name').catch('name'),
   sortDirection: sortDirection.default('asc').catch('asc'),
-  ...pagedQueryParams.shape,
+  ...pagedQueryParams().shape,
 });
 export type ListStoresQueryParams = z.infer<typeof listStoresQueryParamsModel>;

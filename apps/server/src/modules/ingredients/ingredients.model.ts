@@ -68,6 +68,6 @@ export const listIngredientsQueryParamsModel = z.object({
     .catch(undefined),
   sortKey: ingredientSortKey.default('name').catch('name'),
   sortDirection: sortDirection.default('asc').catch('asc'),
-  ...pagedQueryParams.shape,
+  ...pagedQueryParams().shape,
 });
 export type ListIngredientsQueryParams = z.infer<typeof listIngredientsQueryParamsModel>;

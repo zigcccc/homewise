@@ -39,7 +39,7 @@ export class Pagination {
     return this.clickAndWait('Last page', landingOn);
   }
 
-  /** Jumps by clicking a numbered button — the thing a cursor-paginated list can't offer. */
+  /** Jumps by clicking a numbered button. */
   goToPage(page: number) {
     return this.clickAndWait(`Page ${page}`, page);
   }

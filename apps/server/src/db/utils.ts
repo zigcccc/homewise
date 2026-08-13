@@ -1,8 +1,8 @@
-import { and, count, lt, type SQL } from 'drizzle-orm';
-import { type PgColumn, type PgTable } from 'drizzle-orm/pg-core';
+import { and, count, type SQL } from 'drizzle-orm';
+import { type PgTable } from 'drizzle-orm/pg-core';
 
 import { db } from '#db/core';
-import { type CursorParams, type FieldChange, type PagedParams } from '#lib/models';
+import { type FieldChange, type PagedParams } from '#lib/models';
 
 /**
  * A `db` handle or an open transaction, so a service method can either run on its own or join a
@@ -20,35 +20,6 @@ export type Executor = typeof db | Parameters<Parameters<typeof db.transaction>[
  * the day one of the arguments turns conditional.
  */
 export type Filters = (SQL | undefined)[];
-
-/**
- * One keyset page of a feed, newest first: the rows, plus where the next page starts.
- *
- * Requires an ordering the cursor column agrees with (a `serial` id descending) — that is what makes
- * "older than the last one shown" a complete condition. Reads one row past `limit`, which answers
- * "is there another page" in place of a second `COUNT(*)`.
- *
- * For a list with a numbered pager, use {@link readPagedList} — a cursor can't count pages.
- */
-export async function readCursorPage<Row extends { id: number }>({
-  cursor,
-  filters = [],
-  id,
-  limit,
-  read,
-}: CursorParams & {
-  filters?: Filters;
-  id: PgColumn;
-  read: (query: { limit: number; where: SQL | undefined }) => Promise<Row[]>;
-}) {
-  const rows = await read({
-    limit: limit + 1,
-    where: and(...filters, cursor === undefined ? undefined : lt(id, cursor)),
-  });
-  const entries = rows.slice(0, limit);
-
-  return { entries, nextCursor: rows.length > limit ? (entries.at(-1)?.id ?? null) : null };
-}
 
 /**
  * One numbered page of a list: the rows, and how many there are in total to page through.

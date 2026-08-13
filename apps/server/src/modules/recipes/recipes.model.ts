@@ -145,6 +145,6 @@ export const listRecipesQueryParamsModel = z.object({
   includeArchived: z.stringbool().default(false).catch(false),
   sortKey: recipeSortKey.default('title').catch('title'),
   sortDirection: sortDirection.default('asc').catch('asc'),
-  ...pagedQueryParams.shape,
+  ...pagedQueryParams().shape,
 });
 export type ListRecipesQueryParams = z.infer<typeof listRecipesQueryParamsModel>;

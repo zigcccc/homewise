@@ -56,7 +56,7 @@ const searchParamsModel = z.object({
   includeArchived: z.boolean().default(false).catch(false),
   sortKey: recipeSortKey.default('title').catch('title'),
   sortDirection: sortDirection.default('asc').catch('asc'),
-  ...pagedQueryParams.shape,
+  ...pagedQueryParams().shape,
 });
 
 type SearchParams = z.infer<typeof searchParamsModel>;

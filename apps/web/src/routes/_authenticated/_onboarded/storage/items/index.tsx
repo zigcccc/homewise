@@ -55,7 +55,7 @@ const searchParamsModel = z.object({
   loanStatus: storageItemLoanStatus.default('all').catch('all'),
   sortKey: storageItemSortKey.default('name').catch('name'),
   sortDirection: sortDirection.default('asc').catch('asc'),
-  ...pagedQueryParams.shape,
+  ...pagedQueryParams().shape,
 });
 
 export const Route = createFileRoute('/_authenticated/_onboarded/storage/items/')({

@@ -52,7 +52,7 @@ const searchParamsModel = z.object({
     .catch(undefined),
   sortKey: ingredientSortKey.default('name').catch('name'),
   sortDirection: sortDirection.default('asc').catch('asc'),
-  ...pagedQueryParams.shape,
+  ...pagedQueryParams().shape,
 });
 
 export const Route = createFileRoute('/_authenticated/_onboarded/food/ingredients/')({

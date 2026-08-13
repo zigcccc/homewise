@@ -51,7 +51,7 @@ const searchParamsModel = z.object({
   type: contactType.optional().catch(undefined),
   sortKey: contactSortKey.default('name').catch('name'),
   sortDirection: sortDirection.default('asc').catch('asc'),
-  ...pagedQueryParams.shape,
+  ...pagedQueryParams().shape,
 });
 
 type ContactSortKey = z.infer<typeof contactSortKey>;

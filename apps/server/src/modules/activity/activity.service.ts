@@ -1,8 +1,8 @@
 import { captureException } from '@sentry/hono/node';
-import { and, desc, eq, gt, ilike, inArray, sql } from 'drizzle-orm';
+import { and, desc, eq, gt, ilike, inArray, lte, sql } from 'drizzle-orm';
 
 import { db, schema } from '#db/core';
-import { type Filters, readCursorPage } from '#db/utils';
+import { type Filters, readPagedList } from '#db/utils';
 import { type FieldChange } from '#lib/models';
 import { type HouseholdEvent } from '#modules/realtime/realtime.model';
 
@@ -76,7 +76,7 @@ export class ActivityService {
    * thing: same person, same row, same wording, still inside {@link RUN_WINDOW}.
    *
    * Only ever the *newest* line, which is what keeps this invisible to the read path — the folded row
-   * is still newest, so no id changes and the cursor, page size and filters are untouched.
+   * keeps its id and stays newest, so no offset moves and no reader's anchor is invalidated.
    *
    * Updates only: the same row cannot be created or deleted twice. One statement, so two requests
    * racing here either both fold or both miss, and neither outcome is wrong.
@@ -119,7 +119,10 @@ export class ActivityService {
   }
 
   /** One page of the feed, newest first. */
-  public static async list(householdId: number, { actorId, cursor, entity, limit, search }: ListActivityQueryParams) {
+  public static async list(
+    householdId: number,
+    { actorId, entity, maxId, page, pageSize, search }: ListActivityQueryParams
+  ) {
     const columns = schema.householdActivity;
     const filters: Filters = [eq(columns.householdId, householdId)];
 
@@ -135,11 +138,18 @@ export class ActivityService {
       filters.push(ilike(columns.label, `%${search}%`));
     }
 
-    return readCursorPage({
-      cursor,
+    // Inclusive: the anchor is a row the reader has already been shown, and page 1 of the frozen set
+    // still has to contain it.
+    if (maxId !== undefined) {
+      filters.push(lte(columns.id, maxId));
+    }
+
+    return readPagedList({
       filters,
-      id: columns.id,
-      limit,
+      page,
+      pageSize,
+      table: columns,
+      // `id` is serial, so this is `createdAt` order — and it is total, which is what a page needs.
       read: (query) => db.query.householdActivity.findMany({ ...query, orderBy: desc(columns.id) }),
     });
   }
