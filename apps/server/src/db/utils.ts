@@ -24,22 +24,9 @@ export type Filters = (SQL | undefined)[];
 /**
  * One keyset page of any list, newest first: the rows, plus where the next page starts.
  *
- * The caller keeps its own filters and its own read — this owns the parts every paginated list would
- * otherwise re-derive. Adding pagination to a list is then: extend its query model with
- * {@link pageQueryParams}, and hand the rest over.
- *
- * ```ts
- * return readPage({ cursor, limit, id: columns.id, filters, read: (query) =>
- *   db.query.thing.findMany({ ...query, orderBy: desc(columns.id) }) });
- * ```
- *
- * Reads one row more than asked for: whether that row comes back *is* the "is there another page"
- * answer, and it replaces a second `COUNT(*)` over the same filters. One row is the whole overhead —
- * this is not fetching a page and trimming it.
- *
- * Requires an ordering the cursor column agrees with (a `serial` id descending), which is what makes
- * "older than the last one shown" a complete condition. An offset would repeat a row, or skip one,
- * every time somebody writes mid-scroll.
+ * Requires an ordering the cursor column agrees with (a `serial` id descending) — that is what makes
+ * "older than the last one shown" a complete condition. Reads one row past `limit`, which answers
+ * "is there another page" in place of a second `COUNT(*)`.
  */
 export async function readPage<Row extends { id: number }>({
   cursor,
