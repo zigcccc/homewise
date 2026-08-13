@@ -102,6 +102,15 @@ describe('changedColumns', () => {
     // THEN: the moment should survive as text the feed can format, not as an object it can't
     expect(change).toStrictEqual({ field: 'paidBackAt', from: null, to: '2026-08-13T09:00:00.000Z' });
   });
+
+  it('should report nothing when a save writes the same moment back', () => {
+    // GIVEN: a stored timestamp, and a second Date object holding that same moment
+    const paidBackAt = new Date('2026-08-13T09:00:00.000Z');
+
+    // THEN: it should be one value, not two objects — `Object.is` alone would call every re-save of
+    // an unchanged timestamp a change, with an identical `from` and `to`
+    expect(changedColumns({ paidBackAt: new Date(paidBackAt) }, { paidBackAt })).toStrictEqual([]);
+  });
 });
 
 describe('sameList', () => {

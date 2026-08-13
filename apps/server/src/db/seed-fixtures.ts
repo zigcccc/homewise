@@ -198,16 +198,10 @@ export const SEED_EXPENSE_CATEGORIES = [{ name: 'Groceries' }, { name: 'Utilitie
  * total is a shared aggregate, so a spec that wrote here would race every other worker.
  */
 /**
- * A few logged changes, so the feed and the dashboard card open on something real.
+ * A few logged changes, so the feed and the card open on something real. Written directly, because
+ * the log is written by `withHousehold` and the seed talks to the database rather than the API.
  *
- * Written directly rather than falling out of the rows seeded above: the activity log is written by
- * `withHousehold`, and the seed script talks to the database, not to the API. `entityId` is left
- * null for the same reason — nothing here went through the routes that would know one — so seeded
- * lines render as plain text while lines from real use are links.
- *
- * Offsets are in hours and resolved at seed time, so the feed always spans today, yesterday and
- * earlier — which is the only way the day headings are worth looking at. `hoursAgo` is when the line
- * last happened; a `count` above 1 is a folded run, whose earlier edits sit minutes behind it.
+ * `hoursAgo` is resolved at seed time, so the feed always spans more than one day heading.
  */
 export const SEED_ACTIVITY = [
   { actor: 'owner', entity: 'contact', operation: 'create', label: 'Ana Novak', hoursAgo: 2, count: 1, changes: [] },

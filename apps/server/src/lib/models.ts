@@ -76,6 +76,22 @@ export type FieldChange = z.infer<typeof fieldChangeModel>;
 export const sortDirection = z.enum(['asc', 'desc']);
 export type SortDirection = z.infer<typeof sortDirection>;
 
+/** The page size no caller may exceed, whatever it asks for. */
+export const MAX_PAGE_SIZE = 100;
+
+/**
+ * The `?cursor=&limit=` half of a paginated list, to `.extend()` onto that endpoint's filters.
+ *
+ * `cursor` is the id of the last row already shown, never an offset: rows written mid-scroll shift
+ * every offset after them, which shows one page's last row again at the top of the next.
+ */
+export const pageQueryParams = (defaultSize: number) =>
+  z.object({
+    cursor: z.coerce.number<number>().int().positive().optional().catch(undefined),
+    limit: z.coerce.number<number>().int().min(1).max(MAX_PAGE_SIZE).default(defaultSize).catch(defaultSize),
+  });
+export type PageParams = z.infer<ReturnType<typeof pageQueryParams>>;
+
 /** A `date` column a form can blank. `''` is "cleared", which the service normalizes to NULL. */
 export const clearableDate = z.iso.date({ error: 'Use a valid date' }).or(z.literal(''));
 

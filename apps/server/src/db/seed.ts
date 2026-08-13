@@ -587,8 +587,7 @@ async function seed() {
       };
 
       await db.insert(schema.householdActivity).values(
-        // Oldest first: the feed's order is `id`, so a serial has to ascend with time for these to
-        // read the way the fixture is written.
+        // Oldest first: the feed orders by `id`, so a serial has to ascend with time.
         [...SEED_ACTIVITY].reverse().map((fixture) => {
           const actor = actorsBySlug[fixture.actor];
           const lastAt = new Date(now - fixture.hoursAgo * 60 * 60 * 1000);
@@ -604,8 +603,7 @@ async function seed() {
             label: fixture.label,
             count: fixture.count,
             changes: fixture.changes.map((change) => ({ ...change })),
-            // A folded run started with the first of its edits, ten minutes apart; `updatedAt` is
-            // the last one, and is what the feed dates the line by.
+            // A run started with the first of its edits; `updatedAt` is the last, and dates the line.
             createdAt: new Date(lastAt.getTime() - (fixture.count - 1) * 10 * 60 * 1000),
             updatedAt: lastAt,
           };

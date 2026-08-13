@@ -1,7 +1,8 @@
-import { type SQL } from 'drizzle-orm';
+import { and, lt, type SQL } from 'drizzle-orm';
+import { type PgColumn } from 'drizzle-orm/pg-core';
 
 import { type db } from '#db/core';
-import { type FieldChange } from '#lib/models';
+import { type FieldChange, type PageParams } from '#lib/models';
 
 /**
  * A `db` handle or an open transaction, so a service method can either run on its own or join a
@@ -19,6 +20,46 @@ export type Executor = typeof db | Parameters<Parameters<typeof db.transaction>[
  * the day one of the arguments turns conditional.
  */
 export type Filters = (SQL | undefined)[];
+
+/**
+ * One keyset page of any list, newest first: the rows, plus where the next page starts.
+ *
+ * The caller keeps its own filters and its own read — this owns the parts every paginated list would
+ * otherwise re-derive. Adding pagination to a list is then: extend its query model with
+ * {@link pageQueryParams}, and hand the rest over.
+ *
+ * ```ts
+ * return readPage({ cursor, limit, id: columns.id, filters, read: (query) =>
+ *   db.query.thing.findMany({ ...query, orderBy: desc(columns.id) }) });
+ * ```
+ *
+ * Reads one row more than asked for: whether that row comes back *is* the "is there another page"
+ * answer, and it replaces a second `COUNT(*)` over the same filters. One row is the whole overhead —
+ * this is not fetching a page and trimming it.
+ *
+ * Requires an ordering the cursor column agrees with (a `serial` id descending), which is what makes
+ * "older than the last one shown" a complete condition. An offset would repeat a row, or skip one,
+ * every time somebody writes mid-scroll.
+ */
+export async function readPage<Row extends { id: number }>({
+  cursor,
+  filters = [],
+  id,
+  limit,
+  read,
+}: PageParams & {
+  filters?: Filters;
+  id: PgColumn;
+  read: (query: { limit: number; where: SQL | undefined }) => Promise<Row[]>;
+}) {
+  const rows = await read({
+    limit: limit + 1,
+    where: and(...filters, cursor === undefined ? undefined : lt(id, cursor)),
+  });
+  const entries = rows.slice(0, limit);
+
+  return { entries, nextCursor: rows.length > limit ? (entries.at(-1)?.id ?? null) : null };
+}
 
 /**
  * Optional text fields come in as '' when a user clears them; store that as NULL.
@@ -61,26 +102,26 @@ const readableValue = (value: unknown): FieldChange['from'] => {
     return value;
   }
 
-  // Timestamps a patch drives from a toggle — `paidBackAt` off `paidBack`. The web reads the date.
   return value instanceof Date ? value.toISOString() : null;
 };
 
+/** `Object.is`, except two `Date`s holding the same moment are one value rather than two objects. */
+const sameValue = (existing: unknown, incoming: unknown) =>
+  existing instanceof Date && incoming instanceof Date
+    ? existing.getTime() === incoming.getTime()
+    : Object.is(existing, incoming);
+
 /**
- * Which columns a patch actually changes, and what it changes them between — the "what" behind an
- * activity line, so a member reads "birthday 03. 07. 2019 → 04. 07. 2019" rather than "6 updates".
+ * Which columns a patch changes, and what between — the "what" behind an activity line.
  *
- * Compares the **normalized** `set` object against the stored row, never the raw payload: a form
- * posts `''` where the column holds NULL, so diffing before `emptyToNull` has run reports a change on
- * every save of every optional field. Keys the patch leaves `undefined` are not being written and are
- * not looked at.
+ * Takes the **normalized** `set`, never the raw payload: a form posts `''` where the column holds
+ * NULL, so diffing before `emptyToNull` calls every save of every optional field a change.
  *
- * A foreign key keeps its name and loses its values — "location" says something, "location 3 → 7"
- * does not — as does anything in {@link OPAQUE_COLUMNS}. Anything that isn't a column (a recipe's
- * ingredients, a contact's links) has no diff to take and is named by the service instead.
+ * A foreign key and anything in {@link OPAQUE_COLUMNS} keep their name and lose their values.
  */
 export const changedColumns = (existing: Record<string, unknown>, patch: Record<string, unknown>): FieldChange[] =>
   Object.entries(patch).flatMap(([field, value]) => {
-    if (value === undefined || Object.is(existing[field], value)) {
+    if (value === undefined || sameValue(existing[field], value)) {
       return [];
     }
 

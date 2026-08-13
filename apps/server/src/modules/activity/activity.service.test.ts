@@ -352,7 +352,8 @@ describe('ActivityService.record change detail', () => {
     const { entries } = await ActivityService.list(ownHouseholdId, { limit: 20 });
     const stored = entries[0]?.changes[0]?.to;
 
-    expect(typeof stored === 'string' && stored.length).toBeLessThan(essay.length);
+    expect(stored).toMatch(/^x+…$/);
+    expect(String(stored).length).toBeLessThan(essay.length);
   });
 });
 

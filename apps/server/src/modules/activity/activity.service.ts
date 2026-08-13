@@ -1,8 +1,8 @@
 import { captureException } from '@sentry/hono/node';
-import { and, desc, eq, gt, ilike, inArray, lt, sql } from 'drizzle-orm';
+import { and, desc, eq, gt, ilike, inArray, sql } from 'drizzle-orm';
 
 import { db, schema } from '#db/core';
-import { type Filters } from '#db/utils';
+import { type Filters, readPage } from '#db/utils';
 import { type FieldChange } from '#lib/models';
 import { type HouseholdEvent } from '#modules/realtime/realtime.model';
 
@@ -14,20 +14,10 @@ type Actor = { id: string; name: string };
 /** An event that asked to be logged — the same payload, minus the `null` that means "don't". */
 type LoggedEvent = HouseholdEvent & { label: string };
 
-/**
- * How long a line stays open to being repeated. Long enough to swallow one sitting at the form,
- * short enough that a morning edit and an evening edit stay two lines — and short enough that a run
- * can't straddle the reader's midnight, which would file it under the wrong day heading.
- *
- * Measured by the database's clock, because the timestamps it compares are the database's too.
- */
+/** How long a line stays open to being repeated. Short enough that a run can't straddle midnight. */
 const RUN_WINDOW = sql`now() - interval '1 hour'`;
 
-/**
- * The longest a logged value can be. A description is free text and a feed line is one line — this
- * is the cap on what gets *stored*, so the table can't grow by the length of a recipe method; the
- * web shortens further for reading.
- */
+/** The cap on what gets *stored*, so the table can't grow by the length of a recipe method. */
 const VALUE_LIMIT = 140;
 
 const clip = (value: FieldChange['from']) =>
@@ -42,14 +32,11 @@ export class ActivityService {
   /**
    * Keeps the labelled half of a request's events.
    *
-   * Never throws, for the same reason `RealtimeService.publish` doesn't: by the time this runs the
-   * mutation has committed and the response is decided, so a failed insert must not turn a change
-   * that landed into an error the user sees. A dropped line goes to Sentry instead.
+   * Never throws, like `RealtimeService.publish`: the mutation has already committed, so a failed
+   * insert must not turn a change that landed into an error. A dropped line goes to Sentry instead.
    */
   public static async record(householdId: number, actor: Actor, events: HouseholdEvent[]) {
-    // `flatMap` rather than `filter`, so the surviving `label` narrows to a string on its own. A save
-    // whose diff came back empty is dropped here too: it was accepted, but it changed nothing, and
-    // opening a form and closing it is not the household's history.
+    // `flatMap` so the surviving `label` narrows on its own. An empty diff is dropped: it changed nothing.
     const loggable = events.flatMap((event) =>
       event.label === null || event.changes?.length === 0 ? [] : [{ ...event, label: event.label }]
     );
@@ -60,8 +47,7 @@ export class ActivityService {
     }
 
     try {
-      // Only the head of a request can continue a run: anything behind it is, by the time it is
-      // written, no longer the household's newest line.
+      // Only the head of a request can continue a run — anything behind it is no longer the newest line.
       const pending = (await ActivityService.fold(householdId, actor.id, first)) ? rest : loggable;
 
       if (pending.length > 0) {
@@ -86,19 +72,14 @@ export class ActivityService {
   }
 
   /**
-   * Counts an edit into the household's newest line instead of repeating it, when it says the same
-   * thing: same person, same row, same wording, still inside {@link RUN_WINDOW}. Five saves of one
-   * profile then read as one line rather than five identical ones.
+   * Counts an edit into the household's newest line rather than repeating it, when it says the same
+   * thing: same person, same row, same wording, still inside {@link RUN_WINDOW}.
    *
-   * Only ever a candidate because it is the *newest* line, which is what makes this safe: the row it
-   * lands on is still the newest afterwards, so nothing in the feed moves and no id changes. The
-   * cursor, the page size and every filter are untouched by this.
+   * Only ever the *newest* line, which is what keeps this invisible to the read path — the folded row
+   * is still newest, so no id changes and the cursor, page size and filters are untouched.
    *
-   * Updates only. The same row cannot be created or deleted twice, so a run of either could only
-   * mean two different things that happen to share a label.
-   *
-   * One statement, so two requests racing here either both fold — `count + 1` twice, under the row
-   * lock — or both miss and write a line each. Neither outcome is wrong, only less collapsed.
+   * Updates only: the same row cannot be created or deleted twice. One statement, so two requests
+   * racing here either both fold or both miss, and neither outcome is wrong.
    */
   private static async fold(householdId: number, actorId: string, event: LoggedEvent) {
     if (event.operation !== 'update') {
@@ -117,9 +98,7 @@ export class ActivityService {
       .update(columns)
       .set({
         count: sql`${columns.count} + 1`,
-        // Appended, not merged: the row keeps every edit of the run in the order it happened, and the
-        // feed collapses them for reading. Bound as text and cast, since a bare array would reach the
-        // driver as a Postgres array rather than as JSON.
+        // Appended, not merged. Bound as text and cast — a bare array reaches the driver as a PG array.
         changes: sql`${columns.changes} || ${JSON.stringify(readableChanges(event))}::jsonb`,
       })
       .where(
@@ -129,8 +108,7 @@ export class ActivityService {
           eq(columns.entity, event.entity),
           eq(columns.operation, 'update'),
           eq(columns.label, event.label),
-          // `is not distinct from`, not `=`: an entity that names no single row logs a null id, and
-          // two of those are the same line.
+          // Not `=`: an entity naming no single row logs a null id, and two of those are one line.
           sql`${columns.entityId} is not distinct from ${event.id}`,
           gt(columns.updatedAt, RUN_WINDOW)
         )
@@ -145,10 +123,6 @@ export class ActivityService {
     const columns = schema.householdActivity;
     const filters: Filters = [eq(columns.householdId, householdId)];
 
-    if (cursor) {
-      filters.push(lt(columns.id, cursor));
-    }
-
     if (actorId) {
       filters.push(eq(columns.actorId, actorId));
     }
@@ -161,16 +135,12 @@ export class ActivityService {
       filters.push(ilike(columns.label, `%${search}%`));
     }
 
-    // One more than asked for: whether that extra row comes back is the whole "is there another
-    // page" answer, and it costs no second count query.
-    const rows = await db.query.householdActivity.findMany({
-      where: and(...filters),
-      orderBy: desc(columns.id),
-      limit: limit + 1,
+    return readPage({
+      cursor,
+      filters,
+      id: columns.id,
+      limit,
+      read: (query) => db.query.householdActivity.findMany({ ...query, orderBy: desc(columns.id) }),
     });
-
-    const entries = rows.slice(0, limit);
-
-    return { entries, nextCursor: rows.length > limit ? (entries.at(-1)?.id ?? null) : null };
   }
 }

@@ -8,12 +8,10 @@ import { household } from './household';
 import { user } from './user';
 
 /**
- * What a logged change was about. This is also the realtime event union — `householdEventEntity` is
- * derived from it — so the two can never name different things.
+ * What a logged change was about, and — via `householdEventEntity` — what a realtime event names.
  *
- * Append new values at the **end**: drizzle-kit emits a plain additive `ALTER TYPE … ADD VALUE` only
- * for a value appended there, and can drop and recreate the type for one spliced into the middle.
- * The order carries no meaning; the feed sorts by time and filters by equality.
+ * Append new values at the **end**: drizzle-kit emits an additive `ALTER TYPE … ADD VALUE` only
+ * there, and can drop and recreate the type for one spliced into the middle.
  */
 export const householdActivityEntityEnum = pgEnum('householdActivityEntity', [
   'child_dictionary_entry',
@@ -39,15 +37,11 @@ export const householdActivityEntityEnum = pgEnum('householdActivityEntity', [
 export const householdActivityOperationEnum = pgEnum('householdActivityOperation', ['create', 'update', 'delete']);
 
 /**
- * Who changed what, and when. Written from `withHousehold`'s emit buffer once a request succeeds, so
- * a row exists only for work that actually landed.
+ * Who changed what, and when. Written from `withHousehold`'s emit buffer once a request succeeds.
  *
- * A row is one *line* of the feed rather than one change: repeated edits to the same thing fold into
- * the line above them, so `count` can be more than 1.
- *
- * `actorName` and `label` are **snapshots**, not joins, and that is the whole point of the table: the
- * row this line describes is routinely gone by the time anyone reads it, and a member who has since
- * left the household still did the thing.
+ * A row is one *line* of the feed rather than one change — repeated edits fold, so `count` can
+ * exceed 1 — and `actorName`/`label` are snapshots, because the row a line describes is routinely
+ * gone by the time anyone reads it.
  */
 export const householdActivity = pgTable(
   'household_activity',
@@ -66,24 +60,13 @@ export const householdActivity = pgTable(
     /** The owning row, for entities that are only reachable through their parent. */
     parentId: integer('parent_id'),
     label: text('label').notNull(),
-    /**
-     * How many times this line happened. A burst of edits to one row by one person folds into a
-     * single row rather than repeating itself — see `ActivityService.record`. `updatedAt` is when
-     * the last of them landed, and is the timestamp the feed reads.
-     */
+    /** How many times this line happened; `updatedAt` is when the last of them landed. */
     count: integer('count').notNull().default(1),
-    /**
-     * Which fields the change touched, and what it changed them between — `FieldChange[]`.
-     *
-     * Appended to rather than merged when a run folds, so the array holds every edit in order and the
-     * feed collapses it for reading (first value out, last value in). Empty for anything that took no
-     * diff, which is every create and every delete.
-     */
+    /** What the change touched. Appended to when a run folds, so the feed collapses it for reading. */
     changes: jsonb('changes').$type<FieldChange[]>().notNull().default([]),
   },
   (table) => [
-    // `id` is serial, so it orders identically to `createdAt` and the feed's keyset cursor is just an
-    // id. Descending, because every read of this table starts at the newest row.
+    // `id` is serial, so it orders like `createdAt` and the keyset cursor is just an id.
     index('household_activity_household_idx').on(table.householdId, table.id.desc()),
   ]
 );
