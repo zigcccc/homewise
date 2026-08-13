@@ -76,16 +76,30 @@ local `navigate({ search: { ...searchParams, [key]: value }, to: '.' })`, which 
 its own copy of:
 
 ```ts
-const setSearchParam = useSearchParamSetter(searchParams);
+const setSearchParam = useSearchParamSetter(Route);
 
 setSearchParam('type', 'family');
 setSearchParam('search', term, { replace: true });
 ```
 
+**It takes the `Route`, not a navigate function and not a type argument.** The keys and values come
+off that route's own `validateSearch` (`Route['types']['fullSearchSchema']`), so an unknown key or a
+value outside an enum is a compile error, and the navigation is bound to the route. Note the route's
+search shape is *not* recoverable from `Route.useNavigate()`: `UseNavigateResult` carries the path
+only as a **default** for a type parameter, which `infer` cannot reach, so it erases to `string`.
+Pass the setter to a child component as `SearchParamSetter<typeof Route>`.
+
+**It merges through `navigate`'s search *reducer*, never a spread of the current params** — that is
+the load-bearing part, not a style choice. A spread captures the other params at the render that
+built the setter, so any call that lands late writes that snapshot back wholesale: a debounced search
+term firing after a filter click reinstates the params from before the click and silently drops the
+filter. Reading them from the router at navigation time makes a stale call impossible rather than
+something each caller has to defend against, and it makes the setter identity-stable as a side
+effect. `use-search-param-setter.test.tsx` holds it, against a real memory-history router.
+
 `replace` for a change not worth a history entry. A committed search term would otherwise be its own
 entry, so Back walks the word backwards a few letters at a time instead of leaving the page; filters
-and sorts still push. Pass the setter to a child component as `SearchParamSetter<SearchParams>`
-rather than restating its signature.
+and sorts still push.
 
 **Searching is `SearchInput`** (`modules/shared`), never a hand-rolled `InputGroupInput` plus a
 `useDebounceCallback`. It owns the debounce, the accessible name and — the part that is easy to get
@@ -95,15 +109,15 @@ list is not applying. **react-hook-form's `values` option is that trade**, not a
 it re-syncs the field when the param moves on its own (a Back button, a filter cleared elsewhere)
 while typing stays ahead of the debounce.
 
-Two traps live in that component, both covered by `search-input.test.tsx`:
+**A search box needs an `aria-label`.** A placeholder is not an accessible name; it disappears the
+moment anyone types, and a spec that can only find the control by placeholder is a spec proving it
+has no name. E2E locates these by role and name.
 
-- **`useDebounceCallback` rebuilds its debouncer whenever the callback identity changes, and leaves
-  the previous one's timer running.** An inline `onChange` therefore fires against a search-param
-  snapshot taken *before* the last filter click, silently dropping the filter. Keep what it closes
-  over stable — a ref holding the latest handler — rather than letting the callback change.
-- **A search box needs an `aria-label`.** A placeholder is not an accessible name; it disappears the
-  moment anyone types, and a spec that can only find the control by placeholder is a spec proving it
-  has no name. E2E locates these by role and name.
+Worth knowing, because it looks like a bug the first time you read the code: `useDebounceCallback`
+rebuilds its debouncer whenever the callback identity changes and never cancels the previous one, so
+a re-render mid-typing can leave two timers pending. That is harmless *here* only because the setter
+merges at navigation time — a late timer writes the right thing. Don't reach for a latest-handler ref
+to tidy it up; if a debounced callback ever does need stability, fix what it closes over instead.
 
 ## The API client
 
