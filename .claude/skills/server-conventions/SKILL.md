@@ -163,14 +163,29 @@ Path params use `z.coerce.number<number>()`.
   `search`, `sortKey`, `sortDirection` and any filters as query params. Don't nest a full collection
   inside its parent's detail response — the detail endpoint returns metadata plus a **count**
   (`entryCount`), so filtering a list never refetches parent metadata.
-- **Pagination is keyset, and it is two shared pieces** — never re-derived per module. The model
-  extends its filters with `pageQueryParams(size).shape` (`#lib/models`); the service builds its
-  filters as usual and hands them, the id column and its read to `readPage` (`#db/utils`), which
-  answers `{ entries, nextCursor }`. It reads one row past the page as the has-more probe, which is
-  cheaper than a second `COUNT(*)` and is the only reason `limit + 1` appears anywhere. The cursor is
-  a row id and the ordering must agree with it (`desc(columns.id)`) — that is what makes "older than
-  the last one shown" complete. Never an offset: a row written mid-scroll shifts every offset after
-  it, and the reader sees one page's last row again at the top of the next.
+- **Pagination comes in two shapes, and the UI decides which** — neither is re-derived per module.
+  Both are a model half (`#lib/models`) and a read half (`#db/utils`):
+  - **A numbered list — every table and the recipe grid.** The model spreads `...pagedQueryParams.shape`
+    onto its filters; the service hands its `filters`, the `page`/`pageSize` and its table to
+    `readPagedList`, which answers `{ items, page, pageSize, total }`. An offset, because a pager
+    whose point is jumping to page 7 has to be able to count pages. The `page` it returns may not be
+    the one asked for: an offset past the end re-reads at the last real page, so the web renders the
+    bar from the **response**, never from the URL.
+  - **A feed — the activity log, and only it so far.** The model extends with
+    `cursorQueryParams(size).shape`; the service hands the id column to `readCursorPage`, which
+    answers `{ entries, nextCursor }` and reads one row past the page as its has-more probe rather
+    than counting. The cursor is a row id and the ordering must agree with it (`desc(columns.id)`),
+    which is what makes "older than the last one shown" complete — and why a feed can only ever walk
+    forward.
+
+  **Every paginated `orderBy` ends with its `id`**, in the sort's own direction. Rows tied on the sort
+  key are otherwise free to come back in a different order per query, which drops one between two
+  pages and shows another twice. It is not unit-testable — Postgres is consistent enough at any size
+  a test can build — so it is a rule, commented at each `orderBy`, not a covered case.
+
+  **A picker is not a page.** A combobox or filter that needs the whole list gets its own
+  `list<X>OptionsQueryOptions` on the web, asking for `MAX_PAGE_SIZE` and selecting `.items` — never
+  the default page, which would silently offer the first 25 of a household's shops.
 - Sort params use a **Zod enum mapped onto a Drizzle column** — never string-interpolate a column
   name. Give every list param `.default(...).catch(...)` so a malformed query string degrades to sane
   defaults instead of a 400. `search` and `sortDirection` come from `#lib/models`; only the sort key

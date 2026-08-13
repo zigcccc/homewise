@@ -113,6 +113,29 @@ mid-edit; keep them.
 Table columns and row-action dialogs go in a co-located `-<feature>.config.tsx`, mirroring
 `-household-members.config.tsx`.
 
+**A paginated list ends with `ListPagination`** (`@/modules/shared`), which wraps the kit's
+`DataTablePagination`. The bar takes plain props — page, size, total — rather than reading table
+state, because sorting and filtering here are already server-side and live in the URL, so
+`useDataTable` still only ever gets `getCoreRowModel`. That is also why the same bar sits under the
+recipe **grid**, which has no table at all. See `web-conventions` for the route half.
+
+`ListPagination` owns the stickiness (`sticky bottom-0 z-10 -mb-4 border-t bg-background`), not the
+kit component and not the call sites — a bar that scrolls away is unusable at a page size of 100,
+since reaching the control that turns the page means scrolling past every row on it first. Three
+things that make it work, none of them obvious:
+
+- **The scrollport is the `_onboarded` route's own div**, not the document, so `bottom-0` resolves
+  against that. An `overflow-hidden` ancestor *inside* it would break the sticky; `SidebarInset`'s is
+  outside and harmless.
+- **`sticky`, never `fixed`** — it no-ops on a list that already fits, instead of reserving a strip
+  over a half-empty table.
+- **`-mb-4` cancels `PageLayout`'s bottom padding**, so the bar's resting position is the same as its
+  stuck one and it doesn't lurch 16px as the last row scrolls in. That assumes `PageLayout`'s `p-4`,
+  which every route has, tab routes included.
+
+E2E asserts it with `toBeInViewport()` on a deliberately short viewport, plus `not.toBeInViewport()`
+on the last row so the assertion can't pass on a list that never overflowed.
+
 ## Editing in place
 
 **Editing in place beats a dialog for a field you can see.** `InlineTextField` (`@/modules/shared`)

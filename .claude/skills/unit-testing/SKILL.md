@@ -206,6 +206,7 @@ the path to `projects` in the root `vitest.config.ts`. Knip needs nothing — it
 up the config and the test files. `turbo.json` needs nothing either: this is not a turbo task, for
 the same reason E2E isn't.
 
-`packages/ui` is deliberately not in the suite. Its only non-component files are `cn` (two lines over
-two well-tested libraries) and `useIsMobile` (needs a `matchMedia` stub for near-zero value). Wire it
-up when something there earns a test, not before.
+`packages/ui` joined the suite for `pageWindow` (the pagination bar's page strip) and holds nothing
+else — `cn` is two lines over two well-tested libraries, and `useIsMobile` would need a `matchMedia`
+stub for near-zero value. Its project runs in **node**, not jsdom: a component belongs to E2E, so
+anything testable here needs no DOM.

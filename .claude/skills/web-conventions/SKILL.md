@@ -101,6 +101,31 @@ effect. `use-search-param-setter.test.tsx` holds it, against a real memory-histo
 entry, so Back walks the word backwards a few letters at a time instead of leaving the page; filters
 and sorts still push.
 
+**Setting anything other than `page` returns a paginated route to page 1** — the setter does it, so
+no filter control has to remember to. Narrowing a list from page 9 otherwise asks for page 9 of a
+result that may have two, and renders an empty table. Routes with no `page` in their schema are
+untouched.
+
+### A paginated list
+
+A list route spreads `...pagedQueryParams.shape` into its `searchParamsModel` (from
+`@homewise/server/models`, the same object the endpoint validates against), reads `data.items` for
+its rows, and ends with `<ListPagination page={data} setSearchParam={…} />` from `modules/shared`.
+`loaderDeps` already forwards the whole search object, so `page`/`pageSize` reach the query key and
+the request with no extra wiring. Two things to get right:
+
+- **The bar renders from the response, not the search params.** They disagree exactly when it
+  matters — deleting the last page's rows leaves the URL asking for a page the server no longer has,
+  and the server answers with the one it clamped to.
+- **Optimistic cache patchers take the envelope**, not an array: `(page) => page && { ...page, items:
+  page.items.map(…) }`. A patcher left mapping the response itself doesn't fail loudly — the inline
+  edit just stops showing its new value until the refetch lands.
+
+A route that also lists a *paginated* domain as a **picker** (the ingredients page's shop filter)
+uses that domain's `list<X>OptionsQueryOptions`, which asks for `MAX_PAGE_SIZE` and selects `.items`.
+Note `ensureQueryData` in a loader returns the **raw page** — `select` only applies to a component's
+`useQuery` — so a loader reading one destructures `{ items }` itself.
+
 **Searching is `SearchInput`** (`modules/shared`), never a hand-rolled `InputGroupInput` plus a
 `useDebounceCallback`. It owns the debounce, the accessible name and — the part that is easy to get
 wrong — keeping what is typed in sync with the URL. Feeding the input straight off the search param

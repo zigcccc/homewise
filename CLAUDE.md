@@ -48,7 +48,7 @@ pnpm db:studio                  # Open Drizzle Studio GUI
 cd apps/server && pnpm emails:preview   # Preview React Email templates on :4000
 
 # Testing
-pnpm test                       # Unit suite (Vitest, apps/server + apps/web) → `unit-testing`
+pnpm test                       # Unit suite (Vitest, apps/server + apps/web + packages/ui) → `unit-testing`
 pnpm test:watch                 # Watch mode
 pnpm test:e2e                   # Full E2E suite (Playwright, needs Docker) → `e2e-testing`
 ```
@@ -120,18 +120,19 @@ Each of these has already shipped as a bug or cost real time. Where a skill is n
 4. **Never annotate a service's return type** or hand-write the shape it returns. If inference collapses to `any`, the cause is nesting depth — fix that and prove it with a compiler probe. `pnpm check-types` cannot detect it. → `server-conventions`
 5. **Models derive from the DB schema** via drizzle-zod (`createInsertSchema`/`createUpdateSchema`, `createSelectSchema` for every enum) — never a hand-written mirror, and never refine with a bare schema. → `server-conventions`
 6. **Every mutating handler under `withHousehold` calls `c.var.emit(...)`** and maps its entity in the web's `invalidators` record. Nothing fails loudly if you skip it — the only symptom is another member's browser quietly going stale. Each event's `label` is required and decides whether it is also *activity*: the affected thing's display name to log it, `null` for a cascade or for chatter. A **patch** also carries `changes` from `changedColumns(existing, set)` — diffed against the normalized `set`, never the raw payload — and an empty diff means the save is not logged. A service that takes a diff returns `{ data, changeset }`, never the row with the diff spread into it. → `realtime-events`
-7. **Service methods take `householdId`, never `userId`**, and scope every query by it so ids from other households 404 rather than leak. Authorization lives in the routing layer. → `server-conventions`
-8. **The server's non-relative imports are `package.json#imports`** (`#lib/dates`) — never `@/*`, and never re-add tsconfig `paths`. Keep `AppType` exported and `vercel.json`'s `outputDirectory` in place. → `server-build-and-imports`
-9. **Read `packages/ui/src/core/index.ts` before writing any markup.** The kit is larger than it looks, and hand-rolling what it already ships is the fastest way to make this codebase worse. → `ui-conventions`
-10. **Always use react-hook-form** with `zodResolver(<server model>)` and explicit `defaultValues` — never track field values with `useState`, even in a single-field dialog. → `ui-conventions`
-11. **Key rows and lists by the record's own id** (`getRowId` for tables, `key={record.id}` for lists), never by index — an inline editor otherwise commits to whichever record took that position. → `ui-conventions`
-12. **Destructive actions always confirm**, via `ConfirmDeleteDialog`, naming the specific thing being deleted. → `ui-conventions`
-13. **Dates display and parse day-first** (`dd. MM. yyyy`). Never parse user input with `new Date(input)` — it reads `03. 07. 2026` as 7 March. → `ui-conventions`
-14. **Every route with a loader needs both a `pendingComponent` and an `errorComponent`.** Without the second, one loader rejection replaces the entire app, sidebar included. → `web-conventions`
-15. **Every user-facing feature ships with an E2E flow**, and E2E is how you verify — don't hand-drive the browser unless explicitly asked. Type-checking green is not evidence a feature works. → `e2e-testing`
-16. **Before finishing, run all four**: `pnpm check-types`, `pnpm lint` (zero diagnostics), `pnpm knip`, `pnpm test`. Then run `pnpm test:e2e` **once** as the final gate — not while iterating. Report the result honestly: if it fails, say so with the output rather than declaring done.
-17. **Never truncate or seed the dev database on :8765.** The E2E and unit suites own :8766 and :8767 and reset those themselves.
-18. **Comments are short — one line, or none.** Write only what the code can't say itself: a live constraint or a trap. Not rationale essays, not the archaeology of how the code got here; the PR body and git history hold those. A comment that needs a paragraph is a sign the code needs the work instead.
+7. **A paginated list returns `{ items, page, pageSize, total }`, and the pager renders from that response, never from the URL** — the two disagree exactly when rows are deleted under a reader on the last page. Every paginated `orderBy` ends with its `id`; anything reading such an endpoint directly (a cache patcher, an E2E helper) takes the envelope; and a picker asks for `MAX_PAGE_SIZE` rather than a page. → `server-conventions`
+8. **Service methods take `householdId`, never `userId`**, and scope every query by it so ids from other households 404 rather than leak. Authorization lives in the routing layer. → `server-conventions`
+9. **The server's non-relative imports are `package.json#imports`** (`#lib/dates`) — never `@/*`, and never re-add tsconfig `paths`. Keep `AppType` exported and `vercel.json`'s `outputDirectory` in place. → `server-build-and-imports`
+10. **Read `packages/ui/src/core/index.ts` before writing any markup.** The kit is larger than it looks, and hand-rolling what it already ships is the fastest way to make this codebase worse. → `ui-conventions`
+11. **Always use react-hook-form** with `zodResolver(<server model>)` and explicit `defaultValues` — never track field values with `useState`, even in a single-field dialog. → `ui-conventions`
+12. **Key rows and lists by the record's own id** (`getRowId` for tables, `key={record.id}` for lists), never by index — an inline editor otherwise commits to whichever record took that position. → `ui-conventions`
+13. **Destructive actions always confirm**, via `ConfirmDeleteDialog`, naming the specific thing being deleted. → `ui-conventions`
+14. **Dates display and parse day-first** (`dd. MM. yyyy`). Never parse user input with `new Date(input)` — it reads `03. 07. 2026` as 7 March. → `ui-conventions`
+15. **Every route with a loader needs both a `pendingComponent` and an `errorComponent`.** Without the second, one loader rejection replaces the entire app, sidebar included. → `web-conventions`
+16. **Every user-facing feature ships with an E2E flow**, and E2E is how you verify — don't hand-drive the browser unless explicitly asked. Type-checking green is not evidence a feature works. → `e2e-testing`
+17. **Before finishing, run all four**: `pnpm check-types`, `pnpm lint` (zero diagnostics), `pnpm knip`, `pnpm test`. Then run `pnpm test:e2e` **once** as the final gate — not while iterating. Report the result honestly: if it fails, say so with the output rather than declaring done.
+18. **Never truncate or seed the dev database on :8765.** The E2E and unit suites own :8766 and :8767 and reset those themselves.
+19. **Comments are short — one line, or none.** Write only what the code can't say itself: a live constraint or a trap. Not rationale essays, not the archaeology of how the code got here; the PR body and git history hold those. A comment that needs a paragraph is a sign the code needs the work instead.
 
 ## Keeping this file small
 
