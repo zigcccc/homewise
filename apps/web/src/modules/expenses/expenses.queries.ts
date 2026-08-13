@@ -16,7 +16,7 @@ export type ExpensesSummaryQuery = InferRequestType<typeof $expensesSummary>['qu
 export type ExpensesRange = InferResponseType<typeof $listExpenses, 200>;
 
 /** One expense as the list endpoint returns it, with its category joined. */
-export type Expense = ExpensesRange['expenses'][number];
+export type Expense = ExpensesRange['items'][number];
 
 /** What the window cost, and where it went. */
 export type ExpensesSummary = InferResponseType<typeof $expensesSummary, 200>;
@@ -60,8 +60,6 @@ export function invalidateExpenses(queryClient: QueryClient) {
  */
 export function applyExpenseUpdate(queryClient: QueryClient, updated: Expense) {
   queryClient.setQueriesData<ExpensesRange>({ queryKey: ['expenses', 'list'] }, (range) =>
-    range
-      ? { ...range, expenses: range.expenses.map((expense) => (expense.id === updated.id ? updated : expense)) }
-      : range
+    range ? { ...range, items: range.items.map((expense) => (expense.id === updated.id ? updated : expense)) } : range
   );
 }

@@ -27,6 +27,16 @@ const SHOWN = 5;
 /** The frame, shared with the skeleton so a renamed card can't say two things at once. */
 const CARD = { icon: CakeIcon, title: 'Upcoming birthdays' } satisfies DashboardCardFrame;
 
+/**
+ * The contacts whose birthdays come round soonest, and only as many as the card can show.
+ *
+ * Safe to cut server-side even though the ranking here spans three tables: every contact left off
+ * this page has a birthday further out than all `SHOWN` of the ones on it, so none of them could
+ * displace one after the merge. The kids and pets stay unpaginated — there is one row per child.
+ */
+export const dashboardBirthdayContactsQueryOptions = () =>
+  listContactsQueryOptions({ pageSize: SHOWN, sortDirection: 'asc', sortKey: 'birthday' });
+
 type Kind = 'child' | 'contact' | 'pet';
 
 type Person = { dateOfBirth: string | null; id: number; kind: Kind; name: string };
@@ -70,13 +80,13 @@ function BirthdaysCardSkeleton() {
 
 export function BirthdaysCard() {
   // A birth date is a column on three tables, and merging them means redoing the server's ordering.
-  const { data: contacts } = useSuspenseQuery(listContactsQueryOptions());
+  const { data: contacts } = useSuspenseQuery(dashboardBirthdayContactsQueryOptions());
   const { data: children } = useSuspenseQuery(listChildProfilesQueryOptions());
   const { data: pets } = useSuspenseQuery(listPetProfilesQueryOptions());
 
   const upcoming = useMemo(() => {
     const everyone: Person[] = [
-      ...contacts.map((contact) => ({
+      ...contacts.items.map((contact) => ({
         dateOfBirth: contact.dateOfBirth,
         id: contact.id,
         kind: 'contact' as const,

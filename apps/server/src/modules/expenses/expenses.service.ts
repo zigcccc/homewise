@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, gte, ilike, isNull, lte, sql } from 'drizzle-orm';
 
 import { db, schema } from '#db/core';
-import { changedColumns, type Executor, type Filters, writesAnything } from '#db/utils';
+import { changedColumns, type Executor, type Filters, readPagedList, writesAnything } from '#db/utils';
 import { clampRange, endOfMonth, startOfMonth, todayISO } from '#lib/dates';
 import { notFound, somethingWentWrong } from '#lib/errors';
 import { type FieldChange } from '#lib/models';
@@ -108,17 +108,24 @@ export class ExpensesService {
     const sortColumn = schema.expense[params.sortKey];
     const direction = params.sortDirection === 'desc' ? desc : asc;
 
-    const expenses = await db.query.expense.findMany({
-      where: and(...filters),
-      // `id` breaks the tie, so two expenses on the same day can't swap places between reads and
-      // move an open inline editor onto a different row.
-      orderBy: [direction(sortColumn), direction(schema.expense.id)],
-      with: { category: { columns: { id: true, name: true } } },
+    const paged = await readPagedList({
+      filters,
+      page: params.page,
+      pageSize: params.pageSize,
+      table: schema.expense,
+      read: (query) =>
+        db.query.expense.findMany({
+          ...query,
+          // `id` breaks the tie, so two expenses on the same day can't swap places between reads and
+          // move an open inline editor onto a different row — or across a page boundary.
+          orderBy: [direction(sortColumn), direction(schema.expense.id)],
+          with: { category: { columns: { id: true, name: true } } },
+        }),
     });
 
     // The effective window comes back too: it may have been defaulted or clamped, and the header
     // names the month it is actually showing.
-    return { from, to, expenses };
+    return { ...paged, from, to };
   }
 
   /**

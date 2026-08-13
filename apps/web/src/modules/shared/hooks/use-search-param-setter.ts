@@ -20,6 +20,11 @@ type RouteWithSearch = {
  *
  * `replace` for a change not worth a history entry: a search term pushed per keystroke makes Back
  * walk the word backwards a letter at a time instead of leaving the page.
+ *
+ * **Changing anything other than the page returns to page 1.** Narrowing a list while reading page 9
+ * of it otherwise asks for page 9 of a result that may only have two, and the fix belongs here rather
+ * than at each of the ~40 filter controls that would each have to remember it. Routes with no `page`
+ * param are untouched — the key is only reset where the schema already has one.
  */
 export function useSearchParamSetter<Route extends RouteWithSearch>(route: Route) {
   const navigate = route.useNavigate();
@@ -29,7 +34,16 @@ export function useSearchParamSetter<Route extends RouteWithSearch>(route: Route
       key: Key,
       value: Route['types']['fullSearchSchema'][Key],
       { replace = false }: { replace?: boolean } = {}
-    ) => navigate({ replace, search: (current) => ({ ...current, [key]: value }), to: '.' }),
+    ) =>
+      navigate({
+        replace,
+        search: (current) => ({
+          ...current,
+          ...(key !== 'page' && 'page' in current && { page: 1 }),
+          [key]: value,
+        }),
+        to: '.',
+      }),
     [navigate]
   );
 }

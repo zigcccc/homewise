@@ -44,7 +44,7 @@ import { ConfirmDeleteDialog, DateField, formatDate } from '@/modules/shared';
 
 const $listEntries = client['child-dictionaries'][':id'].entries.$get;
 /** Narrowed to the 200 response — the bare inference unions in every error status too. */
-export type DictionaryEntry = InferResponseType<typeof $listEntries, 200>[number];
+export type DictionaryEntry = InferResponseType<typeof $listEntries, 200>['items'][number];
 
 const $postEntry = client['child-dictionaries'][':id'].entries.$post;
 type CreateEntryPayload = InferRequestType<typeof $postEntry>['json'];

@@ -3,7 +3,7 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import { ClockIcon, PlusIcon, ScrollTextIcon, StarIcon } from 'lucide-react';
 import z from 'zod';
 
-import { searchQueryParam, sortDirection } from '@homewise/server/models';
+import { pagedQueryParams, searchQueryParam, sortDirection } from '@homewise/server/models';
 import { mealType, recipeSortKey } from '@homewise/server/recipes';
 import {
   Breadcrumb,
@@ -37,6 +37,7 @@ import { listRecipesQueryOptions, listRecipeTagsQueryOptions, mealTypeLabels } f
 import {
   Actionbar,
   formatMinutes,
+  ListPagination,
   PageLayout,
   SELECT_ALL,
   SearchInput,
@@ -54,6 +55,7 @@ const searchParamsModel = z.object({
   includeArchived: z.boolean().default(false).catch(false),
   sortKey: recipeSortKey.default('title').catch('title'),
   sortDirection: sortDirection.default('asc').catch('asc'),
+  ...pagedQueryParams.shape,
 });
 
 type SearchParams = z.infer<typeof searchParamsModel>;
@@ -82,6 +84,8 @@ function toQuery(search: SearchParams) {
     includeArchived: search.includeArchived ? 'true' : 'false',
     sortKey: search.sortKey,
     sortDirection: search.sortDirection,
+    page: search.page,
+    pageSize: search.pageSize,
   };
 }
 
@@ -101,7 +105,8 @@ export const Route = createFileRoute('/_authenticated/_onboarded/food/recipes/')
 function RecipesRoute() {
   const searchParams = Route.useSearch();
 
-  const { data: recipes } = useSuspenseQuery(listRecipesQueryOptions(toQuery(searchParams)));
+  const { data: recipesPage } = useSuspenseQuery(listRecipesQueryOptions(toQuery(searchParams)));
+  const recipes = recipesPage.items;
   const { data: tags } = useSuspenseQuery(listRecipeTagsQueryOptions());
 
   const setSearchParam = useSearchParamSetter(Route);
@@ -299,6 +304,8 @@ function RecipesRoute() {
             })}
           </div>
         )}
+
+        <ListPagination page={recipesPage} setSearchParam={setSearchParam} />
       </PageLayout>
     </>
   );

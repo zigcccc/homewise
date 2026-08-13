@@ -28,7 +28,7 @@ import {
   type ContactDetail,
   type ContactRelation,
   invalidateContacts,
-  listContactsQueryOptions,
+  listContactOptionsQueryOptions,
 } from '../contacts.queries';
 import { contactRelationRoleLabels, showsPersonalDetails } from '../helpers';
 import { contactTypeLabels } from '../helpers/labels';
@@ -47,7 +47,7 @@ export function ContactRelationsCard({ contact }: { contact: ContactDetail }) {
   const titleId = useId();
 
   // The whole address book, so the picker can offer anyone; already-related contacts show disabled.
-  const { data: allContacts = [] } = useQuery(listContactsQueryOptions());
+  const { data: allContacts = [] } = useQuery(listContactOptionsQueryOptions());
 
   // Memoized for its identity rather than its cost: `AddContactCombobox` filters this inside a
   // `useMemo` keyed on it, so handing it a fresh array each render is a memo that never hits.

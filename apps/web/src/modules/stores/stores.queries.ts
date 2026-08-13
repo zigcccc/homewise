@@ -1,6 +1,8 @@
 import { type QueryClient, queryOptions } from '@tanstack/react-query';
 import { type InferRequestType, type InferResponseType } from 'hono';
 
+import { MAX_PAGE_SIZE } from '@homewise/server/models';
+
 import { client, parseResponse } from '@/api/client';
 
 const $listStores = client.stores.$get;
@@ -11,7 +13,8 @@ const $deleteStore = client.stores[':id'].$delete;
 export type ListStoresQuery = InferRequestType<typeof $listStores>['query'];
 
 /** A shop as the list endpoint returns it, including how many ingredients default to it. */
-export type Store = InferResponseType<typeof $listStores, 200>[number];
+export type StoresPage = InferResponseType<typeof $listStores, 200>;
+export type Store = StoresPage['items'][number];
 
 export type PatchStorePayload = InferRequestType<typeof $patchStore>['json'];
 
@@ -37,12 +40,26 @@ export function invalidateStores(queryClient: QueryClient) {
 }
 
 /**
+ * Every shop, for a picker, as a plain array.
+ *
+ * Asks for a full page rather than the default one: a dropdown that silently held the first 25 of a
+ * household's shops would be a worse lie than a long list. The server's ceiling still applies — past
+ * it a picker needs searching rather than a bigger page, which is a job of its own.
+ */
+export function listStoreOptionsQueryOptions() {
+  return queryOptions({
+    ...listStoresQueryOptions({ pageSize: MAX_PAGE_SIZE }),
+    select: (page: StoresPage) => page.items,
+  });
+}
+
+/**
  * Swaps an updated shop into every cached list variant, so an inline rename shows its new value
  * without waiting for a refetch. Pair it with `invalidateStores`: this fixes the cell, the refetch
  * fixes ordering and filtering.
  */
 export function applyStoreUpdate(queryClient: QueryClient, updated: Store) {
-  queryClient.setQueriesData<Store[]>({ queryKey: ['stores', 'list'] }, (stores) =>
-    stores?.map((store) => (store.id === updated.id ? updated : store))
+  queryClient.setQueriesData<StoresPage>({ queryKey: ['stores', 'list'] }, (page) =>
+    page ? { ...page, items: page.items.map((store) => (store.id === updated.id ? updated : store)) } : page
   );
 }

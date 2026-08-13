@@ -2,7 +2,7 @@ import { createInsertSchema, createUpdateSchema } from 'drizzle-zod';
 import z from 'zod';
 
 import * as schema from '#db/schema/core';
-import { clearableDate, optionalText, searchQueryParam, sortDirection } from '#lib/models';
+import { clearableDate, optionalText, pagedQueryParams, searchQueryParam, sortDirection } from '#lib/models';
 
 const entryColumns = {
   childPhrase: (model: z.ZodString) =>
@@ -59,5 +59,6 @@ export const listChildDictionaryEntriesQueryParamsModel = z.object({
   sortKey: childDictionaryEntrySortKey.default('childPhrase').catch('childPhrase'),
   sortDirection: sortDirection.default('asc').catch('asc'),
   includeArchived: z.stringbool().default(false).catch(false),
+  ...pagedQueryParams.shape,
 });
 export type ListChildDictionaryEntriesQueryParams = z.infer<typeof listChildDictionaryEntriesQueryParamsModel>;

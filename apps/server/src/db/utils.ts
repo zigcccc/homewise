@@ -1,8 +1,8 @@
-import { and, lt, type SQL } from 'drizzle-orm';
-import { type PgColumn } from 'drizzle-orm/pg-core';
+import { and, count, lt, type SQL } from 'drizzle-orm';
+import { type PgColumn, type PgTable } from 'drizzle-orm/pg-core';
 
-import { type db } from '#db/core';
-import { type FieldChange, type PageParams } from '#lib/models';
+import { db } from '#db/core';
+import { type CursorParams, type FieldChange, type PagedParams } from '#lib/models';
 
 /**
  * A `db` handle or an open transaction, so a service method can either run on its own or join a
@@ -22,19 +22,21 @@ export type Executor = typeof db | Parameters<Parameters<typeof db.transaction>[
 export type Filters = (SQL | undefined)[];
 
 /**
- * One keyset page of any list, newest first: the rows, plus where the next page starts.
+ * One keyset page of a feed, newest first: the rows, plus where the next page starts.
  *
  * Requires an ordering the cursor column agrees with (a `serial` id descending) — that is what makes
  * "older than the last one shown" a complete condition. Reads one row past `limit`, which answers
  * "is there another page" in place of a second `COUNT(*)`.
+ *
+ * For a list with a numbered pager, use {@link readPagedList} — a cursor can't count pages.
  */
-export async function readPage<Row extends { id: number }>({
+export async function readCursorPage<Row extends { id: number }>({
   cursor,
   filters = [],
   id,
   limit,
   read,
-}: PageParams & {
+}: CursorParams & {
   filters?: Filters;
   id: PgColumn;
   read: (query: { limit: number; where: SQL | undefined }) => Promise<Row[]>;
@@ -46,6 +48,50 @@ export async function readPage<Row extends { id: number }>({
   const entries = rows.slice(0, limit);
 
   return { entries, nextCursor: rows.length > limit ? (entries.at(-1)?.id ?? null) : null };
+}
+
+/**
+ * One numbered page of a list: the rows, and how many there are in total to page through.
+ *
+ * The count is a second query rather than a window function, because the read is a drizzle
+ * *relational* query — `findMany` with `with:` — and there is no way to hang an aggregate off one.
+ * Both run against the same `filters`, in parallel.
+ *
+ * `page` comes back out because it may not be the one that was asked for: rows are deleted while
+ * somebody is on the last page, and an offset past the end returns nothing at all. Rather than show
+ * an empty table under a pager reading "page 9 of 8", an overshooting page re-reads at the last real
+ * one. Callers render the pager from the returned `page`, never from the URL that asked.
+ */
+export async function readPagedList<Row>({
+  filters = [],
+  page,
+  pageSize,
+  read,
+  table,
+}: PagedParams & {
+  filters?: Filters;
+  table: PgTable;
+  read: (query: { limit: number; offset: number; where: SQL | undefined }) => Promise<Row[]>;
+}) {
+  const where = and(...filters);
+  const [rows, [totals]] = await Promise.all([
+    read({ limit: pageSize, offset: (page - 1) * pageSize, where }),
+    db.select({ total: count() }).from(table).where(where),
+  ]);
+
+  const total = totals?.total ?? 0;
+  const lastPage = Math.max(1, Math.ceil(total / pageSize));
+
+  if (rows.length === 0 && page > lastPage) {
+    return {
+      items: await read({ limit: pageSize, offset: (lastPage - 1) * pageSize, where }),
+      page: lastPage,
+      pageSize,
+      total,
+    };
+  }
+
+  return { items: rows, page, pageSize, total };
 }
 
 /**

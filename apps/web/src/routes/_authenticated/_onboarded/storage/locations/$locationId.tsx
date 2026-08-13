@@ -13,7 +13,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import z from 'zod';
 
-import { searchQueryParam, sortDirection } from '@homewise/server/models';
+import { pagedQueryParams, searchQueryParam, sortDirection } from '@homewise/server/models';
 import { storageItemLoanStatus, storageItemSortKey } from '@homewise/server/storage-items';
 import {
   Breadcrumb,
@@ -54,6 +54,7 @@ import {
   Actionbar,
   ConfirmDeleteDialog,
   ExternalLink,
+  ListPagination,
   PageLayout,
   RouteError,
   SearchInput,
@@ -85,6 +86,7 @@ const searchParamsModel = z.object({
   loanStatus: storageItemLoanStatus.default('all').catch('all'),
   sortKey: storageItemSortKey.default('name').catch('name'),
   sortDirection: sortDirection.default('asc').catch('asc'),
+  ...pagedQueryParams.shape,
 });
 
 export const Route = createFileRoute('/_authenticated/_onboarded/storage/locations/$locationId')({
@@ -123,13 +125,13 @@ function StorageLocationRoute() {
   const [addOpen, setAddOpen] = useState(false);
 
   const { data: location } = useSuspenseQuery(getStorageLocationQueryOptions(Number(locationId)));
-  const { data: items } = useSuspenseQuery(
+  const { data: itemsPage } = useSuspenseQuery(
     listStorageItemsQueryOptions({ ...searchParams, locationId: Number(locationId) })
   );
 
   const setSearchParam = useSearchParamSetter(Route);
 
-  const table = useDataTable({ columns, data: items, getRowId });
+  const table = useDataTable({ columns, data: itemsPage.items, getRowId });
 
   const isFiltered = Boolean(searchParams.search) || searchParams.loanStatus !== 'all';
   const pin =
@@ -271,6 +273,8 @@ function StorageLocationRoute() {
           }
           table={table}
         />
+
+        <ListPagination page={itemsPage} setSearchParam={setSearchParam} />
 
         {addOpen && <ItemFormDialog locationId={location.id} onOpenChange={setAddOpen} open={addOpen} />}
       </PageLayout>

@@ -27,7 +27,7 @@ import {
 } from '@homewise/ui/core';
 
 import { parseResponse } from '@/api/client';
-import { listIngredientsQueryOptions } from '@/modules/ingredients';
+import { listIngredientOptionsQueryOptions } from '@/modules/ingredients';
 import { ConfirmDeleteDialog, InlineTextField, RouteError, serverMessage } from '@/modules/shared';
 import {
   $completeList,
@@ -53,7 +53,7 @@ export const Route = createFileRoute('/_authenticated/_onboarded/food/shopping-l
     const [list] = await Promise.all([
       context.queryClient.ensureQueryData(getShoppingListQueryOptions(Number(params.listId))),
       // The add-item picker opens without a spinner, and the library is small.
-      context.queryClient.ensureQueryData(listIngredientsQueryOptions()),
+      context.queryClient.ensureQueryData(listIngredientOptionsQueryOptions()),
     ]);
 
     // While the filter hides completed lists, a completed list simply isn't there — including one

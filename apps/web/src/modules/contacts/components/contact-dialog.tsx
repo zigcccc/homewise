@@ -10,7 +10,7 @@ import {
   $patchContact,
   getContactQueryOptions,
   invalidateContacts,
-  listContactsQueryOptions,
+  listContactOptionsQueryOptions,
 } from '../contacts.queries';
 import { applyRelationChanges, contactTypeLabels, showsPersonalDetails, toRelationDrafts } from '../helpers';
 import { ContactFormDialog, type ContactFormValues } from './contact-form-dialog';
@@ -36,7 +36,7 @@ export function ContactDialog({
   // rather than seeding the form from whatever the caller happened to have. Getting this wrong is
   // not a blank section: the save would read it as "every relation removed".
   const { data: contact } = useQuery({ ...getContactQueryOptions(contactId ?? 0), enabled: contactId !== undefined });
-  const { data: allContacts = [] } = useQuery(listContactsQueryOptions());
+  const { data: allContacts = [] } = useQuery(listContactOptionsQueryOptions());
 
   const savedRelations = contact ? toRelationDrafts(contact.relations) : [];
   // Memoized for its identity rather than its cost: `AddContactCombobox` filters this inside a

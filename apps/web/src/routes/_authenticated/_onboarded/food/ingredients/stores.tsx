@@ -4,7 +4,7 @@ import { PlusIcon, StoreIcon } from 'lucide-react';
 import { useState } from 'react';
 import z from 'zod';
 
-import { searchQueryParam, sortDirection } from '@homewise/server/models';
+import { pagedQueryParams, searchQueryParam, sortDirection } from '@homewise/server/models';
 import { storeSortKey } from '@homewise/server/stores';
 import {
   Button,
@@ -19,7 +19,7 @@ import {
   useDataTable,
 } from '@homewise/ui/core';
 
-import { SearchInput, SortDirectionToggle, useSearchParamSetter } from '@/modules/shared';
+import { ListPagination, SearchInput, SortDirectionToggle, useSearchParamSetter } from '@/modules/shared';
 import { listStoresQueryOptions, StoreFormDialog } from '@/modules/stores';
 
 import { storesTableColumns } from './-stores-table.config';
@@ -28,6 +28,7 @@ const searchParamsModel = z.object({
   search: searchQueryParam,
   sortKey: storeSortKey.default('name').catch('name'),
   sortDirection: sortDirection.default('asc').catch('asc'),
+  ...pagedQueryParams.shape,
 });
 
 export const Route = createFileRoute('/_authenticated/_onboarded/food/ingredients/stores')({
@@ -47,12 +48,12 @@ function StoresRoute() {
   // This one belongs to the empty state's call to action; both open the same dialog.
   const [addOpen, setAddOpen] = useState(false);
 
-  const { data: stores } = useSuspenseQuery(listStoresQueryOptions(searchParams));
+  const { data: storesPage } = useSuspenseQuery(listStoresQueryOptions(searchParams));
 
   const setSearchParam = useSearchParamSetter(Route);
 
   const table = useDataTable({
-    data: stores,
+    data: storesPage.items,
     columns: storesTableColumns,
   });
 
@@ -100,6 +101,8 @@ function StoresRoute() {
         }
         table={table}
       />
+
+      <ListPagination page={storesPage} setSearchParam={setSearchParam} />
 
       <StoreFormDialog onOpenChange={setAddOpen} open={addOpen} />
     </div>

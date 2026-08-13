@@ -2,7 +2,7 @@ import { captureException } from '@sentry/hono/node';
 import { and, desc, eq, gt, ilike, inArray, sql } from 'drizzle-orm';
 
 import { db, schema } from '#db/core';
-import { type Filters, readPage } from '#db/utils';
+import { type Filters, readCursorPage } from '#db/utils';
 import { type FieldChange } from '#lib/models';
 import { type HouseholdEvent } from '#modules/realtime/realtime.model';
 
@@ -135,7 +135,7 @@ export class ActivityService {
       filters.push(ilike(columns.label, `%${search}%`));
     }
 
-    return readPage({
+    return readCursorPage({
       cursor,
       filters,
       id: columns.id,

@@ -1,6 +1,8 @@
 import { type QueryClient, queryOptions } from '@tanstack/react-query';
 import { type InferRequestType, type InferResponseType } from 'hono';
 
+import { MAX_PAGE_SIZE } from '@homewise/server/models';
+
 import { client, parseResponse } from '@/api/client';
 
 const $listContacts = client.contacts.$get;
@@ -15,7 +17,8 @@ const $removeContactRelation = client.contacts[':id'].relations[':relationId'].$
 export type ListContactsQuery = InferRequestType<typeof $listContacts>['query'];
 
 /** A household contact as the list endpoint returns it — the address book row. */
-export type HouseholdContact = InferResponseType<typeof $listContacts, 200>[number];
+export type ContactsPage = InferResponseType<typeof $listContacts, 200>;
+export type HouseholdContact = ContactsPage['items'][number];
 
 /** One contact in full: the row, its links, and who it's related to. */
 export type ContactDetail = InferResponseType<typeof $readContact, 200>;
@@ -41,6 +44,14 @@ export function listContactsQueryOptions(query: ListContactsQuery = {}) {
   return queryOptions({
     queryKey: ['contacts', 'list', query],
     queryFn: async () => parseResponse($listContacts({ query })),
+  });
+}
+
+/** Every contact, for a picker, as a plain array. See `listStoreOptionsQueryOptions` for the cap. */
+export function listContactOptionsQueryOptions() {
+  return queryOptions({
+    ...listContactsQueryOptions({ pageSize: MAX_PAGE_SIZE }),
+    select: (page: ContactsPage) => page.items,
   });
 }
 

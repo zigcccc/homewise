@@ -1,6 +1,6 @@
 import z from 'zod';
 
-import { pageQueryParams, searchQueryParam } from '#lib/models';
+import { cursorQueryParams, searchQueryParam } from '#lib/models';
 import { householdEventEntity } from '#modules/realtime/realtime.model';
 
 /** The entity union is the realtime one, not a copy: a logged row *is* an event that carried a label. */
@@ -14,5 +14,5 @@ export type ActivityFilters = z.infer<typeof activityFiltersModel>;
 /** How many lines a feed page holds when the caller doesn't say. */
 const PAGE_SIZE = 20;
 
-export const listActivityQueryParamsModel = activityFiltersModel.extend(pageQueryParams(PAGE_SIZE).shape);
+export const listActivityQueryParamsModel = activityFiltersModel.extend(cursorQueryParams(PAGE_SIZE).shape);
 export type ListActivityQueryParams = z.infer<typeof listActivityQueryParamsModel>;

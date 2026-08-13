@@ -1,6 +1,6 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
 
-import { IngredientCombobox, listIngredientsQueryOptions } from '@/modules/ingredients';
+import { IngredientCombobox, listIngredientOptionsQueryOptions } from '@/modules/ingredients';
 import { getShoppingListQueryOptions, useListMutations } from '@/modules/shopping-lists';
 
 /**
@@ -12,7 +12,7 @@ import { getShoppingListQueryOptions, useListMutations } from '@/modules/shoppin
  * vocabulary, which is the distinction the combobox's action row spells out.
  */
 export function AddItemRow({ listId }: { listId: number }) {
-  const { data: ingredients } = useSuspenseQuery(listIngredientsQueryOptions());
+  const { data: ingredients } = useSuspenseQuery(listIngredientOptionsQueryOptions());
   const { data: list } = useSuspenseQuery(getShoppingListQueryOptions(listId));
   const { addItemOrToast, isAdding } = useListMutations(listId);
 

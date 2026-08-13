@@ -2,7 +2,7 @@ import { and, asc, count, desc, eq, ilike, inArray, isNull, ne, or, sql } from '
 import { HTTPException } from 'hono/http-exception';
 
 import { db, schema } from '#db/core';
-import { type Executor, emptyToNull, type Filters, isUniqueViolation, writesAnything } from '#db/utils';
+import { type Executor, emptyToNull, type Filters, isUniqueViolation, readPagedList, writesAnything } from '#db/utils';
 import { alreadyExists, couldNotResolve, notFound, somethingWentWrong } from '#lib/errors';
 import { ShoppingListsService } from '#modules/shopping-lists/shopping-lists.service';
 import { StoresService } from '#modules/stores/stores.service';
@@ -176,7 +176,7 @@ export class IngredientsService {
   /** The household's ingredient library, with how many recipes each one is used in. */
   public static async list(
     householdId: number,
-    { search, category, store, sortKey, sortDirection }: ListIngredientsQueryParams
+    { search, category, store, sortKey, sortDirection, page, pageSize }: ListIngredientsQueryParams
   ) {
     const {
       householdId: householdIdColumn,
@@ -204,15 +204,27 @@ export class IngredientsService {
       filters.push(eq(storeIdColumn, store));
     }
 
-    const ingredients = await db.query.ingredient.findMany({
-      where: and(...filters),
-      orderBy: sortDirection === 'desc' ? [desc(sortColumn)] : [asc(sortColumn)],
-      with: { store: { columns: { id: true, name: true } } },
+    const paged = await readPagedList({
+      filters,
+      page,
+      pageSize,
+      table: schema.ingredient,
+      // The id breaks ties, so the many ingredients sharing a category don't reshuffle between two
+      // reads and move a row across a page boundary.
+      read: (query) =>
+        db.query.ingredient.findMany({
+          ...query,
+          orderBy:
+            sortDirection === 'desc'
+              ? [desc(sortColumn), desc(schema.ingredient.id)]
+              : [asc(sortColumn), asc(schema.ingredient.id)],
+          with: { store: { columns: { id: true, name: true } } },
+        }),
     });
 
-    const usage = await IngredientsService.countRecipeUsage(ingredients.map((row) => row.id));
+    const usage = await IngredientsService.countRecipeUsage(paged.items.map((row) => row.id));
 
-    return ingredients.map((row) => ({ ...row, recipeCount: usage.get(row.id) ?? 0 }));
+    return { ...paged, items: paged.items.map((row) => ({ ...row, recipeCount: usage.get(row.id) ?? 0 })) };
   }
 
   /**

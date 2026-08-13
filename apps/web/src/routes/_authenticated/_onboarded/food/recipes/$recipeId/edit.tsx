@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { Button, Spinner } from '@homewise/ui/core';
 
 import { client, parseResponse } from '@/api/client';
-import { invalidateIngredients, listIngredientsQueryOptions } from '@/modules/ingredients';
+import { invalidateIngredients, listIngredientOptionsQueryOptions } from '@/modules/ingredients';
 import {
   getRecipeQueryOptions,
   invalidateRecipe,
@@ -21,7 +21,7 @@ export const Route = createFileRoute('/_authenticated/_onboarded/food/recipes/$r
   async loader({ context, params }) {
     await Promise.all([
       context.queryClient.ensureQueryData(getRecipeQueryOptions(Number(params.recipeId))),
-      context.queryClient.ensureQueryData(listIngredientsQueryOptions()),
+      context.queryClient.ensureQueryData(listIngredientOptionsQueryOptions()),
       context.queryClient.ensureQueryData(listRecipeTagsQueryOptions()),
     ]);
   },
@@ -36,7 +36,7 @@ function EditRecipeRoute() {
   const id = Number(recipeId);
 
   const { data: recipe } = useSuspenseQuery(getRecipeQueryOptions(id));
-  const { data: ingredients } = useSuspenseQuery(listIngredientsQueryOptions());
+  const { data: ingredients } = useSuspenseQuery(listIngredientOptionsQueryOptions());
   const { data: tags } = useSuspenseQuery(listRecipeTagsQueryOptions());
 
   const { mutateAsync: patchRecipe } = useMutation({

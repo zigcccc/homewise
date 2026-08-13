@@ -2,7 +2,7 @@ import { createInsertSchema, createUpdateSchema } from 'drizzle-zod';
 import z from 'zod';
 
 import * as schema from '#db/schema/core';
-import { dbOwnedColumns, optionalText, searchQueryParam, sortDirection } from '#lib/models';
+import { dbOwnedColumns, optionalText, pagedQueryParams, searchQueryParam, sortDirection } from '#lib/models';
 
 /** The name bounds on their own, so an inline rename validates against the same contract. */
 export const storeName = z
@@ -33,5 +33,6 @@ export const listStoresQueryParamsModel = z.object({
   search: searchQueryParam,
   sortKey: storeSortKey.default('name').catch('name'),
   sortDirection: sortDirection.default('asc').catch('asc'),
+  ...pagedQueryParams.shape,
 });
 export type ListStoresQueryParams = z.infer<typeof listStoresQueryParamsModel>;

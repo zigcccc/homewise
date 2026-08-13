@@ -2,7 +2,14 @@ import { createInsertSchema, createSelectSchema, createUpdateSchema } from 'driz
 import z from 'zod';
 
 import * as schema from '#db/schema/core';
-import { clearableDate, dbOwnedColumns, optionalText, searchQueryParam, sortDirection } from '#lib/models';
+import {
+  clearableDate,
+  dbOwnedColumns,
+  optionalText,
+  pagedQueryParams,
+  searchQueryParam,
+  sortDirection,
+} from '#lib/models';
 
 /** Contact categories, straight off the DB enum. Reused by the web for labels and selects. */
 export const contactType = createSelectSchema(schema.contactTypeEnum);
@@ -127,6 +134,7 @@ export const listContactsQueryParamsModel = z.object({
   type: contactType.optional().catch(undefined),
   sortKey: contactSortKey.default('name').catch('name'),
   sortDirection: sortDirection.default('asc').catch('asc'),
+  ...pagedQueryParams.shape,
 });
 export type ListContactsQueryParams = z.infer<typeof listContactsQueryParamsModel>;
 

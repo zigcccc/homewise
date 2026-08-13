@@ -2,7 +2,7 @@ import { createInsertSchema, createUpdateSchema } from 'drizzle-zod';
 import z from 'zod';
 
 import * as schema from '#db/schema/core';
-import { dbOwnedColumns, moneyAmount, searchQueryParam, sortDirection } from '#lib/models';
+import { dbOwnedColumns, moneyAmount, pagedQueryParams, searchQueryParam, sortDirection } from '#lib/models';
 import { expenseCategoryName } from '#modules/expense-categories/expense-categories.model';
 
 /** The title bounds on their own, so the table's inline editor validates against the same contract. */
@@ -87,6 +87,7 @@ export const listExpensesQueryParamsModel = z.object({
     .catch(undefined),
   sortKey: expenseSortKey.default('recordedAt').catch('recordedAt'),
   sortDirection: sortDirection.default('desc').catch('desc'),
+  ...pagedQueryParams.shape,
 });
 export type ListExpensesQueryParams = z.infer<typeof listExpensesQueryParamsModel>;
 

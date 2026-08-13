@@ -14,7 +14,7 @@ import {
 } from '@homewise/ui/core';
 
 import { client, parseResponse } from '@/api/client';
-import { invalidateIngredients, listIngredientsQueryOptions } from '@/modules/ingredients';
+import { invalidateIngredients, listIngredientOptionsQueryOptions } from '@/modules/ingredients';
 import { invalidateRecipes, listRecipeTagsQueryOptions, RecipeForm, type RecipeFormValues } from '@/modules/recipes';
 import { Actionbar, PageLayout, serverMessage } from '@/modules/shared';
 
@@ -23,7 +23,7 @@ const $createRecipe = client.recipes.$post;
 export const Route = createFileRoute('/_authenticated/_onboarded/food/recipes/new')({
   async loader({ context }) {
     await Promise.all([
-      context.queryClient.ensureQueryData(listIngredientsQueryOptions()),
+      context.queryClient.ensureQueryData(listIngredientOptionsQueryOptions()),
       context.queryClient.ensureQueryData(listRecipeTagsQueryOptions()),
     ]);
   },
@@ -35,7 +35,7 @@ function NewRecipeRoute() {
   const navigate = Route.useNavigate();
   const queryClient = useQueryClient();
 
-  const { data: ingredients } = useSuspenseQuery(listIngredientsQueryOptions());
+  const { data: ingredients } = useSuspenseQuery(listIngredientOptionsQueryOptions());
   const { data: tags } = useSuspenseQuery(listRecipeTagsQueryOptions());
 
   const { mutateAsync: createRecipe } = useMutation({

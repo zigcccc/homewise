@@ -4,6 +4,7 @@ import { HTTPException } from 'hono/http-exception';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { db, schema } from '#db/core';
+import { DEFAULT_PAGE_SIZE } from '#lib/models';
 import { ContactsService } from '#modules/contacts/contacts.service';
 
 /**
@@ -57,11 +58,16 @@ describe('ContactsService.list sorted by birthday', () => {
     vi.setSystemTime(new Date('2026-06-15T09:00:00Z'));
 
     // WHEN: the address book is sorted by birthday
-    const contacts = await ContactsService.list(householdId, { sortKey: 'birthday', sortDirection: 'asc' });
+    const contacts = await ContactsService.list(householdId, {
+      sortKey: 'birthday',
+      sortDirection: 'asc',
+      page: 1,
+      pageSize: DEFAULT_PAGE_SIZE,
+    });
 
     // THEN: it should read forwards from today — and the January birthday, which holds the *smallest*
     // date of the five, should come last of the dated ones rather than first
-    expect(contacts.map((contact) => contact.name)).toEqual([
+    expect(contacts.items.map((contact) => contact.name)).toEqual([
       `Today ${suffix}`,
       `In five days ${suffix}`,
       `Later this year ${suffix}`,
@@ -78,10 +84,15 @@ describe('ContactsService.list sorted by birthday', () => {
     await createContact(householdId, `Undated ${suffix}`);
 
     // WHEN: the list is sorted descending
-    const contacts = await ContactsService.list(householdId, { sortKey: 'birthday', sortDirection: 'desc' });
+    const contacts = await ContactsService.list(householdId, {
+      sortKey: 'birthday',
+      sortDirection: 'desc',
+      page: 1,
+      pageSize: DEFAULT_PAGE_SIZE,
+    });
 
     // THEN: the undated one should still trail — an empty column is not a value to sort into the middle
-    expect(contacts.map((contact) => contact.name)).toEqual([`Dated ${suffix}`, `Undated ${suffix}`]);
+    expect(contacts.items.map((contact) => contact.name)).toEqual([`Dated ${suffix}`, `Undated ${suffix}`]);
   });
 });
 

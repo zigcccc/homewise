@@ -2,7 +2,7 @@ import { createInsertSchema, createSelectSchema, createUpdateSchema } from 'driz
 import z from 'zod';
 
 import * as schema from '#db/schema/core';
-import { dbOwnedColumns, optionalText, searchQueryParam, sortDirection } from '#lib/models';
+import { dbOwnedColumns, optionalText, pagedQueryParams, searchQueryParam, sortDirection } from '#lib/models';
 import { ingredientName, measurementUnit } from '#modules/ingredients/ingredients.model';
 
 /** Meal types, straight off the DB enum. Reused by the web for labels and selects. */
@@ -145,5 +145,6 @@ export const listRecipesQueryParamsModel = z.object({
   includeArchived: z.stringbool().default(false).catch(false),
   sortKey: recipeSortKey.default('title').catch('title'),
   sortDirection: sortDirection.default('asc').catch('asc'),
+  ...pagedQueryParams.shape,
 });
 export type ListRecipesQueryParams = z.infer<typeof listRecipesQueryParamsModel>;

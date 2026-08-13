@@ -16,7 +16,7 @@ export type PlannedMeal = MealPlanRange['meals'][number];
  * What the meal dialog needs of a recipe and of a member — derived from the responses that feed it,
  * so neither can drift from the server contract.
  */
-export type RecipeOption = InferResponseType<typeof client.recipes.$get, 200>[number];
+export type RecipeOption = InferResponseType<typeof client.recipes.$get, 200>['items'][number];
 export type MemberOption = NonNullable<InferResponseType<typeof client.households.my.$get>>['members'][number];
 
 /**

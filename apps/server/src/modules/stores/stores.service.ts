@@ -1,7 +1,15 @@
 import { and, asc, count, desc, eq, ilike, inArray, ne, or, sql } from 'drizzle-orm';
 
 import { db, schema } from '#db/core';
-import { changedColumns, type Executor, emptyToNull, type Filters, isUniqueViolation, writesAnything } from '#db/utils';
+import {
+  changedColumns,
+  type Executor,
+  emptyToNull,
+  type Filters,
+  isUniqueViolation,
+  readPagedList,
+  writesAnything,
+} from '#db/utils';
 import { alreadyExists, couldNotResolve, notFound, somethingWentWrong } from '#lib/errors';
 import { ShoppingListsService } from '#modules/shopping-lists/shopping-lists.service';
 
@@ -123,7 +131,10 @@ export class StoresService {
   }
 
   /** The household's shops, with how many ingredients default to each. */
-  public static async list(householdId: number, { search, sortKey, sortDirection }: ListStoresQueryParams) {
+  public static async list(
+    householdId: number,
+    { search, sortKey, sortDirection, page, pageSize }: ListStoresQueryParams
+  ) {
     const { householdId: householdIdColumn, name, notes } = schema.store;
     const sortColumn = schema.store[sortKey];
 
@@ -134,18 +145,32 @@ export class StoresService {
       filters.push(or(ilike(name, term), ilike(notes, term)));
     }
 
-    const stores = await db
-      .select()
-      .from(schema.store)
-      .where(and(...filters))
-      .orderBy(sortDirection === 'desc' ? desc(sortColumn) : asc(sortColumn));
+    const paged = await readPagedList({
+      filters,
+      page,
+      pageSize,
+      table: schema.store,
+      // The id breaks the tie, so two shops sharing a sort value keep their order between reads and
+      // can't swap across a page boundary.
+      read: (query) =>
+        db
+          .select()
+          .from(schema.store)
+          .where(query.where)
+          .orderBy(
+            sortDirection === 'desc' ? desc(sortColumn) : asc(sortColumn),
+            sortDirection === 'desc' ? desc(schema.store.id) : asc(schema.store.id)
+          )
+          .limit(query.limit)
+          .offset(query.offset),
+    });
 
     const usage = await StoresService.countIngredientUsage(
       householdId,
-      stores.map((row) => row.id)
+      paged.items.map((row) => row.id)
     );
 
-    return stores.map((row) => ({ ...row, ingredientCount: usage.get(row.id) ?? 0 }));
+    return { ...paged, items: paged.items.map((row) => ({ ...row, ingredientCount: usage.get(row.id) ?? 0 })) };
   }
 
   public static async create(householdId: number, data: CreateStore) {

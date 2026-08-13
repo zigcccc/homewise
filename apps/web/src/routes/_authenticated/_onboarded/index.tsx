@@ -14,13 +14,13 @@ import {
   Skeleton,
 } from '@homewise/ui/core';
 
-import { ContactDialog, listContactsQueryOptions } from '@/modules/contacts';
+import { ContactDialog } from '@/modules/contacts';
 import { ExpenseFormDialog } from '@/modules/expenses';
 import { getMyHouseholdQueryOptions } from '@/modules/households';
 import { Actionbar, formatDate, PageLayout, RouteError, todayISODay } from '@/modules/shared';
 
 import { ActivityCard, dashboardActivityQueryOptions } from './-components/activity-card';
-import { BirthdaysCard } from './-components/birthdays-card';
+import { BirthdaysCard, dashboardBirthdayContactsQueryOptions } from './-components/birthdays-card';
 import {
   dashboardChildProfilesQueryOptions,
   dashboardPetProfilesQueryOptions,
@@ -50,7 +50,7 @@ export const Route = createFileRoute('/_authenticated/_onboarded/')({
       context.queryClient.ensureQueryData(dashboardRecentExpensesQueryOptions()),
       context.queryClient.ensureQueryData(dashboardLoansQueryOptions()),
       context.queryClient.ensureQueryData(dashboardRecentRecipesQueryOptions()),
-      context.queryClient.ensureQueryData(listContactsQueryOptions()),
+      context.queryClient.ensureQueryData(dashboardBirthdayContactsQueryOptions()),
       context.queryClient.ensureQueryData(dashboardChildProfilesQueryOptions()),
       context.queryClient.ensureQueryData(dashboardPetProfilesQueryOptions()),
       context.queryClient.ensureQueryData(dashboardActivityQueryOptions()),

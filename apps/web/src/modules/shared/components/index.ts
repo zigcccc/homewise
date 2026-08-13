@@ -4,6 +4,7 @@ export * from './date-field';
 export * from './external-link';
 export * from './inline-cell';
 export * from './inline-text-field';
+export * from './list-pagination';
 export * from './page-layout';
 export * from './route-error';
 export * from './search-input';

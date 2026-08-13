@@ -1,7 +1,7 @@
 import { and, asc, count, desc, eq, ilike, inArray, or } from 'drizzle-orm';
 
 import { db, schema } from '#db/core';
-import { changedColumns, type Executor, emptyToNull, type Filters, sameList } from '#db/utils';
+import { changedColumns, type Executor, emptyToNull, type Filters, readPagedList, sameList } from '#db/utils';
 import { couldNotResolve, notFound, somethingWentWrong } from '#lib/errors';
 import { IngredientsService } from '#modules/ingredients/ingredients.service';
 import { MealPlanService } from '#modules/meal-plan/meal-plan.service';
@@ -251,7 +251,17 @@ export class RecipesService {
    */
   public static async list(
     householdId: number,
-    { search, mealType, tagId, favoritesOnly, includeArchived, sortKey, sortDirection }: ListRecipesQueryParams
+    {
+      search,
+      mealType,
+      tagId,
+      favoritesOnly,
+      includeArchived,
+      sortKey,
+      sortDirection,
+      page,
+      pageSize,
+    }: ListRecipesQueryParams
   ) {
     const { archived, cuisine, description, householdId: householdIdColumn, isFavorite, title } = schema.recipe;
     const sortColumn = schema.recipe[sortKey];
@@ -294,12 +304,25 @@ export class RecipesService {
       filters.push(eq(archived, false));
     }
 
-    const recipes = await db.query.recipe.findMany({
-      where: and(...filters),
-      orderBy: sortDirection === 'desc' ? [desc(sortColumn)] : [asc(sortColumn)],
-      with: { creator: creatorWith, tagLinks: { with: { tag: true } } },
+    const paged = await readPagedList({
+      filters,
+      page,
+      pageSize,
+      table: schema.recipe,
+      // The id breaks the tie, so the recipes sharing a title or a day keep their order between
+      // reads and can't swap across a page boundary.
+      read: (query) =>
+        db.query.recipe.findMany({
+          ...query,
+          orderBy:
+            sortDirection === 'desc'
+              ? [desc(sortColumn), desc(schema.recipe.id)]
+              : [asc(sortColumn), asc(schema.recipe.id)],
+          with: { creator: creatorWith, tagLinks: { with: { tag: true } } },
+        }),
     });
 
+    const recipes = paged.items;
     const recipeIds = recipes.map((row) => row.id);
 
     // Both counts are constrained to the ids just read, never grouped over the whole table.
@@ -322,11 +345,14 @@ export class RecipesService {
     const ingredientCountByRecipe = new Map(ingredientCounts.map(({ recipeId, count }) => [recipeId, count]));
     const stepCountByRecipe = new Map(stepCounts.map(({ recipeId, count }) => [recipeId, count]));
 
-    return recipes.map((row) => ({
-      ...flattenTags(row),
-      ingredientCount: ingredientCountByRecipe.get(row.id) ?? 0,
-      stepCount: stepCountByRecipe.get(row.id) ?? 0,
-    }));
+    return {
+      ...paged,
+      items: recipes.map((row) => ({
+        ...flattenTags(row),
+        ingredientCount: ingredientCountByRecipe.get(row.id) ?? 0,
+        stepCount: stepCountByRecipe.get(row.id) ?? 0,
+      })),
+    };
   }
 
   public static async read(householdId: number, recipeId: number) {

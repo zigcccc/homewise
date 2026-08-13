@@ -14,7 +14,7 @@ import {
   ComboboxSeparator,
 } from '@homewise/ui/core';
 
-import { listStoresQueryOptions } from '../stores.queries';
+import { listStoreOptionsQueryOptions } from '../stores.queries';
 
 /**
  * What the picker hands back: an existing shop, a shop that doesn't exist yet, or none at all.
@@ -59,7 +59,7 @@ export function StoreCombobox({
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
 
-  const { data: stores } = useSuspenseQuery(listStoresQueryOptions());
+  const { data: stores } = useSuspenseQuery(listStoreOptionsQueryOptions());
 
   const query = search.trim().toLowerCase();
   const filtered = useMemo(
