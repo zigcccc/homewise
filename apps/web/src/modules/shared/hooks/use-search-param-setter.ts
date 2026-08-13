@@ -1,21 +1,38 @@
-import { useNavigate } from '@tanstack/react-router';
+import { type UseNavigateResult } from '@tanstack/react-router';
 import { useCallback } from 'react';
+
+/** Any file route, narrowed to the two things this needs: its search schema, and its own navigate. */
+type RouteWithSearch = {
+  types: { fullSearchSchema: Record<string, unknown> };
+  useNavigate: () => UseNavigateResult<string>;
+};
 
 /**
  * Sets one of the route's search params, keeping the rest.
  *
- * `replace` for a change not worth a history entry — a debounced search term, where pushing would
- * make Back walk the word back a letter at a time.
+ * Takes the `Route` so the params stay the route's own: the keys and values come from its
+ * `validateSearch`, and the navigation is bound to it. Reaching for the router-wide `useNavigate()`
+ * instead would accept any key and any value.
+ *
+ * The other params are read at navigation time rather than from the render that built the setter, so
+ * a call that lands late — a debounce firing after a filter click — merges into the params as they
+ * are now instead of reinstating the ones it was created with.
+ *
+ * `replace` for a change not worth a history entry: a search term pushed per keystroke makes Back
+ * walk the word backwards a letter at a time instead of leaving the page.
  */
-export function useSearchParamSetter<Search extends Record<string, unknown>>(searchParams: Search) {
-  const navigate = useNavigate();
+export function useSearchParamSetter<Route extends RouteWithSearch>(route: Route) {
+  const navigate = route.useNavigate();
 
   return useCallback(
-    <Key extends keyof Search>(key: Key, value: Search[Key], { replace = false }: { replace?: boolean } = {}) =>
-      navigate({ replace, search: { ...searchParams, [key]: value }, to: '.' }),
-    [navigate, searchParams]
+    <Key extends keyof Route['types']['fullSearchSchema']>(
+      key: Key,
+      value: Route['types']['fullSearchSchema'][Key],
+      { replace = false }: { replace?: boolean } = {}
+    ) => navigate({ replace, search: (current) => ({ ...current, [key]: value }), to: '.' }),
+    [navigate]
   );
 }
 
 /** For passing the setter down to a child component, without restating its signature there. */
-export type SearchParamSetter<Search extends Record<string, unknown>> = ReturnType<typeof useSearchParamSetter<Search>>;
+export type SearchParamSetter<Route extends RouteWithSearch> = ReturnType<typeof useSearchParamSetter<Route>>;

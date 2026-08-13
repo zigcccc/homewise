@@ -81,7 +81,7 @@ function StorageItemsRoute() {
   // every time anybody in the household stored something.
   const { data: locations } = useSuspenseQuery(listStorageLocationOptionsQueryOptions());
 
-  const setSearchParam = useSearchParamSetter(searchParams);
+  const setSearchParam = useSearchParamSetter(Route);
 
   const table = useDataTable({ columns, data: items, getRowId });
 

@@ -104,7 +104,7 @@ function RecipesRoute() {
   const { data: recipes } = useSuspenseQuery(listRecipesQueryOptions(toQuery(searchParams)));
   const { data: tags } = useSuspenseQuery(listRecipeTagsQueryOptions());
 
-  const setSearchParam = useSearchParamSetter(searchParams);
+  const setSearchParam = useSearchParamSetter(Route);
 
   const isFiltered = Boolean(
     searchParams.search || searchParams.mealType || searchParams.tagId || searchParams.favoritesOnly

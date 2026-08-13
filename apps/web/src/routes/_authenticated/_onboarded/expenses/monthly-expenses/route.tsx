@@ -136,7 +136,7 @@ function MonthlyExpensesLayout() {
   const { data: expenses } = useSuspenseQuery(listExpensesQueryOptions(queryFor(searchParams)));
   const { data: summary } = useSuspenseQuery(expensesSummaryQueryOptions(range));
 
-  const setSearchParam = useSearchParamSetter(searchParams);
+  const setSearchParam = useSearchParamSetter(Route);
 
   // Only the search value is debounced — debouncing the whole setter lets a month change land behind
   // a stale keystroke and get overwritten by it.

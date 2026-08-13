@@ -127,7 +127,7 @@ function StorageLocationRoute() {
     listStorageItemsQueryOptions({ ...searchParams, locationId: Number(locationId) })
   );
 
-  const setSearchParam = useSearchParamSetter(searchParams);
+  const setSearchParam = useSearchParamSetter(Route);
 
   const table = useDataTable({ columns, data: items, getRowId });
 

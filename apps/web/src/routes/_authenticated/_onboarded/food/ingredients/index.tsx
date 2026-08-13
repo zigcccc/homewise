@@ -76,7 +76,7 @@ function IngredientsRoute() {
   const { data: ingredients } = useSuspenseQuery(listIngredientsQueryOptions(searchParams));
   const { data: stores } = useSuspenseQuery(listStoresQueryOptions());
 
-  const setSearchParam = useSearchParamSetter(searchParams);
+  const setSearchParam = useSearchParamSetter(Route);
 
   const table = useDataTable({
     data: ingredients,

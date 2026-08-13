@@ -1,5 +1,4 @@
 import { SearchIcon } from 'lucide-react';
-import { useCallback, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { useDebounceCallback } from 'usehooks-ts';
 
@@ -27,18 +26,7 @@ export function SearchInput({
   // own — a Back button, or a filter cleared elsewhere — while typing stays ahead of the debounce.
   const form = useForm({ values: { search: value ?? '' } });
 
-  // `useDebounceCallback` builds a fresh debouncer whenever its callback changes and leaves the old
-  // one's timer running, so what it closes over has to be stable: a per-render `onChange` would fire
-  // against a search-param snapshot taken before the last filter click, silently dropping it.
-  const report = useRef(onChange);
-  useEffect(() => {
-    report.current = onChange;
-  });
-
-  const publish = useDebounceCallback(
-    useCallback((next: string) => report.current(next || undefined), []),
-    DEBOUNCE_MS
-  );
+  const publish = useDebounceCallback((next: string) => onChange(next || undefined), DEBOUNCE_MS);
 
   return (
     <Form {...form}>

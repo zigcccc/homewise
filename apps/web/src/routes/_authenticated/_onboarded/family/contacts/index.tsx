@@ -90,7 +90,7 @@ function ContactsRoute() {
 
   const { data: contacts } = useSuspenseQuery(listContactsQueryOptions(searchParams));
 
-  const setSearchParam = useSearchParamSetter(searchParams);
+  const setSearchParam = useSearchParamSetter(Route);
 
   const table = useDataTable({ columns: contactColumns, data: contacts, getRowId });
 

@@ -67,7 +67,7 @@ function StorageLocationsRoute() {
 
   const { data: locations } = useSuspenseQuery(listStorageLocationsQueryOptions(searchParams));
 
-  const setSearchParam = useSearchParamSetter(searchParams);
+  const setSearchParam = useSearchParamSetter(Route);
 
   const isFiltered = Boolean(searchParams.search);
   const pinned = locations.filter((location) => location.latitude !== null && location.longitude !== null);

@@ -87,7 +87,7 @@ function ActivityRoute() {
   );
   const { data: household } = useSuspenseQuery(getMyHouseholdQueryOptions());
 
-  const setSearchParam = useSearchParamSetter(searchParams);
+  const setSearchParam = useSearchParamSetter(Route);
 
   const entries = data.pages.flatMap((page) => page.entries);
   const groups = groupByDay(entries);

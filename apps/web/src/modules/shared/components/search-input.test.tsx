@@ -56,24 +56,6 @@ describe('SearchInput', () => {
     expect(onChange).toHaveBeenCalledExactlyOnceWith(undefined);
   });
 
-  it('should report through the newest handler when the route re-renders mid-debounce', () => {
-    // GIVEN: somebody typing, whose term has not landed yet
-    const stale = vi.fn();
-    const { rerender } = renderBox(stale);
-    type('ana');
-
-    // WHEN: something else navigates first — a filter click — so the route hands down a handler
-    // holding the new search params
-    const fresh = vi.fn();
-    rerender(<SearchInput label="Search contacts" onChange={fresh} placeholder="Search" value={undefined} />);
-    vi.advanceTimersByTime(400);
-
-    // THEN: the term should go through that one. The stale handler still carries the params from
-    // before the filter click, so firing it would quietly undo the filter
-    expect(fresh).toHaveBeenCalledExactlyOnceWith('ana');
-    expect(stale).not.toHaveBeenCalled();
-  });
-
   it('should show the term the list is actually filtered by when the param moves on its own', () => {
     // GIVEN: a box someone has typed a different term into
     const { rerender } = renderBox(vi.fn(), 'ana');

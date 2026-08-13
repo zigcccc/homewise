@@ -101,7 +101,7 @@ export const Route = createFileRoute('/_authenticated/_onboarded/food/shopping-l
  */
 function ImportRoute() {
   const searchParams = Route.useSearch();
-  const setSearchParam = useSearchParamSetter(searchParams);
+  const setSearchParam = useSearchParamSetter(Route);
 
   const range = rangeFor(searchParams);
   const { data: preview } = useSuspenseQuery(mealPlanPreviewQueryOptions(range));

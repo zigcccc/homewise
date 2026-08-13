@@ -49,7 +49,7 @@ function StoresRoute() {
 
   const { data: stores } = useSuspenseQuery(listStoresQueryOptions(searchParams));
 
-  const setSearchParam = useSearchParamSetter(searchParams);
+  const setSearchParam = useSearchParamSetter(Route);
 
   const table = useDataTable({
     data: stores,

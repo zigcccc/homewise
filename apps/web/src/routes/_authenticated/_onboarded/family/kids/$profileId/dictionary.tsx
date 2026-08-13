@@ -96,7 +96,7 @@ function DictionaryTab() {
 
   const { data: profile } = useSuspenseQuery(getChildProfileQueryOptions(Number(profileId)));
 
-  const setSearchParam = useSearchParamSetter(searchParams);
+  const setSearchParam = useSearchParamSetter(Route);
 
   // Guard before the entries query runs — otherwise a dictionary-less profile would request
   // `/entries/0` and 404 into the route error state instead of showing this empty state.
@@ -136,7 +136,7 @@ function DictionaryEntries({
   dictionary: { id: number; entryCount: number };
   profileId: number;
   searchParams: SearchParams;
-  setSearchParam: SearchParamSetter<SearchParams>;
+  setSearchParam: SearchParamSetter<typeof Route>;
 }) {
   const [addOpen, setAddOpen] = useState(false);
 
