@@ -54,11 +54,12 @@ describe('readValue', () => {
     expect(readValue(undefined)).toBeUndefined();
   });
 
-  it('should shorten a value too long to sit on a line', () => {
-    const shortened = readValue('x'.repeat(200));
+  it('should hand a long value over whole, for the layout to cut', () => {
+    // Where a line ends is a question about the width it is rendered at, which this cannot see — so
+    // the value stays intact and CSS ellipsises it.
+    const long = 'x'.repeat(200);
 
-    expect(shortened).toHaveLength(61);
-    expect(shortened).toMatch(/…$/);
+    expect(readValue(long)).toBe(long);
   });
 });
 

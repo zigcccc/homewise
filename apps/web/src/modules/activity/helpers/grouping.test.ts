@@ -1,19 +1,13 @@
-import { subDays, subHours } from 'date-fns';
+import { setHours, startOfDay, subDays, subHours } from 'date-fns';
 import { describe, expect, it } from 'vitest';
 
 import { type ActivityEntry } from '../activity.queries';
 import { dayHeading, groupByDay } from './grouping';
 
-/**
- * The feed's day headings. Pure, and worth pinning: the grouping walks an already-ordered list and
- * relies on that order, so it breaks quietly rather than loudly if it ever stops holding.
- */
+/** Anchored to midday, so a run started a few hours back can't cross midnight into another day. */
+const midday = setHours(startOfDay(new Date()), 12);
 
-/**
- * A feed row with only the fields under test meaningful. `satisfies` so it can't drift from the API.
- * `lastAt` is when the line last happened and `startedAt` when its run began — the same instant for
- * every row that never folded.
- */
+/** `lastAt` is when the line last happened, `startedAt` when its run began — the same if it never folded. */
 const entryAt = (lastAt: Date, id: number, startedAt: Date = lastAt) =>
   ({
     id,
@@ -33,11 +27,11 @@ const entryAt = (lastAt: Date, id: number, startedAt: Date = lastAt) =>
 
 describe('dayHeading', () => {
   it('should name today by name rather than by date', () => {
-    expect(dayHeading(subHours(new Date(), 2).toISOString())).toBe('Today');
+    expect(dayHeading(subHours(midday, 2).toISOString())).toBe('Today');
   });
 
   it('should name yesterday by name too', () => {
-    expect(dayHeading(subDays(new Date(), 1).toISOString())).toBe('Yesterday');
+    expect(dayHeading(subDays(midday, 1).toISOString())).toBe('Yesterday');
   });
 
   it('should fall back to the day-first date for anything older', () => {
@@ -53,10 +47,10 @@ describe('groupByDay', () => {
   it('should gather consecutive rows from the same day under one heading', () => {
     // GIVEN: three changes today and one yesterday, newest first as the server returns them
     const entries = [
-      entryAt(subHours(new Date(), 1), 4),
-      entryAt(subHours(new Date(), 2), 3),
-      entryAt(subHours(new Date(), 3), 2),
-      entryAt(subDays(new Date(), 1), 1),
+      entryAt(subHours(midday, 1), 4),
+      entryAt(subHours(midday, 2), 3),
+      entryAt(subHours(midday, 3), 2),
+      entryAt(subDays(midday, 1), 1),
     ];
 
     // WHEN: they are grouped
@@ -70,7 +64,7 @@ describe('groupByDay', () => {
 
   it('should keep the order it was given inside a group', () => {
     // GIVEN: two changes today, newest first
-    const entries = [entryAt(subHours(new Date(), 1), 2), entryAt(subHours(new Date(), 5), 1)];
+    const entries = [entryAt(subHours(midday, 1), 2), entryAt(subHours(midday, 5), 1)];
 
     // WHEN: they are grouped
     const groups = groupByDay(entries);
@@ -82,7 +76,7 @@ describe('groupByDay', () => {
 
   it('should file a folded run under the day it last happened', () => {
     // GIVEN: a run that began yesterday evening and was last added to this morning
-    const entries = [entryAt(subHours(new Date(), 1), 1, subDays(new Date(), 1))];
+    const entries = [entryAt(subHours(midday, 1), 1, subDays(midday, 1))];
 
     // WHEN: it is grouped
     const groups = groupByDay(entries);

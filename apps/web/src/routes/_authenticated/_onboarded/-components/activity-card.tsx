@@ -36,25 +36,15 @@ const CARD = {
   title: 'Recent activity',
 } satisfies DashboardCardFrame;
 
-/**
- * Sliced by the *server*, unlike every other card here, which fetches its domain whole and takes the
- * first few. This is the one table with no ceiling on it, so "give me five" has to be the request.
- */
+/** Sliced by the *server*, unlike every other card — this is the one table with no ceiling on it. */
 export const dashboardActivityQueryOptions = () => recentActivityQueryOptions();
 
 /**
- * One row. The tooltip exists only when there is something in it — asked once, here, rather than as
- * a `disabled` on the trigger.
+ * One row. The `Tooltip` exists only when there is something in it: `TooltipContent` *is* the bubble,
+ * padding and arrow included, so content that renders nothing still paints one.
  *
- * That distinction is the whole bug this shape prevents: `TooltipContent` *is* the bubble, padding
- * and arrow included, so content that renders nothing still paints one. Deciding on the trigger
- * instead means two expressions answering the same question, and a folded run whose fields all ended
- * where they began is enough to make them disagree.
- *
- * The trigger stays a button for the keyboard's sake — a tooltip nobody can focus is one a good
- * share of people can't read — but takes `cursor-default` against the base rule that makes every
- * button a pointer. Hovering to reveal a detail is not a click, and a pointer promises a navigation
- * that never happens.
+ * The trigger is a `span` rather than its default button — the line already holds a link, and a
+ * button around an anchor is invalid markup. The same detail is plain text on the feed page.
  */
 function ActivityCardLine({ entry }: { entry: ActivityEntry }) {
   const changes = collapseChanges(entry.changes);
@@ -65,10 +55,13 @@ function ActivityCardLine({ entry }: { entry: ActivityEntry }) {
 
   return (
     <Tooltip>
-      <TooltipTrigger className="cursor-default text-left">
-        <ActivityEntryLine entry={entry} />
+      <TooltipTrigger asChild>
+        <span className="min-w-0">
+          <ActivityEntryLine entry={entry} />
+        </span>
       </TooltipTrigger>
-      <TooltipContent>
+      {/* Bounded, so the `truncate` on a change line has a width to bite on — the bubble is `w-fit`. */}
+      <TooltipContent className="max-w-xs">
         <ActivityChanges changes={entry.changes} />
       </TooltipContent>
     </Tooltip>
@@ -94,11 +87,6 @@ export function ActivityCard() {
         <div className="divide-y">
           {data.entries.map((entry) => (
             <DashboardCardRow className="items-start" key={entry.id}>
-              {/*
-                What changed sits in a tooltip here rather than under the line: the card is a glance
-                at five rows, and a second line on each would double its height for a detail the feed
-                is one click away from showing in full.
-              */}
               <ActivityCardLine entry={entry} />
               <TimeAgo className="shrink-0 text-muted-foreground text-xs" value={entry.updatedAt} />
             </DashboardCardRow>

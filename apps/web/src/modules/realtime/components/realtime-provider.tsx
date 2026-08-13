@@ -77,8 +77,7 @@ const invalidators: Record<HouseholdEventEntity, (queryClient: QueryClient, even
     // a delete clears the cell on every expense that pointed at it — and moves them in the breakdown.
     invalidateExpenses(queryClient);
   },
-  // The household's own three. Before the activity log these routes emitted nothing at all, so a
-  // rename or a new member simply never reached a second tab.
+  // The household's own three. These routes emitted nothing before, so a rename never reached a second tab.
   household: (queryClient) => invalidateHouseholds(queryClient),
   household_invite: (queryClient) => invalidateHouseholds(queryClient),
   household_member: (queryClient) => {
@@ -195,9 +194,7 @@ function RealtimeSync({ channel }: { channel: string }) {
       invalidators[event.entity](queryClient, event);
     }
 
-    // Once for the whole message, not once per event: every logged change arrives here, and the feed
-    // is one list that any of them can land at the top of. This is why the activity log needs no
-    // entity of its own — it would only ever be emitted alongside something else.
+    // Once per message, not per event — which is why the log needs no entity of its own.
     invalidateActivity(queryClient);
   });
 

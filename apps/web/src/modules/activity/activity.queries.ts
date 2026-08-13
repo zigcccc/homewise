@@ -1,11 +1,12 @@
 import { infiniteQueryOptions, type QueryClient, queryOptions } from '@tanstack/react-query';
-import { type InferResponseType } from 'hono';
-
-import { type ActivityFilters } from '@homewise/server/activity';
+import { type InferRequestType, type InferResponseType } from 'hono';
 
 import { client, parseResponse } from '@/api/client';
 
 const $listActivity = client.activity.$get;
+
+/** What a feed URL narrows by — the endpoint's own query, minus the page pointer. */
+type ActivityFilters = Omit<InferRequestType<typeof $listActivity>['query'], 'cursor' | 'limit'>;
 
 /** One page of the feed: the rows, plus where the next page starts (or `null` at the end). */
 type ActivityPage = InferResponseType<typeof $listActivity, 200>;
@@ -16,19 +17,14 @@ export type ActivityEntry = ActivityPage['entries'][number];
 /** How many the dashboard card shows. Sliced by the server — this is the one table without a ceiling. */
 export const RECENT_ACTIVITY_LIMIT = 5;
 
-/**
- * The feed, a page at a time.
- *
- * The filters are the whole query key, so each combination caches on its own. `cursor` is not among
- * them: it is the page pointer, and TanStack Query already tracks it per page.
- */
+/** The feed, a page at a time. The filters are the whole key; the cursor is tracked per page. */
 export function listActivityQueryOptions(filters: ActivityFilters = {}) {
   return infiniteQueryOptions({
     queryKey: ['activity', 'list', filters],
-    queryFn: async ({ pageParam }) =>
-      parseResponse($listActivity({ query: { ...filters, cursor: pageParam ?? undefined } })),
-    initialPageParam: null as number | null,
-    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    queryFn: async ({ pageParam: cursor }) => parseResponse($listActivity({ query: { ...filters, cursor } })),
+    // A row id, not an ordinal: the first page has no cursor because it starts at the newest row.
+    initialPageParam: undefined as number | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
   });
 }
 
@@ -40,10 +36,7 @@ export function recentActivityQueryOptions() {
   });
 }
 
-/**
- * Every activity query. Always the whole prefix: a new row lands at the top of the feed under every
- * filter that admits it, and there is no id-keyed entry to be more precise about.
- */
+/** Always the whole prefix: a new row lands at the top of the feed under every filter that admits it. */
 export function invalidateActivity(queryClient: QueryClient) {
   void queryClient.invalidateQueries({ queryKey: ['activity'] });
 }

@@ -10,8 +10,8 @@ describe('the entity label records', () => {
    * a key present but left blank, which type-checks and renders "Žiga added ".
    */
   it.each(householdEventEntity.options)('should name %s in both records', (entity) => {
-    expect(ACTIVITY_ENTITY_NOUNS[entity]).not.toBe('');
-    expect(ACTIVITY_ENTITY_FILTER_LABELS[entity]).not.toBe('');
+    expect(ACTIVITY_ENTITY_NOUNS[entity]).toMatch(/\S/);
+    expect(ACTIVITY_ENTITY_FILTER_LABELS[entity]).toMatch(/\S/);
   });
 });
 

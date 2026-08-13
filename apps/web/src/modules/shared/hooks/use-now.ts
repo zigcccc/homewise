@@ -1,9 +1,6 @@
 import { useSyncExternalStore } from 'react';
 
-/**
- * How stale a relative timestamp is allowed to get. Half a minute, because the unit that moves
- * fastest is minutes and being a whole one behind is the thing that reads as broken.
- */
+/** How stale a relative timestamp may get. Half a minute, since the fastest unit shown is minutes. */
 const TICK_MS = 30_000;
 
 const listeners = new Set<() => void>();
@@ -18,11 +15,7 @@ const publish = () => {
   }
 };
 
-/**
- * A background tab has its timers throttled to minutes at best, and a sleeping machine runs none at
- * all — so coming back to a dashboard left open overnight would otherwise read "9 minutes ago" until
- * the next tick happened to fire. Catching the tab waking up is what makes the first glance right.
- */
+/** A background tab throttles timers and a sleeping machine runs none — so catch it waking up too. */
 const onVisibilityChange = () => {
   if (document.visibilityState === 'visible') {
     publish();
@@ -32,9 +25,10 @@ const onVisibilityChange = () => {
 function subscribe(listener: () => void) {
   listeners.add(listener);
 
-  // One timer for the whole page, however many timestamps read it — a dashboard card and a full feed
-  // would otherwise each run their own, all ticking at slightly different moments.
+  // One timer for the whole page, so every timestamp on it also turns over together.
   if (timer === undefined) {
+    // A first subscriber after a quiet spell would otherwise read whatever the last one left behind.
+    now = Date.now();
     timer = setInterval(publish, TICK_MS);
     document.addEventListener('visibilitychange', onVisibilityChange);
   }
@@ -52,9 +46,5 @@ function subscribe(listener: () => void) {
 
 const getSnapshot = () => now;
 
-/**
- * The current time, as something a component can re-render on. Anything showing an age rather than a
- * clock reading has to be told when to say a bigger number, or it keeps whatever it was rendered
- * with — which on a screen nobody has touched for an hour is simply wrong.
- */
+/** The current time, as something a component can re-render on. */
 export const useNow = () => useSyncExternalStore(subscribe, getSnapshot);

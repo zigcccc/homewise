@@ -39,12 +39,7 @@ export function listMyHouseholdActiveInvitesQueryOptions() {
   });
 }
 
-/**
- * The household, its members and its open invites — all three keys under one prefix.
- *
- * Deliberately the whole prefix: adding a member, accepting an invite and renaming the household all
- * change what the members page and the sidebar show, and none of them is addressed by a single key.
- */
+/** All three keys: adding a member, accepting an invite and renaming all move the same screens. */
 export function invalidateHouseholds(queryClient: QueryClient) {
   void queryClient.invalidateQueries({ queryKey: ['households'] });
 }

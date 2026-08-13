@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router';
-import { type ReactNode } from 'react';
+
+import { assertNever } from '@/modules/shared';
 
 import { type ActivityEntry } from '../activity.queries';
 import { activityAction } from '../helpers';
@@ -7,12 +8,8 @@ import { activityAction } from '../helpers';
 const LINK_CLASS = 'font-medium underline-offset-4 hover:underline';
 
 /**
- * Wraps the label in a link to whatever it was about, where that still exists.
- *
- * A `switch` returning a whole `<Link>` per route rather than a computed `to`: the router types each
- * route's params separately, so threading one through a variable widens it to `string` and loses
- * exactly the checking that makes this safe. Entities with no page of their own fall through to
- * plain text, as does anything deleted — its id now points at a 404.
+ * Links the label to whatever it was about. A whole `<Link>` per case rather than a computed `to`:
+ * the router types each route's params separately, and a variable would widen them to `string`.
  */
 function EntryLabel({ entry }: { entry: ActivityEntry }) {
   const { entity, entityId, label, operation, parentId } = entry;
@@ -135,20 +132,13 @@ function EntryLabel({ entry }: { entry: ActivityEntry }) {
     // A medical record is a tab on a profile the event doesn't name.
     case 'medical_info':
       return plain;
+    default:
+      return assertNever(entity);
   }
 }
 
-/**
- * One logged change as a sentence: "Žiga added the contact **Ana Novak**". Layout-free on purpose —
- * the feed hangs an avatar and a timestamp around it, the dashboard card only a timestamp.
- */
-export function ActivityEntryLine({
-  entry,
-  showActor = true,
-}: {
-  entry: ActivityEntry;
-  showActor?: boolean;
-}): ReactNode {
+/** One logged change as a sentence. Layout-free — the callers hang their own furniture around it. */
+export function ActivityEntryLine({ entry, showActor = true }: { entry: ActivityEntry; showActor?: boolean }) {
   return (
     <span className="min-w-0">
       {showActor ? <span className="font-medium">{entry.actorName}</span> : null}

@@ -4,15 +4,10 @@ import { type ActivityEntry } from '../activity.queries';
 import { collapseChanges, fieldLabel, readValue } from '../helpers';
 
 /**
- * What a save actually changed, under the sentence that says who saved it: "Birthday 03. 07. 2019 →
- * 04. 07. 2019". Without it a line can only report that something happened, which is the question
- * rather than the answer.
+ * What a save changed: "Birthday: 03. 07. 2019 → 04. 07. 2019". Renders nothing when there is
+ * nothing to say, so a caller can hand it any entry.
  *
- * Emphasis is weight, never colour: this renders both on the page and inside a tooltip, which
- * inverts the background under it. The caller sets the colour, the component sets the hierarchy.
- *
- * Renders nothing when there is nothing to say — a create, a delete, or an entity whose save takes
- * no diff — so a caller can hand it any entry.
+ * Emphasis is weight, never colour — this renders on the page *and* inside an inverted tooltip.
  */
 export function ActivityChanges({ changes, className }: { changes: ActivityEntry['changes']; className?: string }) {
   const collapsed = collapseChanges(changes);
@@ -27,18 +22,17 @@ export function ActivityChanges({ changes, className }: { changes: ActivityEntry
         const from = readValue(change.from);
         const to = readValue(change.to);
 
-        // A field with no values worth showing is its own content — a photo, an identity number, a
-        // list of ingredients. Named, and left at that.
+        // A photo, an identity number, a list of ingredients: named, and left at that.
         if (from === undefined || to === undefined) {
           return (
-            <li className="font-medium" key={change.field}>
+            <li className="max-w-full truncate font-medium" key={change.field}>
               {fieldLabel(change.field)}
             </li>
           );
         }
 
         return (
-          <li key={change.field}>
+          <li className="max-w-full truncate" key={change.field}>
             {fieldLabel(change.field)}: {from} → <span className="font-medium">{to}</span>
           </li>
         );

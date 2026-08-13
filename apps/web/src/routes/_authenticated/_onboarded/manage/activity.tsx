@@ -49,12 +49,8 @@ import { Actionbar, PageLayout, RouteError, TimeAgo } from '@/modules/shared';
 type SearchParams = z.infer<typeof activityFiltersModel>;
 
 /**
- * One line of the feed.
- *
- * A row is one or two lines high depending on whether the save left a diff to show, and the avatar
- * has to follow: centred against a single line, aligned to the *first* line of a pair. Top-aligning
- * both leaves the avatar hanging below a one-line sentence, which is what a folded run that ended
- * where it began looks like.
+ * One line of the feed. A row is one or two lines high depending on whether the save left a diff,
+ * and the avatar follows: centred against one line, aligned to the first of a pair.
  */
 function FeedRow({ entry }: { entry: ActivityEntry }) {
   const detailed = collapseChanges(entry.changes).length > 0;
@@ -140,6 +136,7 @@ function ActivityRoute() {
         <div className="flex flex-wrap items-center gap-2">
           <InputGroup className="w-full sm:w-auto sm:flex-1">
             <InputGroupInput
+              aria-label="Search activity"
               defaultValue={searchParams.search ?? ''}
               onChange={(evt) => debouncedSearch(evt.target.value)}
               placeholder="Search what changed"

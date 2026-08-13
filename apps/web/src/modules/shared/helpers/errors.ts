@@ -36,3 +36,17 @@ export function isServerStatus(error: unknown, status: number) {
 export function isExpectedRequestFailure(error: unknown) {
   return error instanceof DetailedError && error.statusCode >= 400 && error.statusCode < 500;
 }
+
+/**
+ * The `default` of a switch that is meant to be exhaustive: unreachable, so passing anything is a
+ * compile error naming the case that was left out.
+ *
+ * It still runs, because the unions it guards come off the wire — a server that ships a new enum
+ * value before this build does reaches here at runtime, where returning `null` renders nothing rather
+ * than crashing the route. `console.error` because that is how we reach Sentry.
+ */
+export function assertNever(value: never) {
+  console.error('Unhandled value:', value);
+
+  return null;
+}
