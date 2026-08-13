@@ -71,6 +71,18 @@ List/filter/sort state belongs in **URL search params** via `validateSearch` + `
 `@homewise/server/models` rather than a local copy, so the route validates against the same schema
 the endpoint does.
 
+**Searching is `SearchInput`** (`modules/shared`), never a hand-rolled `InputGroupInput` plus a
+`useDebounceCallback`. It owns the debounce, the accessible name and — the part that is easy to get
+wrong — keeping what is typed in sync with the URL. Feeding the input straight off the search param
+lags a keystroke behind the debounce; holding it purely locally leaves a box claiming a filter the
+list is not applying. That trade is `useEchoedState` (`modules/shared/hooks`): local state that
+follows the outside value when it moves on its own, re-syncing **during render** rather than in an
+effect, which would paint the stale value first and fight the debounce on every change of our own.
+
+Its navigation **replaces** rather than pushes: `setSearchParam(key, value, true)`. Each committed
+search term would otherwise be its own history entry, so Back walks the word backwards a few letters
+at a time instead of leaving the page. Filters and sorts still push.
+
 ## The API client
 
 API calls use the **Hono RPC client** (`src/api/client.ts`) initialized with `hc<AppType>()`, giving
