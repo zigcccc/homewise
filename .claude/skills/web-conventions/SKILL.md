@@ -114,6 +114,23 @@ Put helpers in the module (`invalidateDictionary(queryClient, id)`) and type the
 Those same `invalidate*` helpers are what the realtime subscriber calls — a new domain also needs an
 entry in the `invalidators` record, which is a compile error until you add it. See `realtime-events`.
 
+### Paging a list that grows without bound
+
+Every list endpoint but one returns its table whole, which is fine for a household's contacts or
+recipes. The activity log is the exception — it only ever grows — and is the one place with a cursor.
+`activity.queries.ts` is the pattern to copy if a second ever needs one:
+
+- **`infiniteQueryOptions`**, with `getNextPageParam: (lastPage) => lastPage.nextCursor` and an
+  explicit `initialPageParam: null as number | null`.
+- **The cursor is not in the query key** — only the filters are. It is the page pointer, and
+  TanStack Query tracks it per page; putting it in the key gives every page its own cache entry.
+- **Keyset, not offset.** The server takes `cursor` (the last id already shown) and asks for
+  `limit + 1` — whether that extra row comes back *is* the "another page?" answer, at no cost. An
+  offset would re-serve a row the moment anyone else wrote while a member was scrolling.
+- **A card wanting the newest few uses its own plain `queryOptions`** with a `limit`, on its own key
+  (`['activity', 'recent']`), so paging the full page can't disturb it. `ensureInfiniteQueryData` is
+  the loader's call for the infinite one.
+
 ## Module structure
 
 Domain-specific code that is reused across routes lives under `src/modules/<domain>/<mechanism>/<file>`
