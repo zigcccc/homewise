@@ -45,7 +45,7 @@ test.describe('pagination', () => {
     const firstPage = await rowNames(page);
 
     await pagination.next(2);
-    await expect(page).toHaveURL(/page=2/);
+    await expect(page).toHaveURL(/[?&]page=2(?:&|$)/);
     await pagination.expectOnPage(2);
 
     // The rows have to actually change, and share nothing with the page before them — a pager that
@@ -68,7 +68,7 @@ test.describe('pagination', () => {
     // The point of numbering the pages: page three without visiting page two. The seeded library is
     // comfortably more than two pages of three, so the button is always there to click.
     await pagination.goToPage(3);
-    await expect(page).toHaveURL(/page=3/);
+    await expect(page).toHaveURL(/[?&]page=3(?:&|$)/);
     await pagination.expectOnPage(3);
 
     // Back to the first, so "last" is a jump rather than a click on a button already disabled —
@@ -91,7 +91,7 @@ test.describe('pagination', () => {
     await pagination.setRowsPerPage(10);
 
     // Staying on page 3 of a list that now has one page would render an empty table.
-    await expect(page).toHaveURL(/page=1/);
+    await expect(page).toHaveURL(/[?&]page=1(?:&|$)/);
     await pagination.expectOnPage(1);
   });
 
@@ -104,7 +104,7 @@ test.describe('pagination', () => {
 
     await ingredients.search(SEED_INGREDIENTS[0].name);
 
-    await expect(page).toHaveURL(/page=1/);
+    await expect(page).toHaveURL(/[?&]page=1(?:&|$)/);
     await expect(ingredients.row(SEED_INGREDIENTS[0].name)).toBeVisible();
   });
 
