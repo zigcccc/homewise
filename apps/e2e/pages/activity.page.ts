@@ -13,7 +13,7 @@ export class ActivityPage {
   private readonly searchBox: SearchBox;
 
   constructor(private readonly page: Page) {
-    this.searchBox = new SearchBox(page, 'Search what changed');
+    this.searchBox = new SearchBox(page, 'Search activity');
   }
 
   async goto() {

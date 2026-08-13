@@ -11,7 +11,7 @@ export class RecipesPage {
 
   constructor(private readonly page: Page) {
     this.drag = new Drag(page);
-    this.searchBox = new SearchBox(page, 'Search recipes or ingredients');
+    this.searchBox = new SearchBox(page, 'Search recipes');
   }
 
   async goto() {

@@ -11,7 +11,7 @@ export class StorageLocationsPage {
   readonly overviewMap: MapCanvas;
 
   constructor(private readonly page: Page) {
-    this.searchBox = new SearchBox(page, 'Search locations and addresses');
+    this.searchBox = new SearchBox(page, 'Search locations');
     this.overviewMap = new MapCanvas(page);
   }
 
@@ -130,7 +130,7 @@ export class StorageItemsPage {
   private readonly searchBox: SearchBox;
 
   constructor(private readonly page: Page) {
-    this.searchBox = new SearchBox(page, 'Search items and notes');
+    this.searchBox = new SearchBox(page, 'Search items');
   }
 
   async goto() {

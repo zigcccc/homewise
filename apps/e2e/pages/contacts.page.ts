@@ -7,12 +7,17 @@ export class ContactsPage {
   private readonly searchBox: SearchBox;
 
   constructor(private readonly page: Page) {
-    this.searchBox = new SearchBox(page, 'Search names, phones and emails');
+    this.searchBox = new SearchBox(page, 'Search contacts');
   }
 
   async goto() {
     await this.page.goto('/family/contacts');
     await expect(this.page.getByRole('heading', { level: 1, name: 'Contacts' })).toBeVisible();
+  }
+
+  /** What the search box shows, for the spec that asks whether Back put the term back. */
+  searchValue() {
+    return this.searchBox.value();
   }
 
   row(name: string) {
