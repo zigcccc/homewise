@@ -220,29 +220,30 @@ test.describe('contacts', () => {
 
     await contacts.closeDialog();
   });
+
   test('puts the search term back in the box when you come back to the list', async ({ page }) => {
     const contacts = new ContactsPage(page);
     const name = `E2E Search ${Date.now()}`;
 
     await contacts.goto();
-    await contacts.add(name);
 
     try {
-      // GIVEN: a list narrowed twice, as anyone retyping a search does
+      await contacts.add(name);
+
+      // Narrowed twice, as anyone retyping a search does.
       await contacts.search('E2E Search');
       await contacts.search(name);
 
-      // WHEN: a contact is opened and then left by the back button
       await contacts.open(name);
       await page.goBack();
       await expect(page.getByRole('heading', { level: 1, name: 'Contacts' })).toBeVisible();
 
-      // THEN: the box should still say what the table is filtered by. A box fed by `defaultValue`
-      // comes back empty over a filtered list, which reads as a list that lost half its contacts
+      // A box fed by `defaultValue` comes back empty over a filtered list, which reads as a list
+      // that lost half its contacts.
       await expect(contacts.searchValue()).toHaveValue(name);
 
-      // AND: going back again should leave the filtered list rather than step to the earlier term —
-      // each committed search replaces the last, so Back is not a walk backwards through the word
+      // Each committed search replaces the last, so Back leaves the list rather than walking
+      // backwards through the word a letter at a time.
       await page.goBack();
       await expect(page).not.toHaveURL(/search=E2E\+Search$/);
     } finally {

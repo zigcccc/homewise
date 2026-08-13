@@ -24,15 +24,12 @@ test.describe('activity log', () => {
     const activity = new ActivityPage(page);
 
     try {
-      // GIVEN: a contact created through the address book
       await contacts.goto();
       await contacts.add(name);
 
-      // WHEN: the feed is filtered down to it
       await activity.goto();
       const entry = await activity.find(name);
 
-      // THEN: the line should say who did what, and to which thing
       await expect(entry).toBeVisible();
       await expect(entry).toContainText(SEED_USER.name);
       await expect(entry).toContainText('added the contact');
@@ -47,17 +44,15 @@ test.describe('activity log', () => {
     const contacts = new ContactsPage(page);
     const activity = new ActivityPage(page);
 
-    // GIVEN: a contact that is created and then deleted
     await contacts.goto();
     await contacts.add(name);
     await contacts.deleteIfPresent(name);
 
-    // WHEN: the feed is filtered to that name
     await activity.goto();
     const entry = await activity.find(name);
 
-    // THEN: the removal should still be readable — the case timestamps and an `updatedBy` column
-    // cannot cover, since the row that held the name no longer exists
+    // The removal should still be readable — the case timestamps and an `updatedBy` column cannot cover,
+    // since the row that held the name no longer exists.
     await expect(entry).toBeVisible();
     await expect(entry).toContainText('removed the contact');
   });
@@ -68,16 +63,13 @@ test.describe('activity log', () => {
     const activity = new ActivityPage(page);
 
     try {
-      // GIVEN: a contact that still exists
       await contacts.goto();
       await contacts.add(name);
 
-      // WHEN: its line is found in the feed and followed
       await activity.goto();
       const entry = await activity.find(name);
       await entry.getByRole('link', { name }).click();
 
-      // THEN: it should land on that contact's own page
       await expect(page.getByRole('heading', { level: 1, name })).toBeVisible();
     } finally {
       await contacts.goto();
@@ -92,17 +84,15 @@ test.describe('activity log', () => {
     let listId: string | undefined;
 
     try {
-      // GIVEN: a uniquely-named item added to a list
       await lists.goto();
       listId = await lists.createList();
       await lists.addOneOff(itemName);
 
-      // WHEN: the feed is searched for it
       await activity.goto();
       await activity.find(itemName);
 
-      // THEN: there should be no line at all — a shop is dozens of ticks, and logging each would
-      // bury everything else the household did that day
+      // There should be no line at all — a shop is dozens of ticks, and logging each would bury everything
+      // else the household did that day.
       await expect(activity.entry(itemName)).toHaveCount(0);
       await expect(activity.empty()).toBeVisible();
     } finally {
@@ -118,21 +108,16 @@ test.describe('activity log', () => {
     const activity = new ActivityPage(page);
 
     try {
-      // GIVEN: a contact whose creation is in the feed
       await contacts.goto();
       await contacts.add(name);
       await activity.goto();
 
-      // WHEN: the feed is narrowed to contacts
       await activity.filterByKind('Contacts');
 
-      // THEN: the line should survive the filter
       await expect(await activity.find(name)).toBeVisible();
 
-      // WHEN: it is narrowed to a kind this change isn't
       await activity.filterByKind('Recipes');
 
-      // THEN: it should be filtered out
       await expect(activity.entry(name)).toHaveCount(0);
     } finally {
       await contacts.goto();
@@ -146,17 +131,14 @@ test.describe('activity log', () => {
     const activity = new ActivityPage(page);
 
     try {
-      // GIVEN: a contact whose phone number is then edited through the real form
       await contacts.goto();
       await contacts.add(name, { phone: '041 234 567' });
       await contacts.open(name);
       await contacts.editField('Phone', '041 765 432');
 
-      // WHEN: the feed is filtered down to it
       await activity.goto();
       const entry = await activity.find(name);
 
-      // THEN: the line should answer "what changed" without anyone having to go and look
       await expect(entry).toContainText('updated the contact');
       await expect(entry.getByTestId('activity-changes')).toContainText('Phone: 041 234 567 → 041 765 432');
     } finally {
@@ -171,17 +153,14 @@ test.describe('activity log', () => {
     const activity = new ActivityPage(page);
 
     try {
-      // GIVEN: a contact whose edit form is opened and saved with nothing touched
       await contacts.goto();
       await contacts.add(name);
       await contacts.open(name);
       await contacts.editField('Name', name);
 
-      // WHEN: the feed is filtered to that name
       await activity.goto();
       await activity.find(name);
 
-      // THEN: only its creation should be there — opening a form and pressing Save is not history
       await expect(activity.entry(name)).toHaveCount(1);
       await expect(activity.entry(name)).toContainText('added the contact');
     } finally {
@@ -198,12 +177,11 @@ test.describe('activity log', () => {
       throw new Error('the seed must carry a folded activity run for this spec to have anything to read');
     }
 
-    // GIVEN: a seeded line standing for several edits to one recipe — seeded rather than driven,
-    // because folding turns on what the *previous* write was, and every worker writes here
+    // A seeded line standing for several edits to one recipe — seeded rather than driven, because folding
+    // turns on what the *previous* write was, and every worker writes here.
     await activity.goto();
     await activity.find(run.label);
 
-    // THEN: it should say how many times it happened, instead of appearing once per edit
     await expect(activity.entry(run.label).filter({ hasText: `made ${run.count} updates to` })).toBeVisible();
   });
 
