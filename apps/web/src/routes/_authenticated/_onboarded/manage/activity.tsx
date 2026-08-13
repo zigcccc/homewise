@@ -1,7 +1,6 @@
 import { useSuspenseInfiniteQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { HistoryIcon, SearchIcon } from 'lucide-react';
-import { useDebounceCallback } from 'usehooks-ts';
+import { HistoryIcon } from 'lucide-react';
 import type z from 'zod';
 
 import { activityFiltersModel } from '@homewise/server/activity';
@@ -21,9 +20,6 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
   Select,
   SelectContent,
   SelectItem,
@@ -44,7 +40,7 @@ import {
   listActivityQueryOptions,
 } from '@/modules/activity';
 import { getMyHouseholdQueryOptions } from '@/modules/households';
-import { Actionbar, PageLayout, RouteError, TimeAgo } from '@/modules/shared';
+import { Actionbar, PageLayout, RouteError, SearchInput, TimeAgo } from '@/modules/shared';
 
 type SearchParams = z.infer<typeof activityFiltersModel>;
 
@@ -95,10 +91,8 @@ function ActivityRoute() {
   );
   const { data: household } = useSuspenseQuery(getMyHouseholdQueryOptions());
 
-  const setSearchParam = <Key extends keyof SearchParams>(key: Key, value: SearchParams[Key]) =>
-    navigate({ to: '.', search: { ...searchParams, [key]: value } });
-
-  const debouncedSearch = useDebounceCallback((value: string) => setSearchParam('search', value || undefined), 400);
+  const setSearchParam = <Key extends keyof SearchParams>(key: Key, value: SearchParams[Key], replace = false) =>
+    navigate({ to: '.', search: { ...searchParams, [key]: value }, replace });
 
   const entries = data.pages.flatMap((page) => page.entries);
   const groups = groupByDay(entries);
@@ -134,17 +128,12 @@ function ActivityRoute() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <InputGroup className="w-full sm:w-auto sm:flex-1">
-            <InputGroupInput
-              aria-label="Search activity"
-              defaultValue={searchParams.search ?? ''}
-              onChange={(evt) => debouncedSearch(evt.target.value)}
-              placeholder="Search what changed"
-            />
-            <InputGroupAddon>
-              <SearchIcon />
-            </InputGroupAddon>
-          </InputGroup>
+          <SearchInput
+            label="Search activity"
+            onChange={(next) => setSearchParam('search', next, true)}
+            placeholder="Search what changed"
+            value={searchParams.search}
+          />
 
           <Select
             onValueChange={(value) => setSearchParam('actorId', value === 'all' ? undefined : value)}

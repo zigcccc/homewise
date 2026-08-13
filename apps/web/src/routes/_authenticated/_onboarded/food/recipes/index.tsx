@@ -1,7 +1,6 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { ClockIcon, PlusIcon, ScrollTextIcon, SearchIcon, StarIcon } from 'lucide-react';
-import { useDebounceCallback } from 'usehooks-ts';
+import { ClockIcon, PlusIcon, ScrollTextIcon, StarIcon } from 'lucide-react';
 import z from 'zod';
 
 import { searchQueryParam, sortDirection } from '@homewise/server/models';
@@ -26,9 +25,6 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
   Label,
   Select,
   SelectContent,
@@ -43,6 +39,7 @@ import {
   formatMinutes,
   PageLayout,
   SELECT_ALL,
+  SearchInput,
   SORT_LABELS,
   type SortDirectionLabels,
   SortDirectionToggle,
@@ -107,10 +104,8 @@ function RecipesRoute() {
   const { data: recipes } = useSuspenseQuery(listRecipesQueryOptions(toQuery(searchParams)));
   const { data: tags } = useSuspenseQuery(listRecipeTagsQueryOptions());
 
-  const setSearchParam = <Key extends keyof SearchParams>(key: Key, value: SearchParams[Key]) =>
-    navigate({ to: '.', search: { ...searchParams, [key]: value } });
-
-  const debouncedSearch = useDebounceCallback((value: string) => setSearchParam('search', value || undefined), 400);
+  const setSearchParam = <Key extends keyof SearchParams>(key: Key, value: SearchParams[Key], replace = false) =>
+    navigate({ to: '.', search: { ...searchParams, [key]: value }, replace });
 
   const isFiltered = Boolean(
     searchParams.search || searchParams.mealType || searchParams.tagId || searchParams.favoritesOnly
@@ -151,16 +146,12 @@ function RecipesRoute() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <InputGroup className="w-full sm:w-auto sm:flex-1">
-            <InputGroupInput
-              defaultValue={searchParams.search ?? ''}
-              onChange={(evt) => debouncedSearch(evt.target.value)}
-              placeholder="Search recipes or ingredients"
-            />
-            <InputGroupAddon>
-              <SearchIcon />
-            </InputGroupAddon>
-          </InputGroup>
+          <SearchInput
+            label="Search recipes"
+            onChange={(next) => setSearchParam('search', next, true)}
+            placeholder="Search recipes or ingredients"
+            value={searchParams.search}
+          />
 
           <Select
             onValueChange={(value) => setSearchParam('mealType', value === SELECT_ALL ? undefined : (value as never))}

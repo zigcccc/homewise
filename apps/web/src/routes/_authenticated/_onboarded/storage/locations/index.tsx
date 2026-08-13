@@ -1,8 +1,7 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { MapPinIcon, PlusIcon, SearchIcon } from 'lucide-react';
+import { MapPinIcon, PlusIcon } from 'lucide-react';
 import { useState } from 'react';
-import { useDebounceCallback } from 'usehooks-ts';
 import z from 'zod';
 
 import { searchQueryParam, sortDirection } from '@homewise/server/models';
@@ -26,9 +25,6 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
   MapCenter,
   MapMarker,
   MapPopup,
@@ -38,7 +34,7 @@ import {
   Spinner,
 } from '@homewise/ui/core';
 
-import { Actionbar, PageLayout, RouteError, SortDirectionToggle } from '@/modules/shared';
+import { Actionbar, PageLayout, RouteError, SearchInput, SortDirectionToggle } from '@/modules/shared';
 import { LocationFormDialog, listStorageLocationsQueryOptions } from '@/modules/storage-locations';
 
 const searchParamsModel = z.object({
@@ -67,10 +63,8 @@ function StorageLocationsRoute() {
 
   const { data: locations } = useSuspenseQuery(listStorageLocationsQueryOptions(searchParams));
 
-  const setSearchParam = <Key extends keyof SearchParams>(key: Key, value: SearchParams[Key]) =>
-    navigate({ to: '.', search: { ...searchParams, [key]: value } });
-
-  const debouncedSearch = useDebounceCallback((value: string) => setSearchParam('search', value || undefined), 400);
+  const setSearchParam = <Key extends keyof SearchParams>(key: Key, value: SearchParams[Key], replace = false) =>
+    navigate({ to: '.', search: { ...searchParams, [key]: value }, replace });
 
   const isFiltered = Boolean(searchParams.search);
   const pinned = locations.filter((location) => location.latitude !== null && location.longitude !== null);
@@ -108,16 +102,12 @@ function StorageLocationsRoute() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <InputGroup className="w-full sm:w-auto sm:flex-1">
-            <InputGroupInput
-              defaultValue={searchParams.search ?? ''}
-              onChange={(evt) => debouncedSearch(evt.target.value)}
-              placeholder="Search locations and addresses"
-            />
-            <InputGroupAddon>
-              <SearchIcon />
-            </InputGroupAddon>
-          </InputGroup>
+          <SearchInput
+            label="Search locations"
+            onChange={(next) => setSearchParam('search', next, true)}
+            placeholder="Search locations and addresses"
+            value={searchParams.search}
+          />
 
           <SortDirectionToggle
             onChange={(next) => setSearchParam('sortDirection', next)}

@@ -7,12 +7,10 @@ import {
   PackageOpenIcon,
   PencilIcon,
   PlusIcon,
-  SearchIcon,
   TrashIcon,
 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { useDebounceCallback } from 'usehooks-ts';
 import z from 'zod';
 
 import { searchQueryParam, sortDirection } from '@homewise/server/models';
@@ -42,9 +40,6 @@ import {
   EmptyMedia,
   EmptyTitle,
   getRowId,
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
   Select,
   SelectContent,
   SelectItem,
@@ -61,6 +56,7 @@ import {
   ExternalLink,
   PageLayout,
   RouteError,
+  SearchInput,
   SortDirectionToggle,
   serverMessage,
 } from '@/modules/shared';
@@ -133,10 +129,8 @@ function StorageLocationRoute() {
     listStorageItemsQueryOptions({ ...searchParams, locationId: Number(locationId) })
   );
 
-  const setSearchParam = <Key extends keyof SearchParams>(key: Key, value: SearchParams[Key]) =>
-    navigate({ to: '.', search: { ...searchParams, [key]: value } });
-
-  const debouncedSearch = useDebounceCallback((value: string) => setSearchParam('search', value || undefined), 400);
+  const setSearchParam = <Key extends keyof SearchParams>(key: Key, value: SearchParams[Key], replace = false) =>
+    navigate({ to: '.', search: { ...searchParams, [key]: value }, replace });
 
   const table = useDataTable({ columns, data: items, getRowId });
 
@@ -205,16 +199,12 @@ function StorageLocationRoute() {
         </Card>
 
         <div className="flex flex-wrap items-center gap-2">
-          <InputGroup className="w-full sm:w-auto sm:flex-1">
-            <InputGroupInput
-              defaultValue={searchParams.search ?? ''}
-              onChange={(evt) => debouncedSearch(evt.target.value)}
-              placeholder="Search this location"
-            />
-            <InputGroupAddon>
-              <SearchIcon />
-            </InputGroupAddon>
-          </InputGroup>
+          <SearchInput
+            label="Search items in this location"
+            onChange={(next) => setSearchParam('search', next, true)}
+            placeholder="Search this location"
+            value={searchParams.search}
+          />
 
           <Select
             onValueChange={(value) => setSearchParam('loanStatus', searchParamsModel.shape.loanStatus.parse(value))}

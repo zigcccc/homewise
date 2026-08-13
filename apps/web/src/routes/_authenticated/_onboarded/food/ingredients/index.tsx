@@ -1,8 +1,7 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute, redirect } from '@tanstack/react-router';
-import { CarrotIcon, PlusIcon, SearchIcon } from 'lucide-react';
+import { CarrotIcon, PlusIcon } from 'lucide-react';
 import { useState } from 'react';
-import { useDebounceCallback } from 'usehooks-ts';
 import z from 'zod';
 
 import { ingredientCategory, ingredientSortKey } from '@homewise/server/ingredients';
@@ -16,9 +15,6 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
   Select,
   SelectContent,
   SelectItem,
@@ -33,7 +29,7 @@ import {
   ingredientCategoryLabels,
   listIngredientsQueryOptions,
 } from '@/modules/ingredients';
-import { SELECT_ALL, SELECT_NONE, SortDirectionToggle } from '@/modules/shared';
+import { SELECT_ALL, SELECT_NONE, SearchInput, SortDirectionToggle } from '@/modules/shared';
 import { listStoresQueryOptions, StoreSelectItems } from '@/modules/stores';
 
 import { ingredientsTableColumns } from './-ingredients-table.config';
@@ -83,10 +79,8 @@ function IngredientsRoute() {
   const { data: ingredients } = useSuspenseQuery(listIngredientsQueryOptions(searchParams));
   const { data: stores } = useSuspenseQuery(listStoresQueryOptions());
 
-  const setSearchParam = <Key extends keyof SearchParams>(key: Key, value: SearchParams[Key]) =>
-    navigate({ to: '.', search: { ...searchParams, [key]: value } });
-
-  const debouncedSearch = useDebounceCallback((value: string) => setSearchParam('search', value || undefined), 400);
+  const setSearchParam = <Key extends keyof SearchParams>(key: Key, value: SearchParams[Key], replace = false) =>
+    navigate({ to: '.', search: { ...searchParams, [key]: value }, replace });
 
   const table = useDataTable({
     data: ingredients,
@@ -105,16 +99,12 @@ function IngredientsRoute() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-2">
-        <InputGroup className="w-full sm:w-auto sm:flex-1">
-          <InputGroupInput
-            defaultValue={searchParams.search ?? ''}
-            onChange={(evt) => debouncedSearch(evt.target.value)}
-            placeholder="Search ingredients"
-          />
-          <InputGroupAddon>
-            <SearchIcon />
-          </InputGroupAddon>
-        </InputGroup>
+        <SearchInput
+          label="Search ingredients"
+          onChange={(next) => setSearchParam('search', next, true)}
+          placeholder="Search ingredients"
+          value={searchParams.search}
+        />
 
         <Select
           onValueChange={(value) => setSearchParam('category', value === SELECT_ALL ? undefined : (value as never))}

@@ -1,8 +1,7 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute, Link, Outlet, retainSearchParams } from '@tanstack/react-router';
-import { PlusIcon, ReceiptIcon, SearchIcon } from 'lucide-react';
+import { PlusIcon, ReceiptIcon } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
-import { useDebounceCallback } from 'usehooks-ts';
 import z from 'zod';
 
 import { searchQueryParam } from '@homewise/server/models';
@@ -21,9 +20,6 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
   Select,
   SelectContent,
   SelectGroup,
@@ -53,6 +49,7 @@ import {
   monthRange,
   PageLayout,
   RouteError,
+  SearchInput,
   yearOptions,
 } from '@/modules/shared';
 
@@ -138,12 +135,11 @@ function MonthlyExpensesLayout() {
   const { data: expenses } = useSuspenseQuery(listExpensesQueryOptions(queryFor(searchParams)));
   const { data: summary } = useSuspenseQuery(expensesSummaryQueryOptions(range));
 
-  const setSearchParam = <Key extends keyof SearchParams>(key: Key, value: SearchParams[Key]) =>
-    navigate({ search: { ...searchParams, [key]: value }, to: '.' });
+  const setSearchParam = <Key extends keyof SearchParams>(key: Key, value: SearchParams[Key], replace = false) =>
+    navigate({ search: { ...searchParams, [key]: value }, to: '.', replace });
 
   // Only the search value is debounced — debouncing the whole setter lets a month change land behind
   // a stale keystroke and get overwritten by it.
-  const debouncedSearch = useDebounceCallback((value: string) => setSearchParam('search', value || undefined), 400);
 
   // Both of these have to be stable references. A fresh arrow each render defeats the `useMemo`, so
   // the table rebuilds its column definitions on every realtime refetch — and an inline editor open
@@ -223,16 +219,13 @@ function MonthlyExpensesLayout() {
             </SelectContent>
           </Select>
 
-          <InputGroup className="w-full sm:w-72">
-            <InputGroupInput
-              defaultValue={searchParams.search}
-              onChange={(event) => debouncedSearch(event.target.value)}
-              placeholder="Search expenses"
-            />
-            <InputGroupAddon>
-              <SearchIcon />
-            </InputGroupAddon>
-          </InputGroup>
+          <SearchInput
+            className="w-full sm:w-72"
+            label="Search expenses"
+            onChange={(next) => setSearchParam('search', next, true)}
+            placeholder="Search expenses"
+            value={searchParams.search}
+          />
 
           <CategoryBreakdown
             onSelect={(category) => setSearchParam('category', category)}
