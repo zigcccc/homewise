@@ -53,14 +53,11 @@ export async function readCursorPage<Row extends { id: number }>({
 /**
  * One numbered page of a list: the rows, and how many there are in total to page through.
  *
- * The count is a second query rather than a window function, because the read is a drizzle
- * *relational* query — `findMany` with `with:` — and there is no way to hang an aggregate off one.
- * Both run against the same `filters`, in parallel.
+ * The count is a second query because the read is a drizzle *relational* one (`findMany` with
+ * `with:`), which no aggregate can hang off. Both run against the same `filters`, in parallel.
  *
- * `page` comes back out because it may not be the one that was asked for: rows are deleted while
- * somebody is on the last page, and an offset past the end returns nothing at all. Rather than show
- * an empty table under a pager reading "page 9 of 8", an overshooting page re-reads at the last real
- * one. Callers render the pager from the returned `page`, never from the URL that asked.
+ * The returned `page` may not be the one asked for — an offset past the end re-reads at the last
+ * real page. Callers render the pager from it, never from the URL that asked.
  */
 export async function readPagedList<Row>({
   filters = [],

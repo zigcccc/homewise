@@ -7,19 +7,10 @@ export type PageEnvelope = { page: number; pageSize: number; total: number };
 /**
  * The pagination bar every paginated list ends with, wired to the route's search params.
  *
- * Takes the response's own `{ page, pageSize, total }` rather than the route's search params,
- * because the two disagree exactly when it matters: deleting the last page's rows leaves the URL
- * asking for a page the server no longer has, and the server answers with the page it clamped to.
- * Reading the URL here would draw a pager for a page that isn't on screen.
+ * Takes the **response's** page, not the URL's: an overshooting page is clamped server-side, so the
+ * two disagree exactly when rows are deleted under a reader on the last page.
  *
- * **Stuck to the bottom of the scrollport**, which is what makes a page size of 100 usable at all:
- * in normal flow the controls for turning the page sit *below* the page, so reaching them means
- * scrolling past every row first. `sticky` rather than `fixed` because it no-ops on a list that
- * already fits — the bar simply sits where it falls, with no reserved strip over a half-empty table.
- *
- * The scrollport is the `_onboarded` route's own div, not the document; `bottom-0` resolves against
- * that. `-mb-4` cancels `PageLayout`'s bottom padding so the bar's resting place is flush with where
- * it sticks, rather than lurching up 16px as the last row arrives.
+ * `-mb-4` cancels `PageLayout`'s `p-4` so the bar's resting position matches its stuck one.
  */
 export function ListPagination({
   page,

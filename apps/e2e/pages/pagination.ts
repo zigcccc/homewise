@@ -1,12 +1,10 @@
 import { expect, type Page } from '@playwright/test';
 
 /**
- * The pagination bar every paginated list ends with (`DataTablePagination`). A component object
- * rather than a page object: it belongs to whichever page renders it.
+ * The pagination bar (`DataTablePagination`). A component object, like `SearchBox` — it belongs to
+ * whichever page renders it.
  *
- * Every action waits for the URL to carry the change before returning. The page number lives in the
- * search params and the rows arrive with the navigation, so an assertion made straight after a click
- * can still be reading the page you just left.
+ * Every action waits for the URL to carry the change, or the next assertion reads the page you left.
  */
 export class Pagination {
   constructor(private readonly page: Page) {}

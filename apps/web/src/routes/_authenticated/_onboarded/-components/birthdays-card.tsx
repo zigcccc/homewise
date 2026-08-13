@@ -28,11 +28,8 @@ const SHOWN = 5;
 const CARD = { icon: CakeIcon, title: 'Upcoming birthdays' } satisfies DashboardCardFrame;
 
 /**
- * The contacts whose birthdays come round soonest, and only as many as the card can show.
- *
- * Safe to cut server-side even though the ranking here spans three tables: every contact left off
- * this page has a birthday further out than all `SHOWN` of the ones on it, so none of them could
- * displace one after the merge. The kids and pets stay unpaginated — there is one row per child.
+ * Safe to cut server-side even though the ranking below spans three tables: every contact left off
+ * this page is further out than all `SHOWN` on it, so none could displace one after the merge.
  */
 export const dashboardBirthdayContactsQueryOptions = () =>
   listContactsQueryOptions({ pageSize: SHOWN, sortDirection: 'asc', sortKey: 'birthday' });

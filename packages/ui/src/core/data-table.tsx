@@ -119,15 +119,12 @@ export function pageWindow(page: number, pageCount: number): (number | 'gap-befo
 }
 
 /**
- * The bar under a paginated list: how many rows to a page, which of them you're looking at, and the
- * pages to jump to.
+ * The bar under a paginated list: rows per page, which of them you're looking at, pages to jump to.
  *
- * Deliberately unaware of `table` — sorting and filtering here are server-side and live in the URL,
- * and so does the page, so there is no table state to read. That also lets a list with no table at
- * all (the recipe grid) use the same bar.
+ * Deliberately takes no `table` — sorting, filtering and the page all live in the URL here, so there
+ * is no table state to read, and a list with no table at all (the recipe grid) can use the same bar.
  *
- * `page` is the page the **server** answered with, not the one the URL asked for; the two differ when
- * rows are deleted out from under a reader on the last page. Pass the response's.
+ * Pass the page the **server** answered with, not the one the URL asked for.
  */
 export function DataTablePagination({
   className,

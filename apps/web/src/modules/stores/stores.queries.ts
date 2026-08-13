@@ -40,11 +40,8 @@ export function invalidateStores(queryClient: QueryClient) {
 }
 
 /**
- * Every shop, for a picker, as a plain array.
- *
- * Asks for a full page rather than the default one: a dropdown that silently held the first 25 of a
- * household's shops would be a worse lie than a long list. The server's ceiling still applies — past
- * it a picker needs searching rather than a bigger page, which is a job of its own.
+ * Every shop, for a picker, as a plain array. Bounded by the server's ceiling like any other read —
+ * a household past it needs a searching picker, not a bigger page.
  */
 export function listStoreOptionsQueryOptions() {
   return queryOptions({
