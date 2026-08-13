@@ -31,6 +31,7 @@ import {
 } from '@/modules/ingredients';
 import {
   ListPagination,
+  RouteError,
   SELECT_ALL,
   SELECT_NONE,
   SearchInput,
@@ -73,6 +74,7 @@ export const Route = createFileRoute('/_authenticated/_onboarded/food/ingredient
   },
   component: IngredientsRoute,
   pendingComponent: () => <Spinner />,
+  errorComponent: () => <RouteError title="Couldn't load your ingredients" />,
 });
 
 function IngredientsRoute() {

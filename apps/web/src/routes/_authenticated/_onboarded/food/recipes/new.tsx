@@ -16,7 +16,7 @@ import {
 import { client, parseResponse } from '@/api/client';
 import { invalidateIngredients, listIngredientOptionsQueryOptions } from '@/modules/ingredients';
 import { invalidateRecipes, listRecipeTagsQueryOptions, RecipeForm, type RecipeFormValues } from '@/modules/recipes';
-import { Actionbar, PageLayout, serverMessage } from '@/modules/shared';
+import { Actionbar, PageLayout, RouteError, serverMessage } from '@/modules/shared';
 
 const $createRecipe = client.recipes.$post;
 
@@ -29,6 +29,7 @@ export const Route = createFileRoute('/_authenticated/_onboarded/food/recipes/ne
   },
   component: NewRecipeRoute,
   pendingComponent: () => <Spinner />,
+  errorComponent: () => <RouteError title="Couldn't load the recipe form" />,
 });
 
 function NewRecipeRoute() {

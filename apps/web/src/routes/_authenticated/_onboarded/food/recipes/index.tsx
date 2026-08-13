@@ -39,6 +39,7 @@ import {
   formatMinutes,
   ListPagination,
   PageLayout,
+  RouteError,
   SELECT_ALL,
   SearchInput,
   SORT_LABELS,
@@ -100,6 +101,7 @@ export const Route = createFileRoute('/_authenticated/_onboarded/food/recipes/')
   },
   component: RecipesRoute,
   pendingComponent: () => <Spinner />,
+  errorComponent: () => <RouteError title="Couldn't load your recipes" />,
 });
 
 function RecipesRoute() {

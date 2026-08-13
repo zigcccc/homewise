@@ -35,7 +35,7 @@ import {
   useMealMove,
 } from '@/modules/meal-plan';
 import { listRecipeOptionsQueryOptions } from '@/modules/recipes';
-import { Actionbar, PageLayout } from '@/modules/shared';
+import { Actionbar, PageLayout, RouteError } from '@/modules/shared';
 
 import { MealPlanDayRow } from './-components/meal-plan-day';
 
@@ -74,6 +74,7 @@ export const Route = createFileRoute('/_authenticated/_onboarded/food/meal-plan/
   },
   component: MealPlanRoute,
   pendingComponent: () => <Spinner />,
+  errorComponent: () => <RouteError title="Couldn't load your meal plan" />,
 });
 
 function MealPlanRoute() {

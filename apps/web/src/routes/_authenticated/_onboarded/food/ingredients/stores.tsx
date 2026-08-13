@@ -19,7 +19,7 @@ import {
   useDataTable,
 } from '@homewise/ui/core';
 
-import { ListPagination, SearchInput, SortDirectionToggle, useSearchParamSetter } from '@/modules/shared';
+import { ListPagination, RouteError, SearchInput, SortDirectionToggle, useSearchParamSetter } from '@/modules/shared';
 import { listStoresQueryOptions, StoreFormDialog } from '@/modules/stores';
 
 import { storesTableColumns } from './-stores-table.config';
@@ -39,6 +39,7 @@ export const Route = createFileRoute('/_authenticated/_onboarded/food/ingredient
   },
   component: StoresRoute,
   pendingComponent: () => <Spinner />,
+  errorComponent: () => <RouteError title="Couldn't load your shops" />,
 });
 
 function StoresRoute() {

@@ -33,6 +33,7 @@ import { listChildDictionaryEntriesQueryOptions } from '@/modules/child-dictiona
 import { getChildProfileQueryOptions } from '@/modules/child-profiles';
 import {
   ListPagination,
+  RouteError,
   SearchInput,
   type SearchParamSetter,
   SORT_LABELS,
@@ -92,6 +93,7 @@ export const Route = createFileRoute('/_authenticated/_onboarded/family/kids/$pr
   },
   component: DictionaryTab,
   pendingComponent: () => <Spinner />,
+  errorComponent: () => <RouteError title="Couldn't load this dictionary" />,
 });
 
 function DictionaryTab() {

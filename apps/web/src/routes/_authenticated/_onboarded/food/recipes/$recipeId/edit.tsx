@@ -13,7 +13,7 @@ import {
   RecipeForm,
   type RecipeFormValues,
 } from '@/modules/recipes';
-import { serverMessage } from '@/modules/shared';
+import { RouteError, serverMessage } from '@/modules/shared';
 
 const $patchRecipe = client.recipes[':id'].$patch;
 
@@ -27,6 +27,7 @@ export const Route = createFileRoute('/_authenticated/_onboarded/food/recipes/$r
   },
   component: EditRecipeRoute,
   pendingComponent: () => <Spinner />,
+  errorComponent: () => <RouteError title="Couldn't load this recipe" />,
 });
 
 function EditRecipeRoute() {
