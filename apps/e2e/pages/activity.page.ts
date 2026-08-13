@@ -51,14 +51,17 @@ export class ActivityPage {
     return this.entry(label).first();
   }
 
+  /** Waits for the choice to reach the URL, so a negative assertion can't read the pre-filter list. */
   async filterByKind(kind: string) {
-    await this.page.getByLabel('Filter by kind').click();
+    await this.page.getByRole('combobox', { name: 'Filter by kind' }).click();
     await this.page.getByRole('option', { name: kind, exact: true }).click();
+    await this.page.waitForURL((url) => url.searchParams.has('entity'));
   }
 
   async filterByMember(member: string) {
-    await this.page.getByLabel('Filter by member').click();
+    await this.page.getByRole('combobox', { name: 'Filter by member' }).click();
     await this.page.getByRole('option', { name: member, exact: true }).click();
+    await this.page.waitForURL((url) => url.searchParams.has('actorId'));
   }
 
   loadMore() {

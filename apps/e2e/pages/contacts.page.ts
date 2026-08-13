@@ -157,12 +157,16 @@ export class ContactsPage {
     await this.page.getByRole('option', { name: option, exact: true }).click();
   }
 
-  /** Edits one field on an open contact's page and saves. */
-  async editField(label: string, value: string) {
+  private async openEditDialog() {
     await this.page.getByRole('button', { name: 'Open menu' }).click();
     await this.page.getByRole('menuitem', { name: 'Edit contact' }).click();
 
-    const dialog = this.page.getByRole('dialog');
+    return this.page.getByRole('dialog');
+  }
+
+  /** Edits one field on an open contact's page and saves. */
+  async editField(label: string, value: string) {
+    const dialog = await this.openEditDialog();
     await dialog.getByLabel(label).fill(value);
     await dialog.getByRole('button', { name: 'Save changes' }).click();
     await expect(dialog).toBeHidden();
@@ -173,10 +177,7 @@ export class ContactsPage {
    * that has to work out for itself which relations were already stored.
    */
   async removeRelationInEditDialog(relatedName: string) {
-    await this.page.getByRole('button', { name: 'Open menu' }).click();
-    await this.page.getByRole('menuitem', { name: 'Edit contact' }).click();
-
-    const dialog = this.page.getByRole('dialog');
+    const dialog = await this.openEditDialog();
     await dialog.getByRole('button', { name: `Remove ${relatedName}` }).click();
     await dialog.getByRole('button', { name: 'Save changes' }).click();
     await expect(dialog).toBeHidden();

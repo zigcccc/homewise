@@ -192,7 +192,11 @@ test.describe('activity log', () => {
 
   test('reads a run of edits as one line, not the same sentence repeated', async ({ page }) => {
     const activity = new ActivityPage(page);
-    const run = SEED_ACTIVITY.find((entry) => entry.count > 1)!;
+    const run = SEED_ACTIVITY.find((entry) => entry.count > 1);
+
+    if (!run) {
+      throw new Error('the seed must carry a folded activity run for this spec to have anything to read');
+    }
 
     // GIVEN: a seeded line standing for several edits to one recipe — seeded rather than driven,
     // because folding turns on what the *previous* write was, and every worker writes here
@@ -217,7 +221,7 @@ test.describe('activity log', () => {
 
     // The seed writes entries spanning today, yesterday and earlier, so at least one heading is
     // always present however many rows the parallel workers have added on top.
-    expect(await activity.dayHeadings()).toContain('Today');
+    await expect.poll(() => activity.dayHeadings()).toContain('Today');
   });
 });
 
