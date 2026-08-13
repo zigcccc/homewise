@@ -67,11 +67,24 @@ omission:
 feed. Build it with `changedColumns(existing, set)` (`#db/utils`) — the **normalized** `set` against
 the stored row, never the raw payload, since a form posts `''` where the column holds NULL and
 diffing before `emptyToNull` calls every save a change. Nearly every patch service already reads the
-row as its 404 guard, so it costs nothing; the service returns it as `changedFields` and the route
-strips it off before responding (`const { changedFields, ...item } = await …`), so no response shape
-changes. Three rules the helper applies for you: a foreign key and an identity number are **named,
+row as its 404 guard, so it costs nothing. Three rules the helper applies for you: a foreign key and an identity number are **named,
 not quoted**; anything that isn't a column (a recipe's ingredients, a contact's links) has no diff to
 take and is compared with `sameList` and pushed by hand.
+
+**A service that takes a diff returns `{ data, changeset }`**, never the row with the diff spread
+into it. The route names both halves and answers with the first:
+
+```ts
+const { data: contact, changeset } = await ContactsService.patch(…);
+c.var.emit({ entity: 'contact', id: contact.id, operation: 'update', label: contact.name, changes: changeset });
+return c.json(contact, 200);
+```
+
+Spreading looked cheaper and is the trap: the route has to spread a second time to strip the diff
+back off, and a route that *forgets* silently publishes it as part of the API. Under `data` a forgetful
+route hands the client `{ data, changeset }` instead of the record and the compiler says so. Anything
+else the route needs but the client doesn't (`createdContact` on a loan) sits beside `data`, for the
+same reason.
 
 Then mind what the two empty states mean, because they are not the same:
 

@@ -93,6 +93,12 @@ components.
 **Wrap RPC calls in `parseResponse`.** A `mutationFn` returning a raw Hono call swallows 4xx/5xx;
 `parseResponse` makes errors throw so the mutation's error path actually runs.
 
+**A switch over a wire union ends in `default: return assertNever(value)`** (`modules/shared`).
+Leaving a case out is then a compile error naming it, rather than a `switch` that silently falls
+through to `undefined`. It still runs, because the union came off the wire: a server shipping a new
+enum value ahead of this build reaches it, logs through `console.error` (which is how we reach
+Sentry — never `Sentry.logger.*`) and renders nothing instead of crashing the route.
+
 ## Data fetching
 
 Data fetching uses **TanStack Query** with `queryOptions` helpers in a single
@@ -120,13 +126,14 @@ Every list endpoint but one returns its table whole, which is fine for a househo
 recipes. The activity log is the exception — it only ever grows — and is the one place with a cursor.
 `activity.queries.ts` is the pattern to copy if a second ever needs one:
 
-- **`infiniteQueryOptions`**, with `getNextPageParam: (lastPage) => lastPage.nextCursor` and an
-  explicit `initialPageParam: null as number | null`.
+- **`infiniteQueryOptions`**, with `initialPageParam: undefined as number | undefined` and
+  `getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined`. The page param is a **row id**,
+  not an ordinal — the first page has none because it starts at the newest row — and `undefined`
+  rather than `null` so it drops straight into the RPC query the endpoint declares.
 - **The cursor is not in the query key** — only the filters are. It is the page pointer, and
   TanStack Query tracks it per page; putting it in the key gives every page its own cache entry.
-- **Keyset, not offset.** The server takes `cursor` (the last id already shown) and asks for
-  `limit + 1` — whether that extra row comes back *is* the "another page?" answer, at no cost. An
-  offset would re-serve a row the moment anyone else wrote while a member was scrolling.
+- **Keyset, not offset**, which is the server's `readPage` (`server-conventions`). An offset would
+  re-serve a row the moment anyone else wrote while a member was scrolling.
 - **A card wanting the newest few uses its own plain `queryOptions`** with a `limit`, on its own key
   (`['activity', 'recent']`), so paging the full page can't disturb it. `ensureInfiniteQueryData` is
   the loader's call for the infinite one.

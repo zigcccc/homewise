@@ -163,6 +163,14 @@ Path params use `z.coerce.number<number>()`.
   `search`, `sortKey`, `sortDirection` and any filters as query params. Don't nest a full collection
   inside its parent's detail response — the detail endpoint returns metadata plus a **count**
   (`entryCount`), so filtering a list never refetches parent metadata.
+- **Pagination is keyset, and it is two shared pieces** — never re-derived per module. The model
+  extends its filters with `pageQueryParams(size).shape` (`#lib/models`); the service builds its
+  filters as usual and hands them, the id column and its read to `readPage` (`#db/utils`), which
+  answers `{ entries, nextCursor }`. It reads one row past the page as the has-more probe, which is
+  cheaper than a second `COUNT(*)` and is the only reason `limit + 1` appears anywhere. The cursor is
+  a row id and the ordering must agree with it (`desc(columns.id)`) — that is what makes "older than
+  the last one shown" complete. Never an offset: a row written mid-scroll shifts every offset after
+  it, and the reader sees one page's last row again at the top of the next.
 - Sort params use a **Zod enum mapped onto a Drizzle column** — never string-interpolate a column
   name. Give every list param `.default(...).catch(...)` so a malformed query string degrades to sane
   defaults instead of a 400. `search` and `sortDirection` come from `#lib/models`; only the sort key
