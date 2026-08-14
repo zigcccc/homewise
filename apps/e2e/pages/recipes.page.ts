@@ -2,6 +2,7 @@ import { expect, type Page } from '@playwright/test';
 
 import { SORT_DIRECTION_NAME } from '../support/text';
 import { Drag } from './drag';
+import { Picker } from './picker';
 import { SearchBox } from './search-box';
 
 /** The recipes list, the create/edit form, and the detail read view. */
@@ -98,8 +99,9 @@ export class RecipesPage {
   /** Picks an existing library ingredient through the combobox. */
   async addExistingIngredient(name: string) {
     await this.page.getByRole('button', { name: 'Add ingredient' }).click();
-    await this.page.getByPlaceholder('Search ingredients…').fill(name);
-    await this.page.getByRole('option').filter({ hasText: name }).first().click();
+    const picker = new Picker(this.page, 'Search ingredients…');
+    await picker.search(name);
+    await picker.options().filter({ hasText: name }).first().click();
     await expect(this.ingredientRow(name)).toBeVisible();
   }
 
@@ -109,8 +111,7 @@ export class RecipesPage {
    */
   async createAndAddIngredient(name: string) {
     await this.page.getByRole('button', { name: 'Add ingredient' }).click();
-    await this.page.getByPlaceholder('Search ingredients…').fill(name);
-    await this.page.getByRole('button', { name: `Create "${name}"` }).click();
+    await new Picker(this.page, 'Search ingredients…').create(name);
     await expect(this.ingredientRow(name)).toBeVisible();
   }
 

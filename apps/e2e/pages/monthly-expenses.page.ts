@@ -1,6 +1,7 @@
 import { expect, type Page } from '@playwright/test';
 
 import { nameStartsWith } from '../support/text';
+import { Picker } from './picker';
 import { SearchBox } from './search-box';
 
 /**
@@ -87,19 +88,18 @@ export class MonthlyExpensesPage {
   }
 
   /**
-   * Picks a category in an open picker, creating it if the name isn't there yet. The create row only
-   * appears once the search has no exact match, which is why the name is typed first either way.
+   * Picks a category in an open picker, creating it if the name isn't there yet. The branch is taken
+   * only after `settle()`: `count()` has no auto-wait, so read mid-flight it sees the previous term's
+   * rows and creates a category that already exists.
    */
   private async pickCategory(name: string) {
-    await this.page.getByPlaceholder('Search categories…').fill(name);
+    const picker = new Picker(this.page, 'Search categories…');
+    await picker.search(name);
 
-    const create = this.page.getByRole('button', { name: `Create "${name}"` });
-    const existing = this.page.getByRole('option', { name, exact: true });
-
-    if ((await existing.count()) > 0) {
-      await existing.click();
+    if ((await picker.option(name, { exact: true }).count()) > 0) {
+      await picker.option(name, { exact: true }).click();
     } else {
-      await create.click();
+      await picker.createButton(name).click();
     }
   }
 

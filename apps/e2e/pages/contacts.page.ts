@@ -1,5 +1,6 @@
 import { expect, type Page } from '@playwright/test';
 
+import { Picker } from './picker';
 import { SearchBox } from './search-box';
 
 /** The household address book (`/family/contacts`) and one contact's own page. */
@@ -130,8 +131,7 @@ export class ContactsPage {
   async addRelationInDialog(relatedName: string, role: string) {
     const dialog = this.page.getByRole('dialog');
     await dialog.getByRole('button', { name: 'Add relation', exact: true }).click();
-    await this.page.getByPlaceholder('Search contacts').fill(relatedName);
-    await this.page.getByRole('option', { name: relatedName }).click();
+    await new Picker(this.page, 'Search contacts…').pick(relatedName);
     await this.pickInDialog(dialog.getByRole('combobox', { name: `${relatedName}'s relation` }), role);
   }
 
@@ -143,8 +143,7 @@ export class ContactsPage {
     // The picker's trigger, before any dialog is open — the submit button inside the dialog it opens
     // carries the same words, so every later locator here is scoped to the dialog.
     await this.page.getByRole('button', { name: 'Add relation', exact: true }).click();
-    await this.page.getByPlaceholder('Search contacts').fill(relatedName);
-    await this.page.getByRole('option', { name: relatedName }).click();
+    await new Picker(this.page, 'Search contacts…').pick(relatedName);
 
     const dialog = this.page.getByRole('dialog');
     await this.pickInDialog(dialog.getByRole('combobox', { name: `${relatedName} is` }), role);

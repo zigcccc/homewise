@@ -1,5 +1,7 @@
 import { expect, type Page } from '@playwright/test';
 
+import { Picker } from './picker';
+
 /**
  * The "Medical information" card shared by child and pet General tabs — the
  * medical ID field and the linked-contacts list.
@@ -55,10 +57,10 @@ export class MedicalPage {
     await expect(dialog).toBeHidden();
   }
 
-  /** Links an existing household contact via the combobox. */
+  /** Links an existing household contact via the combobox. Searched, since the list is paged. */
   async linkExistingContact(name: string) {
     await this.page.getByRole('button', { name: 'Add contact' }).click();
-    await this.page.getByRole('option', { name }).click();
+    await new Picker(this.page, 'Search contacts…').pick(name);
   }
 
   async removeContact(name: string) {
