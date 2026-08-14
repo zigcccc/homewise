@@ -64,7 +64,8 @@ export default async function globalSetup() {
 
   return () => {
     try {
-      run('docker', ['compose', '-f', COMPOSE_FILE, 'rm', '-sf', 'postgres-unit']);
+      // `-v` drops the anonymous data volume too — `rm` alone leaks one per run.
+      run('docker', ['compose', '-f', COMPOSE_FILE, 'rm', '-sfv', 'postgres-unit']);
     } catch {
       // Teardown must never turn a green run red — a leftover container is the next run's problem,
       // and `up -d --wait` will adopt it.

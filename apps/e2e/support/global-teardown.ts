@@ -8,6 +8,10 @@ import path from 'node:path';
  * Scoped to the `postgres-test` service by name — never touches the dev
  * `postgres` service in the same compose file. Best-effort: a failure here must
  * not fail an otherwise-green run.
+ *
+ * `-v` is load-bearing: the postgres image declares its data dir a VOLUME, so each
+ * run gets a fresh anonymous one and `rm` alone leaves it behind. Without it the
+ * suite leaked a ~50MB volume per run until the disk filled.
  */
 
 const REPO_ROOT = path.resolve(import.meta.dirname, '..', '..', '..');
@@ -16,7 +20,7 @@ const COMPOSE_FILE = path.resolve(REPO_ROOT, 'apps', 'server', 'docker-compose.y
 export default function globalTeardown() {
   try {
     console.log('▸ e2e: removing test Postgres container');
-    execFileSync('docker', ['compose', '-f', COMPOSE_FILE, 'rm', '-sf', 'postgres-test'], {
+    execFileSync('docker', ['compose', '-f', COMPOSE_FILE, 'rm', '-sfv', 'postgres-test'], {
       cwd: REPO_ROOT,
       stdio: 'inherit',
     });
