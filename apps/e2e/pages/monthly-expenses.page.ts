@@ -87,11 +87,7 @@ export class MonthlyExpensesPage {
     await expect(dialog).toBeHidden();
   }
 
-  /**
-   * Picks a category in an open picker, creating it if the name isn't there yet. The branch is taken
-   * only after `settle()`: `count()` has no auto-wait, so read mid-flight it sees the previous term's
-   * rows and creates a category that already exists.
-   */
+  /** Creates the category if it isn't there. `search` settles first — `count()` has no auto-wait. */
   private async pickCategory(name: string) {
     const picker = new Picker(this.page, 'Search categories…');
     await picker.search(name);

@@ -9,9 +9,7 @@ import path from 'node:path';
  * `postgres` service in the same compose file. Best-effort: a failure here must
  * not fail an otherwise-green run.
  *
- * `-v` is load-bearing: the postgres image declares its data dir a VOLUME, so each
- * run gets a fresh anonymous one and `rm` alone leaves it behind. Without it the
- * suite leaked a ~50MB volume per run until the disk filled.
+ * `-v` is load-bearing: the postgres image's data dir is a VOLUME, so `rm` alone leaks one per run.
  */
 
 const REPO_ROOT = path.resolve(import.meta.dirname, '..', '..', '..');

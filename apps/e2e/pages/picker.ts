@@ -1,13 +1,6 @@
 import { expect, type Page } from '@playwright/test';
 
-/** Mirrors `SEARCH_DEBOUNCE_MS`, which lives in the web app and isn't importable from here. */
-const DEBOUNCE_MS = 400;
-
-/**
- * An entity picker (`AsyncComboboxContent`), as a component object like `SearchBox`. Searching hits
- * the server and pages, so every read goes through `settle()` — the rows on screen belong to the
- * *previous* term until the debounced request lands, and clicking one of those picks the wrong row.
- */
+/** An entity picker. Its rows answer the *previous* term until the debounced request lands. */
 export class Picker {
   constructor(
     private readonly page: Page,
@@ -23,21 +16,14 @@ export class Picker {
     return this.page.locator('[data-slot="combobox-loading"]');
   }
 
-  /**
-   * The result rows. Pass the group heading where the picker renders one — unscoped this also counts
-   * standing rows like the shop picker's "None", which is not a result.
-   */
+  /** Pass the group heading, or this also counts standing rows like the shop picker's "None". */
   options(group?: string) {
     const root = group ? this.page.getByRole('group', { name: group }) : this.page;
 
     return root.getByRole('option');
   }
 
-  /**
-   * A row by name. Matched as a substring by default because most pickers put meta beside the name —
-   * a contact's type, an ingredient's category — which is part of the option's accessible name. Pass
-   * `exact` where the picker has none and a longer name could swallow the match.
-   */
+  /** Substring by default: a row's accessible name carries its meta too — a type, a category. */
   option(name: string, { exact = false }: { exact?: boolean } = {}) {
     return this.page.getByRole('option', { exact, name });
   }
@@ -50,15 +36,20 @@ export class Picker {
     return this.page.getByRole('button', { name: 'Load more' });
   }
 
-  /** Waits until what's rendered answers the term in the box rather than the one before it. */
-  async settle() {
-    await this.page.waitForTimeout(DEBOUNCE_MS + 100);
+  /** The open popup. Radix keeps a closed one mounted through its exit animation, hence the state. */
+  private content() {
+    return this.page.locator('[data-slot="combobox-content"][data-state="open"]');
+  }
+
+  /** Both halves: "nothing in flight" is also true *before* the debounced request has started. */
+  private async settle(term: string) {
+    await expect(this.content()).toHaveAttribute('data-search', term);
     await expect(this.loading()).toBeHidden();
   }
 
   async search(term: string) {
     await this.input().fill(term);
-    await this.settle();
+    await this.settle(term);
   }
 
   async pick(name: string) {
@@ -71,14 +62,13 @@ export class Picker {
     await this.createButton(term).click();
   }
 
+  // Paging only appends, so the caller's row-count assertion is what waits for the page to land.
   async loadMore() {
     await this.loadMoreButton().click();
-    await expect(this.loading()).toBeHidden();
   }
 
   /** Scrolls the popup list to the bottom, which is what trips the sentinel. */
   async scrollToBottom(group?: string) {
     await this.options(group).last().scrollIntoViewIfNeeded();
-    await expect(this.loading()).toBeHidden();
   }
 }

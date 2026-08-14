@@ -13,10 +13,7 @@ const PAGE_SIZE = 25;
 /** Enough to need a second page, with the last row far from the first. */
 const FIXTURE_SIZE = 30;
 
-/**
- * Unique per test, and **fixed width** — cleanup searches by substring, so a prefix that is a prefix
- * of another test's would delete that test's rows out from under it.
- */
+/** Fixed width: cleanup searches by substring, so a shorter prefix would eat another test's rows. */
 const uniquePrefix = () => `PickerFix ${randomUUID().slice(0, 8)}`;
 
 const shopName = (prefix: string, index: number) => `${prefix} ${String(index).padStart(2, '0')}`;
@@ -33,29 +30,25 @@ async function createShops(page: Page, prefix: string) {
   }
 }
 
+/** Best-effort, and silent: this runs from `finally`, where a throw would replace the real failure. */
 async function deleteShops(page: Page, prefix: string) {
   const list = await page
     .context()
     .request.get(`${API_URL}/stores?search=${encodeURIComponent(prefix)}&pageSize=${MAX_PAGE_SIZE}`);
 
   if (!list.ok()) {
-    throw new Error(`Could not list shops to clean up "${prefix}": ${list.status()}`);
+    return;
   }
 
-  const { items } = (await list.json()) as { items: { id: number; name: string }[] };
+  const { items } = (await list.json()) as { items: { id: number }[] };
 
   for (const shop of items) {
-    const deleted = await page.context().request.delete(`${API_URL}/stores/${shop.id}`);
-
-    if (!deleted.ok()) {
-      throw new Error(`Could not delete shop "${shop.name}": ${deleted.status()}`);
-    }
+    await page.context().request.delete(`${API_URL}/stores/${shop.id}`);
   }
 }
 
 test.describe('entity pickers', () => {
-  // The seed holds two shops, far too few to page — so these build their own fixture over the API
-  // and remove it again. Every name carries the run's prefix, so parallel workers can't collide.
+  // The seed holds two shops, far too few to page, so each test builds its own prefixed fixture.
 
   test('pages a long list as it is scrolled, and searches the whole of it', async ({ page }) => {
     const prefix = uniquePrefix();
@@ -91,8 +84,7 @@ test.describe('entity pickers', () => {
 
       const picker = await ingredients.openStorePickerInAddDialog(`E2E Ingredient ${Date.now()}`);
 
-      // The regression this feature fixes: searching used to filter the rows already fetched, so a
-      // row past the ceiling could not be reached however precisely you typed its name.
+      // The regression: search used to filter rows already fetched, so this one was unreachable.
       const last = shopName(prefix, FIXTURE_SIZE);
       await picker.search(last);
 
@@ -115,8 +107,7 @@ test.describe('entity pickers', () => {
       await picker.search(prefix);
       await expect(picker.options(SHOPS)).toHaveCount(PAGE_SIZE);
 
-      // The observer only ever fires on a scroll, so without this button the rest of the list is
-      // unreachable for anyone not using a mouse.
+      // The observer only fires on a scroll, so without this button the rest is mouse-only.
       await picker.loadMoreButton().focus();
       await page.keyboard.press('Enter');
 
