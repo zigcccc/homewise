@@ -2,13 +2,7 @@ import { infiniteQueryOptions, type QueryClient, queryOptions } from '@tanstack/
 import { type InferRequestType, type InferResponseType } from 'hono';
 
 import { client, parseResponse } from '@/api/client';
-import {
-  flattenOptionPages,
-  nextPageParam,
-  OPTIONS_PAGE_SIZE,
-  OPTIONS_STALE_TIME,
-  type PageParam,
-} from '@/modules/shared';
+import { flattenOptionPages, nextPageParam, OPTIONS_PAGE_SIZE, OPTIONS_STALE_TIME } from '@/modules/shared';
 
 const $listRecipes = client.recipes.$get;
 const $getRecipe = client.recipes[':id'].$get;
@@ -32,7 +26,7 @@ export function listRecipeOptionsInfiniteQueryOptions(search?: string) {
     queryKey: ['recipes', 'options', { search }],
     queryFn: async ({ pageParam }) =>
       parseResponse($listRecipes({ query: { search, pageSize: OPTIONS_PAGE_SIZE, ...pageParam } })),
-    initialPageParam: { page: 1 } as PageParam,
+    initialPageParam: { page: 1 },
     getNextPageParam: nextPageParam,
     select: flattenOptionPages,
     staleTime: OPTIONS_STALE_TIME,
@@ -59,6 +53,8 @@ export function listRecipeTagsQueryOptions() {
  */
 export function invalidateRecipe(queryClient: QueryClient, id: number) {
   void queryClient.invalidateQueries({ queryKey: ['recipes', 'list'] });
+  // The pickers cache their own pages, and a rename leaves a stale label on the meal-plan trigger.
+  void queryClient.invalidateQueries({ queryKey: ['recipes', 'options'] });
   void queryClient.invalidateQueries({ queryKey: ['recipes', 'tags'], exact: true });
   void queryClient.invalidateQueries({ queryKey: ['recipes', id] });
 }

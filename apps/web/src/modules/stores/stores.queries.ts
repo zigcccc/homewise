@@ -4,13 +4,7 @@ import { type InferRequestType, type InferResponseType } from 'hono';
 import { MAX_PAGE_SIZE } from '@homewise/server/models';
 
 import { client, parseResponse } from '@/api/client';
-import {
-  flattenOptionPages,
-  nextPageParam,
-  OPTIONS_PAGE_SIZE,
-  OPTIONS_STALE_TIME,
-  type PageParam,
-} from '@/modules/shared';
+import { flattenOptionPages, nextPageParam, OPTIONS_PAGE_SIZE, OPTIONS_STALE_TIME } from '@/modules/shared';
 
 const $listStores = client.stores.$get;
 const $createStore = client.stores.$post;
@@ -54,16 +48,13 @@ export function listStoreOptionsQueryOptions() {
   });
 }
 
-/**
- * Shops as a picker reads them. Its own `'options'` prefix, not a `'list'` variant: `applyStoreUpdate`
- * maps over `page.items` and would silently corrupt an `InfiniteData`.
- */
+/** Shops as a picker reads them. Own `'options'` prefix — a patcher must not meet `InfiniteData`. */
 export function listStoreOptionsInfiniteQueryOptions(search?: string) {
   return infiniteQueryOptions({
     queryKey: ['stores', 'options', { search }],
     queryFn: async ({ pageParam }) =>
       parseResponse($listStores({ query: { search, pageSize: OPTIONS_PAGE_SIZE, ...pageParam } })),
-    initialPageParam: { page: 1 } as PageParam,
+    initialPageParam: { page: 1 },
     // No anchor: this list only moves on a create or rename, so offset drift is cheap here.
     getNextPageParam: nextPageParam,
     select: flattenOptionPages,

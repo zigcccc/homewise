@@ -47,23 +47,24 @@ export function RecipeCombobox({
         align="start"
         className="w-72"
         emptyMessage={options.search ? 'No matching recipes.' : 'No recipes yet.'}
-        isEmpty={options.items.length === 0}
         options={options}
         placeholder="Search recipes…"
       >
-        {options.items.map((recipe) => (
-          <ComboboxItem
-            key={recipe.id}
-            onSelect={() => {
-              onPick(recipe);
-              close();
-            }}
-            value={String(recipe.id)}
-          >
-            <CookingPotIcon className="shrink-0 text-muted-foreground" />
-            <span className="truncate">{recipe.title}</span>
-          </ComboboxItem>
-        ))}
+        {(items) =>
+          items.map((recipe) => (
+            <ComboboxItem
+              key={recipe.id}
+              onSelect={() => {
+                onPick(recipe);
+                close();
+              }}
+              value={String(recipe.id)}
+            >
+              <CookingPotIcon className="shrink-0 text-muted-foreground" />
+              <span className="truncate">{recipe.title}</span>
+            </ComboboxItem>
+          ))
+        }
       </AsyncComboboxContent>
     </Combobox>
   );

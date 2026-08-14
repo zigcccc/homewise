@@ -2,13 +2,7 @@ import { infiniteQueryOptions, type QueryClient, queryOptions } from '@tanstack/
 import { type InferRequestType, type InferResponseType } from 'hono';
 
 import { client, parseResponse } from '@/api/client';
-import {
-  flattenOptionPages,
-  nextPageParam,
-  OPTIONS_PAGE_SIZE,
-  OPTIONS_STALE_TIME,
-  type PageParam,
-} from '@/modules/shared';
+import { flattenOptionPages, nextPageParam, OPTIONS_PAGE_SIZE, OPTIONS_STALE_TIME } from '@/modules/shared';
 
 const $listContacts = client.contacts.$get;
 const $createContact = client.contacts.$post;
@@ -64,7 +58,7 @@ export function listContactOptionsInfiniteQueryOptions(
     queryKey: ['contacts', 'options', { search, ...filters }],
     queryFn: async ({ pageParam }) =>
       parseResponse($listContacts({ query: { ...filters, search, pageSize: OPTIONS_PAGE_SIZE, ...pageParam } })),
-    initialPageParam: { page: 1 } as PageParam,
+    initialPageParam: { page: 1 },
     getNextPageParam: nextPageParam,
     select: flattenOptionPages,
     staleTime: OPTIONS_STALE_TIME,

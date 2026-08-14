@@ -96,13 +96,12 @@ export function IngredientCombobox({
         align="start"
         className="w-72"
         emptyMessage={options.search ? 'No matching ingredients.' : 'No ingredients yet.'}
-        isEmpty={options.items.length === 0}
         options={options}
         placeholder="Search ingredients…"
       >
-        {options.items.length > 0 && (
+        {(items) => (
           <ComboboxGroup heading="Your ingredients">
-            {options.items.map((ingredient) => (
+            {items.map((ingredient) => (
               <ComboboxItem
                 disabled={used.has(ingredient.id)}
                 key={ingredient.id}

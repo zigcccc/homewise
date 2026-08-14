@@ -1,6 +1,8 @@
 import { PlusIcon, SettingsIcon } from 'lucide-react';
 import { useState } from 'react';
+import z from 'zod';
 
+import { expenseCategoryName } from '@homewise/server/expense-categories';
 import {
   Combobox,
   ComboboxAction,
@@ -14,17 +16,13 @@ import { AsyncComboboxContent, shouldOfferCreate, useAsyncOptions } from '@/modu
 
 import { listExpenseCategoryOptionsInfiniteQueryOptions } from '../expense-categories.queries';
 
-/**
- * What the picker hands back: an existing category, one that doesn't exist yet, or none at all.
- *
- * The two halves map onto the expense payload's `categoryId` / `categoryName` — which is why a new
- * name travels as a name rather than as an id this component minted. It travels as `{ id, name }`
- * because the list is paged now, and an id alone can no longer be labelled from it.
- */
-export type ExpenseCategoryChoice =
-  | { kind: 'existing'; category: { id: number; name: string } }
-  | { kind: 'new'; name: string }
-  | { kind: 'none' };
+/** A schema so a form can hold the choice; `{ id, name }` because a paged list can't label an id. */
+export const expenseCategoryChoiceModel = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('existing'), category: z.object({ id: z.number(), name: z.string() }) }),
+  z.object({ kind: z.literal('new'), name: expenseCategoryName }),
+  z.object({ kind: z.literal('none') }),
+]);
+export type ExpenseCategoryChoice = z.infer<typeof expenseCategoryChoiceModel>;
 
 /**
  * Picks the category an expense is filed under, or names one that doesn't exist yet.
@@ -103,9 +101,7 @@ export function ExpenseCategoryCombobox({
       </ComboboxFieldTrigger>
       <AsyncComboboxContent
         action={
-          /* Both rows are `ComboboxAction`s rather than `ComboboxItem`s, so they sit outside cmdk's
-             item registry — "Create" has to show up precisely when the search matches nothing, and
-             "Edit categories" should never disappear. */
+          /* Both are `ComboboxAction`s, outside cmdk's registry, so neither is ever filtered away. */
           (offerCreate || onManage) && (
             <>
               <ComboboxSeparator />
@@ -132,18 +128,19 @@ export function ExpenseCategoryCombobox({
         }
         className="min-w-64"
         emptyMessage={options.search ? 'No matching categories.' : 'No categories yet.'}
-        isEmpty={options.items.length === 0}
+        leading={
+          <ComboboxGroup>
+            <ComboboxItem onSelect={() => select({ kind: 'none' })} value="none">
+              {noneLabel}
+            </ComboboxItem>
+          </ComboboxGroup>
+        }
         options={options}
         placeholder="Search categories…"
       >
-        <ComboboxGroup>
-          <ComboboxItem onSelect={() => select({ kind: 'none' })} value="none">
-            {noneLabel}
-          </ComboboxItem>
-        </ComboboxGroup>
-        {options.items.length > 0 && (
+        {(items) => (
           <ComboboxGroup heading="Your categories">
-            {options.items.map((category) => (
+            {items.map((category) => (
               <ComboboxItem
                 key={category.id}
                 onSelect={() => select({ kind: 'existing', category })}

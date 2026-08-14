@@ -1,6 +1,8 @@
 import { PlusIcon } from 'lucide-react';
 import { useState } from 'react';
+import z from 'zod';
 
+import { storeName } from '@homewise/server/stores';
 import {
   Combobox,
   ComboboxAction,
@@ -14,11 +16,13 @@ import { AsyncComboboxContent, shouldOfferCreate, useAsyncOptions } from '@/modu
 
 import { listStoreOptionsInfiniteQueryOptions } from '../stores.queries';
 
-/** The chosen shop travels as `{ id, name }`: the list is paged, so an id alone can't be labelled. */
-export type StoreChoice =
-  | { kind: 'existing'; store: { id: number; name: string } }
-  | { kind: 'new'; name: string }
-  | { kind: 'none' };
+/** A schema so a form can hold the choice itself; `{ id, name }` because a paged list can't label an id. */
+export const storeChoiceModel = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('existing'), store: z.object({ id: z.number(), name: z.string() }) }),
+  z.object({ kind: z.literal('new'), name: storeName }),
+  z.object({ kind: z.literal('none') }),
+]);
+export type StoreChoice = z.infer<typeof storeChoiceModel>;
 
 /**
  * Picks the shop an ingredient is bought at, or names one that doesn't exist yet.
@@ -100,18 +104,19 @@ export function StoreCombobox({
         }
         className="min-w-64"
         emptyMessage={options.search ? 'No matching shops.' : 'No shops yet.'}
-        isEmpty={options.items.length === 0}
+        leading={
+          <ComboboxGroup>
+            <ComboboxItem onSelect={() => select({ kind: 'none' })} value="none">
+              {noneLabel}
+            </ComboboxItem>
+          </ComboboxGroup>
+        }
         options={options}
         placeholder="Search shops…"
       >
-        <ComboboxGroup>
-          <ComboboxItem onSelect={() => select({ kind: 'none' })} value="none">
-            {noneLabel}
-          </ComboboxItem>
-        </ComboboxGroup>
-        {options.items.length > 0 && (
+        {(items) => (
           <ComboboxGroup heading="Your shops">
-            {options.items.map((store) => (
+            {items.map((store) => (
               <ComboboxItem
                 key={store.id}
                 onSelect={() => select({ kind: 'existing', store })}

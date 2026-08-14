@@ -2,13 +2,7 @@ import { infiniteQueryOptions, type QueryClient, queryOptions } from '@tanstack/
 import { type InferRequestType, type InferResponseType } from 'hono';
 
 import { client, parseResponse } from '@/api/client';
-import {
-  flattenOptionPages,
-  nextPageParam,
-  OPTIONS_PAGE_SIZE,
-  OPTIONS_STALE_TIME,
-  type PageParam,
-} from '@/modules/shared';
+import { flattenOptionPages, nextPageParam, OPTIONS_PAGE_SIZE, OPTIONS_STALE_TIME } from '@/modules/shared';
 
 const $listIngredients = client.ingredients.$get;
 
@@ -29,16 +23,13 @@ export function listIngredientsQueryOptions(query: ListIngredientsQuery = {}) {
   });
 }
 
-/**
- * The library as a picker reads it. Its own `'options'` prefix, not a `'list'` variant:
- * `applyIngredientUpdate` maps over `page.items` and would silently corrupt an `InfiniteData`.
- */
+/** The library as a picker reads it. Own `'options'` prefix — a patcher must not meet `InfiniteData`. */
 export function listIngredientOptionsInfiniteQueryOptions(search?: string) {
   return infiniteQueryOptions({
     queryKey: ['ingredients', 'options', { search }],
     queryFn: async ({ pageParam }) =>
       parseResponse($listIngredients({ query: { search, pageSize: OPTIONS_PAGE_SIZE, ...pageParam } })),
-    initialPageParam: { page: 1 } as PageParam,
+    initialPageParam: { page: 1 },
     // No anchor: this list only moves on a create or rename, so offset drift is cheap here.
     getNextPageParam: nextPageParam,
     select: flattenOptionPages,

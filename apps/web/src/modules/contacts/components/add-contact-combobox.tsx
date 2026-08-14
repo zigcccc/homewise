@@ -111,13 +111,12 @@ export function AddContactCombobox({
         align={trigger ? 'start' : 'end'}
         className={trigger ? undefined : 'w-72'}
         emptyMessage={options.search ? 'No matching contacts.' : 'No contacts yet.'}
-        isEmpty={options.items.length === 0}
         options={options}
         placeholder="Search contacts…"
       >
-        {options.items.length > 0 && (
+        {(items) => (
           <ComboboxGroup heading="Existing contacts">
-            {options.items.map((contact) => {
+            {items.map((contact) => {
               const isLinked = linkedIds.has(contact.id);
 
               return (

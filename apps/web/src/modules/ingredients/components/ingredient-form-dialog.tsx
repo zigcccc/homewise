@@ -1,6 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
 import { type SubmitHandler, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import type z from 'zod';
@@ -29,7 +28,7 @@ import {
 
 import { client, parseResponse } from '@/api/client';
 import { isServerStatus, SELECT_NONE, serverMessage } from '@/modules/shared';
-import { invalidateStores, type StoreChoice, StoreCombobox } from '@/modules/stores';
+import { invalidateStores, StoreCombobox, storeChoiceModel } from '@/modules/stores';
 
 import { ingredientCategoryLabels, measurementUnitLabels } from '../helpers';
 import { type Ingredient, invalidateIngredients } from '../ingredients.queries';
@@ -40,10 +39,14 @@ const $patchIngredient = client.ingredients[':id'].$patch;
 
 /**
  * The server model defaults `category`, which makes it optional on the way in and required on the
- * way out — a split `useForm` can't reconcile. The form always picks one, so require it here and
- * inherit every other field rule from the server.
+ * way out — a split `useForm` can't reconcile. The form always picks one, so require it here.
+ * `storeId` and `storeName` are two halves of one choice, so the form holds the choice and `save`
+ * writes both from it. Every other field rule is inherited from the server.
  */
-const ingredientFormModel = createIngredientModel.extend({ category: ingredientCategory });
+const ingredientFormModel = createIngredientModel.omit({ storeId: true, storeName: true }).extend({
+  category: ingredientCategory,
+  store: storeChoiceModel,
+});
 
 type IngredientFormValues = z.infer<typeof ingredientFormModel>;
 
@@ -87,23 +90,23 @@ function IngredientForm({ ingredient, onDone }: { ingredient?: Ingredient; onDon
       name: ingredient?.name ?? '',
       category: ingredient?.category ?? 'other',
       defaultUnit: ingredient?.defaultUnit ?? null,
-      storeId: ingredient?.storeId ?? null,
-      storeName: undefined,
+      store: ingredient?.store ? { kind: 'existing', store: ingredient.store } : { kind: 'none' },
       notes: ingredient?.notes ?? '',
     },
   });
 
-  // The choice leads and the payload fields are written from it: the trigger needs the shop's name,
-  // which a paged list can't resolve from an id. Reseeded by the dialog's remount.
-  const [storeChoice, setStoreChoice] = useState<StoreChoice>(() =>
-    ingredient?.store ? { kind: 'existing', store: ingredient.store } : { kind: 'none' }
-  );
-
   const { mutateAsync: save } = useMutation({
-    mutationFn: async (json: IngredientFormValues) =>
-      ingredient
+    mutationFn: async ({ store, ...values }: IngredientFormValues) => {
+      const json = {
+        ...values,
+        storeId: store.kind === 'existing' ? store.store.id : null,
+        storeName: store.kind === 'new' ? store.name : undefined,
+      };
+
+      return ingredient
         ? parseResponse($patchIngredient({ param: { id: ingredient.id.toString() }, json }))
-        : parseResponse($createIngredient({ json })),
+        : parseResponse($createIngredient({ json }));
+    },
   });
 
   const submit: SubmitHandler<IngredientFormValues> = async (values) => {
@@ -113,7 +116,7 @@ function IngredientForm({ ingredient, onDone }: { ingredient?: Ingredient; onDon
       invalidateIngredients(queryClient);
 
       // The save may have minted a shop along the way, so the pickers and the Shops tab are stale.
-      if (values.storeName) {
+      if (values.store.kind === 'new') {
         invalidateStores(queryClient);
       }
 
@@ -195,23 +198,14 @@ function IngredientForm({ ingredient, onDone }: { ingredient?: Ingredient; onDon
             )}
           />
         </div>
-        {/* `storeId` and `storeName` are two halves of one choice, so one control drives both: an
-            existing shop sets the id, a typed one sets the name for the server to find-or-create. */}
         <FormField
           control={form.control}
-          name="storeId"
+          name="store"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Shop</FormLabel>
               <FormControl>
-                <StoreCombobox
-                  onChange={(choice) => {
-                    setStoreChoice(choice);
-                    field.onChange(choice.kind === 'existing' ? choice.store.id : null);
-                    form.setValue('storeName', choice.kind === 'new' ? choice.name : undefined);
-                  }}
-                  value={storeChoice}
-                />
+                <StoreCombobox onChange={field.onChange} value={field.value} />
               </FormControl>
               <FormMessage />
             </FormItem>

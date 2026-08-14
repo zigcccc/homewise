@@ -3,13 +3,10 @@ import { type InfiniteData } from '@tanstack/react-query';
 import { DEFAULT_PAGE_SIZE } from '@homewise/server/models';
 
 /** One offset page, as every list endpoint answers it. */
-export type PagedEnvelope = { page: number; pageSize: number; total: number };
+type PagedEnvelope = { page: number; pageSize: number; total: number };
 
 /** A page of rows, as an options query reads it. */
 export type PagedResponse<TItem> = PagedEnvelope & { items: TItem[] };
-
-/** Where an options query is up to. An offset, like every other list — see `server-conventions`. */
-export type PageParam = { page: number };
 
 /** Must overflow `ComboboxList`'s 300px box, or the sentinel stays visible and pages to exhaustion. */
 export const OPTIONS_PAGE_SIZE = DEFAULT_PAGE_SIZE;
@@ -18,7 +15,7 @@ export const OPTIONS_PAGE_SIZE = DEFAULT_PAGE_SIZE;
 export const OPTIONS_STALE_TIME = 60_000;
 
 /** Read off the response, never the request: the server clamps past-the-end, so asking would loop. */
-export const nextPageParam = (last: PagedEnvelope): PageParam | undefined =>
+export const nextPageParam = (last: PagedEnvelope) =>
   last.page * last.pageSize < last.total ? { page: last.page + 1 } : undefined;
 
 /** Hoisted for identity: a fresh arrow per call remounts a `DataTable` cell and closes its picker. */

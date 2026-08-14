@@ -131,8 +131,7 @@ export function RecipeForm({
     }
   };
 
-  // A line stores an id, and the paged library can't resolve it to a name. Seeded from the recipe
-  // being edited, added to as picks come in.
+  // A line stores an id, and the paged library can't resolve it to a name. Picks add to it.
   const [namesById, setNamesById] = useState(
     () => new Map((recipe?.ingredients ?? []).map((line) => [line.ingredientId, line.ingredient.name]))
   );
@@ -426,8 +425,7 @@ function IngredientLineRow({
   onRemove: () => void;
 }) {
   const ingredientId = useWatch({ control, name: `ingredients.${index}.ingredientId` });
-  // A line points at the library either by id (already there) or by name (created when the recipe
-  // is saved). Only the latter is still editable here.
+  // A line points at the library by id (already there) or by name (created with the recipe).
   const typedName = useWatch({ control, name: `ingredients.${index}.ingredientName` });
   const name = ingredientId === undefined ? typedName : namesById.get(ingredientId);
 

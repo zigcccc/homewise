@@ -413,8 +413,7 @@ function ContactForm({
                 linkedIds={relatedIds}
                 onCreate={() => toast.info('Save this contact first, then add the other person.')}
                 onLink={async (related) => {
-                  // The reverse wording isn't asked for here — `INVERSE_ROLE` fills it in, and the
-                  // contact's own page is where an unusual one gets set.
+                  // `INVERSE_ROLE` fills in the reverse wording; the contact's own page overrides it.
                   relations.append({ relatedContactId: related.id, relatedContactName: related.name, role: 'friend' });
                 }}
                 typeLabels={typeLabels}

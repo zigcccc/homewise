@@ -55,15 +55,12 @@ describe('offering to create what was typed', () => {
   });
 
   it('should stay hidden until the typed term reaches the query', () => {
-    // GIVEN: "Spar" typed, the debounce not yet fired, so `items` is still the *unsearched* first
-    // page. Answering off that offers to create a shop that may well exist on page three.
+    // GIVEN: the debounce has not fired, so `items` is still the unsearched first page
     expect(shouldOfferCreate({ isFetching: false, items, pendingSearch: '', search: 'Spar' })).toBe(false);
   });
 
   it('should stay hidden while the results for the typed term are in flight', () => {
-    // GIVEN: "Lidl" has reached the query, but the rows on screen are still the *previous* search's
-    // and do not contain it. Without the in-flight gate the exact-match test answers about the wrong
-    // term, "Create Lidl" appears for a shop that exists, and a fast click earns a 409.
+    // GIVEN: the term has reached the query, but the rows on screen are the previous search's
     const stale = [{ name: 'Spar' }, { name: 'Mercator' }];
 
     expect(shouldOfferCreate({ isFetching: true, items: stale, pendingSearch: 'Lidl', search: 'Lidl' })).toBe(false);

@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useDebounceCallback } from 'usehooks-ts';
 
 import { SEARCH_DEBOUNCE_MS } from '../constants/search';
-import { type PagedResponse, type PageParam } from '../helpers/paged-query';
+import { type PagedResponse } from '../helpers/paged-query';
 
 /** `TQueryKey` stays free so it is inferred: pinned to `QueryKey`, no concrete key is assignable. */
 type OptionsQueryOptions<TItem, TQueryKey extends QueryKey> = UndefinedInitialDataInfiniteOptions<
@@ -11,7 +11,8 @@ type OptionsQueryOptions<TItem, TQueryKey extends QueryKey> = UndefinedInitialDa
   Error,
   TItem[],
   TQueryKey,
-  PageParam
+  // An offset, like every other list here — see `server-conventions`.
+  { page: number }
 >;
 
 /** Never the suspense variant: the nearest boundary is the route's, so it would blank the page. */
@@ -40,9 +41,8 @@ export function useAsyncOptions<TItem, TQueryKey extends QueryKey>({
   };
 
   return {
-    // Both gated on `enabled`, because the popup outlives its own close: Radix keeps the content
-    // mounted for the exit animation, and a sentinel still on screen there would fetch, re-render,
-    // and fetch again — a loop that never lets the content unmount at all.
+    // Gated on `enabled`: a sentinel still on screen through Radix's exit animation would fetch,
+    // re-render and fetch again, a loop that never lets the content unmount.
     fetchNextPage: () => {
       if (enabled) {
         void fetchNextPage();
