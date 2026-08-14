@@ -189,9 +189,18 @@ Path params use `z.coerce.number<number>()`.
   pages and shows another twice. It is not unit-testable — Postgres is consistent enough at any size
   a test can build — so it is a rule, commented at each `orderBy`, not a covered case.
 
-  **A picker is not a page.** A combobox or filter that needs the whole list gets its own
-  `list<X>OptionsQueryOptions` on the web, asking for `MAX_PAGE_SIZE` and selecting `.items` — never
-  the default page, which would silently offer the first 25 of a household's shops.
+  **A picker pages too.** A combobox over API entities gets its own
+  `list<X>OptionsInfiniteQueryOptions(search)` on the web — one page at a time, searched on the
+  server, keyed under `['<domain>', 'options', …]`. Asking for `MAX_PAGE_SIZE` instead is a silent
+  ceiling: `pageSize` is capped at 100, so row 101 of a household's ingredients could not be picked
+  however precisely you typed its name.
+
+  Two things this rests on. A picker that creates ("Create *Lidl*") decides that from the loaded
+  pages, which is only exact because these endpoints sort by **name ascending** — a match sorts
+  before anything extending it — so **don't pass a sort to a picker that creates**. And a control
+  with nowhere to put a search box or a sentinel (a plain `Select`, a dropdown submenu) still takes
+  the whole capped list; `listStoreOptionsQueryOptions` is that case, and is named apart from the
+  infinite one on purpose.
 - Sort params use a **Zod enum mapped onto a Drizzle column** — never string-interpolate a column
   name. Give every list param `.default(...).catch(...)` so a malformed query string degrades to sane
   defaults instead of a 400. `search` and `sortDirection` come from `#lib/models`; only the sort key

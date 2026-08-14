@@ -121,9 +121,26 @@ the request with no extra wiring. Two things to get right:
   page.items.map(…) }`. A patcher left mapping the response itself doesn't fail loudly — the inline
   edit just stops showing its new value until the refetch lands.
 
-A route that also lists a *paginated* domain as a **picker** (the ingredients page's shop filter)
-uses that domain's `list<X>OptionsQueryOptions`, which asks for `MAX_PAGE_SIZE` and selects `.items`.
-Note `ensureQueryData` in a loader returns the **raw page** — `select` only applies to a component's
+**An entity picker is `useAsyncOptions` + `AsyncComboboxContent`** (`modules/shared`), over that
+domain's `list<X>OptionsInfiniteQueryOptions(search)`. The hook owns the search state, the debounce
+and the paging; the shell owns the input, the loading row and the sentinel; the rows stay in the
+picker, which is the only part that differs. Four rules hold it together:
+
+- **Key it `['<domain>', 'options', { search }]`, never a `'list'` variant.** The domain prefix still
+  clears it, so `invalidate<X>` needs no change — but `apply<X>Update` maps over `page.items` across
+  every `['<domain>', 'list']` key, and handed an `InfiniteData` it reads `undefined` and writes a
+  corrupt entry without failing.
+- **`enabled: open`**, so a picker nobody opened never fetches — which is what lets a route drop the
+  loader that used to warm the list, and keeps 25 inline cells from being 25 requests.
+- **`useInfiniteQuery`, never the suspense variant.** The popup renders its own loading row; a
+  suspending query has no boundary nearer than the route's, so opening a picker would blank the page
+  behind it.
+- **A picker holding a value takes `{ id, name }`, not an id.** The trigger's label can no longer be
+  looked up in a list that holds every row — the shop chosen months ago is not on page one.
+
+A control that genuinely needs the whole list (a plain `Select` filter) still uses
+`list<X>OptionsQueryOptions`, which asks for `MAX_PAGE_SIZE` and selects `.items`. Note
+`ensureQueryData` in a loader returns the **raw page** — `select` only applies to a component's
 `useQuery` — so a loader reading one destructures `{ items }` itself.
 
 **Searching is `SearchInput`** (`modules/shared`), never a hand-rolled `InputGroupInput` plus a
