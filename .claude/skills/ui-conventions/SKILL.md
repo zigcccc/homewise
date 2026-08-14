@@ -43,7 +43,7 @@ module. The test: would another app want this verbatim? If no, it belongs in `mo
 
 **A picker over API entities is server-searched and paged** — `useAsyncOptions` +
 `AsyncComboboxContent` from `modules/shared`, never a `useMemo` filter over a fetched array. See
-`web-conventions` for the query half. Three things about the kit parts it renders:
+`web-conventions` for the query half. Four things about the kit parts it renders:
 
 - **`ComboboxLoadMore` is a sentinel *and* a button**, and the button is not decoration: an
   observer fires on scroll, and nobody can arrow onto a sentinel to discover the list continues.
@@ -57,6 +57,9 @@ module. The test: would another app want this verbatim? If no, it belongs in `mo
   exhaustion. `OPTIONS_PAGE_SIZE` is 25 (~800px); anything under ~12 is not safe.
 - **The search box gets an `aria-label`, not just a placeholder** — a placeholder is not an
   accessible name, and E2E locates every picker by role and name through `pages/picker.ts`.
+- **The popup carries `data-search`**, the debounced term its rows answer. It exists for E2E:
+  "nothing is loading" is also true in the window *before* the debounced request has started, so a
+  spec waiting on the loading row alone can read the previous term's rows and click the wrong one.
 
 **`cursor: pointer` is a base-layer rule** in `apps/web/src/main.css`, covering
 `button:not(:disabled)` and `[role="button"]` — Tailwind v4's preflight is what set buttons to

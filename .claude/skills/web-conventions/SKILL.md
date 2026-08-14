@@ -126,17 +126,24 @@ domain's `list<X>OptionsInfiniteQueryOptions(search)`. The hook owns the search 
 and the paging; the shell owns the input, the loading row and the sentinel; the rows stay in the
 picker, which is the only part that differs. Four rules hold it together:
 
-- **Key it `['<domain>', 'options', { search }]`, never a `'list'` variant.** The domain prefix still
-  clears it, so `invalidate<X>` needs no change — but `apply<X>Update` maps over `page.items` across
-  every `['<domain>', 'list']` key, and handed an `InfiniteData` it reads `undefined` and writes a
-  corrupt entry without failing.
+- **Key it `['<domain>', 'options', { search }]`, never a `'list'` variant.** A prefix invalidator
+  (`invalidate<X>`) still clears it — but `apply<X>Update` maps over `page.items` across every
+  `['<domain>', 'list']` key, and handed an `InfiniteData` it reads `undefined` and writes a corrupt
+  entry without failing. An invalidator that lists its sub-keys instead of taking the whole prefix
+  (`invalidateRecipe`) must name `'options'` among them, or a rename leaves a stale trigger label.
+- **The rows are a render prop**, `{(items) => …}`, called only when there are results — an empty
+  `ComboboxGroup` otherwise leaves its heading hanging over nothing. Standing rows that must survive
+  an empty search (a "None" row) go in `leading`, and terminal actions in `action`.
 - **`enabled: open`**, so a picker nobody opened never fetches — which is what lets a route drop the
   loader that used to warm the list, and keeps 25 inline cells from being 25 requests.
 - **`useInfiniteQuery`, never the suspense variant.** The popup renders its own loading row; a
   suspending query has no boundary nearer than the route's, so opening a picker would blank the page
   behind it.
 - **A picker holding a value takes `{ id, name }`, not an id.** The trigger's label can no longer be
-  looked up in a list that holds every row — the shop chosen months ago is not on page one.
+  looked up in a list that holds every row — the shop chosen months ago is not on page one. Inside a
+  form that means the **choice itself is the field** (`store`, `category`), validated by the picker's
+  own `<x>ChoiceModel` and mapped onto the payload's id/name halves at submit — not a `useState`
+  beside `useForm` holding the label, which is the same field tracked twice.
 
 A control that genuinely needs the whole list (a plain `Select` filter) still uses
 `list<X>OptionsQueryOptions`, which asks for `MAX_PAGE_SIZE` and selects `.items`. Note
