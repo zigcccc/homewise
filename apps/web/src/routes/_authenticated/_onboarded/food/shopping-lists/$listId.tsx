@@ -27,7 +27,6 @@ import {
 } from '@homewise/ui/core';
 
 import { parseResponse } from '@/api/client';
-import { listIngredientOptionsQueryOptions } from '@/modules/ingredients';
 import { ConfirmDeleteDialog, InlineTextField, RouteError, serverMessage } from '@/modules/shared';
 import {
   $completeList,
@@ -50,11 +49,7 @@ import { ListSection, UngroupedDropZone } from './-components/list-section';
 export const Route = createFileRoute('/_authenticated/_onboarded/food/shopping-lists/$listId')({
   loaderDeps: ({ search }) => ({ includeCompleted: search.includeCompleted }),
   async loader({ context, deps, params }) {
-    const [list] = await Promise.all([
-      context.queryClient.ensureQueryData(getShoppingListQueryOptions(Number(params.listId))),
-      // The add-item picker opens without a spinner, and the library is small.
-      context.queryClient.ensureQueryData(listIngredientOptionsQueryOptions()),
-    ]);
+    const list = await context.queryClient.ensureQueryData(getShoppingListQueryOptions(Number(params.listId)));
 
     // While the filter hides completed lists, a completed list simply isn't there — including one
     // reached by direct link. Anything else makes "Show completed: off" a lie.

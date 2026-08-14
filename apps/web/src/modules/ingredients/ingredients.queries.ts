@@ -1,9 +1,14 @@
-import { type QueryClient, queryOptions } from '@tanstack/react-query';
+import { infiniteQueryOptions, type QueryClient, queryOptions } from '@tanstack/react-query';
 import { type InferRequestType, type InferResponseType } from 'hono';
 
-import { MAX_PAGE_SIZE } from '@homewise/server/models';
-
 import { client, parseResponse } from '@/api/client';
+import {
+  flattenOptionPages,
+  nextPageParam,
+  OPTIONS_PAGE_SIZE,
+  OPTIONS_STALE_TIME,
+  type PageParam,
+} from '@/modules/shared';
 
 const $listIngredients = client.ingredients.$get;
 
@@ -24,11 +29,20 @@ export function listIngredientsQueryOptions(query: ListIngredientsQuery = {}) {
   });
 }
 
-/** Every ingredient, for a picker, as a plain array. See `listStoreOptionsQueryOptions` for the cap. */
-export function listIngredientOptionsQueryOptions() {
-  return queryOptions({
-    ...listIngredientsQueryOptions({ pageSize: MAX_PAGE_SIZE }),
-    select: (page: IngredientsPage) => page.items,
+/**
+ * The library as a picker reads it. Its own `'options'` prefix, not a `'list'` variant:
+ * `applyIngredientUpdate` maps over `page.items` and would silently corrupt an `InfiniteData`.
+ */
+export function listIngredientOptionsInfiniteQueryOptions(search?: string) {
+  return infiniteQueryOptions({
+    queryKey: ['ingredients', 'options', { search }],
+    queryFn: async ({ pageParam }) =>
+      parseResponse($listIngredients({ query: { search, pageSize: OPTIONS_PAGE_SIZE, ...pageParam } })),
+    initialPageParam: { page: 1 } as PageParam,
+    // No anchor: this list only moves on a create or rename, so offset drift is cheap here.
+    getNextPageParam: nextPageParam,
+    select: flattenOptionPages,
+    staleTime: OPTIONS_STALE_TIME,
   });
 }
 

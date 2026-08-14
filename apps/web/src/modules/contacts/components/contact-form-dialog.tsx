@@ -38,8 +38,13 @@ import {
 
 import { DateField } from '@/modules/shared';
 
-import { type HouseholdContact } from '../contacts.queries';
-import { contactLinkTypeLabels, contactRelationRoleLabels, type RelationDraft, showsPersonalDetails } from '../helpers';
+import {
+  contactLinkTypeLabels,
+  contactRelationRoleLabels,
+  PERSONAL_CONTACT_TYPES,
+  type RelationDraft,
+  showsPersonalDetails,
+} from '../helpers';
 import { AddContactCombobox } from './add-contact-combobox';
 
 /**
@@ -104,23 +109,26 @@ function toDefaults(contact?: EditableContact, defaultType: ContactType = 'medic
 export function ContactFormDialog({
   contact,
   defaultType,
+  excludeId,
   isLoading = false,
   onOpenChange,
   onSubmit,
+  offersRelations,
   open,
-  relatableContacts,
   typeLabels,
 }: {
   contact?: EditableContact;
   /** What a new contact starts as. The owner that opens this decides — a vet, or an address-book entry. */
   defaultType?: ContactType;
+  /** The contact being edited, so the relation picker can't offer it a relation to itself. */
+  excludeId?: number;
   /** Holds the form back until the record it edits has arrived — its defaults only seed once. */
   isLoading?: boolean;
+  /** Whether the relations section appears at all. */
+  offersRelations?: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (values: ContactFormValues) => Promise<void>;
   open: boolean;
-  /** Who this contact can be related to. Omitted, the relations section doesn't appear at all. */
-  relatableContacts?: HouseholdContact[];
   typeLabels: Record<ContactType, string>;
 }) {
   return (
@@ -138,9 +146,10 @@ export function ContactFormDialog({
           <ContactForm
             contact={contact}
             defaultType={defaultType}
+            excludeId={excludeId}
+            offersRelations={offersRelations}
             onDone={() => onOpenChange(false)}
             onSubmit={onSubmit}
-            relatableContacts={relatableContacts}
             typeLabels={typeLabels}
           />
         )}
@@ -152,16 +161,18 @@ export function ContactFormDialog({
 function ContactForm({
   contact,
   defaultType,
+  excludeId,
+  offersRelations: relationsAllowed,
   onDone,
   onSubmit,
-  relatableContacts,
   typeLabels,
 }: {
   contact?: EditableContact;
   defaultType?: ContactType;
+  excludeId?: number;
+  offersRelations?: boolean;
   onDone: () => void;
   onSubmit: (values: ContactFormValues) => Promise<void>;
-  relatableContacts?: HouseholdContact[];
   typeLabels: Record<ContactType, string>;
 }) {
   const form = useForm<ContactFormValues>({
@@ -181,8 +192,7 @@ function ContactForm({
   const links = useFieldArray({ control: form.control, name: 'links' });
   const relations = useFieldArray({ control: form.control, name: 'relations' });
 
-  const offersRelations =
-    relatableContacts !== undefined && showsPersonalDetails(selectedType, relations.fields.length > 0);
+  const offersRelations = relationsAllowed && showsPersonalDetails(selectedType, relations.fields.length > 0);
   const relatedIds = new Set(relations.fields.map((relation) => relation.relatedContactId));
 
   const submit: SubmitHandler<ContactFormValues> = async (values) => {
@@ -398,20 +408,17 @@ function ContactForm({
             <div className="flex items-center justify-between">
               <FormLabel>Relations</FormLabel>
               <AddContactCombobox
-                contacts={relatableContacts}
+                excludeId={excludeId}
                 label="Add relation"
                 linkedIds={relatedIds}
                 onCreate={() => toast.info('Save this contact first, then add the other person.')}
-                onLink={async (relatedContactId) => {
-                  const related = relatableContacts.find((candidate) => candidate.id === relatedContactId);
-
-                  if (related) {
-                    // The reverse wording isn't asked for here — `INVERSE_ROLE` fills it in, and the
-                    // contact's own page is where an unusual one gets set.
-                    relations.append({ relatedContactId, relatedContactName: related.name, role: 'friend' });
-                  }
+                onLink={async (related) => {
+                  // The reverse wording isn't asked for here — `INVERSE_ROLE` fills it in, and the
+                  // contact's own page is where an unusual one gets set.
+                  relations.append({ relatedContactId: related.id, relatedContactName: related.name, role: 'friend' });
                 }}
                 typeLabels={typeLabels}
+                types={PERSONAL_CONTACT_TYPES}
               />
             </div>
             {relations.fields.length === 0 ? (

@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { type InferRequestType, type InferResponseType } from 'hono';
 import { PencilIcon, TrashIcon } from 'lucide-react';
 import { useState } from 'react';
@@ -33,7 +33,6 @@ import {
   ContactLinkChips,
   contactTypeLabels,
   invalidateContacts,
-  listContactOptionsQueryOptions,
   petContactTypeLabels,
 } from '@/modules/contacts';
 import { ConfirmDeleteDialog, UnsavedChangesDialog } from '@/modules/shared';
@@ -78,8 +77,6 @@ export function MedicalInfoCard({
   const [editing, setEditing] = useState<MedicalContact | undefined>(undefined);
   const [removing, setRemoving] = useState<MedicalContact | undefined>(undefined);
 
-  // The whole household address book; the picker disables the ones already linked here.
-  const { data: allContacts } = useQuery(listContactOptionsQueryOptions());
   const linkedIds = new Set(medicalInfo.contacts.map((contact) => contact.id));
 
   const form = useForm<z.infer<typeof infoFormModel>>({
@@ -187,10 +184,9 @@ export function MedicalInfoCard({
           <div className="flex items-center justify-between">
             <h3 className="font-medium text-sm">Contacts</h3>
             <AddContactCombobox
-              contacts={allContacts ?? []}
               linkedIds={linkedIds}
               onCreate={openCreateDialog}
-              onLink={linkContact}
+              onLink={async (contact) => linkContact(contact.id)}
               typeLabels={typeLabels}
             />
           </div>

@@ -34,7 +34,6 @@ import {
   toWeekStart,
   useMealMove,
 } from '@/modules/meal-plan';
-import { listRecipeOptionsQueryOptions } from '@/modules/recipes';
 import { Actionbar, PageLayout, RouteError } from '@/modules/shared';
 
 import { MealPlanDayRow } from './-components/meal-plan-day';
@@ -67,8 +66,7 @@ export const Route = createFileRoute('/_authenticated/_onboarded/food/meal-plan/
   async loader({ context, deps }) {
     await Promise.all([
       context.queryClient.ensureQueryData(mealPlanRangeQueryOptions(deps)),
-      // Both feed the add/edit dialog's pickers, so the first "add" opens without a spinner.
-      context.queryClient.ensureQueryData(listRecipeOptionsQueryOptions({ sortDirection: 'asc', sortKey: 'title' })),
+      // Feeds the meal dialog's member picker; the recipe picker fetches its own page on open.
       context.queryClient.ensureQueryData(getMyHouseholdQueryOptions()),
     ]);
   },
@@ -84,7 +82,6 @@ function MealPlanRoute() {
 
   const { data: plan } = useSuspenseQuery(mealPlanRangeQueryOptions(range));
   const days = toDaysWithMeals(plan);
-  const { data: recipes } = useSuspenseQuery(listRecipeOptionsQueryOptions({ sortDirection: 'asc', sortKey: 'title' }));
   const { data: household } = useSuspenseQuery(getMyHouseholdQueryOptions());
 
   const members = eligibleMembers(household?.members ?? []);
@@ -174,7 +171,6 @@ function MealPlanRoute() {
                       key={day.day}
                       members={members}
                       onMoveMeal={(id, toDay) => moveMeal({ id, toDay })}
-                      recipes={recipes}
                       visibleDays={visibleDays}
                     />
                   ))}

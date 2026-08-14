@@ -40,7 +40,6 @@ import {
   type MealPlanDay,
   type MemberOption,
   type PlannedMeal,
-  type RecipeOption,
   stillNeedsAMeal,
   unassignedMembers,
   useInlineMealPatch,
@@ -58,14 +57,12 @@ export function MealPlanDayRow({
   day,
   members,
   onMoveMeal,
-  recipes,
   visibleDays,
 }: {
   day: MealPlanDay;
   members: MemberOption[];
   /** Hoisted so the card's menu and a drag both go through one mutation. */
   onMoveMeal: (mealId: number, toDay: string) => void;
-  recipes: RecipeOption[];
   /** The days currently on screen — the only places the `Move to day` submenu offers. */
   visibleDays: string[];
 }) {
@@ -157,7 +154,6 @@ export function MealPlanDayRow({
                 meal={meal}
                 members={members}
                 onMove={onMoveMeal}
-                recipes={recipes}
                 visibleDays={visibleDays}
               />
             ))}
@@ -170,7 +166,7 @@ export function MealPlanDayRow({
           </p>
         )}
 
-        <AddMeal collapsed={fullyPlanned} day={day.day} dayName={dayName} recipes={recipes} />
+        <AddMeal collapsed={fullyPlanned} day={day.day} dayName={dayName} />
       </CardContent>
     </Card>
   );
@@ -184,17 +180,7 @@ export function MealPlanDayRow({
  * signal, and folding rather than hiding is deliberate: a day whose one meal is for *Everyone* is
  * fully planned the instant it's created, and a day you can't add to is a dead end.
  */
-function AddMeal({
-  collapsed,
-  day,
-  dayName,
-  recipes,
-}: {
-  collapsed: boolean;
-  day: string;
-  dayName: string;
-  recipes: RecipeOption[];
-}) {
+function AddMeal({ collapsed, day, dayName }: { collapsed: boolean; day: string; dayName: string }) {
   const queryClient = useQueryClient();
   const [naming, setNaming] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -243,7 +229,6 @@ function AddMeal({
       <RecipeCombobox
         ariaLabel={`Pick a recipe for ${dayName}`}
         onPick={(recipe) => create.mutate({ recipeId: recipe.id })}
-        recipes={recipes}
         trigger={
           <Button size="sm" type="button" variant="outline">
             <CookingPotIcon />
@@ -271,7 +256,6 @@ function MealCard({
   meal,
   members,
   onMove,
-  recipes,
   visibleDays,
 }: {
   currentDay: string;
@@ -279,7 +263,6 @@ function MealCard({
   meal: PlannedMeal;
   members: MemberOption[];
   onMove: (mealId: number, toDay: string) => void;
-  recipes: RecipeOption[];
   visibleDays: string[];
 }) {
   const queryClient = useQueryClient();
@@ -372,7 +355,6 @@ function MealCard({
             <RecipeCombobox
               ariaLabel={`Change the recipe for ${meal.label}`}
               onPick={(recipe) => saveOrToast({ recipeId: recipe.id })}
-              recipes={recipes}
               trigger={
                 <button
                   className="flex w-full items-center gap-1.5 rounded-md px-1 py-0.5 text-left font-medium text-sm hover:bg-accent"

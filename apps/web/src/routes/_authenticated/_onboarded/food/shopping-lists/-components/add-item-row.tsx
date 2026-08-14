@@ -1,6 +1,6 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
 
-import { IngredientCombobox, listIngredientOptionsQueryOptions } from '@/modules/ingredients';
+import { IngredientCombobox } from '@/modules/ingredients';
 import { getShoppingListQueryOptions, useListMutations } from '@/modules/shopping-lists';
 
 /**
@@ -12,7 +12,6 @@ import { getShoppingListQueryOptions, useListMutations } from '@/modules/shoppin
  * vocabulary, which is the distinction the combobox's action row spells out.
  */
 export function AddItemRow({ listId }: { listId: number }) {
-  const { data: ingredients } = useSuspenseQuery(listIngredientOptionsQueryOptions());
   const { data: list } = useSuspenseQuery(getShoppingListQueryOptions(listId));
   const { addItemOrToast, isAdding } = useListMutations(listId);
 
@@ -23,7 +22,6 @@ export function AddItemRow({ listId }: { listId: number }) {
   return (
     <IngredientCombobox
       actionLabel="Add as a one-off"
-      ingredients={ingredients}
       label={isAdding ? 'Adding…' : 'Add item'}
       // The shop, not the aisle: it's what decides which section the item lands in.
       meta="store"

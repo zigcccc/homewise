@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useMemo } from 'react';
+import { useState } from 'react';
 import { type SubmitHandler, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import type z from 'zod';
@@ -93,16 +93,11 @@ function IngredientForm({ ingredient, onDone }: { ingredient?: Ingredient; onDon
     },
   });
 
-  // The shop picker's value is the two payload fields read back as one choice, so the control stays
-  // in step with the form rather than holding a second copy of the answer.
-  const [storeId, storeName] = form.watch(['storeId', 'storeName']);
-  const storeChoice = useMemo<StoreChoice>(() => {
-    if (storeName) {
-      return { kind: 'new', name: storeName };
-    }
-
-    return storeId ? { kind: 'existing', id: storeId } : { kind: 'none' };
-  }, [storeId, storeName]);
+  // The choice leads and the payload fields are written from it: the trigger needs the shop's name,
+  // which a paged list can't resolve from an id. Reseeded by the dialog's remount.
+  const [storeChoice, setStoreChoice] = useState<StoreChoice>(() =>
+    ingredient?.store ? { kind: 'existing', store: ingredient.store } : { kind: 'none' }
+  );
 
   const { mutateAsync: save } = useMutation({
     mutationFn: async (json: IngredientFormValues) =>
@@ -211,7 +206,8 @@ function IngredientForm({ ingredient, onDone }: { ingredient?: Ingredient; onDon
               <FormControl>
                 <StoreCombobox
                   onChange={(choice) => {
-                    field.onChange(choice.kind === 'existing' ? choice.id : null);
+                    setStoreChoice(choice);
+                    field.onChange(choice.kind === 'existing' ? choice.store.id : null);
                     form.setValue('storeName', choice.kind === 'new' ? choice.name : undefined);
                   }}
                   value={storeChoice}

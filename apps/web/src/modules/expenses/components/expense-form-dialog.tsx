@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Suspense } from 'react';
+import { Suspense, useState } from 'react';
 import { type SubmitHandler, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import type z from 'zod';
@@ -95,14 +95,9 @@ function ExpenseForm({ defaultRecordedAt, onDone }: { defaultRecordedAt: string;
       parseResponse($createExpense({ json: { ...values, amount: parseAmount(values.amount)! } })),
   });
 
-  const categoryId = form.watch('categoryId');
-  const categoryName = form.watch('categoryName');
-
-  const categoryChoice: ExpenseCategoryChoice = categoryName
-    ? { kind: 'new', name: categoryName }
-    : typeof categoryId === 'number'
-      ? { kind: 'existing', id: categoryId }
-      : { kind: 'none' };
+  // The choice leads and the payload fields are written from it: the trigger needs the name, which a
+  // paged list can't resolve from an id. This dialog only ever adds, so it starts empty.
+  const [categoryChoice, setCategoryChoice] = useState<ExpenseCategoryChoice>({ kind: 'none' });
 
   const submit: SubmitHandler<ExpenseFormValues> = async (values) => {
     try {
@@ -179,7 +174,8 @@ function ExpenseForm({ defaultRecordedAt, onDone }: { defaultRecordedAt: string;
               <FormControl>
                 <ExpenseCategoryCombobox
                   onChange={(choice) => {
-                    field.onChange(choice.kind === 'existing' ? choice.id : null);
+                    setCategoryChoice(choice);
+                    field.onChange(choice.kind === 'existing' ? choice.category.id : null);
                     form.setValue('categoryName', choice.kind === 'new' ? choice.name : undefined);
                   }}
                   value={categoryChoice}

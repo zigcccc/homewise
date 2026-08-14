@@ -31,7 +31,7 @@ import {
   applyExpenseCategoryUpdate,
   type ExpenseCategory,
   invalidateExpenseCategories,
-  listExpenseCategoriesQueryOptions,
+  listAllExpenseCategoriesQueryOptions,
 } from '../expense-categories.queries';
 
 /**
@@ -68,7 +68,7 @@ export function ExpenseCategoriesSheet({ onClose, pending = false }: { onClose: 
 
 function CategoryList() {
   const queryClient = useQueryClient();
-  const { data: categories } = useSuspenseQuery(listExpenseCategoriesQueryOptions());
+  const { data: categories } = useSuspenseQuery(listAllExpenseCategoriesQueryOptions());
   const [adding, setAdding] = useState(false);
 
   const { mutateAsync: create } = useMutation({

@@ -5,8 +5,7 @@ import { useDebounceCallback } from 'usehooks-ts';
 import { Form, FormField, InputGroup, InputGroupAddon, InputGroupInput } from '@homewise/ui/core';
 import { cn } from '@homewise/ui/lib';
 
-/** Long enough to finish a word in, short enough that a pause feels like a result. */
-const DEBOUNCE_MS = 400;
+import { SEARCH_DEBOUNCE_MS } from '../constants/search';
 
 /** The search box every list view shares. `label` is the accessible name; a placeholder is not one. */
 export function SearchInput({
@@ -26,7 +25,7 @@ export function SearchInput({
   // own — a Back button, or a filter cleared elsewhere — while typing stays ahead of the debounce.
   const form = useForm({ values: { search: value ?? '' } });
 
-  const publish = useDebounceCallback((next: string) => onChange(next || undefined), DEBOUNCE_MS);
+  const publish = useDebounceCallback((next: string) => onChange(next || undefined), SEARCH_DEBOUNCE_MS);
 
   return (
     <Form {...form}>

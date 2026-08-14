@@ -5,17 +5,16 @@ import {
   Button,
   Combobox,
   ComboboxAction,
-  ComboboxContent,
   ComboboxGroup,
-  ComboboxInput,
   ComboboxItem,
-  ComboboxList,
   ComboboxSeparator,
   ComboboxTrigger,
 } from '@homewise/ui/core';
 
+import { AsyncComboboxContent, shouldOfferCreate, useAsyncOptions } from '@/modules/shared';
+
 import { ingredientCategoryLabels } from '../helpers';
-import { type Ingredient } from '../ingredients.queries';
+import { type Ingredient, listIngredientOptionsInfiniteQueryOptions } from '../ingredients.queries';
 
 /** What the picker hands back: an existing library row, or a name that doesn't exist yet. */
 export type IngredientChoice = { kind: 'existing'; ingredient: Ingredient } | { kind: 'new'; name: string };
@@ -35,59 +34,34 @@ export type IngredientChoice = { kind: 'existing'; ingredient: Ingredient } | { 
  */
 export function IngredientCombobox({
   actionLabel,
-  ingredients,
   label = 'Add ingredient',
   meta = 'category',
   onSelect,
   usedIds,
 }: {
-  /**
-   * Wording for the row that takes a name the library doesn't have. Defaults to "Create …", which
-   * is right where the name will become a library ingredient — a shopping list, where it stays a
-   * one-off, says so instead.
-   */
   actionLabel?: string;
-  ingredients: Ingredient[];
   label?: string;
-  /**
-   * What the right-hand column shows. The aisle is what a recipe author scans for; a shopping list
-   * cares where the thing is bought, since that decides which section it lands in.
-   */
   meta?: 'category' | 'store';
   onSelect: (choice: IngredientChoice) => void;
-  /**
-   * Ingredients already taken, shown but unselectable. A shopping list holds one line per
-   * ingredient — two "Potato" rows are never what anyone meant, and you can't tick half of them.
-   * Omitted by default: a recipe legitimately uses butter in both the dough and the sauce.
-   */
   usedIds?: number[];
 }) {
   const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState('');
+  const options = useAsyncOptions({ enabled: open, queryOptions: listIngredientOptionsInfiniteQueryOptions });
 
   const used = useMemo(() => new Set(usedIds), [usedIds]);
 
-  const query = search.trim().toLowerCase();
-  const filtered = useMemo(
-    () => (query ? ingredients.filter((item) => item.name.toLowerCase().includes(query)) : ingredients),
-    [query, ingredients]
-  );
-
-  // An exact name match means "Create" would collide with the unique index — offer the existing row.
-  const hasExactMatch = ingredients.some((item) => item.name.toLowerCase() === query);
+  const offerCreate = shouldOfferCreate(options);
 
   const close = () => {
     setOpen(false);
-    setSearch('');
+    options.reset();
   };
-
   const handleSelect = (ingredient: Ingredient) => {
     onSelect({ kind: 'existing', ingredient });
     close();
   };
-
   const handleCreate = () => {
-    onSelect({ kind: 'new', name: search.trim() });
+    onSelect({ kind: 'new', name: options.search.trim() });
     close();
   };
 
@@ -96,7 +70,7 @@ export function IngredientCombobox({
       onOpenChange={(next) => {
         setOpen(next);
         if (!next) {
-          setSearch('');
+          options.reset();
         }
       }}
       open={open}
@@ -107,45 +81,47 @@ export function IngredientCombobox({
           {label}
         </Button>
       </ComboboxTrigger>
-      <ComboboxContent align="start" className="w-72" shouldFilter={false}>
-        <ComboboxInput onValueChange={setSearch} placeholder="Search ingredients…" value={search} />
-        <ComboboxList>
-          {filtered.length > 0 ? (
-            <ComboboxGroup heading="Your ingredients">
-              {filtered.map((ingredient) => (
-                <ComboboxItem
-                  disabled={used.has(ingredient.id)}
-                  key={ingredient.id}
-                  onSelect={() => handleSelect(ingredient)}
-                  value={String(ingredient.id)}
-                >
-                  <span className="truncate">{ingredient.name}</span>
-                  <span className="ml-auto shrink-0 text-muted-foreground text-xs">
-                    {used.has(ingredient.id)
-                      ? 'Already added'
-                      : meta === 'store'
-                        ? ingredient.store?.name
-                        : ingredientCategoryLabels[ingredient.category]}
-                  </span>
-                </ComboboxItem>
-              ))}
-            </ComboboxGroup>
-          ) : (
-            <p className="px-3 py-4 text-center text-muted-foreground text-sm">
-              {ingredients.length === 0 ? 'No ingredients yet.' : 'No matching ingredients.'}
-            </p>
-          )}
-          {query && !hasExactMatch && (
+      <AsyncComboboxContent
+        action={
+          offerCreate && (
             <>
               <ComboboxSeparator />
               <ComboboxAction onClick={handleCreate}>
                 <PlusIcon />
-                {actionLabel ?? 'Create'} "{search.trim()}"
+                {actionLabel ?? 'Create'} "{options.search.trim()}"
               </ComboboxAction>
             </>
-          )}
-        </ComboboxList>
-      </ComboboxContent>
+          )
+        }
+        align="start"
+        className="w-72"
+        emptyMessage={options.search ? 'No matching ingredients.' : 'No ingredients yet.'}
+        isEmpty={options.items.length === 0}
+        options={options}
+        placeholder="Search ingredients…"
+      >
+        {options.items.length > 0 && (
+          <ComboboxGroup heading="Your ingredients">
+            {options.items.map((ingredient) => (
+              <ComboboxItem
+                disabled={used.has(ingredient.id)}
+                key={ingredient.id}
+                onSelect={() => handleSelect(ingredient)}
+                value={String(ingredient.id)}
+              >
+                <span className="truncate">{ingredient.name}</span>
+                <span className="ml-auto shrink-0 text-muted-foreground text-xs">
+                  {used.has(ingredient.id)
+                    ? 'Already added'
+                    : meta === 'store'
+                      ? ingredient.store?.name
+                      : ingredientCategoryLabels[ingredient.category]}
+                </span>
+              </ComboboxItem>
+            ))}
+          </ComboboxGroup>
+        )}
+      </AsyncComboboxContent>
     </Combobox>
   );
 }
