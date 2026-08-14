@@ -1,55 +1,30 @@
-import { randomUUID } from 'node:crypto';
-
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { db, schema } from '#db/core';
 import { StoresService } from '#modules/stores/stores.service';
+import { createHousehold } from '#tests/households';
 
 /**
- * `readPagedList`, driven through a real service against a real Postgres.
+ * `readPagedList`, through the thinnest service that uses it. Needs more rows than the seed has,
+ * which is what puts it out of E2E's reach.
  *
- * Everything here needs more rows than a household would ever be seeded with, which is what puts it
- * out of E2E's reach: page boundaries only exist once there are enough rows to have one, and the
- * clamp only fires on a page that stopped existing between two requests.
- *
- * Shops are the subject because they are the thinnest paginated list — a name, a sort key and a
- * follow-up count — so a failure here is the pagination and not the module.
- *
- * What is deliberately **not** covered: the `asc(id)` tiebreaker every paginated `orderBy` ends with.
- * Postgres returns tied rows in a consistent order at any table size a test can build, so a test for
- * it passes just as well without it — and a test that cannot fail is worse than none. It stays a
- * design invariant, commented at each `orderBy`.
+ * The `asc(id)` tiebreaker is deliberately not covered: Postgres orders tied rows consistently at
+ * any size a test can build, so the test would pass without it too.
  */
 
-/** A household of this file's own, so it can't collide with another test file's rows. */
-async function createHousehold(label: string) {
-  const suffix = randomUUID();
-  const [owner] = await db
-    .insert(schema.user)
-    .values({ email: `${label}-${suffix}@example.test`, id: `user-${label}-${suffix}`, name: 'Test Owner' })
-    .returning();
-  const [household] = await db
-    .insert(schema.household)
-    .values({ name: `${label} ${suffix}`, ownerId: owner!.id })
-    .returning();
-
-  return household!.id;
-}
-
-/** Names that sort in the order they were written, so an assertion can name the row it expects. */
 const shopName = (index: number) => `Shop ${String(index).padStart(3, '0')}`;
 
 const listPage = (householdId: number, page: number, pageSize: number) =>
   StoresService.list(householdId, { page, pageSize, search: undefined, sortDirection: 'asc', sortKey: 'name' });
 
-/** Twelve shops, so 5 to a page makes three pages and the last one is deliberately partial. */
+/** Three pages of five, the last one partial. */
 const TOTAL = 12;
 const PAGE_SIZE = 5;
 
 let householdId: number;
 
 beforeAll(async () => {
-  householdId = await createHousehold('paged');
+  householdId = (await createHousehold('paged')).householdId;
 
   await db.insert(schema.store).values(
     Array.from({ length: TOTAL }, (_, index) => ({
@@ -74,7 +49,7 @@ describe('readPagedList', () => {
     const pages = await Promise.all([1, 2, 3].map((page) => listPage(householdId, page, PAGE_SIZE)));
     const seen = pages.flatMap((page) => page.items.map((shop) => shop.name));
 
-    // THEN: the three pages together should be the whole list, each row exactly once
+    // THEN: every row exactly once — none skipped between pages, none served twice
     expect(seen).toEqual(Array.from({ length: TOTAL }, (_, index) => shopName(index)));
     expect(new Set(seen).size).toBe(TOTAL);
   });
@@ -98,26 +73,23 @@ describe('readPagedList', () => {
       sortKey: 'name',
     });
 
-    // THEN: the total should describe the filtered list — a pager counting the unfiltered table
-    // would offer pages that render empty
+    // THEN: the total describes the filtered list, or the pager offers pages that render empty
     expect(page.items.map((shop) => shop.name)).toEqual([shopName(7)]);
     expect(page.total).toBe(1);
   });
 
   it('should fall back to the last real page when asked for one past the end', async () => {
-    // GIVEN: a page number that was valid until rows were deleted out from under the reader
-    // WHEN: that page is requested
+    // WHEN: a page past the end is requested
     const page = await listPage(householdId, 99, PAGE_SIZE);
 
-    // THEN: it should answer with the last page that exists, and say so — a pager drawn from the URL
-    // instead would read "page 99 of 3" over an empty table
+    // THEN: the last page that exists, and it says so — the pager is drawn from this, not the URL
     expect(page.page).toBe(3);
     expect(page.items.map((shop) => shop.name)).toEqual([10, 11].map(shopName));
   });
 
   it('should stay on the first page of an empty list rather than clamping to zero', async () => {
     // GIVEN: a household with no shops at all
-    const emptyHouseholdId = await createHousehold('paged-empty');
+    const { householdId: emptyHouseholdId } = await createHousehold('paged-empty');
 
     // WHEN: its first page is read
     const page = await listPage(emptyHouseholdId, 1, PAGE_SIZE);
@@ -128,7 +100,7 @@ describe('readPagedList', () => {
 
   it('should scope the total to the household, so another household cannot inflate the pager', async () => {
     // GIVEN: a second household holding shops of its own
-    const otherHouseholdId = await createHousehold('paged-other');
+    const { householdId: otherHouseholdId } = await createHousehold('paged-other');
     await db.insert(schema.store).values({ householdId: otherHouseholdId, name: shopName(0) });
 
     // WHEN: the first household's list is read
