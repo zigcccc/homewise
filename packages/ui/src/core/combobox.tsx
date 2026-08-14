@@ -97,11 +97,7 @@ function ComboboxContent({
 const comboboxRowClassName =
   "flex w-full cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm outline-hidden hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground [&_svg:not([class*='text-'])]:text-muted-foreground [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0";
 
-/**
- * cmdk's root handler takes **every** Enter to select the highlighted item, so a focused button
- * inside the list would fire that row instead of itself. Kept from reaching it; the browser still
- * activates the button natively.
- */
+/** cmdk's root handler takes **every** Enter, so a focused button would fire the highlighted row. */
 const keepKeyFromCommand = (event: KeyboardEvent<HTMLButtonElement>) => {
   if (event.key === 'Enter' || event.key === ' ') {
     event.stopPropagation();
@@ -155,10 +151,7 @@ function ComboboxMessage({ className, ...props }: ComponentProps<'p'>) {
   );
 }
 
-/**
- * Asks for the next page as it scrolls into view. The button is the keyboard path — nobody can arrow
- * onto a sentinel. No `root`: overflow clipping means the viewport already reports it correctly.
- */
+/** Asks for the next page as it scrolls into view; the button is the keyboard path onto a sentinel. */
 function ComboboxLoadMore({
   className,
   hasMore,

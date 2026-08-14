@@ -131,8 +131,7 @@ export type ContactSortKey = z.infer<typeof contactSortKey>;
 export const listContactsQueryParamsModel = z.object({
   /** Matched against the name, email, phone and notes. */
   search: searchQueryParam,
-  /** Omitted, this is the whole address book. Narrowed here, not on the web — a page filtered
-   * client-side can empty while more rows match, and that scroll never visibly ends. */
+  /** Narrowed here, not on the web: a page filtered client-side can empty while more rows match. */
   types: repeatableQueryParam(contactType),
   /** The contact the picker was opened from, so it can't be offered a relation to itself. */
   excludeId: z.coerce.number<number>().int().positive().optional().catch(undefined),
