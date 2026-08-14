@@ -4,7 +4,7 @@ import { SelectItem } from '@homewise/ui/core';
 
 import { SELECT_NONE } from '@/modules/shared';
 
-import { listStoresQueryOptions } from '../stores.queries';
+import { listStoreOptionsQueryOptions } from '../stores.queries';
 
 /**
  * The household's shops, for any `SelectContent` that picks one. Unlike the ingredient category and
@@ -15,7 +15,7 @@ import { listStoresQueryOptions } from '../stores.queries';
  * "—" where the value sits in a table), so the caller supplies it.
  */
 export function StoreSelectItems({ noneLabel }: { noneLabel?: string }) {
-  const { data: stores } = useSuspenseQuery(listStoresQueryOptions());
+  const { data: stores } = useSuspenseQuery(listStoreOptionsQueryOptions());
 
   return (
     <>

@@ -41,6 +41,7 @@ export const dashboardSpendingSummaryQueryOptions = () =>
 export const dashboardRecentExpensesQueryOptions = () =>
   listExpensesQueryOptions({
     ...monthRange(currentMonth(), currentYear()),
+    pageSize: SHOWN,
     sortDirection: 'desc',
     sortKey: 'recordedAt',
   });
@@ -59,7 +60,7 @@ export function SpendingCard() {
   const { data: summary } = useSuspenseQuery(dashboardSpendingSummaryQueryOptions());
   const { data: range } = useSuspenseQuery(dashboardRecentExpensesQueryOptions());
 
-  const recent = range.expenses.slice(0, SHOWN);
+  const recent = range.items;
 
   return (
     <DashboardCard {...CARD}>

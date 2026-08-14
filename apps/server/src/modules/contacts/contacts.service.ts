@@ -8,6 +8,7 @@ import {
   emptyToNull,
   type Filters,
   isUniqueViolation,
+  readPagedList,
   sameList,
   writesAnything,
 } from '#db/utils';
@@ -97,7 +98,10 @@ export class ContactsService {
   }
 
   /** The household address book, filtered and ordered for the contacts page (and the picker). */
-  public static async list(householdId: number, { search, type, sortKey, sortDirection }: ListContactsQueryParams) {
+  public static async list(
+    householdId: number,
+    { search, type, sortKey, sortDirection, page, pageSize }: ListContactsQueryParams
+  ) {
     const columns = schema.contact;
     const filters: Filters = [eq(columns.householdId, householdId)];
 
@@ -120,11 +124,18 @@ export class ContactsService {
     const direction = (expression: Parameters<typeof asc>[0]) =>
       sortDirection === 'desc' ? desc(expression) : asc(expression);
 
-    return db.query.contact.findMany({
-      where: and(...filters),
-      // The id breaks ties, so rows sharing a sort key don't reshuffle between two identical requests.
-      orderBy: ContactsService.orderBy(sortKey, direction).concat(asc(columns.id)),
-      with: { links: { orderBy: (fields, { asc }) => [asc(fields.createdAt)] } },
+    return readPagedList({
+      filters,
+      page,
+      pageSize,
+      table: schema.contact,
+      read: (query) =>
+        db.query.contact.findMany({
+          ...query,
+          // The id breaks ties, so rows sharing a sort key don't reshuffle between two identical requests.
+          orderBy: ContactsService.orderBy(sortKey, direction).concat(asc(columns.id)),
+          with: { links: { orderBy: (fields, { asc }) => [asc(fields.createdAt)] } },
+        }),
     });
   }
 

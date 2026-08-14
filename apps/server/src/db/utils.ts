@@ -1,8 +1,8 @@
-import { and, lt, type SQL } from 'drizzle-orm';
-import { type PgColumn } from 'drizzle-orm/pg-core';
+import { and, count, type SQL } from 'drizzle-orm';
+import { type PgTable } from 'drizzle-orm/pg-core';
 
-import { type db } from '#db/core';
-import { type FieldChange, type PageParams } from '#lib/models';
+import { db } from '#db/core';
+import { type FieldChange, type PagedParams } from '#lib/models';
 
 /**
  * A `db` handle or an open transaction, so a service method can either run on its own or join a
@@ -22,30 +22,48 @@ export type Executor = typeof db | Parameters<Parameters<typeof db.transaction>[
 export type Filters = (SQL | undefined)[];
 
 /**
- * One keyset page of any list, newest first: the rows, plus where the next page starts.
+ * One numbered page of a list: the rows, and how many there are in total to page through.
  *
- * Requires an ordering the cursor column agrees with (a `serial` id descending) — that is what makes
- * "older than the last one shown" a complete condition. Reads one row past `limit`, which answers
- * "is there another page" in place of a second `COUNT(*)`.
+ * The count is a second query because the read is a drizzle *relational* one (`findMany` with
+ * `with:`), which no aggregate can hang off. Both run against the same `filters`, in parallel.
+ *
+ * The returned `page` may not be the one asked for — an offset past the end re-reads at the last
+ * real page. Callers render the pager from it, never from the URL that asked.
+ *
+ * `read` must apply all three of `limit`, `offset` and `where`; spreading the query into a
+ * `findMany` is what every caller does. Its `orderBy` has to be total — end it with the id, or a row
+ * tied on the sort key falls between two pages.
  */
-export async function readPage<Row extends { id: number }>({
-  cursor,
+export async function readPagedList<Row>({
   filters = [],
-  id,
-  limit,
+  page,
+  pageSize,
   read,
-}: PageParams & {
+  table,
+}: PagedParams & {
   filters?: Filters;
-  id: PgColumn;
-  read: (query: { limit: number; where: SQL | undefined }) => Promise<Row[]>;
+  table: PgTable;
+  read: (query: { limit: number; offset: number; where: SQL | undefined }) => Promise<Row[]>;
 }) {
-  const rows = await read({
-    limit: limit + 1,
-    where: and(...filters, cursor === undefined ? undefined : lt(id, cursor)),
-  });
-  const entries = rows.slice(0, limit);
+  const where = and(...filters);
+  const [rows, [totals]] = await Promise.all([
+    read({ limit: pageSize, offset: (page - 1) * pageSize, where }),
+    db.select({ total: count() }).from(table).where(where),
+  ]);
 
-  return { entries, nextCursor: rows.length > limit ? (entries.at(-1)?.id ?? null) : null };
+  const total = totals?.total ?? 0;
+  const lastPage = Math.max(1, Math.ceil(total / pageSize));
+
+  if (rows.length === 0 && page > lastPage) {
+    return {
+      items: await read({ limit: pageSize, offset: (lastPage - 1) * pageSize, where }),
+      page: lastPage,
+      pageSize,
+      total,
+    };
+  }
+
+  return { items: rows, page, pageSize, total };
 }
 
 /**

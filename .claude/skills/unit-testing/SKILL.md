@@ -125,10 +125,14 @@ on the server project is the lever, not a redesign.
 ### Adding a DB-touching test
 
 1. `import { db, schema } from '#db/core'` and the service under test.
-2. In `beforeAll`, insert a `user` then a `household` with a `randomUUID()` suffix in the name and
-   email; keep the household id.
+2. In `beforeAll`, `const { householdId } = await createHousehold('<label>')` from `#tests/households`.
 3. Scope every insert and query to that `householdId`, and give any name a unique suffix too.
 4. Assert against the service, not against a mock of it.
+
+**Setup shared by more than one test file goes in `src/tests/`**, reachable as `#tests/*`. It is a
+`package.json#imports` entry like any other (`server-build-and-imports`), and esbuild never reaches
+it because nothing in `src/index.ts` does. `createHousehold` was copied byte-for-byte into five test
+files before it moved there — when the third copy appears, extract rather than paste.
 
 Ask what the database is actually buying you. `stores.service.test.ts` is the model: it proves the
 real driver raises an error shaped the way `isUniqueViolation` expects, which is precisely the thing
@@ -206,6 +210,7 @@ the path to `projects` in the root `vitest.config.ts`. Knip needs nothing — it
 up the config and the test files. `turbo.json` needs nothing either: this is not a turbo task, for
 the same reason E2E isn't.
 
-`packages/ui` is deliberately not in the suite. Its only non-component files are `cn` (two lines over
-two well-tested libraries) and `useIsMobile` (needs a `matchMedia` stub for near-zero value). Wire it
-up when something there earns a test, not before.
+`packages/ui` joined the suite for `pageWindow` (the pagination bar's page strip) and holds nothing
+else — `cn` is two lines over two well-tested libraries, and `useIsMobile` would need a `matchMedia`
+stub for near-zero value. Its project runs in **node**, not jsdom: a component belongs to E2E, so
+anything testable here needs no DOM.

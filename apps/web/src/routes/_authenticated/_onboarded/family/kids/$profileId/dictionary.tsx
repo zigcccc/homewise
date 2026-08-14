@@ -5,7 +5,7 @@ import { useState } from 'react';
 import z from 'zod';
 
 import { childDictionaryEntrySortKey } from '@homewise/server/child-dictionaries';
-import { searchQueryParam, sortDirection } from '@homewise/server/models';
+import { pagedQueryParams, searchQueryParam, sortDirection } from '@homewise/server/models';
 import {
   Button,
   Checkbox,
@@ -32,6 +32,8 @@ import {
 import { listChildDictionaryEntriesQueryOptions } from '@/modules/child-dictionaries';
 import { getChildProfileQueryOptions } from '@/modules/child-profiles';
 import {
+  ListPagination,
+  RouteError,
   SearchInput,
   type SearchParamSetter,
   SORT_LABELS,
@@ -47,6 +49,7 @@ const searchParamsModel = z.object({
   sortKey: childDictionaryEntrySortKey.default('childPhrase').catch('childPhrase'),
   sortDirection: sortDirection.default('asc').catch('asc'),
   includeArchived: z.boolean().default(false).catch(false),
+  ...pagedQueryParams().shape,
 });
 
 type SearchParams = z.infer<typeof searchParamsModel>;
@@ -71,6 +74,8 @@ function toQuery(search: SearchParams) {
     sortKey: search.sortKey,
     sortDirection: search.sortDirection,
     includeArchived: search.includeArchived ? 'true' : 'false',
+    page: search.page,
+    pageSize: search.pageSize,
   };
 }
 
@@ -88,6 +93,7 @@ export const Route = createFileRoute('/_authenticated/_onboarded/family/kids/$pr
   },
   component: DictionaryTab,
   pendingComponent: () => <Spinner />,
+  errorComponent: () => <RouteError title="Couldn't load this dictionary" />,
 });
 
 function DictionaryTab() {
@@ -140,12 +146,12 @@ function DictionaryEntries({
 }) {
   const [addOpen, setAddOpen] = useState(false);
 
-  const { data: entries } = useSuspenseQuery(
+  const { data: entriesPage } = useSuspenseQuery(
     listChildDictionaryEntriesQueryOptions(dictionary.id, toQuery(searchParams))
   );
 
   const columns = createEntriesTableColumns(profileId);
-  const table = useDataTable({ data: entries, columns });
+  const table = useDataTable({ data: entriesPage.items, columns });
 
   const isFiltered = Boolean(searchParams.search);
 
@@ -216,6 +222,8 @@ function DictionaryEntries({
         }
         table={table}
       />
+
+      <ListPagination page={entriesPage} setSearchParam={setSearchParam} />
 
       <Dialog onOpenChange={setAddOpen} open={addOpen}>
         <DialogContent>

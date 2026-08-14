@@ -32,7 +32,7 @@ import {
   ContactFormDialog,
   contactTypeLabels,
   invalidateContacts,
-  listContactsQueryOptions,
+  listContactOptionsQueryOptions,
 } from '@/modules/contacts';
 import { DateField, serverMessage, todayISODay } from '@/modules/shared';
 import { invalidateStorageLocations } from '@/modules/storage-locations';
@@ -106,7 +106,7 @@ export function LendItemDialog({
 
 function LendForm({ item, onDone }: { item: StorageItem; onDone: () => void }) {
   const queryClient = useQueryClient();
-  const { data: contacts } = useSuspenseQuery(listContactsQueryOptions());
+  const { data: contacts } = useSuspenseQuery(listContactOptionsQueryOptions());
   const [createOpen, setCreateOpen] = useState(false);
 
   const form = useForm<LoanFormValues>({

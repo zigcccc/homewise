@@ -2,7 +2,7 @@ import { and, asc, desc, eq, ilike, isNotNull, isNull, lt, or } from 'drizzle-or
 import { HTTPException } from 'hono/http-exception';
 
 import { db, schema } from '#db/core';
-import { changedColumns, emptyToNull, type Filters, writesAnything } from '#db/utils';
+import { changedColumns, emptyToNull, type Filters, readPagedList, writesAnything } from '#db/utils';
 import { blobPrefix } from '#lib/blobs';
 import { todayISO } from '#lib/dates';
 import { notFound, somethingWentWrong } from '#lib/errors';
@@ -103,7 +103,7 @@ export class StorageItemsService {
    */
   public static async list(
     householdId: number,
-    { search, locationId, loanStatus, sortKey, sortDirection }: ListStorageItemsQueryParams
+    { search, locationId, loanStatus, sortKey, sortDirection, page, pageSize }: ListStorageItemsQueryParams
   ) {
     const columns = schema.storageItem;
     const filters: Filters = [eq(columns.householdId, householdId)];
@@ -126,15 +126,22 @@ export class StorageItemsService {
     }
 
     const sortColumn = columns[sortKey];
-    const items = await db.query.storageItem.findMany({
-      where: and(...filters),
-      // The id breaks ties, so the many rows sharing a sort key — every item with no due date — don't
-      // reshuffle between two identical requests.
-      orderBy: [sortDirection === 'desc' ? desc(sortColumn) : asc(sortColumn), asc(columns.id)],
-      with: itemWith,
+    const paged = await readPagedList({
+      filters,
+      page,
+      pageSize,
+      table: schema.storageItem,
+      read: (query) =>
+        db.query.storageItem.findMany({
+          ...query,
+          // The id breaks ties, so the many rows sharing a sort key — every item with no due date —
+          // don't reshuffle between two identical requests.
+          orderBy: [sortDirection === 'desc' ? desc(sortColumn) : asc(sortColumn), asc(columns.id)],
+          with: itemWith,
+        }),
     });
 
-    return items.map((item) => StorageItemsService.toResponse(item));
+    return { ...paged, items: paged.items.map((item) => StorageItemsService.toResponse(item)) };
   }
 
   public static async create(householdId: number, data: CreateStorageItem, userId: string) {

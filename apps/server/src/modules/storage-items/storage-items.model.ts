@@ -6,6 +6,7 @@ import {
   clearableDate,
   dbOwnedColumns,
   optionalText,
+  pagedQueryParams,
   profileImage,
   searchQueryParam,
   sortDirection,
@@ -103,5 +104,6 @@ export const listStorageItemsQueryParamsModel = z.object({
   loanStatus: storageItemLoanStatus.default('all').catch('all'),
   sortKey: storageItemSortKey.default('name').catch('name'),
   sortDirection: sortDirection.default('asc').catch('asc'),
+  ...pagedQueryParams().shape,
 });
 export type ListStorageItemsQueryParams = z.infer<typeof listStorageItemsQueryParamsModel>;

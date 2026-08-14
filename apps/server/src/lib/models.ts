@@ -79,18 +79,24 @@ export type SortDirection = z.infer<typeof sortDirection>;
 /** The page size no caller may exceed, whatever it asks for. */
 export const MAX_PAGE_SIZE = 100;
 
+/** The page a numbered list opens on, and how many rows it holds. */
+export const DEFAULT_PAGE_SIZE = 25;
+
+/** What the rows-per-page picker offers. Not a constraint on `pageSize` — a URL may ask for any. */
+export const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
+
 /**
- * The `?cursor=&limit=` half of a paginated list, to `.extend()` onto that endpoint's filters.
+ * The `?page=&pageSize=` every paginated list takes, to spread onto that endpoint's filters.
  *
- * `cursor` is the id of the last row already shown, never an offset: rows written mid-scroll shift
- * every offset after them, which shows one page's last row again at the top of the next.
+ * The ordering it pages must be total, or a row falls between two pages — every paginated `orderBy`
+ * ends with its id. The web spreads this same shape into `validateSearch`, so the two can't drift.
  */
-export const pageQueryParams = (defaultSize: number) =>
+export const pagedQueryParams = (defaultSize: number = DEFAULT_PAGE_SIZE) =>
   z.object({
-    cursor: z.coerce.number<number>().int().positive().optional().catch(undefined),
-    limit: z.coerce.number<number>().int().min(1).max(MAX_PAGE_SIZE).default(defaultSize).catch(defaultSize),
+    page: z.coerce.number<number>().int().min(1).default(1).catch(1),
+    pageSize: z.coerce.number<number>().int().min(1).max(MAX_PAGE_SIZE).default(defaultSize).catch(defaultSize),
   });
-export type PageParams = z.infer<ReturnType<typeof pageQueryParams>>;
+export type PagedParams = z.infer<ReturnType<typeof pagedQueryParams>>;
 
 /** A `date` column a form can blank. `''` is "cleared", which the service normalizes to NULL. */
 export const clearableDate = z.iso.date({ error: 'Use a valid date' }).or(z.literal(''));

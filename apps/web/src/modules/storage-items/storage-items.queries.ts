@@ -12,8 +12,10 @@ const $returnStorageItem = client['storage-items'][':id'].loan.$delete;
 
 export type ListStorageItemsQuery = InferRequestType<typeof $listStorageItems>['query'];
 
+export type StorageItemsPage = InferResponseType<typeof $listStorageItems, 200>;
+
 /** One stored thing, with where it is and — when it's out — who has it. */
-export type StorageItem = InferResponseType<typeof $listStorageItems, 200>[number];
+export type StorageItem = StorageItemsPage['items'][number];
 
 export type PatchStorageItemPayload = InferRequestType<typeof $patchStorageItem>['form'];
 export type LendStorageItemPayload = InferRequestType<typeof $lendStorageItem>['json'];
@@ -45,7 +47,7 @@ export function invalidateStorageItems(queryClient: QueryClient) {
  * fixes ordering and filtering — and drops the row from lists it no longer belongs in.
  */
 export function applyStorageItemUpdate(queryClient: QueryClient, updated: StorageItem) {
-  queryClient.setQueriesData<StorageItem[]>({ queryKey: ['storage-items', 'list'] }, (items) =>
-    items?.map((item) => (item.id === updated.id ? updated : item))
+  queryClient.setQueriesData<StorageItemsPage>({ queryKey: ['storage-items', 'list'] }, (page) =>
+    page ? { ...page, items: page.items.map((item) => (item.id === updated.id ? updated : item)) } : page
   );
 }

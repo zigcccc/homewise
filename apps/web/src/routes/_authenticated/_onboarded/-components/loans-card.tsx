@@ -1,7 +1,6 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { ArrowRightIcon, PackageOpenIcon } from 'lucide-react';
-import { useMemo } from 'react';
 
 import { Badge, Button } from '@homewise/ui/core';
 
@@ -33,8 +32,9 @@ const CARD = {
   title: 'Out on loan',
 } satisfies DashboardCardFrame;
 
-/** `onLoan` is `borrowed_on IS NOT NULL` server-side, so this includes the overdue ones. */
-export const dashboardLoansQueryOptions = () => listStorageItemsQueryOptions({ loanStatus: 'onLoan' });
+/** `dueOn` ascending is already overdue-first, NULLs last — so the server can cut it to size. */
+export const dashboardLoansQueryOptions = () =>
+  listStorageItemsQueryOptions({ loanStatus: 'onLoan', pageSize: SHOWN, sortDirection: 'asc', sortKey: 'dueOn' });
 
 function LoansCardSkeleton() {
   return (
@@ -47,20 +47,7 @@ function LoansCardSkeleton() {
 export function LoansCard() {
   const { data: items } = useSuspenseQuery(dashboardLoansQueryOptions());
 
-  // Overdue first: this card exists to be acted on, and what's late is what to act on.
-  const onLoan = useMemo(
-    () =>
-      items
-        .toSorted((a, b) => {
-          const overdue =
-            Number(resolveLoanStatus(b.loan) === 'overdue') - Number(resolveLoanStatus(a.loan) === 'overdue');
-
-          // An open-ended loan has no due date to rank by, so it settles behind anything with one.
-          return overdue || (a.loan?.dueOn ?? '9999').localeCompare(b.loan?.dueOn ?? '9999');
-        })
-        .slice(0, SHOWN),
-    [items]
-  );
+  const onLoan = items.items;
 
   return (
     <DashboardCard {...CARD}>

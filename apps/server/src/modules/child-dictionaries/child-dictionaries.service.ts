@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, ilike, or } from 'drizzle-orm';
 
 import { db, schema } from '#db/core';
-import { changedColumns, emptyToNull, type Filters } from '#db/utils';
+import { changedColumns, emptyToNull, type Filters, readPagedList } from '#db/utils';
 import { notFound, somethingWentWrong } from '#lib/errors';
 
 import {
@@ -30,7 +30,7 @@ export class ChildDictionariesService {
   public static async listEntries(
     householdId: number,
     dictionaryId: number,
-    { search, sortKey, sortDirection, includeArchived }: ListChildDictionaryEntriesQueryParams
+    { search, sortKey, sortDirection, includeArchived, page, pageSize }: ListChildDictionaryEntriesQueryParams
   ) {
     // Resolves through the household, so a dictionary id from elsewhere 404s before we read entries.
     await ChildDictionariesService.readDictionaryRow(householdId, dictionaryId);
@@ -49,10 +49,19 @@ export class ChildDictionariesService {
       filters.push(eq(archived, false));
     }
 
-    return await db.query.childDictionaryEntry.findMany({
-      where: and(...filters),
-      orderBy: sortDirection === 'desc' ? [desc(sortColumn)] : [asc(sortColumn)],
-      with: { creator: creatorWith },
+    const { id } = schema.childDictionaryEntry;
+
+    return await readPagedList({
+      filters,
+      page,
+      pageSize,
+      table: schema.childDictionaryEntry,
+      read: (query) =>
+        db.query.childDictionaryEntry.findMany({
+          ...query,
+          orderBy: sortDirection === 'desc' ? [desc(sortColumn), desc(id)] : [asc(sortColumn), asc(id)],
+          with: { creator: creatorWith },
+        }),
     });
   }
 

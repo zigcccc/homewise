@@ -9,6 +9,7 @@
     "#lib/*": "./src/lib/*.ts",
     "#middleware/*": "./src/middleware/*.ts",
     "#modules/*": "./src/modules/*.ts",
+    "#tests/*": "./src/tests/*.ts",
     "#types/*": "./src/types/*.ts"
   },
   "exports": {

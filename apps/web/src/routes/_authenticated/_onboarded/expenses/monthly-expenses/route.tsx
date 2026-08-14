@@ -4,7 +4,7 @@ import { PlusIcon, ReceiptIcon } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import z from 'zod';
 
-import { searchQueryParam } from '@homewise/server/models';
+import { pagedQueryParams, searchQueryParam } from '@homewise/server/models';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -44,6 +44,7 @@ import {
   currentMonth,
   currentYear,
   formatAmount,
+  ListPagination,
   monthLabel,
   monthOptions,
   monthRange,
@@ -84,13 +85,16 @@ const searchParamsModel = z.object({
     .union([z.literal('none'), z.number().int().positive()])
     .optional()
     .catch(undefined),
+  ...pagedQueryParams().shape,
 });
 
 type SearchParams = z.infer<typeof searchParamsModel>;
 
-const queryFor = ({ category, month, search, year }: SearchParams) => ({
+const queryFor = ({ category, month, page, pageSize, search, year }: SearchParams) => ({
   ...monthRange(month, year),
   category,
+  page,
+  pageSize,
   search,
 });
 
@@ -98,7 +102,7 @@ export const Route = createFileRoute('/_authenticated/_onboarded/expenses/monthl
   validateSearch: searchParamsModel,
   // What keeps the month you were looking at when the categories sheet opens over it and closes
   // again — without every link in the section having to thread `search` through by hand.
-  search: { middlewares: [retainSearchParams(['month', 'year', 'search', 'category'])] },
+  search: { middlewares: [retainSearchParams(['month', 'year', 'search', 'category', 'page', 'pageSize'])] },
   loaderDeps: ({ search }) => search,
   async loader({ context, deps }) {
     const range = monthRange(deps.month, deps.year);
@@ -133,7 +137,7 @@ function MonthlyExpensesLayout() {
 
   const { data: household } = useSuspenseQuery(getMyHouseholdQueryOptions());
   const range = monthRange(searchParams.month, searchParams.year);
-  const { data: expenses } = useSuspenseQuery(listExpensesQueryOptions(queryFor(searchParams)));
+  const { data: expensesPage } = useSuspenseQuery(listExpensesQueryOptions(queryFor(searchParams)));
   const { data: summary } = useSuspenseQuery(expensesSummaryQueryOptions(range));
 
   const setSearchParam = useSearchParamSetter(Route);
@@ -147,7 +151,7 @@ function MonthlyExpensesLayout() {
   const openCategories = useCallback(() => void navigate({ to: '/expenses/monthly-expenses/categories' }), [navigate]);
 
   const columns = useMemo(() => expensesTableColumns(openCategories), [openCategories]);
-  const table = useDataTable({ columns, data: expenses.expenses });
+  const table = useDataTable({ columns, data: expensesPage.items });
 
   const months = useMemo(monthOptions, []);
   const years = useMemo(() => yearOptions(household.createdAt), [household.createdAt]);
@@ -264,6 +268,8 @@ function MonthlyExpensesLayout() {
           }
           table={table}
         />
+
+        <ListPagination page={expensesPage} setSearchParam={setSearchParam} />
 
         <ExpenseFormDialog defaultRecordedAt={defaultRecordedAt(range.from)} onOpenChange={setAddOpen} open={addOpen} />
       </PageLayout>

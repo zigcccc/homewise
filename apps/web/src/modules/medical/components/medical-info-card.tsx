@@ -33,7 +33,7 @@ import {
   ContactLinkChips,
   contactTypeLabels,
   invalidateContacts,
-  listContactsQueryOptions,
+  listContactOptionsQueryOptions,
   petContactTypeLabels,
 } from '@/modules/contacts';
 import { ConfirmDeleteDialog, UnsavedChangesDialog } from '@/modules/shared';
@@ -79,7 +79,7 @@ export function MedicalInfoCard({
   const [removing, setRemoving] = useState<MedicalContact | undefined>(undefined);
 
   // The whole household address book; the picker disables the ones already linked here.
-  const { data: allContacts } = useQuery(listContactsQueryOptions());
+  const { data: allContacts } = useQuery(listContactOptionsQueryOptions());
   const linkedIds = new Set(medicalInfo.contacts.map((contact) => contact.id));
 
   const form = useForm<z.infer<typeof infoFormModel>>({

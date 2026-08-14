@@ -1,6 +1,8 @@
 import { type QueryClient, queryOptions } from '@tanstack/react-query';
 import { type InferRequestType, type InferResponseType } from 'hono';
 
+import { MAX_PAGE_SIZE } from '@homewise/server/models';
+
 import { client, parseResponse } from '@/api/client';
 
 const $listIngredients = client.ingredients.$get;
@@ -8,7 +10,8 @@ const $listIngredients = client.ingredients.$get;
 export type ListIngredientsQuery = InferRequestType<typeof $listIngredients>['query'];
 
 /** An ingredient as the list endpoint returns it, including its `recipeCount`. */
-export type Ingredient = InferResponseType<typeof $listIngredients, 200>[number];
+export type IngredientsPage = InferResponseType<typeof $listIngredients, 200>;
+export type Ingredient = IngredientsPage['items'][number];
 
 /**
  * The household's ingredient library. Each search/sort/category combination caches separately, so
@@ -18,6 +21,14 @@ export function listIngredientsQueryOptions(query: ListIngredientsQuery = {}) {
   return queryOptions({
     queryKey: ['ingredients', 'list', query],
     queryFn: async () => parseResponse($listIngredients({ query })),
+  });
+}
+
+/** Every ingredient, for a picker, as a plain array. See `listStoreOptionsQueryOptions` for the cap. */
+export function listIngredientOptionsQueryOptions() {
+  return queryOptions({
+    ...listIngredientsQueryOptions({ pageSize: MAX_PAGE_SIZE }),
+    select: (page: IngredientsPage) => page.items,
   });
 }
 
@@ -36,7 +47,9 @@ export function invalidateIngredients(queryClient: QueryClient) {
  * this fixes the cell, the refetch fixes ordering and filtering.
  */
 export function applyIngredientUpdate(queryClient: QueryClient, updated: Ingredient) {
-  queryClient.setQueriesData<Ingredient[]>({ queryKey: ['ingredients', 'list'] }, (ingredients) =>
-    ingredients?.map((ingredient) => (ingredient.id === updated.id ? updated : ingredient))
+  queryClient.setQueriesData<IngredientsPage>({ queryKey: ['ingredients', 'list'] }, (page) =>
+    page
+      ? { ...page, items: page.items.map((ingredient) => (ingredient.id === updated.id ? updated : ingredient)) }
+      : page
   );
 }

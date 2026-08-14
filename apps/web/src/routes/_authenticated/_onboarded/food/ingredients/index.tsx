@@ -5,7 +5,7 @@ import { useState } from 'react';
 import z from 'zod';
 
 import { ingredientCategory, ingredientSortKey } from '@homewise/server/ingredients';
-import { searchQueryParam, sortDirection } from '@homewise/server/models';
+import { pagedQueryParams, searchQueryParam, sortDirection } from '@homewise/server/models';
 import {
   Button,
   DataTable,
@@ -29,8 +29,16 @@ import {
   ingredientCategoryLabels,
   listIngredientsQueryOptions,
 } from '@/modules/ingredients';
-import { SELECT_ALL, SELECT_NONE, SearchInput, SortDirectionToggle, useSearchParamSetter } from '@/modules/shared';
-import { listStoresQueryOptions, StoreSelectItems } from '@/modules/stores';
+import {
+  ListPagination,
+  RouteError,
+  SELECT_ALL,
+  SELECT_NONE,
+  SearchInput,
+  SortDirectionToggle,
+  useSearchParamSetter,
+} from '@/modules/shared';
+import { listStoreOptionsQueryOptions, StoreSelectItems } from '@/modules/stores';
 
 import { ingredientsTableColumns } from './-ingredients-table.config';
 
@@ -44,14 +52,16 @@ const searchParamsModel = z.object({
     .catch(undefined),
   sortKey: ingredientSortKey.default('name').catch('name'),
   sortDirection: sortDirection.default('asc').catch('asc'),
+  ...pagedQueryParams().shape,
 });
 
 export const Route = createFileRoute('/_authenticated/_onboarded/food/ingredients/')({
   validateSearch: searchParamsModel,
   loaderDeps: ({ search }) => search,
   async loader({ context, deps }) {
-    // The shop filter labels itself from this, and every row's shop picker reads it.
-    const stores = await context.queryClient.ensureQueryData(listStoresQueryOptions());
+    // The shop filter labels itself from this, and every row's shop picker reads it. `ensureQueryData`
+    // hands back the raw page — `select` only applies to a component's `useQuery`.
+    const { items: stores } = await context.queryClient.ensureQueryData(listStoreOptionsQueryOptions());
 
     // A shop the household no longer has — another member deleted it, or the link was hand-edited.
     // The filter would still send the id while the trigger read "Any shop", so the table and the
@@ -64,6 +74,7 @@ export const Route = createFileRoute('/_authenticated/_onboarded/food/ingredient
   },
   component: IngredientsRoute,
   pendingComponent: () => <Spinner />,
+  errorComponent: () => <RouteError title="Couldn't load your ingredients" />,
 });
 
 function IngredientsRoute() {
@@ -73,13 +84,13 @@ function IngredientsRoute() {
   // to. This one belongs to the empty state's call to action; both open the same dialog.
   const [addOpen, setAddOpen] = useState(false);
 
-  const { data: ingredients } = useSuspenseQuery(listIngredientsQueryOptions(searchParams));
-  const { data: stores } = useSuspenseQuery(listStoresQueryOptions());
+  const { data: ingredientsPage } = useSuspenseQuery(listIngredientsQueryOptions(searchParams));
+  const { data: stores } = useSuspenseQuery(listStoreOptionsQueryOptions());
 
   const setSearchParam = useSearchParamSetter(Route);
 
   const table = useDataTable({
-    data: ingredients,
+    data: ingredientsPage.items,
     columns: ingredientsTableColumns,
   });
 
@@ -165,6 +176,8 @@ function IngredientsRoute() {
         }
         table={table}
       />
+
+      <ListPagination page={ingredientsPage} setSearchParam={setSearchParam} />
 
       <IngredientFormDialog onOpenChange={setAddOpen} open={addOpen} />
     </div>

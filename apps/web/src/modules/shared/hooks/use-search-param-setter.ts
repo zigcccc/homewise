@@ -20,6 +20,9 @@ type RouteWithSearch = {
  *
  * `replace` for a change not worth a history entry: a search term pushed per keystroke makes Back
  * walk the word backwards a letter at a time instead of leaving the page.
+ *
+ * **Changing anything other than the page returns to page 1** — narrowing a list from page 9 would
+ * otherwise ask for page 9 of a result that may have two. Only where the schema has a `page`.
  */
 export function useSearchParamSetter<Route extends RouteWithSearch>(route: Route) {
   const navigate = route.useNavigate();
@@ -29,7 +32,16 @@ export function useSearchParamSetter<Route extends RouteWithSearch>(route: Route
       key: Key,
       value: Route['types']['fullSearchSchema'][Key],
       { replace = false }: { replace?: boolean } = {}
-    ) => navigate({ replace, search: (current) => ({ ...current, [key]: value }), to: '.' }),
+    ) =>
+      navigate({
+        replace,
+        search: (current) => ({
+          ...current,
+          ...(key !== 'page' && 'page' in current && { page: 1 }),
+          [key]: value,
+        }),
+        to: '.',
+      }),
     [navigate]
   );
 }

@@ -2,7 +2,7 @@ import { createInsertSchema, createSelectSchema, createUpdateSchema } from 'driz
 import z from 'zod';
 
 import * as schema from '#db/schema/core';
-import { dbOwnedColumns, optionalText, searchQueryParam, sortDirection } from '#lib/models';
+import { dbOwnedColumns, optionalText, pagedQueryParams, searchQueryParam, sortDirection } from '#lib/models';
 
 /** Aisle categories, straight off the DB enum. Reused by the web for labels and selects. */
 export const ingredientCategory = createSelectSchema(schema.ingredientCategoryEnum);
@@ -68,5 +68,6 @@ export const listIngredientsQueryParamsModel = z.object({
     .catch(undefined),
   sortKey: ingredientSortKey.default('name').catch('name'),
   sortDirection: sortDirection.default('asc').catch('asc'),
+  ...pagedQueryParams().shape,
 });
 export type ListIngredientsQueryParams = z.infer<typeof listIngredientsQueryParamsModel>;

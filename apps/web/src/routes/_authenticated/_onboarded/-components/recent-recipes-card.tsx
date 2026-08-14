@@ -30,7 +30,7 @@ const CARD = {
 
 /** The newest recipes. `includeArchived` defaults to `false` on the endpoint. */
 export const dashboardRecentRecipesQueryOptions = () =>
-  listRecipesQueryOptions({ sortDirection: 'desc', sortKey: 'createdAt' });
+  listRecipesQueryOptions({ pageSize: SHOWN, sortDirection: 'desc', sortKey: 'createdAt' });
 
 /** Uneven, so the placeholder reads as a row of titles. Also the tile keys. */
 const TILE_WIDTHS = ['w-32', 'w-24', 'w-28', 'w-20'];
@@ -53,7 +53,7 @@ function RecentRecipesCardSkeleton() {
 export function RecentRecipesCard() {
   const { data: recipes } = useSuspenseQuery(dashboardRecentRecipesQueryOptions());
 
-  const recent = recipes.slice(0, SHOWN);
+  const recent = recipes.items;
 
   return (
     <DashboardCard {...CARD}>

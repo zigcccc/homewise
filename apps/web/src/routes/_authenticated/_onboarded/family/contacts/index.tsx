@@ -5,7 +5,7 @@ import { useState } from 'react';
 import z from 'zod';
 
 import { contactSortKey, contactType } from '@homewise/server/contacts';
-import { searchQueryParam, sortDirection } from '@homewise/server/models';
+import { pagedQueryParams, searchQueryParam, sortDirection } from '@homewise/server/models';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -34,6 +34,7 @@ import {
 import { ContactDialog, contactTypeLabels, listContactsQueryOptions } from '@/modules/contacts';
 import {
   Actionbar,
+  ListPagination,
   PageLayout,
   RouteError,
   SearchInput,
@@ -50,6 +51,7 @@ const searchParamsModel = z.object({
   type: contactType.optional().catch(undefined),
   sortKey: contactSortKey.default('name').catch('name'),
   sortDirection: sortDirection.default('asc').catch('asc'),
+  ...pagedQueryParams().shape,
 });
 
 type ContactSortKey = z.infer<typeof contactSortKey>;
@@ -88,11 +90,11 @@ function ContactsRoute() {
   const navigate = Route.useNavigate();
   const [addOpen, setAddOpen] = useState(false);
 
-  const { data: contacts } = useSuspenseQuery(listContactsQueryOptions(searchParams));
+  const { data: contactsPage } = useSuspenseQuery(listContactsQueryOptions(searchParams));
 
   const setSearchParam = useSearchParamSetter(Route);
 
-  const table = useDataTable({ columns: contactColumns, data: contacts, getRowId });
+  const table = useDataTable({ columns: contactColumns, data: contactsPage.items, getRowId });
 
   const isFiltered = Boolean(searchParams.search) || Boolean(searchParams.type);
 
@@ -207,6 +209,8 @@ function ContactsRoute() {
           }
           table={table}
         />
+
+        <ListPagination page={contactsPage} setSearchParam={setSearchParam} />
 
         {addOpen && <ContactDialog onOpenChange={setAddOpen} open={addOpen} />}
       </PageLayout>

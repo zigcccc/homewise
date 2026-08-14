@@ -6,27 +6,13 @@ import { beforeAll, describe, expect, it } from 'vitest';
 
 import { db, schema } from '#db/core';
 import { StorageItemsService } from '#modules/storage-items/storage-items.service';
+import { createHousehold } from '#tests/households';
 
 /**
  * The storage defences no E2E flow can reach: a cross-household id, and what a database does to a
  * loan when the contact it names is deleted. Both are assertions about the DB's own behaviour —
  * a foreign key's `SET NULL` and a check constraint — so they need a real Postgres, not a stub.
  */
-
-/** A household of this file's own, so it can't collide with another test file's rows. */
-async function createHousehold(label: string) {
-  const suffix = randomUUID();
-  const [owner] = await db
-    .insert(schema.user)
-    .values({ email: `${label}-${suffix}@example.test`, id: `user-${label}-${suffix}`, name: 'Test Owner' })
-    .returning();
-  const [household] = await db
-    .insert(schema.household)
-    .values({ name: `${label} ${suffix}`, ownerId: owner!.id })
-    .returning();
-
-  return { householdId: household!.id, userId: owner!.id };
-}
 
 async function createLocation(householdId: number, name: string) {
   const [location] = await db.insert(schema.storageLocation).values({ householdId, name }).returning();

@@ -27,6 +27,10 @@ const SHOWN = 5;
 /** The frame, shared with the skeleton so a renamed card can't say two things at once. */
 const CARD = { icon: CakeIcon, title: 'Upcoming birthdays' } satisfies DashboardCardFrame;
 
+/** Safe to cut server-side: anything left off is further out than all `SHOWN` on it. */
+export const dashboardBirthdayContactsQueryOptions = () =>
+  listContactsQueryOptions({ pageSize: SHOWN, sortDirection: 'asc', sortKey: 'birthday' });
+
 type Kind = 'child' | 'contact' | 'pet';
 
 type Person = { dateOfBirth: string | null; id: number; kind: Kind; name: string };
@@ -70,13 +74,13 @@ function BirthdaysCardSkeleton() {
 
 export function BirthdaysCard() {
   // A birth date is a column on three tables, and merging them means redoing the server's ordering.
-  const { data: contacts } = useSuspenseQuery(listContactsQueryOptions());
+  const { data: contacts } = useSuspenseQuery(dashboardBirthdayContactsQueryOptions());
   const { data: children } = useSuspenseQuery(listChildProfilesQueryOptions());
   const { data: pets } = useSuspenseQuery(listPetProfilesQueryOptions());
 
   const upcoming = useMemo(() => {
     const everyone: Person[] = [
-      ...contacts.map((contact) => ({
+      ...contacts.items.map((contact) => ({
         dateOfBirth: contact.dateOfBirth,
         id: contact.id,
         kind: 'contact' as const,

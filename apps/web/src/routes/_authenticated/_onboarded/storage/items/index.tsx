@@ -4,7 +4,7 @@ import { PackageOpenIcon, PlusIcon } from 'lucide-react';
 import { useState } from 'react';
 import z from 'zod';
 
-import { searchQueryParam, sortDirection } from '@homewise/server/models';
+import { pagedQueryParams, searchQueryParam, sortDirection } from '@homewise/server/models';
 import { storageItemLoanStatus, storageItemSortKey } from '@homewise/server/storage-items';
 import {
   Breadcrumb,
@@ -33,6 +33,7 @@ import {
 
 import {
   Actionbar,
+  ListPagination,
   PageLayout,
   RouteError,
   SearchInput,
@@ -54,6 +55,7 @@ const searchParamsModel = z.object({
   loanStatus: storageItemLoanStatus.default('all').catch('all'),
   sortKey: storageItemSortKey.default('name').catch('name'),
   sortDirection: sortDirection.default('asc').catch('asc'),
+  ...pagedQueryParams().shape,
 });
 
 export const Route = createFileRoute('/_authenticated/_onboarded/storage/items/')({
@@ -76,14 +78,14 @@ function StorageItemsRoute() {
   const searchParams = Route.useSearch();
   const [addOpen, setAddOpen] = useState(false);
 
-  const { data: items } = useSuspenseQuery(listStorageItemsQueryOptions(searchParams));
+  const { data: itemsPage } = useSuspenseQuery(listStorageItemsQueryOptions(searchParams));
   // Names only — the filter never shows a count, and reading one would re-render this whole page
   // every time anybody in the household stored something.
   const { data: locations } = useSuspenseQuery(listStorageLocationOptionsQueryOptions());
 
   const setSearchParam = useSearchParamSetter(Route);
 
-  const table = useDataTable({ columns, data: items, getRowId });
+  const table = useDataTable({ columns, data: itemsPage.items, getRowId });
 
   const isFiltered =
     Boolean(searchParams.search) || searchParams.loanStatus !== 'all' || Boolean(searchParams.locationId);
@@ -222,6 +224,8 @@ function StorageItemsRoute() {
           }
           table={table}
         />
+
+        <ListPagination page={itemsPage} setSearchParam={setSearchParam} />
 
         {addOpen && <ItemFormDialog onOpenChange={setAddOpen} open={addOpen} />}
       </PageLayout>

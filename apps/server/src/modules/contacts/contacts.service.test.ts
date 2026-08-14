@@ -3,8 +3,10 @@ import { randomUUID } from 'node:crypto';
 import { HTTPException } from 'hono/http-exception';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import { db, schema } from '#db/core';
+import { db } from '#db/core';
+import { DEFAULT_PAGE_SIZE } from '#lib/models';
 import { ContactsService } from '#modules/contacts/contacts.service';
+import { createHousehold } from '#tests/households';
 
 /**
  * The three things about contacts that a browser can't be pointed at.
@@ -14,21 +16,6 @@ import { ContactsService } from '#modules/contacts/contacts.service';
  * breach; and the role flip is a claim about what one stored row looks like from its *other* end,
  * which no single page shows. Everything else contacts do is `contacts.spec.ts`'s job.
  */
-
-/** A household of this file's own, so it can't collide with another test file's rows. */
-async function createHousehold(label: string) {
-  const suffix = randomUUID();
-  const [owner] = await db
-    .insert(schema.user)
-    .values({ email: `${label}-${suffix}@example.test`, id: `user-${label}-${suffix}`, name: 'Test Owner' })
-    .returning();
-  const [household] = await db
-    .insert(schema.household)
-    .values({ name: `${label} ${suffix}`, ownerId: owner!.id })
-    .returning();
-
-  return household!.id;
-}
 
 const createContact = (householdId: number, name: string, dateOfBirth?: string) =>
   ContactsService.create(householdId, { type: 'friend', name, dateOfBirth });
@@ -42,7 +29,7 @@ describe('ContactsService.list sorted by birthday', () => {
     // GIVEN: a household whose contacts were born across the calendar, and a clock pinned to mid-June.
     // Only `Date` is faked: the pg pool wants its own timers, and the ordering reads the clock in
     // JS and binds it as a parameter rather than asking Postgres for `current_date`.
-    const householdId = await createHousehold('birthdays');
+    const { householdId } = await createHousehold('birthdays');
     const suffix = randomUUID();
 
     await Promise.all([
@@ -57,11 +44,16 @@ describe('ContactsService.list sorted by birthday', () => {
     vi.setSystemTime(new Date('2026-06-15T09:00:00Z'));
 
     // WHEN: the address book is sorted by birthday
-    const contacts = await ContactsService.list(householdId, { sortKey: 'birthday', sortDirection: 'asc' });
+    const contacts = await ContactsService.list(householdId, {
+      sortKey: 'birthday',
+      sortDirection: 'asc',
+      page: 1,
+      pageSize: DEFAULT_PAGE_SIZE,
+    });
 
     // THEN: it should read forwards from today — and the January birthday, which holds the *smallest*
     // date of the five, should come last of the dated ones rather than first
-    expect(contacts.map((contact) => contact.name)).toEqual([
+    expect(contacts.items.map((contact) => contact.name)).toEqual([
       `Today ${suffix}`,
       `In five days ${suffix}`,
       `Later this year ${suffix}`,
@@ -72,16 +64,21 @@ describe('ContactsService.list sorted by birthday', () => {
 
   it('should keep contacts without a birthday last whichever way the sort points', async () => {
     // GIVEN: a household holding one dated contact and one without
-    const householdId = await createHousehold('birthdays-null');
+    const { householdId } = await createHousehold('birthdays-null');
     const suffix = randomUUID();
     await createContact(householdId, `Dated ${suffix}`, '1990-03-02');
     await createContact(householdId, `Undated ${suffix}`);
 
     // WHEN: the list is sorted descending
-    const contacts = await ContactsService.list(householdId, { sortKey: 'birthday', sortDirection: 'desc' });
+    const contacts = await ContactsService.list(householdId, {
+      sortKey: 'birthday',
+      sortDirection: 'desc',
+      page: 1,
+      pageSize: DEFAULT_PAGE_SIZE,
+    });
 
     // THEN: the undated one should still trail — an empty column is not a value to sort into the middle
-    expect(contacts.map((contact) => contact.name)).toEqual([`Dated ${suffix}`, `Undated ${suffix}`]);
+    expect(contacts.items.map((contact) => contact.name)).toEqual([`Dated ${suffix}`, `Undated ${suffix}`]);
   });
 });
 
@@ -89,7 +86,7 @@ describe('ContactsService.addRelation', () => {
   let householdId: number;
 
   beforeAll(async () => {
-    householdId = await createHousehold('relations');
+    householdId = (await createHousehold('relations')).householdId;
   });
 
   it('should refuse the same pair entered from the other end', async () => {
@@ -142,7 +139,7 @@ describe('ContactsService.addRelation', () => {
     // GIVEN: a contact here and one belonging to somebody else
     const suffix = randomUUID();
     const mine = await createContact(householdId, `Mine ${suffix}`);
-    const theirs = await createContact(await createHousehold('relations-other'), `Theirs ${suffix}`);
+    const theirs = await createContact((await createHousehold('relations-other')).householdId, `Theirs ${suffix}`);
 
     // WHEN: the foreign contact is related to ours
     const raised = await ContactsService.addRelation(householdId, mine.id, {
@@ -178,7 +175,7 @@ describe('ContactsService.addRelation', () => {
 describe('ContactsService.create with relations', () => {
   it('should store them with the contact, opposite roles filled in', async () => {
     // GIVEN: somebody already in the address book
-    const householdId = await createHousehold('create-relations');
+    const { householdId } = await createHousehold('create-relations');
     const suffix = randomUUID();
     const sarah = await createContact(householdId, `Sarah ${suffix}`);
 
@@ -201,9 +198,12 @@ describe('ContactsService.create with relations', () => {
 
   it('should create no contact at all when a relation names someone else’s', async () => {
     // GIVEN: a contact belonging to another household
-    const householdId = await createHousehold('create-relations-foreign');
+    const { householdId } = await createHousehold('create-relations-foreign');
     const suffix = randomUUID();
-    const theirs = await createContact(await createHousehold('create-relations-other'), `Theirs ${suffix}`);
+    const theirs = await createContact(
+      (await createHousehold('create-relations-other')).householdId,
+      `Theirs ${suffix}`
+    );
     const name = `Orphan ${suffix}`;
 
     // WHEN: a create names it
@@ -227,7 +227,7 @@ describe('ContactsService.create with relations', () => {
 describe('a stored relation read from both ends', () => {
   it('should report each contact the role that describes the other', async () => {
     // GIVEN: one row saying John is Sarah's husband, and Sarah John's wife
-    const householdId = await createHousehold('relation-frames');
+    const { householdId } = await createHousehold('relation-frames');
     const suffix = randomUUID();
     const sarah = await createContact(householdId, `Sarah ${suffix}`);
     const john = await createContact(householdId, `John ${suffix}`);
@@ -254,7 +254,7 @@ describe('a stored relation read from both ends', () => {
 
   it('should take an edit stated from the far end and store it the right way round', async () => {
     // GIVEN: a relation entered from Sarah's side
-    const householdId = await createHousehold('relation-patch');
+    const { householdId } = await createHousehold('relation-patch');
     const suffix = randomUUID();
     const sarah = await createContact(householdId, `Sarah ${suffix}`);
     const john = await createContact(householdId, `John ${suffix}`);
@@ -278,7 +278,7 @@ describe('a stored relation read from both ends', () => {
 
   it('should drop both sides when the relation is removed from either', async () => {
     // GIVEN: a relation entered from Sarah's side
-    const householdId = await createHousehold('relation-remove');
+    const { householdId } = await createHousehold('relation-remove');
     const suffix = randomUUID();
     const sarah = await createContact(householdId, `Sarah ${suffix}`);
     const john = await createContact(householdId, `John ${suffix}`);

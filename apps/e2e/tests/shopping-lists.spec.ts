@@ -17,10 +17,14 @@ async function recipeIdByTitle(page: Page, title: string) {
   const response = await page.context().request.get(`${API_URL}/recipes`, { params: { search: title } });
   expect(response.ok()).toBe(true);
 
-  const [recipe] = (await response.json()).filter((row: { title: string }) => row.title === title);
-  expect(recipe, `seeded recipe "${title}" not found`).toBeTruthy();
+  const { items } = (await response.json()) as { items: { id: number; title: string }[] };
+  const recipe = items.find((row) => row.title === title);
 
-  return recipe.id as number;
+  if (!recipe) {
+    throw new Error(`Seeded recipe "${title}" not found`);
+  }
+
+  return recipe.id;
 }
 
 /**

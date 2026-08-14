@@ -1,6 +1,8 @@
 import { type QueryClient, queryOptions } from '@tanstack/react-query';
 import { type InferRequestType, type InferResponseType } from 'hono';
 
+import { MAX_PAGE_SIZE } from '@homewise/server/models';
+
 import { client, parseResponse } from '@/api/client';
 
 const $listRecipes = client.recipes.$get;
@@ -12,10 +14,20 @@ export type ListRecipesQuery = InferRequestType<typeof $listRecipes>['query'];
 /** A recipe as the detail endpoint returns it, with ingredients, steps and tags nested. */
 export type RecipeDetail = InferResponseType<typeof $getRecipe, 200>;
 
+export type RecipesPage = InferResponseType<typeof $listRecipes, 200>;
+
 export function listRecipesQueryOptions(query: ListRecipesQuery = {}) {
   return queryOptions({
     queryKey: ['recipes', 'list', query],
     queryFn: async () => parseResponse($listRecipes({ query })),
+  });
+}
+
+/** Every recipe, for a picker, as a plain array. See `listStoreOptionsQueryOptions` for the cap. */
+export function listRecipeOptionsQueryOptions(query: ListRecipesQuery = {}) {
+  return queryOptions({
+    ...listRecipesQueryOptions({ ...query, pageSize: MAX_PAGE_SIZE }),
+    select: (page: RecipesPage) => page.items,
   });
 }
 
