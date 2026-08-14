@@ -52,6 +52,7 @@
     "react-dom": "catalog:",
     "react-leaflet": "catalog:",
     "react-hook-form": "catalog:",
+    "react-intersection-observer": "catalog:",
     "tailwind-merge": "catalog:"
   }
 }

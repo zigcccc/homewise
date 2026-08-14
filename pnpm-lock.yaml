@@ -601,6 +601,9 @@ importers:
       react-hook-form:
         specifier: 'catalog:'
         version: 7.83.0(react@19.2.8)
+      react-intersection-observer:
+        specifier: 'catalog:'
+        version: 10.1.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       react-leaflet:
         specifier: 'catalog:'
         version: 5.0.0(leaflet@1.9.4)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
