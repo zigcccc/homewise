@@ -29,6 +29,10 @@ export type Filters = (SQL | undefined)[];
  *
  * The returned `page` may not be the one asked for — an offset past the end re-reads at the last
  * real page. Callers render the pager from it, never from the URL that asked.
+ *
+ * `read` must apply all three of `limit`, `offset` and `where`; spreading the query into a
+ * `findMany` is what every caller does. Its `orderBy` has to be total — end it with the id, or a row
+ * tied on the sort key falls between two pages.
  */
 export async function readPagedList<Row>({
   filters = [],

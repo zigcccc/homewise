@@ -150,19 +150,14 @@ export class StoresService {
       page,
       pageSize,
       table: schema.store,
-      // The id breaks the tie, so two shops sharing a sort value keep their order between reads and
-      // can't swap across a page boundary.
       read: (query) =>
-        db
-          .select()
-          .from(schema.store)
-          .where(query.where)
-          .orderBy(
-            sortDirection === 'desc' ? desc(sortColumn) : asc(sortColumn),
-            sortDirection === 'desc' ? desc(schema.store.id) : asc(schema.store.id)
-          )
-          .limit(query.limit)
-          .offset(query.offset),
+        db.query.store.findMany({
+          ...query,
+          orderBy:
+            sortDirection === 'desc'
+              ? [desc(sortColumn), desc(schema.store.id)]
+              : [asc(sortColumn), asc(schema.store.id)],
+        }),
     });
 
     const usage = await StoresService.countIngredientUsage(

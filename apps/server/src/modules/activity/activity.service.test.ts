@@ -6,6 +6,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { db, schema } from '#db/core';
 import { ActivityService } from '#modules/activity/activity.service';
 import { type HouseholdEvent } from '#modules/realtime/realtime.model';
+import { createHousehold } from '#tests/households';
 
 /**
  * The feed's paging, its write filter and the folding of repeated edits, against a real Postgres.
@@ -16,21 +17,6 @@ import { type HouseholdEvent } from '#modules/realtime/realtime.model';
  * effect is a row that never appears. And folding turns on what the *previous* write was, which in a
  * suite whose workers share one household is not a thing a spec can hold still.
  */
-
-/** A household of this file's own, so it can't collide with another test file's rows. */
-async function createHousehold(label: string) {
-  const suffix = randomUUID();
-  const [owner] = await db
-    .insert(schema.user)
-    .values({ email: `${label}-${suffix}@example.test`, id: `user-${label}-${suffix}`, name: 'Test Owner' })
-    .returning();
-  const [household] = await db
-    .insert(schema.household)
-    .values({ name: `${label} ${suffix}`, ownerId: owner!.id })
-    .returning();
-
-  return { householdId: household!.id, userId: owner!.id };
-}
 
 /** An event with the boring fields filled in, so a case states only what it is about. */
 const event = (overrides: Partial<HouseholdEvent> = {}): HouseholdEvent =>

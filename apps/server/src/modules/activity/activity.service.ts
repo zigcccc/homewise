@@ -138,8 +138,7 @@ export class ActivityService {
       filters.push(ilike(columns.label, `%${search}%`));
     }
 
-    // Inclusive: the anchor is a row the reader has already been shown, and page 1 of the frozen set
-    // still has to contain it.
+    // Inclusive: page 1 of the frozen set still has to contain the anchor row.
     if (maxId !== undefined) {
       filters.push(lte(columns.id, maxId));
     }
@@ -149,7 +148,6 @@ export class ActivityService {
       page,
       pageSize,
       table: columns,
-      // `id` is serial, so this is `createdAt` order — and it is total, which is what a page needs.
       read: (query) => db.query.householdActivity.findMany({ ...query, orderBy: desc(columns.id) }),
     });
   }

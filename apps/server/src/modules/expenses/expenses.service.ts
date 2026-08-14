@@ -117,7 +117,7 @@ export class ExpensesService {
         db.query.expense.findMany({
           ...query,
           // `id` breaks the tie, so two expenses on the same day can't swap places between reads and
-          // move an open inline editor onto a different row — or across a page boundary.
+          // move an open inline editor onto a different row.
           orderBy: [direction(sortColumn), direction(schema.expense.id)],
           with: { category: { columns: { id: true, name: true } } },
         }),

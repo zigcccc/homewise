@@ -56,8 +56,6 @@ export class ChildDictionariesService {
       page,
       pageSize,
       table: schema.childDictionaryEntry,
-      // The id breaks the tie, so two entries sharing a phrase keep their order between reads and
-      // can't swap across a page boundary.
       read: (query) =>
         db.query.childDictionaryEntry.findMany({
           ...query,

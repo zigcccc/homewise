@@ -309,8 +309,6 @@ export class RecipesService {
       page,
       pageSize,
       table: schema.recipe,
-      // The id breaks the tie, so the recipes sharing a title or a day keep their order between
-      // reads and can't swap across a page boundary.
       read: (query) =>
         db.query.recipe.findMany({
           ...query,

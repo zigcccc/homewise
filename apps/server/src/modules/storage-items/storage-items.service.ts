@@ -135,7 +135,7 @@ export class StorageItemsService {
         db.query.storageItem.findMany({
           ...query,
           // The id breaks ties, so the many rows sharing a sort key — every item with no due date —
-          // don't reshuffle between two identical requests, or swap across a page boundary.
+          // don't reshuffle between two identical requests.
           orderBy: [sortDirection === 'desc' ? desc(sortColumn) : asc(sortColumn), asc(columns.id)],
           with: itemWith,
         }),

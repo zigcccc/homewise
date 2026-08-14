@@ -209,8 +209,6 @@ export class IngredientsService {
       page,
       pageSize,
       table: schema.ingredient,
-      // The id breaks ties, so the many ingredients sharing a category don't reshuffle between two
-      // reads and move a row across a page boundary.
       read: (query) =>
         db.query.ingredient.findMany({
           ...query,

@@ -15,17 +15,10 @@ export type ActivityFilters = z.infer<typeof activityFiltersModel>;
 const PAGE_SIZE = 20;
 
 /**
- * The newest row a reader has seen, pinning the feed while they page through it.
+ * Freezes the feed at a row the reader has already seen, so a line written mid-scroll can't shift
+ * the page boundary. This is the one list that grows at the head as it is read.
  *
- * This is the one list that grows at the *head* while it is being read — every mutation in the
- * household writes a line — and an offset counts from the top, so a row arriving between two pages
- * pushes the boundary down and repeats a line. Anchoring to an id the reader already saw makes the
- * result set they are paging a fixed one. Deliberately an ordinary filter and not a second kind of
- * pagination: it narrows *which* rows, the same as `entity` or `search`, and leaves `page` to say
- * which slice of them.
- *
- * Kept out of `activityFiltersModel` because it is per-scroll, not per-view: the filters double as
- * the web route's search params, and this has no business in a shared URL.
+ * Out of `activityFiltersModel` because it is per-scroll: those double as the route's search params.
  */
 const feedAnchor = z.coerce.number<number>().int().positive().optional().catch(undefined);
 

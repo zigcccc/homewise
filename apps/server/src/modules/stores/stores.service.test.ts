@@ -6,6 +6,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { db, schema } from '#db/core';
 import { isUniqueViolation } from '#db/utils';
 import { StoresService } from '#modules/stores/stores.service';
+import { createHousehold } from '#tests/households';
 
 /**
  * The duplicate-shop defence, against a real Postgres.
@@ -15,21 +16,6 @@ import { StoresService } from '#modules/stores/stores.service';
  * reach the catch, and a fabricated error can't prove the branch either — what is being asserted is
  * the shape of the error the driver actually raises. That needs a database.
  */
-
-/** A household of this file's own, so it can't collide with another test file's rows. */
-async function createHousehold(label: string) {
-  const suffix = randomUUID();
-  const [owner] = await db
-    .insert(schema.user)
-    .values({ email: `${label}-${suffix}@example.test`, id: `user-${label}-${suffix}`, name: 'Test Owner' })
-    .returning();
-  const [household] = await db
-    .insert(schema.household)
-    .values({ name: `${label} ${suffix}`, ownerId: owner!.id })
-    .returning();
-
-  return household!.id;
-}
 
 /** Runs an insert and hands back whatever it threw, or null when it succeeded. */
 const insertStore = (householdId: number, name: string) =>
@@ -42,7 +28,7 @@ const insertStore = (householdId: number, name: string) =>
 let householdId: number;
 
 beforeAll(async () => {
-  householdId = await createHousehold('stores');
+  householdId = (await createHousehold('stores')).householdId;
 });
 
 describe('the unique index behind the defence', () => {
@@ -79,7 +65,7 @@ describe('the unique index behind the defence', () => {
 
   it('should scope the constraint to one household', async () => {
     // GIVEN: a shop name already used by this household, and a second household
-    const otherHouseholdId = await createHousehold('other');
+    const { householdId: otherHouseholdId } = await createHousehold('other');
     const name = `Shared ${randomUUID()}`;
     await insertStore(householdId, name);
 

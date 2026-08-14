@@ -132,8 +132,7 @@ export class ContactsService {
       read: (query) =>
         db.query.contact.findMany({
           ...query,
-          // The id breaks ties, so rows sharing a sort key don't reshuffle between two identical
-          // requests — or swap across a page boundary.
+          // The id breaks ties, so rows sharing a sort key don't reshuffle between two identical requests.
           orderBy: ContactsService.orderBy(sortKey, direction).concat(asc(columns.id)),
           with: { links: { orderBy: (fields, { asc }) => [asc(fields.createdAt)] } },
         }),

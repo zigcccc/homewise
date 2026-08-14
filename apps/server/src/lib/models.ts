@@ -88,16 +88,8 @@ export const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
 /**
  * The `?page=&pageSize=` every paginated list takes, to spread onto that endpoint's filters.
  *
- * **The only pagination this API has.** An offset serves both shapes of UI — a numbered pager, and
- * an infinite scroll that keeps asking for the next page — where a keyset cursor can only ever serve
- * the second: it has no notion of "the 7th page" without walking to it, so it cannot number pages or
- * jump. The cost is that rows arriving at the *head* mid-read shift every offset after them; a feed
- * that has that problem freezes itself with an ordinary filter (see `activity`'s `maxId`) rather
- * than with a second pagination concept.
- *
- * Ordering must be total, or a row falls between two pages — every paginated `orderBy` ends with its
- * id. The web spreads this same shape into the route's `validateSearch`, so the URL and the endpoint
- * cannot drift.
+ * The ordering it pages must be total, or a row falls between two pages — every paginated `orderBy`
+ * ends with its id. The web spreads this same shape into `validateSearch`, so the two can't drift.
  */
 export const pagedQueryParams = (defaultSize: number = DEFAULT_PAGE_SIZE) =>
   z.object({
