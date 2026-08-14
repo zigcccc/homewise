@@ -3,16 +3,11 @@ import { describe, expect, it } from 'vitest';
 import { type ActivityEntry, listActivityQueryOptions } from './activity.queries';
 
 /**
- * How the feed decides where its next page starts.
+ * Where the feed's next page starts — unreachable from a spec, which would need two members reading
+ * and writing at the same moment.
  *
- * The whole correctness of paging an *append-at-the-head* list rests on this one function, and none
- * of it is reachable from a spec: it takes two members writing and reading at the same moment.
- *
- * The half that isn't tested here is TanStack's, and it is what makes the anchor safe to keep: on a
- * refetch, `infiniteQueryBehavior` re-uses only the *first* page's stored param and recomputes every
- * later one through this function (`currentPage === 0 ? oldPageParams[0] : getNextPageParam(...)`).
- * The first param is `initialPageParam`, which never carries a `maxId` — so an invalidation reads
- * the newest rows and re-anchors from them, rather than staying pinned to a stale id.
+ * The anchor is safe to keep because TanStack recomputes every param but the first on a refetch, and
+ * the first is `initialPageParam`, which carries no `maxId`. So an invalidation re-anchors.
  */
 const nextPageParam = listActivityQueryOptions().getNextPageParam;
 
@@ -24,18 +19,18 @@ const page = (overrides: Partial<Parameters<typeof nextPageParam>[0]> = {}) => (
   ...overrides,
 });
 
-/** Only the id matters here — it is what the anchor is taken from. */
+/** Only the id matters: it is what the anchor is taken from. */
 const entry = (id: number) => ({ id }) as ActivityEntry;
 
 describe('the activity feed page param', () => {
   it('should anchor the second page to the newest row the first one saw', () => {
-    // GIVEN: a first page, which is asked for without an anchor
+    // GIVEN: a first page, asked for without an anchor
     const first = page({ items: [entry(910), entry(909)] });
 
     // WHEN: the next page is worked out
     const next = nextPageParam(first, [first], { page: 1 }, [{ page: 1 }]);
 
-    // THEN: it should carry the newest id forward, so the offset counts from a set that can't grow
+    // THEN: the newest id goes forward, so the offset counts from a set that can't grow
     expect(next).toStrictEqual({ maxId: 910, page: 2 });
   });
 
@@ -46,8 +41,7 @@ describe('the activity feed page param', () => {
     // WHEN: the fourth is worked out
     const next = nextPageParam(third, [third], { maxId: 910, page: 3 }, [{ maxId: 910, page: 3 }]);
 
-    // THEN: the anchor should still be the one taken at the top — re-reading it per page would let
-    // the set drift, which is the thing it exists to prevent
+    // THEN: still the anchor taken at the top; re-reading it per page would let the set drift
     expect(next).toStrictEqual({ maxId: 910, page: 4 });
   });
 

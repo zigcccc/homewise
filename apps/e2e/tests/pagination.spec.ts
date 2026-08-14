@@ -6,24 +6,16 @@ import { IngredientsPage } from '../pages/ingredients.page';
 import { Pagination } from '../pages/pagination';
 
 /**
- * Pagination, driven on the ingredients table — every paginated list shares one bar and one pair of
- * search params, so proving it here proves it everywhere.
+ * Every paginated list shares one bar and one pair of search params, so the ingredients table
+ * stands in for all of them.
  *
- * `pageSize=3` throughout, against the seeded library. The picker's smallest option is 10 and the
- * seed holds fewer rows than that, so a page size only the URL can ask for is what makes several
- * pages exist without seeding a hundred ingredients or mutating a fixture other specs read.
- *
- * Nothing here asserts a *total*: specs run in parallel against one household, so another spec's
- * ingredient can arrive mid-run. Only the seeded floor is relied on — enough rows for three pages.
+ * `pageSize=3` is below the picker's smallest option on purpose: it makes three pages out of the
+ * seed. Nothing asserts a total — specs run in parallel and another may add an ingredient mid-run.
  */
 const PAGE_SIZE = 3;
 const url = (params = '') => `/food/ingredients?pageSize=${PAGE_SIZE}${params}`;
 
-/**
- * The ingredient names on screen, in order. Read off the name cell's own control rather than the
- * whole `<tr>`: a row's text is every cell run together, which compares badly and says nothing about
- * which rows these are.
- */
+/** Row identity by name cell, not by `<tr>` text, which is every cell run together. */
 const rowNames = (page: Page) => page.getByRole('button', { name: 'Edit name' }).allInnerTexts();
 
 test.describe('pagination', () => {
@@ -33,11 +25,9 @@ test.describe('pagination', () => {
     await expect(page.getByRole('heading', { level: 1, name: 'Ingredients' })).toBeVisible();
 
     const rows = page.getByRole('row');
-    // One header row on top of the page's worth.
     await expect(rows).toHaveCount(PAGE_SIZE + 1);
     await expect(pagination.range()).toHaveText(`1–${PAGE_SIZE} of ${await totalFrom(pagination)}`);
 
-    // There is nowhere back from the first page.
     await expect(pagination.button('Previous page')).toBeDisabled();
     await expect(pagination.button('First page')).toBeDisabled();
     await pagination.expectOnPage(1);
@@ -48,9 +38,7 @@ test.describe('pagination', () => {
     await expect(page).toHaveURL(/[?&]page=2(?:&|$)/);
     await pagination.expectOnPage(2);
 
-    // The rows have to actually change, and share nothing with the page before them — a pager that
-    // renumbers itself over the same rows, or one whose ordering lets a row sit on two pages, is
-    // exactly what this is here to catch.
+    // A pager that renumbers itself over the same rows is the failure to catch.
     const secondPage = await rowNames(page);
     expect(secondPage).not.toEqual(firstPage);
     expect(secondPage.filter((name) => firstPage.includes(name))).toEqual([]);
@@ -65,14 +53,12 @@ test.describe('pagination', () => {
     const pagination = new Pagination(page);
     await page.goto(url());
 
-    // The point of numbering the pages: page three without visiting page two. The seeded library is
-    // comfortably more than two pages of three, so the button is always there to click.
+    // Page three without visiting page two.
     await pagination.goToPage(3);
     await expect(page).toHaveURL(/[?&]page=3(?:&|$)/);
     await pagination.expectOnPage(3);
 
-    // Back to the first, so "last" is a jump rather than a click on a button already disabled —
-    // three pages of three is the *whole* list on a quiet run.
+    // Back to the first, or "last" may already be disabled: three pages is the whole list.
     await pagination.first();
     await pagination.last(Math.ceil((await totalFrom(pagination)) / PAGE_SIZE));
 
@@ -90,7 +76,7 @@ test.describe('pagination', () => {
 
     await pagination.setRowsPerPage(10);
 
-    // Staying on page 3 of a list that now has one page would render an empty table.
+    // Page 3 of a list that now has one page would render empty.
     await expect(page).toHaveURL(/[?&]page=1(?:&|$)/);
     await pagination.expectOnPage(1);
   });
@@ -111,13 +97,12 @@ test.describe('pagination', () => {
   test('keeps the bar in reach on a screen the list overflows', async ({ page }) => {
     const pagination = new Pagination(page);
 
-    // Short enough that a full page of rows runs off the bottom — the case where the controls for
-    // turning the page were themselves only reachable by scrolling past every row.
+    // Short enough that a full page runs off the bottom.
     await page.setViewportSize({ height: 400, width: 1280 });
     await page.goto('/food/ingredients?pageSize=10');
     await expect(page.getByRole('heading', { level: 1, name: 'Ingredients' })).toBeVisible();
 
-    // The premise: the list really does overflow, so the assertion below isn't passing for free.
+    // The premise, or the assertion below passes for free.
     await expect(page.getByRole('row').last()).not.toBeInViewport();
 
     await expect(pagination.range()).toBeInViewport();
@@ -127,8 +112,7 @@ test.describe('pagination', () => {
   test('shows the last page that exists when the URL asks for one past the end', async ({ page }) => {
     const pagination = new Pagination(page);
 
-    // A hand-edited URL here; the reachable version is deleting the rows out from under a reader on
-    // the last page, which leaves their tab asking for a page that no longer exists.
+    // Reachable by deleting the last page's rows under a reader; faster to ask for it directly.
     await page.goto(url('&page=999'));
 
     const lastPage = Math.ceil((await totalFrom(pagination)) / PAGE_SIZE);
@@ -137,7 +121,7 @@ test.describe('pagination', () => {
   });
 });
 
-/** Reads the total off the bar, so no assertion has to hard-code a count other specs can move. */
+/** Off the bar, so nothing hard-codes a count another spec can move. */
 async function totalFrom(pagination: Pagination) {
   const label = await pagination.range().innerText();
   const total = label.split(' of ').at(-1);

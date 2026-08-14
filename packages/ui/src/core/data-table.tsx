@@ -83,18 +83,15 @@ function DefaultEmptyComponent() {
  */
 const INTERACTIVE_IN_ROW = 'a, button, input, select, textarea, [role="menuitem"], [role="option"]';
 
-/** How many page buttons the bar shows, ellipses included, so its width never changes as you page. */
+/** Buttons in the strip, gaps included — fixed, so it never changes width as you page. */
 const PAGE_WINDOW = 7;
-/** The current page keeps a neighbour either side once both ends are pinned and both ellipses are in. */
+/** Neighbours either side of the current page, once both ends and both gaps are in. */
 const AROUND_CURRENT = 1;
 
 /**
- * Which pages the bar offers: the first, the last, the current and its neighbours, with a gap
- * standing in for each run it skips.
- *
- * Always {@link PAGE_WINDOW} entries once there are more pages than that, which is the point — a bar
- * that grew and shrank as you paged would move the button you were about to click. The two gaps are
- * named rather than both being `'ellipsis'` so every entry is its own React key.
+ * Which pages the bar offers, with a gap standing in for each run it skips. Always
+ * {@link PAGE_WINDOW} entries, so the button you are reaching for doesn't move. The two gaps are
+ * named apart so every entry is its own React key.
  */
 export function pageWindow(page: number, pageCount: number): (number | 'gap-before' | 'gap-after')[] {
   const all = Array.from({ length: pageCount }, (_, index) => index + 1);
@@ -103,8 +100,7 @@ export function pageWindow(page: number, pageCount: number): (number | 'gap-befo
     return all;
   }
 
-  // Near either end there is nothing to elide on that side, so the run grows to spend the slot the
-  // missing gap freed rather than leaving a hole.
+  // Near an end there is nothing to elide on that side, so the run spends the freed slot.
   const runLength = PAGE_WINDOW - 3;
 
   if (page <= runLength) {
@@ -119,12 +115,9 @@ export function pageWindow(page: number, pageCount: number): (number | 'gap-befo
 }
 
 /**
- * The bar under a paginated list: rows per page, which of them you're looking at, pages to jump to.
- *
- * Deliberately takes no `table` — sorting, filtering and the page all live in the URL here, so there
- * is no table state to read, and a list with no table at all (the recipe grid) can use the same bar.
- *
- * Pass the page the **server** answered with, not the one the URL asked for.
+ * The bar under a paginated list. Takes no `table` — sorting, filtering and the page all live in the
+ * URL, so a list with no table at all (the recipe grid) uses the same bar. Pass the page the
+ * **server** answered with, not the one the URL asked for.
  */
 export function DataTablePagination({
   className,

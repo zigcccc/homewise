@@ -1,10 +1,8 @@
 import { expect, type Page } from '@playwright/test';
 
 /**
- * The pagination bar (`DataTablePagination`). A component object, like `SearchBox` — it belongs to
- * whichever page renders it.
- *
- * Every action waits for the URL to carry the change, or the next assertion reads the page you left.
+ * The pagination bar, as a component object like `SearchBox`. Every action waits for the URL to
+ * carry the change, or the next assertion reads the page you left.
  */
 export class Pagination {
   constructor(private readonly page: Page) {}
@@ -13,7 +11,7 @@ export class Pagination {
     return this.page.getByRole('group', { name: 'Pagination' });
   }
 
-  /** "1–3 of 8" — the row range this page covers, and how many there are behind it. */
+  /** "1–3 of 8". */
   range() {
     return this.page.getByText(/\d+–\d+ of \d+/);
   }
@@ -39,7 +37,6 @@ export class Pagination {
     return this.clickAndWait('Last page', landingOn);
   }
 
-  /** Jumps by clicking a numbered button. */
   goToPage(page: number) {
     return this.clickAndWait(`Page ${page}`, page);
   }
@@ -48,10 +45,7 @@ export class Pagination {
     return this.group().getByRole('button', { name });
   }
 
-  /**
-   * The button for the page currently being read. Located by `aria-current`, which is what actually
-   * tells a screen reader which page it is on — a variant class would say it only to the sighted.
-   */
+  /** By `aria-current`, which is what tells a screen reader which page it is on. */
   current() {
     return this.group().locator('button[aria-current="page"]');
   }

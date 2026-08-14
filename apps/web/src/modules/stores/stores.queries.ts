@@ -39,10 +39,7 @@ export function invalidateStores(queryClient: QueryClient) {
   void queryClient.invalidateQueries({ queryKey: ['stores'] });
 }
 
-/**
- * Every shop, for a picker, as a plain array. Bounded by the server's ceiling like any other read —
- * a household past it needs a searching picker, not a bigger page.
- */
+/** Every shop, for a picker. Bounded by the server ceiling; past it a picker needs searching. */
 export function listStoreOptionsQueryOptions() {
   return queryOptions({
     ...listStoresQueryOptions({ pageSize: MAX_PAGE_SIZE }),

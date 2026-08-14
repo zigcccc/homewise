@@ -27,10 +27,7 @@ const SHOWN = 5;
 /** The frame, shared with the skeleton so a renamed card can't say two things at once. */
 const CARD = { icon: CakeIcon, title: 'Upcoming birthdays' } satisfies DashboardCardFrame;
 
-/**
- * Safe to cut server-side even though the ranking below spans three tables: every contact left off
- * this page is further out than all `SHOWN` on it, so none could displace one after the merge.
- */
+/** Safe to cut server-side: anything left off is further out than all `SHOWN` on it. */
 export const dashboardBirthdayContactsQueryOptions = () =>
   listContactsQueryOptions({ pageSize: SHOWN, sortDirection: 'asc', sortKey: 'birthday' });
 

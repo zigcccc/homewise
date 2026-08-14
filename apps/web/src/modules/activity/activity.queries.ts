@@ -20,12 +20,8 @@ export const RECENT_ACTIVITY_LIMIT = 5;
 type FeedCursor = { maxId?: number; page: number };
 
 /**
- * The feed, a page at a time.
- *
- * Pages are offsets like every other list here, plus `maxId` — the newest row the *first* page saw,
- * carried forward so later pages count from a fixed set. Without it a line written while somebody
- * reads pushes the boundary down and repeats a row, and this is the one list that grows at the head
- * as you read it.
+ * The feed, a page at a time. `maxId` — the newest row the *first* page saw — is carried forward so
+ * later pages count from a fixed set; never sent on the first, or an invalidation couldn't re-anchor.
  */
 export function listActivityQueryOptions(filters: ActivityFilters = {}) {
   return infiniteQueryOptions({
@@ -35,7 +31,6 @@ export function listActivityQueryOptions(filters: ActivityFilters = {}) {
     getNextPageParam: (lastPage, _pages, lastParam): FeedCursor | undefined => {
       const shown = lastPage.page * lastPage.pageSize;
 
-      // The anchor is taken once, off the first page's newest row, and never re-read after that.
       return shown < lastPage.total
         ? { maxId: lastParam.maxId ?? lastPage.items[0]?.id, page: lastPage.page + 1 }
         : undefined;

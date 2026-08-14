@@ -32,14 +32,7 @@ const CARD = {
   title: 'Out on loan',
 } satisfies DashboardCardFrame;
 
-/**
- * `onLoan` is `borrowed_on IS NOT NULL` server-side, so this includes the overdue ones.
- *
- * `dueOn` ascending *is* the overdue-first order this card wants, so the server can cut the page to
- * size: everything overdue is due before today and everything else after it, which puts the whole
- * overdue group first without ranking on the status; and Postgres sorts NULLs last on an ascending
- * sort, which leaves the open-ended loans trailing exactly where a missing due date belongs.
- */
+/** `dueOn` ascending is already overdue-first, NULLs last — so the server can cut it to size. */
 export const dashboardLoansQueryOptions = () =>
   listStorageItemsQueryOptions({ loanStatus: 'onLoan', pageSize: SHOWN, sortDirection: 'asc', sortKey: 'dueOn' });
 
@@ -54,7 +47,6 @@ function LoansCardSkeleton() {
 export function LoansCard() {
   const { data: items } = useSuspenseQuery(dashboardLoansQueryOptions());
 
-  // Already overdue-first and already cut to size — see the query above.
   const onLoan = items.items;
 
   return (

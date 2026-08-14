@@ -17,8 +17,7 @@ import { API_URL } from '../playwright.config';
  * the same reason, call it from an inner `finally`, so a failed UI teardown can't skip it.
  */
 export async function deleteOutOfBand(page: Page, path: 'contacts' | 'storage-items', name: string) {
-  // Searched and asked for a full page, because these lists are paginated: the row a spec left
-  // behind is rarely on the first page of a household several parallel specs have been adding to.
+  // Searched and given a full page: these lists are paginated, and the row is rarely on page one.
   const list = await page
     .context()
     .request.get(`${API_URL}/${path}?search=${encodeURIComponent(name)}&pageSize=${MAX_PAGE_SIZE}`);
