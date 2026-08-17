@@ -2,14 +2,26 @@ import { captureException } from '@sentry/hono/node';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { oneTimeToken, openAPI } from 'better-auth/plugins';
-import { render } from 'react-email';
+import { type Context } from 'hono';
 
 import { allowedOrigins, isAllowedOrigin } from '#config/cors';
 import { env } from '#config/env';
 import { db, schema } from '#db/core';
-import { VerifyEmail } from '#emails/VerifyEmail';
 
 import { sendEmail } from './resend';
+
+/**
+ * Copies the cookies a `auth.api.*` call produced onto our own response.
+ *
+ * Required by the session cookie cache below: better-auth rewrites the cached session whenever it
+ * reads the database, and a caller that drops those headers leaves the browser holding a stale copy
+ * — which is how a just-changed name or avatar keeps rendering until the cache ages out.
+ */
+export function forwardAuthCookies(c: Context, headers: Headers) {
+  for (const cookie of headers.getSetCookie()) {
+    c.res.headers.append('Set-Cookie', cookie);
+  }
+}
 
 // In a Vercel preview, the web and the API live on two *different* sites:
 // `vercel.app` is on the Public Suffix List, so homewise-web-pr-<n>.vercel.app
@@ -35,6 +47,10 @@ export const auth = betterAuth({
     return isAllowedOrigin(origin) ? [...allowedOrigins, origin] : [...allowedOrigins];
   },
   secret: env.BETTER_AUTH_SECRET,
+  // Signs the session and user into a cookie so the auth guard stops querying Postgres on every
+  // request — it was the first query of each cold container, and the one paying the ~650ms connect.
+  // The cost is that a revoked session or a role change stays live until the cookie ages out.
+  session: { cookieCache: { enabled: true, maxAge: 300 } },
   user: {
     additionalFields: {
       role: {
@@ -54,6 +70,10 @@ export const auth = betterAuth({
     sendOnSignUp: true,
     autoSignInAfterVerification: true,
     async sendVerificationEmail({ user, url }) {
+      // Loaded on send: statically, these pull React and react-dom/server into every cold start for
+      // a path that only runs at sign-up.
+      const [{ render }, { VerifyEmail }] = await Promise.all([import('react-email'), import('#emails/VerifyEmail')]);
+
       const html = await render(VerifyEmail({ url, userName: user.name }));
 
       try {

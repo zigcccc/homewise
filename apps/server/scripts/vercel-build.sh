@@ -22,4 +22,8 @@ fi
 # Bundles to `dist/index.js`. `vercel.json`'s `outputDirectory` is what makes that the deployed
 # entrypoint — drop it and @vercel/hono picks `src/index.ts`, which its bundled ts-node compiles
 # through the TypeScript 5 API this repo's TypeScript 7 no longer exposes.
+#
+# The build splits rather than writing one file, so `dist/` also holds chunks the entry imports by
+# relative path — that split is what keeps react-email (~250ms to evaluate) out of the cold start
+# instead of hoisting it back into the entry. Whatever replaces this must keep emitting `dist/index.js`.
 pnpm turbo run build --filter @homewise/server

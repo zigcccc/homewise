@@ -1,5 +1,4 @@
 import { captureException } from '@sentry/hono/node';
-import sharp from 'sharp';
 
 import { imageStore } from './images.store';
 
@@ -45,6 +44,10 @@ export type ManagedImageUpdate =
 
 export class ImagesService {
   private static async resizeImage(file: File, width: number, height: number) {
+    // Loaded on first upload, not at import: five services reach this module, so a static import
+    // would dlopen sharp's 17MB libvips binary on every cold start to serve requests that never
+    // touch an image.
+    const { default: sharp } = await import('sharp');
     const buffer = Buffer.from(await file.arrayBuffer());
     return sharp(buffer)
       .resize(width, height, { fit: 'cover', position: 'attention' })

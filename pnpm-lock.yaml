@@ -360,6 +360,9 @@ importers:
       react-dom:
         specifier: 'catalog:'
         version: 19.2.8(react@19.2.8)
+      react-email:
+        specifier: 'catalog:'
+        version: 6.9.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       resend:
         specifier: 'catalog:'
         version: 6.18.0(@react-email/render@2.1.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))
@@ -391,9 +394,6 @@ importers:
       pg:
         specifier: 'catalog:'
         version: 8.22.0
-      react-email:
-        specifier: 'catalog:'
-        version: 6.9.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       tsx:
         specifier: 'catalog:'
         version: 4.23.1

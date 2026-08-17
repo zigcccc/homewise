@@ -2,7 +2,6 @@
 // that has run. See the comment in that file for why there's no `--import` flag to lean on.
 import './instrument';
 
-import { serve } from '@hono/node-server';
 import { flush, sentry, setUser } from '@sentry/hono/node';
 import { waitUntil } from '@vercel/functions';
 import { Hono } from 'hono';
@@ -12,7 +11,7 @@ import { corsConfig } from './config/cors';
 import { env } from './config/env';
 import { SERVER_PORT } from './config/server';
 import { closeDb } from './db/core';
-import { auth } from './lib/auth';
+import { auth, forwardAuthCookies } from './lib/auth';
 import activityApp from './modules/activity';
 import childDictionariesApp from './modules/child-dictionaries';
 import childProfilesApp from './modules/child-profiles';
@@ -87,7 +86,10 @@ const app = base
   })
   // Auth guard
   .use('*', async (c, next) => {
-    const session = await auth.api.getSession({ headers: c.req.raw.headers });
+    const { headers, response: session } = await auth.api.getSession({
+      headers: c.req.raw.headers,
+      returnHeaders: true,
+    });
 
     if (!session) {
       return c.body(null, 401);
@@ -97,7 +99,15 @@ const app = base
     c.set('session', session.session);
     setUser({ id: session.user.id, email: session.user.email });
 
-    return next();
+    await next();
+
+    // Re-warms the session cookie cache when the read above missed it; without this only a full page
+    // load, which calls /auth/get-session directly, could ever reinstate it. Skipped when the handler
+    // set its own cookies: this snapshot predates the write it just made, so forwarding it would put
+    // the pre-update user back in the cache.
+    if (c.res.headers.getSetCookie().length === 0) {
+      forwardAuthCookies(c, headers);
+    }
   });
 
 const routes = app
@@ -121,6 +131,10 @@ const routes = app
   .route('/activity', activityApp);
 
 if (env.NODE_ENV === 'development') {
+  // Only this branch ever listens — production is invoked by Vercel's runtime, which imports the
+  // default export below.
+  const { serve } = await import('@hono/node-server');
+
   console.log(`Serving app on port ${SERVER_PORT}...`);
   const server = serve({ ...app, port: SERVER_PORT });
 
