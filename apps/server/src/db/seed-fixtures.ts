@@ -41,6 +41,25 @@ export const SEED_ONBOARDING_USER = {
   password: 'PreviewPassword123!',
 } as const;
 
+/**
+ * The three accounts for one seeded household, addressed by slot.
+ *
+ * The e2e suite seeds one household per Playwright worker so parallel specs stop mutating each
+ * other's rows, and a slot is one of those. Only the **emails** vary — every name stays identical
+ * across slots, because names are household-scoped in the database and the specs assert on them.
+ *
+ * Slot 0 keeps the bare addresses, so a preview or a plain `db:seed` is exactly what it always was.
+ */
+export function seedAccounts(slot: number) {
+  const at = (email: string) => (slot === 0 ? email : email.replace('@', `+w${slot}@`));
+
+  return {
+    user: { ...SEED_USER, email: at(SEED_USER.email) },
+    secondUser: { ...SEED_SECOND_USER, email: at(SEED_SECOND_USER.email) },
+    onboardingUser: { ...SEED_ONBOARDING_USER, email: at(SEED_ONBOARDING_USER.email) },
+  };
+}
+
 /** The non-user (managed child) member seeded into the household. */
 export const SEED_CHILD_MEMBER = {
   name: 'Robin',
