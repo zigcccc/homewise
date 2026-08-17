@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 
-import { auth } from '#lib/auth';
+import { auth, forwardAuthCookies } from '#lib/auth';
 import { blobPrefix } from '#lib/blobs';
 import { zValidator } from '#lib/validation';
 import { type AppContext } from '#types/app.type';
@@ -34,16 +34,26 @@ const usersApp = new Hono<AppContext>()
 
       // better-auth is the write here, and it throws rather than reporting a miss, so its own result
       // is what reports the update landed — and retires the picture this one replaced.
-      const result = await ImagesService.commitManagedImage(picture, () =>
-        auth.api.updateUser({
+      let authHeaders: Headers | undefined;
+      const result = await ImagesService.commitManagedImage(picture, async () => {
+        const { headers, response } = await auth.api.updateUser({
           body: {
             // '' is how better-auth clears a column, so a resolved-to-null picture still would.
             image: picture.changed ? (picture.value ?? '') : undefined,
             name: name ?? user.name,
           },
           headers: c.req.raw.headers,
-        })
-      );
+          returnHeaders: true,
+        });
+
+        authHeaders = headers;
+        return response;
+      });
+
+      // Carries the rewritten session cache, or the client keeps rendering the old name and picture.
+      if (authHeaders) {
+        forwardAuthCookies(c, authHeaders);
+      }
 
       return c.json(result, 200);
     }
@@ -54,7 +64,14 @@ const usersApp = new Hono<AppContext>()
       return c.body(null, 204);
     }
 
-    const result = await auth.api.updateUser({ body: { image: '' }, headers: c.req.raw.headers });
+    const { headers, response: result } = await auth.api.updateUser({
+      body: { image: '' },
+      headers: c.req.raw.headers,
+      returnHeaders: true,
+    });
+
+    forwardAuthCookies(c, headers);
+
     // After the write, and guarded: a storage hiccup must not fail a clear that already persisted,
     // and a picture that isn't ours to delete (a social login's, say) is left where it is.
     await ImagesService.cleanupOwnedImage(user.image, blobPrefix.userAvatar(user.id));

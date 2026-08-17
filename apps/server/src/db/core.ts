@@ -1,12 +1,24 @@
-import { Pool as NeonPool } from '@neondatabase/serverless';
+import { Pool as NeonPool, neonConfig } from '@neondatabase/serverless';
 import { startSpan } from '@sentry/hono/node';
 import { drizzle } from 'drizzle-orm/neon-serverless';
-import { Pool as PgPool } from 'pg';
 
 import { env } from '#config/env';
 import * as schema from '#db/schema/core';
 
-const Pool = env.NODE_ENV === 'production' ? NeonPool : (PgPool as unknown as typeof NeonPool);
+const isProduction = env.NODE_ENV === 'production';
+
+// Sends non-transactional queries over HTTP rather than opening a WebSocket, whose TCP+TLS+SCRAM
+// handshake measured 620-713ms on a cold container against 12-27ms for every query after it.
+// `db.transaction(...)` goes through `pool.connect()` and keeps its socket, so transactions are
+// unchanged. Trap: the driver silently reverts every query to a WebSocket once the Pool has any
+// listener other than 'error' — stricter than its docs, which only name connect/acquire/release/remove.
+if (isProduction) {
+  neonConfig.poolQueryViaFetch = true;
+}
+
+// Imported dynamically because it is development-only: a static import loads `pg` and its dependency
+// tree into every production cold start, where the driver switch below never selects it.
+const Pool = isProduction ? NeonPool : ((await import('pg')).Pool as unknown as typeof NeonPool);
 
 const pool = new Pool({ connectionString: env.DATABASE_URL });
 
@@ -110,7 +122,7 @@ const BENIGN_IDLE_ERROR_CODES = new Set([
 // change how prod handles pool errors (an uncaught error stops throwing), which is
 // a resilience/observability decision to make separately, not a side effect of a
 // dev-noise fix.
-if (env.NODE_ENV !== 'production') {
+if (!isProduction) {
   pool.on('error', (err: Error & { code?: string }) => {
     if (err.code && BENIGN_IDLE_ERROR_CODES.has(err.code)) return;
     console.error('[db] unexpected idle client error:', err);

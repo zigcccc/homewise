@@ -3,8 +3,6 @@ import { mkdir, readFile, stat, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import { BlobNotFoundError, del, head, put } from '@vercel/blob';
-
 import { env } from '#config/env';
 import { SERVER_PORT } from '#config/server';
 
@@ -29,8 +27,13 @@ interface ImageStore {
   pathnameOf(url: string): string | null;
 }
 
+/** Deferred to first use: the SDK costs ~150ms to evaluate, and most requests never touch a blob. */
+const blobSdk = () => import('@vercel/blob');
+
 class VercelStore implements ImageStore {
   async put(pathname: string, body: Buffer | File | string, options: PutOptions) {
+    const { put } = await blobSdk();
+
     const blob = await put(pathname, body, {
       access: 'public',
       addRandomSuffix: options.addRandomSuffix,
@@ -43,12 +46,15 @@ class VercelStore implements ImageStore {
   }
 
   async remove(urlOrPathname: string) {
+    const { del } = await blobSdk();
     await del(urlOrPathname, { token: env.HOMEWISE_FILES_READ_WRITE_TOKEN });
   }
 
   // `head` rather than `list`: both answer "is this exact pathname there?", but Vercel bills `list`
   // as an advanced operation and `head` as a simple one — a quota five times larger.
   async find(pathname: string) {
+    const { head, BlobNotFoundError } = await blobSdk();
+
     try {
       const { url } = await head(pathname, { token: env.HOMEWISE_FILES_READ_WRITE_TOKEN });
       return url;

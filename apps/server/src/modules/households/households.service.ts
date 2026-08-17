@@ -1,11 +1,9 @@
 import { captureException } from '@sentry/hono/node';
 import { and, count, eq, inArray, isNull, or } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
-import { render } from 'react-email';
 
 import { db, schema } from '#db/core';
 import { changedColumns } from '#db/utils';
-import { JoinHousehold } from '#emails/JoinHousehold';
 import { auth } from '#lib/auth';
 import { notFound, somethingWentWrong } from '#lib/errors';
 import { sendEmail } from '#lib/resend';
@@ -304,6 +302,10 @@ export class HouseholdsService {
     token: string,
     callbackUrl: string
   ) {
+    // Loaded on send: statically, these pull React and react-dom/server into every cold start for a
+    // path that only runs when someone is invited.
+    const [{ render }, { JoinHousehold }] = await Promise.all([import('react-email'), import('#emails/JoinHousehold')]);
+
     const html = await render(
       JoinHousehold({
         url: `${callbackUrl}/join-household?token=${token}`,
