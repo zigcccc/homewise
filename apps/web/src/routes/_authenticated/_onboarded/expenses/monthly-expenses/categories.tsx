@@ -1,10 +1,10 @@
 import { createFileRoute } from '@tanstack/react-router';
 
-import { ExpenseCategoriesSheet, listExpenseCategoriesQueryOptions } from '@/modules/expense-categories';
+import { ExpenseCategoriesSheet, listAllExpenseCategoriesQueryOptions } from '@/modules/expense-categories';
 
 export const Route = createFileRoute('/_authenticated/_onboarded/expenses/monthly-expenses/categories')({
   async loader({ context }) {
-    await context.queryClient.ensureQueryData(listExpenseCategoriesQueryOptions());
+    await context.queryClient.ensureQueryData(listAllExpenseCategoriesQueryOptions());
   },
   component: CategoriesSheetRoute,
   // Not a bare `<Spinner />`: this renders into the parent's `<Outlet />`, at the bottom of the page,

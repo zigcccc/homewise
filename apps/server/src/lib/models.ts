@@ -52,6 +52,14 @@ export const searchQueryParam = z
   .optional()
   .catch(undefined);
 
+/** A repeatable param. Hono collapses a single occurrence to a scalar, so both shapes must parse. */
+export const repeatableQueryParam = <T extends z.ZodType>(schema: T) =>
+  schema
+    .array()
+    .or(schema.transform((one) => [one]))
+    .optional()
+    .catch(undefined);
+
 /**
  * One column a save actually changed, as the activity log carries it.
  *

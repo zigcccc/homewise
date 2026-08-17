@@ -1,5 +1,6 @@
-import { ChevronsUpDownIcon } from 'lucide-react';
-import { type ComponentProps } from 'react';
+import { ChevronsUpDownIcon, LoaderCircleIcon } from 'lucide-react';
+import { type ComponentProps, type KeyboardEvent } from 'react';
+import { useInView } from 'react-intersection-observer';
 
 import { cn } from '../lib/utils';
 import {
@@ -92,23 +93,107 @@ function ComboboxContent({
   );
 }
 
+/** An item's look for a button that is not a cmdk item — `ComboboxAction` and `ComboboxLoadMore`. */
+const comboboxRowClassName =
+  "flex w-full cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm outline-hidden hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground [&_svg:not([class*='text-'])]:text-muted-foreground [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0";
+
+/** cmdk's root handler takes **every** Enter, so a focused button would fire the highlighted row. */
+const keepKeyFromCommand = (event: KeyboardEvent<HTMLButtonElement>) => {
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.stopPropagation();
+  }
+};
+
 /**
  * A persistent action row (e.g. "Create new…"), styled like an item but rendered as a plain button
  * outside the Command item registry — so it highlights only on hover/focus and is never auto-selected
  * the way cmdk keeps a search result highlighted.
  */
-function ComboboxAction({ className, ...props }: ComponentProps<'button'>) {
+function ComboboxAction({ className, onKeyDown, ...props }: ComponentProps<'button'>) {
   return (
     <div className="p-1">
       <button
-        className={cn(
-          "flex w-full cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm outline-hidden hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground [&_svg:not([class*='text-'])]:text-muted-foreground [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
-          className
-        )}
+        className={cn(comboboxRowClassName, className)}
         data-slot="combobox-action"
+        onKeyDown={(event) => {
+          onKeyDown?.(event);
+          keepKeyFromCommand(event);
+        }}
         type="button"
         {...props}
       />
+    </div>
+  );
+}
+
+/** A row-height loading line — the first page of a search, or the page being appended below one. */
+function ComboboxLoading({ className, label = 'Loading…' }: { className?: string; label?: string }) {
+  return (
+    <p
+      className={cn('flex items-center justify-center gap-2 px-3 py-4 text-muted-foreground text-sm', className)}
+      data-slot="combobox-loading"
+      role="status"
+    >
+      <LoaderCircleIcon className="size-4 animate-spin" />
+      {label}
+    </p>
+  );
+}
+
+/** The centred muted line for "nothing here yet" and "nothing matches" alike. */
+function ComboboxMessage({ className, ...props }: ComponentProps<'p'>) {
+  return (
+    <p
+      className={cn('px-3 py-4 text-center text-muted-foreground text-sm', className)}
+      data-slot="combobox-message"
+      {...props}
+    />
+  );
+}
+
+/** Asks for the next page as it scrolls into view; the button is the keyboard path onto a sentinel. */
+function ComboboxLoadMore({
+  className,
+  hasMore,
+  isLoading,
+  label = 'Load more',
+  onLoadMore,
+}: {
+  className?: string;
+  hasMore: boolean;
+  isLoading: boolean;
+  label?: string;
+  onLoadMore: () => void;
+}) {
+  const { ref } = useInView({
+    // A page ahead of the scroll, so the next one has usually landed before the list runs out.
+    rootMargin: '120px',
+    skip: !hasMore || isLoading,
+    onChange: (inView) => {
+      if (inView) {
+        onLoadMore();
+      }
+    },
+  });
+
+  if (!hasMore) {
+    return null;
+  }
+
+  return (
+    <div className="p-1" ref={ref}>
+      {/* Enabled while loading on purpose: disabling it would drop focus out of the list mid-scroll. */}
+      <button
+        aria-busy={isLoading}
+        className={cn(comboboxRowClassName, 'justify-center text-muted-foreground', className)}
+        data-slot="combobox-load-more"
+        onClick={onLoadMore}
+        onKeyDown={keepKeyFromCommand}
+        type="button"
+      >
+        {isLoading ? <LoaderCircleIcon className="animate-spin" /> : null}
+        {isLoading ? 'Loading…' : label}
+      </button>
     </div>
   );
 }
@@ -131,6 +216,9 @@ export {
   ComboboxInput,
   ComboboxItem,
   ComboboxList,
+  ComboboxLoading,
+  ComboboxLoadMore,
+  ComboboxMessage,
   ComboboxSeparator,
   ComboboxTrigger,
 };

@@ -1,7 +1,7 @@
 import { and, asc, count, desc, eq, ilike, inArray, ne, sql } from 'drizzle-orm';
 
 import { db, schema } from '#db/core';
-import { type Executor, type Filters, isUniqueViolation, writesAnything } from '#db/utils';
+import { type Executor, type Filters, isUniqueViolation, readPagedList, writesAnything } from '#db/utils';
 import { alreadyExists, couldNotResolve, notFound, somethingWentWrong } from '#lib/errors';
 
 import {
@@ -130,7 +130,10 @@ export class ExpenseCategoriesService {
   }
 
   /** The household's categories, with how many expenses are filed under each. */
-  public static async list(householdId: number, { search, sortKey, sortDirection }: ListExpenseCategoriesQueryParams) {
+  public static async list(
+    householdId: number,
+    { search, sortKey, sortDirection, page, pageSize }: ListExpenseCategoriesQueryParams
+  ) {
     const sortColumn = schema.expenseCategory[sortKey];
 
     const filters: Filters = [eq(schema.expenseCategory.householdId, householdId)];
@@ -139,18 +142,28 @@ export class ExpenseCategoriesService {
       filters.push(ilike(schema.expenseCategory.name, `%${search}%`));
     }
 
-    const categories = await db
-      .select()
-      .from(schema.expenseCategory)
-      .where(and(...filters))
-      .orderBy(sortDirection === 'desc' ? desc(sortColumn) : asc(sortColumn));
+    const paged = await readPagedList({
+      filters,
+      page,
+      pageSize,
+      table: schema.expenseCategory,
+      read: (query) =>
+        db.query.expenseCategory.findMany({
+          ...query,
+          // The id breaks ties, so rows sharing a sort key don't fall between two pages.
+          orderBy:
+            sortDirection === 'desc'
+              ? [desc(sortColumn), desc(schema.expenseCategory.id)]
+              : [asc(sortColumn), asc(schema.expenseCategory.id)],
+        }),
+    });
 
     const usage = await ExpenseCategoriesService.countExpenseUsage(
       householdId,
-      categories.map((row) => row.id)
+      paged.items.map((row) => row.id)
     );
 
-    return categories.map((row) => ({ ...row, expenseCount: usage.get(row.id) ?? 0 }));
+    return { ...paged, items: paged.items.map((row) => ({ ...row, expenseCount: usage.get(row.id) ?? 0 })) };
   }
 
   public static async create(householdId: number, data: CreateExpenseCategory) {

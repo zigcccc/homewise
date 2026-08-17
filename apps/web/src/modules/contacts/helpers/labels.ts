@@ -10,7 +10,9 @@ export const contactTypeLabels: Record<ContactType, string> = {
 };
 
 /** The contact types that keep a birthday and relations — see `showsPersonalDetails`. */
-const PERSONAL_CONTACT_TYPES = new Set<ContactType>(['family', 'friend']);
+export const PERSONAL_CONTACT_TYPES: ContactType[] = ['family', 'friend'];
+
+const personalContactTypes = new Set<ContactType>(PERSONAL_CONTACT_TYPES);
 
 /**
  * Whether to offer a contact's birthday and relations.
@@ -21,7 +23,7 @@ const PERSONAL_CONTACT_TYPES = new Set<ContactType>(['family', 'friend']);
  * nobody can see or clear.
  */
 export const showsPersonalDetails = (type: ContactType, hasPersonalDetails = false) =>
-  PERSONAL_CONTACT_TYPES.has(type) || hasPersonalDetails;
+  personalContactTypes.has(type) || hasPersonalDetails;
 
 /** Human-readable labels for the relationship-role enum. */
 export const contactRelationRoleLabels: Record<ContactRelationRole, string> = {

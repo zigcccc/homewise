@@ -56,6 +56,12 @@ const searchParamsModel = z.object({
 
 type ContactSortKey = z.infer<typeof contactSortKey>;
 
+/** The URL keeps a scalar `type` (the filter is a single select); the endpoint takes `types`. */
+const toContactsQuery = ({ type, ...params }: z.infer<typeof searchParamsModel>) => ({
+  ...params,
+  types: type ? [type] : undefined,
+});
+
 /**
  * Both records are `satisfies Record<ContactSortKey, …>` so a sort key added on the server is a
  * compile error here rather than a key the picker never offers and a toggle that quietly falls back
@@ -78,7 +84,7 @@ export const Route = createFileRoute('/_authenticated/_onboarded/family/contacts
   validateSearch: searchParamsModel,
   loaderDeps: ({ search }) => search,
   async loader({ context, deps }) {
-    await context.queryClient.ensureQueryData(listContactsQueryOptions(deps));
+    await context.queryClient.ensureQueryData(listContactsQueryOptions(toContactsQuery(deps)));
   },
   component: ContactsRoute,
   pendingComponent: () => <Spinner />,
@@ -90,7 +96,7 @@ function ContactsRoute() {
   const navigate = Route.useNavigate();
   const [addOpen, setAddOpen] = useState(false);
 
-  const { data: contactsPage } = useSuspenseQuery(listContactsQueryOptions(searchParams));
+  const { data: contactsPage } = useSuspenseQuery(listContactsQueryOptions(toContactsQuery(searchParams)));
 
   const setSearchParam = useSearchParamSetter(Route);
 

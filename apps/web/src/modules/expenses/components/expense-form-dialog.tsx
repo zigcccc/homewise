@@ -26,8 +26,8 @@ import {
 
 import { parseResponse } from '@/api/client';
 import {
-  type ExpenseCategoryChoice,
   ExpenseCategoryCombobox,
+  expenseCategoryChoiceModel,
   invalidateExpenseCategories,
 } from '@/modules/expense-categories';
 import { DateField, parseAmount, serverMessage } from '@/modules/shared';
@@ -37,9 +37,13 @@ import { $createExpense, invalidateExpenses } from '../expenses.queries';
 
 /**
  * The amount is text in the form and a number on the wire — someone typing "12,50" has to be able to
- * type the comma they were shown. Everything else is the server's own rule.
+ * type the comma they were shown. `categoryId` and `categoryName` are two halves of one choice, so
+ * the form holds the choice and `create` writes both from it. Everything else is the server's own rule.
  */
-const expenseFormModel = createExpenseModel.extend({ amount: expenseAmountText });
+const expenseFormModel = createExpenseModel.omit({ categoryId: true, categoryName: true }).extend({
+  amount: expenseAmountText,
+  category: expenseCategoryChoiceModel,
+});
 
 type ExpenseFormValues = z.infer<typeof expenseFormModel>;
 
@@ -82,27 +86,26 @@ function ExpenseForm({ defaultRecordedAt, onDone }: { defaultRecordedAt: string;
     resolver: zodResolver(expenseFormModel),
     defaultValues: {
       amount: '',
-      categoryId: null,
-      categoryName: undefined,
+      category: { kind: 'none' },
       recordedAt: defaultRecordedAt,
       title: '',
     },
   });
 
   const { mutateAsync: create } = useMutation({
-    mutationFn: async (values: ExpenseFormValues) =>
-      // Non-null: `expenseAmountText` only passes for something `parseAmount` can read.
-      parseResponse($createExpense({ json: { ...values, amount: parseAmount(values.amount)! } })),
+    mutationFn: async ({ amount, category, ...values }: ExpenseFormValues) =>
+      parseResponse(
+        $createExpense({
+          json: {
+            ...values,
+            // Non-null: `expenseAmountText` only passes for something `parseAmount` can read.
+            amount: parseAmount(amount)!,
+            categoryId: category.kind === 'existing' ? category.category.id : null,
+            categoryName: category.kind === 'new' ? category.name : undefined,
+          },
+        })
+      ),
   });
-
-  const categoryId = form.watch('categoryId');
-  const categoryName = form.watch('categoryName');
-
-  const categoryChoice: ExpenseCategoryChoice = categoryName
-    ? { kind: 'new', name: categoryName }
-    : typeof categoryId === 'number'
-      ? { kind: 'existing', id: categoryId }
-      : { kind: 'none' };
 
   const submit: SubmitHandler<ExpenseFormValues> = async (values) => {
     try {
@@ -111,7 +114,7 @@ function ExpenseForm({ defaultRecordedAt, onDone }: { defaultRecordedAt: string;
       invalidateExpenses(queryClient);
 
       // A named category is found-or-created by the same write, so the list may have grown.
-      if (values.categoryName) {
+      if (values.category.kind === 'new') {
         invalidateExpenseCategories(queryClient);
       }
 
@@ -167,23 +170,14 @@ function ExpenseForm({ defaultRecordedAt, onDone }: { defaultRecordedAt: string;
             )}
           />
         </div>
-        {/* `categoryId` and `categoryName` are two halves of one choice, so one control drives both:
-            an existing category sets the id, a typed one sets the name for the server to
-            find-or-create. */}
         <FormField
           control={form.control}
-          name="categoryId"
+          name="category"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Category</FormLabel>
               <FormControl>
-                <ExpenseCategoryCombobox
-                  onChange={(choice) => {
-                    field.onChange(choice.kind === 'existing' ? choice.id : null);
-                    form.setValue('categoryName', choice.kind === 'new' ? choice.name : undefined);
-                  }}
-                  value={categoryChoice}
-                />
+                <ExpenseCategoryCombobox onChange={field.onChange} value={field.value} />
               </FormControl>
               <FormMessage />
             </FormItem>

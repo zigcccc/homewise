@@ -115,10 +115,10 @@ function IngredientStoreCell({ id, store }: { id: number; store: Ingredient['sto
         saveOrToast(
           choice.kind === 'new'
             ? { storeName: choice.name }
-            : { storeId: choice.kind === 'existing' ? choice.id : null }
+            : { storeId: choice.kind === 'existing' ? choice.store.id : null }
         )
       }
-      value={store ? { kind: 'existing', id: store.id } : { kind: 'none' }}
+      value={store ? { kind: 'existing', store } : { kind: 'none' }}
     />
   );
 }

@@ -41,6 +41,26 @@ module. The test: would another app want this verbatim? If no, it belongs in `mo
   ("Add ingredient"), the second is for a combobox used as a *form field*, and looks identical to a
   closed `Select`.
 
+**A picker over API entities is server-searched and paged** — `useAsyncOptions` +
+`AsyncComboboxContent` from `modules/shared`, never a `useMemo` filter over a fetched array. See
+`web-conventions` for the query half. Four things about the kit parts it renders:
+
+- **`ComboboxLoadMore` is a sentinel *and* a button**, and the button is not decoration: an
+  observer fires on scroll, and nobody can arrow onto a sentinel to discover the list continues.
+  Like `ComboboxAction` it stays outside cmdk's item registry, so it can't take Enter from the row
+  the user meant. **Both stop Enter and Space from bubbling** (`keepKeyFromCommand`) — cmdk's root
+  handler takes *every* Enter to select the highlighted item, so without it a focused button fires
+  whichever row happened to be highlighted and closes the popup. Same root cause as the
+  `place-autocomplete` Enter trap.
+- **The page size has a floor.** The sentinel sits below `ComboboxList`'s `max-h-[300px]`, so a page
+  that doesn't overflow that box leaves it visible on arrival and the list fetches itself to
+  exhaustion. `OPTIONS_PAGE_SIZE` is 25 (~800px); anything under ~12 is not safe.
+- **The search box gets an `aria-label`, not just a placeholder** — a placeholder is not an
+  accessible name, and E2E locates every picker by role and name through `pages/picker.ts`.
+- **The popup carries `data-search`**, the debounced term its rows answer. It exists for E2E:
+  "nothing is loading" is also true in the window *before* the debounced request has started, so a
+  spec waiting on the loading row alone can read the previous term's rows and click the wrong one.
+
 **`cursor: pointer` is a base-layer rule** in `apps/web/src/main.css`, covering
 `button:not(:disabled)` and `[role="button"]` — Tailwind v4's preflight is what set buttons to
 `cursor: default`. A new raw `<button>` doesn't need the class, and `packages/ui` components keep

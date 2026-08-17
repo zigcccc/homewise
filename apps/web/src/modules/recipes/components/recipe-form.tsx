@@ -4,7 +4,7 @@ import { useSortable } from '@dnd-kit/react/sortable';
 import { zodResolver } from '@hookform/resolvers/zod';
 import clsx from 'clsx';
 import { ArrowDownIcon, ArrowUpIcon, GripVerticalIcon, TrashIcon, XIcon } from 'lucide-react';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import {
   type Control,
   type FieldPath,
@@ -39,12 +39,7 @@ import {
   Textarea,
 } from '@homewise/ui/core';
 
-import {
-  type Ingredient,
-  IngredientCombobox,
-  MeasurementUnitSelectItems,
-  measurementUnitLabels,
-} from '@/modules/ingredients';
+import { IngredientCombobox, MeasurementUnitSelectItems, measurementUnitLabels } from '@/modules/ingredients';
 import { Actionbar, SELECT_NONE, UnsavedChangesDialog } from '@/modules/shared';
 
 import { mealTypeLabels } from '../helpers';
@@ -86,14 +81,12 @@ function toDefaults(recipe?: RecipeDetail): RecipeFormValues {
  */
 export function RecipeForm({
   cancelTo,
-  ingredients,
   onSubmit,
   recipe,
   submitLabel,
   tagSuggestions,
 }: {
   cancelTo: React.ReactNode;
-  ingredients: Ingredient[];
   onSubmit: (values: RecipeFormValues) => Promise<void>;
   recipe?: RecipeDetail;
   submitLabel: string;
@@ -138,7 +131,10 @@ export function RecipeForm({
     }
   };
 
-  const ingredientsById = new Map(ingredients.map((item) => [item.id, item]));
+  // A line stores an id, and the paged library can't resolve it to a name. Picks add to it.
+  const [namesById, setNamesById] = useState(
+    () => new Map((recipe?.ingredients ?? []).map((line) => [line.ingredientId, line.ingredient.name]))
+  );
 
   return (
     <Form {...form}>
@@ -243,8 +239,8 @@ export function RecipeForm({
                       control={form.control}
                       id={item.id}
                       index={index}
-                      ingredientsById={ingredientsById}
                       key={item.id}
+                      namesById={namesById}
                       onRemove={() => ingredientLines.remove(index)}
                     />
                   ))}
@@ -252,8 +248,12 @@ export function RecipeForm({
               </DragDropProvider>
             )}
             <IngredientCombobox
-              ingredients={ingredients}
               onSelect={(choice) => {
+                if (choice.kind === 'existing') {
+                  const { id, name } = choice.ingredient;
+                  setNamesById((current) => new Map(current).set(id, name));
+                }
+
                 ingredientLines.append({
                   // A brand-new ingredient carries its name instead of an id — the server creates it
                   // as part of saving the recipe, so nothing is persisted if this draft is abandoned.
@@ -415,20 +415,19 @@ function IngredientLineRow({
   control,
   id,
   index,
-  ingredientsById,
+  namesById,
   onRemove,
 }: {
   control: Control<RecipeFormValues>;
   id: string;
   index: number;
-  ingredientsById: Map<number, Ingredient>;
+  namesById: Map<number, string>;
   onRemove: () => void;
 }) {
   const ingredientId = useWatch({ control, name: `ingredients.${index}.ingredientId` });
-  // A line points at the library either by id (already there) or by name (created when the recipe
-  // is saved). Only the latter is still editable here.
+  // A line points at the library by id (already there) or by name (created with the recipe).
   const typedName = useWatch({ control, name: `ingredients.${index}.ingredientName` });
-  const name = ingredientId === undefined ? typedName : ingredientsById.get(ingredientId)?.name;
+  const name = ingredientId === undefined ? typedName : namesById.get(ingredientId);
 
   // `index` is what makes the list sortable: dnd-kit reorders optimistically while dragging, and the
   // field array's order becomes the truth on drop.

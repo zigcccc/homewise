@@ -1,9 +1,8 @@
-import { type QueryClient, queryOptions } from '@tanstack/react-query';
+import { infiniteQueryOptions, type QueryClient, queryOptions } from '@tanstack/react-query';
 import { type InferRequestType, type InferResponseType } from 'hono';
 
-import { MAX_PAGE_SIZE } from '@homewise/server/models';
-
 import { client, parseResponse } from '@/api/client';
+import { flattenOptionPages, nextPageParam, OPTIONS_PAGE_SIZE, OPTIONS_STALE_TIME } from '@/modules/shared';
 
 const $listContacts = client.contacts.$get;
 const $createContact = client.contacts.$post;
@@ -17,7 +16,7 @@ const $removeContactRelation = client.contacts[':id'].relations[':relationId'].$
 export type ListContactsQuery = InferRequestType<typeof $listContacts>['query'];
 
 /** A household contact as the list endpoint returns it — the address book row. */
-export type ContactsPage = InferResponseType<typeof $listContacts, 200>;
+type ContactsPage = InferResponseType<typeof $listContacts, 200>;
 export type HouseholdContact = ContactsPage['items'][number];
 
 /** One contact in full: the row, its links, and who it's related to. */
@@ -47,11 +46,22 @@ export function listContactsQueryOptions(query: ListContactsQuery = {}) {
   });
 }
 
-/** Every contact, for a picker, as a plain array. See `listStoreOptionsQueryOptions` for the cap. */
-export function listContactOptionsQueryOptions() {
-  return queryOptions({
-    ...listContactsQueryOptions({ pageSize: MAX_PAGE_SIZE }),
-    select: (page: ContactsPage) => page.items,
+/**
+ * The address book as a picker reads it. `types`/`excludeId` go to the endpoint, never filtered over
+ * the page — a page narrowed here can empty while more rows match, and that scroll never ends.
+ */
+export function listContactOptionsInfiniteQueryOptions(
+  search?: string,
+  filters: { excludeId?: number; types?: ListContactsQuery['types'] } = {}
+) {
+  return infiniteQueryOptions({
+    queryKey: ['contacts', 'options', { search, ...filters }],
+    queryFn: async ({ pageParam }) =>
+      parseResponse($listContacts({ query: { ...filters, search, pageSize: OPTIONS_PAGE_SIZE, ...pageParam } })),
+    initialPageParam: { page: 1 },
+    getNextPageParam: nextPageParam,
+    select: flattenOptionPages,
+    staleTime: OPTIONS_STALE_TIME,
   });
 }
 

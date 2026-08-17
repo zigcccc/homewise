@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, ilike, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, ilike, inArray, ne, or, sql } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 
 import { db, schema } from '#db/core';
@@ -100,7 +100,7 @@ export class ContactsService {
   /** The household address book, filtered and ordered for the contacts page (and the picker). */
   public static async list(
     householdId: number,
-    { search, type, sortKey, sortDirection, page, pageSize }: ListContactsQueryParams
+    { search, types, excludeId, sortKey, sortDirection, page, pageSize }: ListContactsQueryParams
   ) {
     const columns = schema.contact;
     const filters: Filters = [eq(columns.householdId, householdId)];
@@ -117,8 +117,12 @@ export class ContactsService {
       );
     }
 
-    if (type) {
-      filters.push(eq(columns.type, type));
+    if (types?.length) {
+      filters.push(inArray(columns.type, types));
+    }
+
+    if (excludeId) {
+      filters.push(ne(columns.id, excludeId));
     }
 
     const direction = (expression: Parameters<typeof asc>[0]) =>

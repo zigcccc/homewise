@@ -1,16 +1,11 @@
 import { CookingPotIcon } from 'lucide-react';
-import { type ReactNode, useMemo, useState } from 'react';
+import { type ReactNode, useState } from 'react';
 
-import {
-  Combobox,
-  ComboboxContent,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
-  ComboboxTrigger,
-} from '@homewise/ui/core';
+import { Combobox, ComboboxItem, ComboboxTrigger } from '@homewise/ui/core';
 
 import { type RecipeOption } from '@/modules/meal-plan';
+import { listRecipeOptionsInfiniteQueryOptions } from '@/modules/recipes';
+import { AsyncComboboxContent, useAsyncOptions } from '@/modules/shared';
 
 /**
  * Picks a recipe, for both places that need one: adding a meal to a day, and swapping the recipe on
@@ -20,30 +15,27 @@ import { type RecipeOption } from '@/modules/meal-plan';
 export function RecipeCombobox({
   ariaLabel,
   onPick,
-  recipes,
   trigger,
 }: {
   ariaLabel: string;
   onPick: (recipe: RecipeOption) => void;
-  recipes: RecipeOption[];
   /** The resting-state control. Rendered inside the trigger, so it must accept a click. */
   trigger: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState('');
+  const options = useAsyncOptions({ enabled: open, queryOptions: listRecipeOptionsInfiniteQueryOptions });
 
-  const query = search.trim().toLowerCase();
-  const filtered = useMemo(
-    () => (query ? recipes.filter((recipe) => recipe.title.toLowerCase().includes(query)) : recipes),
-    [query, recipes]
-  );
+  const close = () => {
+    setOpen(false);
+    options.reset();
+  };
 
   return (
     <Combobox
       onOpenChange={(next) => {
         setOpen(next);
         if (!next) {
-          setSearch('');
+          options.reset();
         }
       }}
       open={open}
@@ -51,31 +43,29 @@ export function RecipeCombobox({
       <ComboboxTrigger aria-label={ariaLabel} asChild>
         {trigger}
       </ComboboxTrigger>
-      <ComboboxContent align="start" className="w-72" shouldFilter={false}>
-        <ComboboxInput onValueChange={setSearch} placeholder="Search recipes…" value={search} />
-        <ComboboxList>
-          {filtered.length > 0 ? (
-            filtered.map((recipe) => (
-              <ComboboxItem
-                key={recipe.id}
-                onSelect={() => {
-                  onPick(recipe);
-                  setOpen(false);
-                  setSearch('');
-                }}
-                value={String(recipe.id)}
-              >
-                <CookingPotIcon className="shrink-0 text-muted-foreground" />
-                <span className="truncate">{recipe.title}</span>
-              </ComboboxItem>
-            ))
-          ) : (
-            <p className="px-3 py-4 text-center text-muted-foreground text-sm">
-              {recipes.length === 0 ? 'No recipes yet.' : 'No matching recipes.'}
-            </p>
-          )}
-        </ComboboxList>
-      </ComboboxContent>
+      <AsyncComboboxContent
+        align="start"
+        className="w-72"
+        emptyMessage={options.search ? 'No matching recipes.' : 'No recipes yet.'}
+        options={options}
+        placeholder="Search recipes…"
+      >
+        {(items) =>
+          items.map((recipe) => (
+            <ComboboxItem
+              key={recipe.id}
+              onSelect={() => {
+                onPick(recipe);
+                close();
+              }}
+              value={String(recipe.id)}
+            >
+              <CookingPotIcon className="shrink-0 text-muted-foreground" />
+              <span className="truncate">{recipe.title}</span>
+            </ComboboxItem>
+          ))
+        }
+      </AsyncComboboxContent>
     </Combobox>
   );
 }

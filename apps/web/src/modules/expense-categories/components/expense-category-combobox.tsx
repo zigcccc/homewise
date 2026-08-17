@@ -1,28 +1,28 @@
-import { useSuspenseQuery } from '@tanstack/react-query';
 import { PlusIcon, SettingsIcon } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
+import z from 'zod';
 
+import { expenseCategoryName } from '@homewise/server/expense-categories';
 import {
   Combobox,
   ComboboxAction,
-  ComboboxContent,
   ComboboxFieldTrigger,
   ComboboxGroup,
-  ComboboxInput,
   ComboboxItem,
-  ComboboxList,
   ComboboxSeparator,
 } from '@homewise/ui/core';
 
-import { listExpenseCategoriesQueryOptions } from '../expense-categories.queries';
+import { AsyncComboboxContent, shouldOfferCreate, useAsyncOptions } from '@/modules/shared';
 
-/**
- * What the picker hands back: an existing category, one that doesn't exist yet, or none at all.
- *
- * The two halves map onto the expense payload's `categoryId` / `categoryName` — which is why a new
- * name travels as a name rather than as an id this component minted.
- */
-export type ExpenseCategoryChoice = { kind: 'existing'; id: number } | { kind: 'new'; name: string } | { kind: 'none' };
+import { listExpenseCategoryOptionsInfiniteQueryOptions } from '../expense-categories.queries';
+
+/** A schema so a form can hold the choice; `{ id, name }` because a paged list can't label an id. */
+export const expenseCategoryChoiceModel = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('existing'), category: z.object({ id: z.number(), name: z.string() }) }),
+  z.object({ kind: z.literal('new'), name: expenseCategoryName }),
+  z.object({ kind: z.literal('none') }),
+]);
+export type ExpenseCategoryChoice = z.infer<typeof expenseCategoryChoiceModel>;
 
 /**
  * Picks the category an expense is filed under, or names one that doesn't exist yet.
@@ -59,22 +59,13 @@ export function ExpenseCategoryCombobox({
   value: ExpenseCategoryChoice;
 }) {
   const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState('');
+  const options = useAsyncOptions({ enabled: open, queryOptions: listExpenseCategoryOptionsInfiniteQueryOptions });
 
-  const { data: categories } = useSuspenseQuery(listExpenseCategoriesQueryOptions());
-
-  const query = search.trim().toLowerCase();
-  const filtered = useMemo(
-    () => (query ? categories.filter((category) => category.name.toLowerCase().includes(query)) : categories),
-    [categories, query]
-  );
-
-  // An exact name match means "Create" would resolve to that row anyway — offer it directly.
-  const hasExactMatch = categories.some((category) => category.name.toLowerCase() === query);
+  const offerCreate = shouldOfferCreate(options);
 
   const close = () => {
     setOpen(false);
-    setSearch('');
+    options.reset();
   };
 
   const select = (choice: ExpenseCategoryChoice) => {
@@ -82,24 +73,15 @@ export function ExpenseCategoryCombobox({
     close();
   };
 
-  const chosen = value.kind === 'existing' ? categories.find((category) => category.id === value.id) : undefined;
-  // Falls back to the placeholder when an id no longer resolves — a category deleted in another tab.
-  const isPlaceholder = value.kind === 'none' || (value.kind === 'existing' && !chosen);
-
-  const label = () => {
-    if (value.kind === 'new') {
-      return value.name;
-    }
-
-    return chosen?.name ?? noneLabel;
-  };
+  const isPlaceholder = value.kind === 'none';
+  const label = value.kind === 'none' ? noneLabel : value.kind === 'new' ? value.name : value.category.name;
 
   return (
     <Combobox
       onOpenChange={(next) => {
         setOpen(next);
         if (!next) {
-          setSearch('');
+          options.reset();
         }
       }}
       open={open}
@@ -114,54 +96,62 @@ export function ExpenseCategoryCombobox({
         type="button"
       >
         <span className="truncate" data-slot="select-value">
-          {label()}
+          {label}
         </span>
       </ComboboxFieldTrigger>
-      <ComboboxContent className="min-w-64" shouldFilter={false}>
-        <ComboboxInput onValueChange={setSearch} placeholder="Search categories…" value={search} />
-        <ComboboxList>
+      <AsyncComboboxContent
+        action={
+          /* Both are `ComboboxAction`s, outside cmdk's registry, so neither is ever filtered away. */
+          (offerCreate || onManage) && (
+            <>
+              <ComboboxSeparator />
+              {offerCreate && (
+                <ComboboxAction onClick={() => select({ kind: 'new', name: options.search.trim() })}>
+                  <PlusIcon />
+                  Create "{options.search.trim()}"
+                </ComboboxAction>
+              )}
+              {onManage && (
+                <ComboboxAction
+                  onClick={() => {
+                    // Closed first: the sheet mounts its own focus trap, and two of them fight.
+                    close();
+                    onManage();
+                  }}
+                >
+                  <SettingsIcon />
+                  Edit categories
+                </ComboboxAction>
+              )}
+            </>
+          )
+        }
+        className="min-w-64"
+        emptyMessage={options.search ? 'No matching categories.' : 'No categories yet.'}
+        leading={
           <ComboboxGroup>
             <ComboboxItem onSelect={() => select({ kind: 'none' })} value="none">
               {noneLabel}
             </ComboboxItem>
           </ComboboxGroup>
-          {filtered.length > 0 && (
-            <ComboboxGroup heading="Your categories">
-              {filtered.map((category) => (
-                <ComboboxItem
-                  key={category.id}
-                  onSelect={() => select({ kind: 'existing', id: category.id })}
-                  value={String(category.id)}
-                >
-                  <span className="truncate">{category.name}</span>
-                </ComboboxItem>
-              ))}
-            </ComboboxGroup>
-          )}
-          {/* Both rows are `ComboboxAction`s rather than `ComboboxItem`s, so they sit outside cmdk's
-              item registry and survive filtering — "Create" has to show up precisely when the search
-              matches nothing, and "Edit categories" should never disappear. */}
-          {(query && !hasExactMatch) || onManage ? <ComboboxSeparator /> : null}
-          {query && !hasExactMatch && (
-            <ComboboxAction onClick={() => select({ kind: 'new', name: search.trim() })}>
-              <PlusIcon />
-              Create "{search.trim()}"
-            </ComboboxAction>
-          )}
-          {onManage && (
-            <ComboboxAction
-              onClick={() => {
-                // Closed first: the sheet mounts its own focus trap, and two of them fight.
-                close();
-                onManage();
-              }}
-            >
-              <SettingsIcon />
-              Edit categories
-            </ComboboxAction>
-          )}
-        </ComboboxList>
-      </ComboboxContent>
+        }
+        options={options}
+        placeholder="Search categories…"
+      >
+        {(items) => (
+          <ComboboxGroup heading="Your categories">
+            {items.map((category) => (
+              <ComboboxItem
+                key={category.id}
+                onSelect={() => select({ kind: 'existing', category })}
+                value={String(category.id)}
+              >
+                <span className="truncate">{category.name}</span>
+              </ComboboxItem>
+            ))}
+          </ComboboxGroup>
+        )}
+      </AsyncComboboxContent>
     </Combobox>
   );
 }

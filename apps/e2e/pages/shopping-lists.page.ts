@@ -3,6 +3,7 @@ import { expect, type Locator, type Page } from '@playwright/test';
 import { API_URL } from '../playwright.config';
 import { nameStartsWith } from '../support/text';
 import { Drag } from './drag';
+import { Picker } from './picker';
 
 /** The household's shopping lists (`/food/shopping-lists`) — master column plus the open list. */
 export class ShoppingListsPage {
@@ -206,14 +207,15 @@ export class ShoppingListsPage {
   /** Adds a name the library doesn't have: a one-off that must not join the ingredient library. */
   async addOneOff(name: string) {
     await this.openAddPicker();
-    await this.page.getByPlaceholder('Search ingredients').fill(name);
+    const picker = new Picker(this.page, 'Search ingredients…');
+    await picker.search(name);
     await this.page.getByRole('button', { name: `Add as a one-off "${name}"` }).click();
     await expect(this.item(name)).toBeVisible();
   }
 
   async openAddPicker() {
     await this.page.getByRole('button', { name: /^Add item/ }).click();
-    await expect(this.page.getByPlaceholder('Search ingredients')).toBeVisible();
+    await expect(this.page.getByRole('combobox', { name: 'Search ingredients…' })).toBeVisible();
   }
 
   /** `click`, not `check`: the state comes from the server, so `check()` clicks twice and toggles back. */

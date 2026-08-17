@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Suspense, useState } from 'react';
 import { type SubmitHandler, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -27,13 +27,7 @@ import {
 } from '@homewise/ui/core';
 
 import { parseResponse } from '@/api/client';
-import {
-  AddContactCombobox,
-  ContactFormDialog,
-  contactTypeLabels,
-  invalidateContacts,
-  listContactOptionsQueryOptions,
-} from '@/modules/contacts';
+import { AddContactCombobox, ContactFormDialog, contactTypeLabels, invalidateContacts } from '@/modules/contacts';
 import { DateField, serverMessage, todayISODay } from '@/modules/shared';
 import { invalidateStorageLocations } from '@/modules/storage-locations';
 
@@ -106,8 +100,9 @@ export function LendItemDialog({
 
 function LendForm({ item, onDone }: { item: StorageItem; onDone: () => void }) {
   const queryClient = useQueryClient();
-  const { data: contacts } = useSuspenseQuery(listContactOptionsQueryOptions());
   const [createOpen, setCreateOpen] = useState(false);
+  // The picker hands back the whole contact; the form only carries the id, so the name is kept here.
+  const [pickedName, setPickedName] = useState<string | undefined>(undefined);
 
   const form = useForm<LoanFormValues>({
     resolver: zodResolver(loanFormModel),
@@ -147,9 +142,8 @@ function LendForm({ item, onDone }: { item: StorageItem; onDone: () => void }) {
     }
   };
 
-  const contactId = form.watch('contactId');
   const newContact = form.watch('newContact');
-  const borrowerName = newContact?.name ?? contacts.find((contact) => contact.id === contactId)?.name;
+  const borrowerName = newContact?.name ?? pickedName;
 
   return (
     <>
@@ -162,10 +156,10 @@ function LendForm({ item, onDone }: { item: StorageItem; onDone: () => void }) {
               <FormItem>
                 <FormLabel>Who has it</FormLabel>
                 <AddContactCombobox
-                  contacts={contacts}
                   onCreate={() => setCreateOpen(true)}
-                  onLink={async (id) => {
-                    form.setValue('contactId', id, { shouldDirty: true });
+                  onLink={async (contact) => {
+                    setPickedName(contact.name);
+                    form.setValue('contactId', contact.id, { shouldDirty: true });
                     form.setValue('newContact', undefined, { shouldDirty: true });
                     form.clearErrors('contactId');
                   }}

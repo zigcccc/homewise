@@ -1,44 +1,40 @@
-import { useSuspenseQuery } from '@tanstack/react-query';
 import { PlusIcon } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
+import z from 'zod';
 
+import { storeName } from '@homewise/server/stores';
 import {
   Combobox,
   ComboboxAction,
-  ComboboxContent,
   ComboboxFieldTrigger,
   ComboboxGroup,
-  ComboboxInput,
   ComboboxItem,
-  ComboboxList,
   ComboboxSeparator,
 } from '@homewise/ui/core';
 
-import { listStoreOptionsQueryOptions } from '../stores.queries';
+import { AsyncComboboxContent, shouldOfferCreate, useAsyncOptions } from '@/modules/shared';
 
-/**
- * What the picker hands back: an existing shop, a shop that doesn't exist yet, or none at all.
- *
- * The two halves map onto the ingredient payload's `storeId` / `storeName` — which is why a new name
- * travels as a name rather than as an id this component minted.
- */
-export type StoreChoice = { kind: 'existing'; id: number } | { kind: 'new'; name: string } | { kind: 'none' };
+import { listStoreOptionsInfiniteQueryOptions } from '../stores.queries';
+
+/** A schema so a form can hold the choice itself; `{ id, name }` because a paged list can't label an id. */
+export const storeChoiceModel = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('existing'), store: z.object({ id: z.number(), name: z.string() }) }),
+  z.object({ kind: z.literal('new'), name: storeName }),
+  z.object({ kind: z.literal('none') }),
+]);
+export type StoreChoice = z.infer<typeof storeChoiceModel>;
 
 /**
  * Picks the shop an ingredient is bought at, or names one that doesn't exist yet.
  *
  * A new name is *not* created here — it travels with the ingredient payload and is found-or-created
- * when the ingredient is saved, so abandoning the dialog leaves nothing behind and a shop can't
- * outlive a save that then fails on a duplicate ingredient name. That makes this a pure picker with
- * no mutation of its own, exactly like `IngredientCombobox`.
+ * when the ingredient is saved, so an abandoned dialog leaves nothing behind.
  *
  * `ComboboxFieldTrigger` rather than `ComboboxTrigger`: this is a form field and should be
- * indistinguishable from a closed `Select`, not an action button that opens a picker. That's also
- * what lets the table drop its inline-cell classes on top through `className` and get a control that
- * reads as plain table text until you reach for it — the same string the `Select` cells use.
+ * indistinguishable from a closed `Select`.
  *
- * The "Create" row is a `ComboboxAction` rather than a `ComboboxItem` so it survives cmdk's
- * filtering and stays visible precisely when the search matches nothing.
+ * The "Create" row is a `ComboboxAction` rather than a `ComboboxItem` so it survives cmdk's filtering
+ * and stays visible precisely when the search matches nothing.
  */
 export function StoreCombobox({
   ariaLabel = 'Shop',
@@ -51,47 +47,30 @@ export function StoreCombobox({
   ariaLabel?: string;
   className?: string;
   disabled?: boolean;
-  /** How "no shop" reads. "None" in a form; "—" where the value sits in a table. */
   noneLabel?: string;
   onChange: (choice: StoreChoice) => void;
   value: StoreChoice;
 }) {
   const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState('');
+  const options = useAsyncOptions({ enabled: open, queryOptions: listStoreOptionsInfiniteQueryOptions });
 
-  const { data: stores } = useSuspenseQuery(listStoreOptionsQueryOptions());
-
-  const query = search.trim().toLowerCase();
-  const filtered = useMemo(
-    () => (query ? stores.filter((store) => store.name.toLowerCase().includes(query)) : stores),
-    [query, stores]
-  );
-
-  // An exact name match means "Create" would resolve to that row anyway — offer it directly.
-  const hasExactMatch = stores.some((store) => store.name.toLowerCase() === query);
+  const offerCreate = shouldOfferCreate(options);
 
   const select = (choice: StoreChoice) => {
     onChange(choice);
     setOpen(false);
-    setSearch('');
+    options.reset();
   };
 
-  const chosen = value.kind === 'existing' ? stores.find((store) => store.id === value.id) : undefined;
-  // Falls back to the placeholder when an id no longer resolves — a shop deleted in another tab.
-  const isPlaceholder = value.kind === 'none' || (value.kind === 'existing' && !chosen);
-
-  const label = () => {
-    if (value.kind === 'new') return value.name;
-
-    return chosen?.name ?? noneLabel;
-  };
+  const isPlaceholder = value.kind === 'none';
+  const label = value.kind === 'none' ? noneLabel : value.kind === 'new' ? value.name : value.store.name;
 
   return (
     <Combobox
       onOpenChange={(next) => {
         setOpen(next);
         if (!next) {
-          setSearch('');
+          options.reset();
         }
       }}
       open={open}
@@ -106,43 +85,49 @@ export function StoreCombobox({
         type="button"
       >
         <span className="truncate" data-slot="select-value">
-          {label()}
+          {label}
         </span>
       </ComboboxFieldTrigger>
       {/* Content defaults to the trigger's width, which is fine for a form field but far too narrow
           for a table cell — the floor keeps the search input usable in both. */}
-      <ComboboxContent className="min-w-64" shouldFilter={false}>
-        <ComboboxInput onValueChange={setSearch} placeholder="Search shops…" value={search} />
-        <ComboboxList>
+      <AsyncComboboxContent
+        action={
+          offerCreate && (
+            <>
+              <ComboboxSeparator />
+              <ComboboxAction onClick={() => select({ kind: 'new', name: options.search.trim() })}>
+                <PlusIcon />
+                Create "{options.search.trim()}"
+              </ComboboxAction>
+            </>
+          )
+        }
+        className="min-w-64"
+        emptyMessage={options.search ? 'No matching shops.' : 'No shops yet.'}
+        leading={
           <ComboboxGroup>
             <ComboboxItem onSelect={() => select({ kind: 'none' })} value="none">
               {noneLabel}
             </ComboboxItem>
           </ComboboxGroup>
-          {filtered.length > 0 && (
-            <ComboboxGroup heading="Your shops">
-              {filtered.map((store) => (
-                <ComboboxItem
-                  key={store.id}
-                  onSelect={() => select({ kind: 'existing', id: store.id })}
-                  value={String(store.id)}
-                >
-                  <span className="truncate">{store.name}</span>
-                </ComboboxItem>
-              ))}
-            </ComboboxGroup>
-          )}
-          {query && !hasExactMatch && (
-            <>
-              <ComboboxSeparator />
-              <ComboboxAction onClick={() => select({ kind: 'new', name: search.trim() })}>
-                <PlusIcon />
-                Create "{search.trim()}"
-              </ComboboxAction>
-            </>
-          )}
-        </ComboboxList>
-      </ComboboxContent>
+        }
+        options={options}
+        placeholder="Search shops…"
+      >
+        {(items) => (
+          <ComboboxGroup heading="Your shops">
+            {items.map((store) => (
+              <ComboboxItem
+                key={store.id}
+                onSelect={() => select({ kind: 'existing', store })}
+                value={String(store.id)}
+              >
+                <span className="truncate">{store.name}</span>
+              </ComboboxItem>
+            ))}
+          </ComboboxGroup>
+        )}
+      </AsyncComboboxContent>
     </Combobox>
   );
 }

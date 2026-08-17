@@ -1,9 +1,10 @@
-import { type QueryClient, queryOptions } from '@tanstack/react-query';
+import { infiniteQueryOptions, type QueryClient, queryOptions } from '@tanstack/react-query';
 import { type InferRequestType, type InferResponseType } from 'hono';
 
 import { MAX_PAGE_SIZE } from '@homewise/server/models';
 
 import { client, parseResponse } from '@/api/client';
+import { flattenOptionPages, nextPageParam, OPTIONS_PAGE_SIZE, OPTIONS_STALE_TIME } from '@/modules/shared';
 
 const $listStores = client.stores.$get;
 const $createStore = client.stores.$post;
@@ -39,11 +40,25 @@ export function invalidateStores(queryClient: QueryClient) {
   void queryClient.invalidateQueries({ queryKey: ['stores'] });
 }
 
-/** Every shop, for a picker. Bounded by the server ceiling; past it a picker needs searching. */
+/** Every shop as one array, for the plain `Select` filter — which has nowhere to put a sentinel. */
 export function listStoreOptionsQueryOptions() {
   return queryOptions({
     ...listStoresQueryOptions({ pageSize: MAX_PAGE_SIZE }),
     select: (page: StoresPage) => page.items,
+  });
+}
+
+/** Shops as a picker reads them. Own `'options'` prefix — a patcher must not meet `InfiniteData`. */
+export function listStoreOptionsInfiniteQueryOptions(search?: string) {
+  return infiniteQueryOptions({
+    queryKey: ['stores', 'options', { search }],
+    queryFn: async ({ pageParam }) =>
+      parseResponse($listStores({ query: { search, pageSize: OPTIONS_PAGE_SIZE, ...pageParam } })),
+    initialPageParam: { page: 1 },
+    // No anchor: this list only moves on a create or rename, so offset drift is cheap here.
+    getNextPageParam: nextPageParam,
+    select: flattenOptionPages,
+    staleTime: OPTIONS_STALE_TIME,
   });
 }
 

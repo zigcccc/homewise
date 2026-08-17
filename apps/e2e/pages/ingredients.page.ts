@@ -1,5 +1,6 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 
+import { Picker } from './picker';
 import { SearchBox } from './search-box';
 
 /** The household ingredient library (`/food/ingredients`). */
@@ -41,8 +42,7 @@ export class IngredientsPage {
   /** Types a shop the library doesn't have into the dialog's picker, and creates it from there. */
   private async createStoreInDialog(dialog: Locator, storeName: string) {
     await dialog.getByRole('button', { name: 'Shop', exact: true }).click();
-    await this.page.getByPlaceholder('Search shops').fill(storeName);
-    await this.page.getByRole('button', { name: `Create "${storeName}"` }).click();
+    await this.storePicker().create(storeName);
   }
 
   async add(name: string, category?: string) {
@@ -120,14 +120,25 @@ export class IngredientsPage {
    */
   async setStoreInline(name: string, store: string) {
     await this.openStorePicker(name);
-    await this.page.getByRole('option', { name: store, exact: true }).click();
+    await this.storePicker().pick(store);
   }
 
   /** Files a row under a shop that doesn't exist yet, created by the same patch that assigns it. */
   async createStoreInline(name: string, storeName: string) {
     await this.openStorePicker(name);
-    await this.page.getByPlaceholder('Search shops').fill(storeName);
-    await this.page.getByRole('button', { name: `Create "${storeName}"` }).click();
+    await this.storePicker().create(storeName);
+  }
+
+  private storePicker() {
+    return new Picker(this.page, 'Search shops…');
+  }
+
+  /** Opens the add dialog's shop picker and hands it back, for specs about the picker itself. */
+  async openStorePickerInAddDialog(name: string) {
+    const dialog = await this.openAddDialog(name);
+    await dialog.getByRole('button', { name: 'Shop', exact: true }).click();
+
+    return this.storePicker();
   }
 
   /**

@@ -95,7 +95,7 @@ function AmountCell({
 function CategoryCell({ category, id, onManage }: { category: Expense['category']; id: number; onManage: () => void }) {
   const { saveOrToast } = useInlineExpensePatch(id);
 
-  const value: ExpenseCategoryChoice = category ? { kind: 'existing', id: category.id } : { kind: 'none' };
+  const value: ExpenseCategoryChoice = category ? { kind: 'existing', category } : { kind: 'none' };
 
   return (
     <ExpenseCategoryCombobox
@@ -107,7 +107,7 @@ function CategoryCell({ category, id, onManage }: { category: Expense['category'
           return;
         }
 
-        await saveOrToast({ categoryId: choice.kind === 'existing' ? choice.id : null });
+        await saveOrToast({ categoryId: choice.kind === 'existing' ? choice.category.id : null });
       }}
       onManage={onManage}
       value={value}

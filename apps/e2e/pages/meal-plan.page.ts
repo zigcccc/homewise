@@ -2,6 +2,7 @@ import { expect, type Page } from '@playwright/test';
 
 import { nameStartsWith } from '../support/text';
 import { Drag } from './drag';
+import { Picker } from './picker';
 
 /**
  * The weekly meal plan.
@@ -69,8 +70,7 @@ export class MealPlanPage {
   async addRecipeMeal(day: string, recipeTitle: string) {
     await this.revealAddActions(day);
     await this.pickRecipeButton(day).click();
-    await this.page.getByPlaceholder('Search recipes…').fill(recipeTitle);
-    await this.page.getByRole('option', { name: recipeTitle }).click();
+    await new Picker(this.page, 'Search recipes…').pick(recipeTitle);
     await expect(this.meal(day, recipeTitle)).toBeVisible();
   }
 

@@ -30,7 +30,7 @@ import {
   useDataTable,
 } from '@homewise/ui/core';
 
-import { listExpenseCategoriesQueryOptions } from '@/modules/expense-categories';
+import { listAllExpenseCategoriesQueryOptions } from '@/modules/expense-categories';
 import {
   defaultRecordedAt,
   ExpenseFormDialog,
@@ -113,7 +113,7 @@ export const Route = createFileRoute('/_authenticated/_onboarded/expenses/monthl
       context.queryClient.ensureQueryData(expensesSummaryQueryOptions(range)),
       // Every row's picker reads this, and warming it here is what makes opening the categories
       // sheet instant rather than a spinner.
-      context.queryClient.ensureQueryData(listExpenseCategoriesQueryOptions()),
+      context.queryClient.ensureQueryData(listAllExpenseCategoriesQueryOptions()),
     ]);
   },
   component: MonthlyExpensesLayout,

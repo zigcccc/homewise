@@ -1,21 +1,20 @@
 import { PlusIcon } from 'lucide-react';
-import { type ReactNode, useMemo, useState } from 'react';
+import { type ReactNode, useState } from 'react';
 
 import { type ContactType } from '@homewise/server/contacts';
 import {
   Button,
   Combobox,
   ComboboxAction,
-  ComboboxContent,
   ComboboxGroup,
-  ComboboxInput,
   ComboboxItem,
-  ComboboxList,
   ComboboxSeparator,
   ComboboxTrigger,
 } from '@homewise/ui/core';
 
-import { type HouseholdContact } from '../contacts.queries';
+import { AsyncComboboxContent, useAsyncOptions } from '@/modules/shared';
+
+import { type HouseholdContact, listContactOptionsInfiniteQueryOptions } from '../contacts.queries';
 
 /** Hoisted so the default doesn't hand the component a new Set on every render. */
 const EMPTY_LINKED_IDS: ReadonlySet<number> = new Set();
@@ -32,15 +31,17 @@ const EMPTY_LINKED_IDS: ReadonlySet<number> = new Set();
  * nobody has taken yet.
  */
 export function AddContactCombobox({
-  contacts,
+  excludeId,
   label = 'Add contact',
   linkedIds = EMPTY_LINKED_IDS,
   onCreate,
   onLink,
   trigger,
   typeLabels,
+  types,
 }: {
-  contacts: HouseholdContact[];
+  /** A contact that must not be offered — the one whose page this picker was opened from. */
+  excludeId?: number;
   /**
    * What the action button says. It names what picking someone here *does*, which is not always
    * "add a contact" — on a contact's own page it records a relation between two that already exist,
@@ -50,30 +51,26 @@ export function AddContactCombobox({
   /** Omit where only one contact is ever chosen — nothing can already be attached. */
   linkedIds?: ReadonlySet<number>;
   onCreate: () => void;
-  onLink: (contactId: number) => Promise<void>;
+  onLink: (contact: HouseholdContact) => Promise<void>;
   /** Replaces the default action button entirely. Must be a combobox trigger. */
   trigger?: ReactNode;
   typeLabels: Record<ContactType, string>;
+  /** Which kinds may be offered. Relations take people, not the dentist. */
+  types?: ContactType[];
 }) {
   const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState('');
-
-  const query = search.trim().toLowerCase();
-  const filtered = useMemo(() => {
-    return query
-      ? contacts.filter(
-          (contact) => contact.name.toLowerCase().includes(query) || (contact.email ?? '').toLowerCase().includes(query)
-        )
-      : contacts;
-  }, [query, contacts]);
+  const options = useAsyncOptions({
+    enabled: open,
+    queryOptions: (search) => listContactOptionsInfiniteQueryOptions(search, { excludeId, types }),
+  });
 
   const close = () => {
     setOpen(false);
-    setSearch('');
+    options.reset();
   };
 
-  const handleLink = async (contactId: number) => {
-    await onLink(contactId);
+  const handleLink = async (contact: HouseholdContact) => {
+    await onLink(contact);
     close();
   };
 
@@ -82,7 +79,7 @@ export function AddContactCombobox({
       onOpenChange={(next) => {
         setOpen(next);
         if (!next) {
-          setSearch('');
+          options.reset();
         }
       }}
       open={open}
@@ -96,49 +93,53 @@ export function AddContactCombobox({
         </ComboboxTrigger>
       )}
       {/* A field trigger is full width, so its popup hangs off the same edge the field starts at. */}
-      <ComboboxContent align={trigger ? 'start' : 'end'} className={trigger ? undefined : 'w-72'} shouldFilter={false}>
-        <ComboboxInput onValueChange={setSearch} placeholder="Search contacts…" value={search} />
-        <ComboboxList>
-          {filtered.length > 0 ? (
-            <ComboboxGroup heading="Existing contacts">
-              {filtered.map((contact) => {
-                const isLinked = linkedIds.has(contact.id);
-                return (
-                  <ComboboxItem
-                    disabled={isLinked}
-                    key={contact.id}
-                    onSelect={isLinked ? undefined : () => void handleLink(contact.id)}
-                    value={String(contact.id)}
-                  >
-                    <span className="truncate">{contact.name}</span>
-                    {isLinked ? (
-                      <span className="ml-auto shrink-0 rounded-full bg-muted px-2 py-0.5 text-muted-foreground text-xs">
-                        Already added
-                      </span>
-                    ) : (
-                      <span className="ml-auto shrink-0 text-muted-foreground text-xs">{typeLabels[contact.type]}</span>
-                    )}
-                  </ComboboxItem>
-                );
-              })}
-            </ComboboxGroup>
-          ) : (
-            <p className="px-3 py-4 text-center text-muted-foreground text-sm">
-              {contacts.length === 0 ? 'No contacts yet.' : 'No matching contacts.'}
-            </p>
-          )}
-          <ComboboxSeparator />
-          <ComboboxAction
-            onClick={() => {
-              close();
-              onCreate();
-            }}
-          >
-            <PlusIcon />
-            Create new contact
-          </ComboboxAction>
-        </ComboboxList>
-      </ComboboxContent>
+      <AsyncComboboxContent
+        action={
+          <>
+            <ComboboxSeparator />
+            <ComboboxAction
+              onClick={() => {
+                close();
+                onCreate();
+              }}
+            >
+              <PlusIcon />
+              Create new contact
+            </ComboboxAction>
+          </>
+        }
+        align={trigger ? 'start' : 'end'}
+        className={trigger ? undefined : 'w-72'}
+        emptyMessage={options.search ? 'No matching contacts.' : 'No contacts yet.'}
+        options={options}
+        placeholder="Search contacts…"
+      >
+        {(items) => (
+          <ComboboxGroup heading="Existing contacts">
+            {items.map((contact) => {
+              const isLinked = linkedIds.has(contact.id);
+
+              return (
+                <ComboboxItem
+                  disabled={isLinked}
+                  key={contact.id}
+                  onSelect={isLinked ? undefined : () => void handleLink(contact)}
+                  value={String(contact.id)}
+                >
+                  <span className="truncate">{contact.name}</span>
+                  {isLinked ? (
+                    <span className="ml-auto shrink-0 rounded-full bg-muted px-2 py-0.5 text-muted-foreground text-xs">
+                      Already added
+                    </span>
+                  ) : (
+                    <span className="ml-auto shrink-0 text-muted-foreground text-xs">{typeLabels[contact.type]}</span>
+                  )}
+                </ComboboxItem>
+              );
+            })}
+          </ComboboxGroup>
+        )}
+      </AsyncComboboxContent>
     </Combobox>
   );
 }

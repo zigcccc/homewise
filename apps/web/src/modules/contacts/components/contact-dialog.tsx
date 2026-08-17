@@ -1,18 +1,11 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useMemo } from 'react';
 import { toast } from 'sonner';
 
 import { parseResponse } from '@/api/client';
 import { serverMessage } from '@/modules/shared';
 
-import {
-  $createContact,
-  $patchContact,
-  getContactQueryOptions,
-  invalidateContacts,
-  listContactOptionsQueryOptions,
-} from '../contacts.queries';
-import { applyRelationChanges, contactTypeLabels, showsPersonalDetails, toRelationDrafts } from '../helpers';
+import { $createContact, $patchContact, getContactQueryOptions, invalidateContacts } from '../contacts.queries';
+import { applyRelationChanges, contactTypeLabels, toRelationDrafts } from '../helpers';
 import { ContactFormDialog, type ContactFormValues } from './contact-form-dialog';
 
 /**
@@ -36,16 +29,8 @@ export function ContactDialog({
   // rather than seeding the form from whatever the caller happened to have. Getting this wrong is
   // not a blank section: the save would read it as "every relation removed".
   const { data: contact } = useQuery({ ...getContactQueryOptions(contactId ?? 0), enabled: contactId !== undefined });
-  const { data: allContacts = [] } = useQuery(listContactOptionsQueryOptions());
 
   const savedRelations = contact ? toRelationDrafts(contact.relations) : [];
-  // Memoized for its identity rather than its cost: `AddContactCombobox` filters this inside a
-  // `useMemo` keyed on it, and the form re-renders on every watched field, so a fresh array each
-  // time is a memo that never hits.
-  const relatable = useMemo(
-    () => allContacts.filter((candidate) => candidate.id !== contactId && showsPersonalDetails(candidate.type)),
-    [allContacts, contactId]
-  );
 
   const submit = async (values: ContactFormValues) => {
     const { relations = [], ...fields } = values;
@@ -85,11 +70,12 @@ export function ContactDialog({
       contact={contact ? { ...contact, relations: savedRelations } : undefined}
       // The address book is where people are kept, so a new one starts as family rather than a doctor.
       defaultType="family"
+      excludeId={contactId}
       isLoading={contactId !== undefined && !contact}
+      offersRelations
       onOpenChange={onOpenChange}
       onSubmit={submit}
       open={open}
-      relatableContacts={relatable}
       typeLabels={contactTypeLabels}
     />
   );

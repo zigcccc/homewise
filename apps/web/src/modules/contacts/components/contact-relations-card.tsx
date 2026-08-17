@@ -1,7 +1,7 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { XIcon } from 'lucide-react';
-import { useId, useMemo, useState } from 'react';
+import { useId, useState } from 'react';
 import { toast } from 'sonner';
 
 import { type ContactRelationRole, contactRelationRole } from '@homewise/server/contacts';
@@ -28,9 +28,8 @@ import {
   type ContactDetail,
   type ContactRelation,
   invalidateContacts,
-  listContactOptionsQueryOptions,
 } from '../contacts.queries';
-import { contactRelationRoleLabels, showsPersonalDetails } from '../helpers';
+import { contactRelationRoleLabels, PERSONAL_CONTACT_TYPES } from '../helpers';
 import { contactTypeLabels } from '../helpers/labels';
 import { AddContactCombobox } from './add-contact-combobox';
 import { AddRelationDialog } from './add-relation-dialog';
@@ -46,15 +45,6 @@ export function ContactRelationsCard({ contact }: { contact: ContactDetail }) {
   const [picking, setPicking] = useState<{ id: number; name: string } | undefined>(undefined);
   const titleId = useId();
 
-  // The whole address book, so the picker can offer anyone; already-related contacts show disabled.
-  const { data: allContacts = [] } = useQuery(listContactOptionsQueryOptions());
-
-  // Memoized for its identity rather than its cost: `AddContactCombobox` filters this inside a
-  // `useMemo` keyed on it, so handing it a fresh array each render is a memo that never hits.
-  const relatable = useMemo(
-    () => allContacts.filter((candidate) => candidate.id !== contact.id && showsPersonalDetails(candidate.type)),
-    [allContacts, contact.id]
-  );
   const relatedIds = new Set(contact.relations.map((relation) => relation.contact.id));
 
   return (
@@ -81,18 +71,13 @@ export function ContactRelationsCard({ contact }: { contact: ContactDetail }) {
         )}
 
         <AddContactCombobox
-          contacts={relatable}
+          excludeId={contact.id}
           label="Add relation"
           linkedIds={relatedIds}
           onCreate={() => toast.info('Add the person as a contact first, then relate them here.')}
-          onLink={async (relatedContactId) => {
-            const related = relatable.find((candidate) => candidate.id === relatedContactId);
-
-            if (related) {
-              setPicking({ id: related.id, name: related.name });
-            }
-          }}
+          onLink={async (related) => setPicking({ id: related.id, name: related.name })}
           typeLabels={contactTypeLabels}
+          types={PERSONAL_CONTACT_TYPES}
         />
       </CardContent>
 
