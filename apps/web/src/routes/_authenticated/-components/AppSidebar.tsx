@@ -1,6 +1,13 @@
 import { setTag, setUser } from '@sentry/react';
 import { useQuery } from '@tanstack/react-query';
-import { Link, useNavigate, useRouteContext, useRouterState } from '@tanstack/react-router';
+import {
+  Link,
+  type LinkProps,
+  useMatchRoute,
+  useNavigate,
+  useRouteContext,
+  useRouterState,
+} from '@tanstack/react-router';
 import {
   BabyIcon,
   BookUserIcon,
@@ -11,6 +18,7 @@ import {
   LayoutDashboardIcon,
   ListTodoIcon,
   LogOutIcon,
+  type LucideIcon,
   MapPinIcon,
   PackageOpenIcon,
   PawPrintIcon,
@@ -59,6 +67,40 @@ function SidebarAutocloseOnMobile() {
   return null;
 }
 
+/**
+ * One sidebar entry, as an anchor and nothing else — `asChild` is what keeps `SidebarMenuButton`
+ * from rendering its own `<button>` inside the link.
+ *
+ * `fuzzy` matching mirrors what `<Link>` computes for itself, so a detail route keeps its section
+ * lit. `/` is the exception: fuzzily, every route is under it.
+ */
+function NavItem({
+  fuzzy = true,
+  icon: Icon,
+  label,
+  to,
+  tooltip,
+}: {
+  fuzzy?: boolean;
+  icon: LucideIcon;
+  label: string;
+  to: LinkProps['to'];
+  tooltip?: string;
+}) {
+  const matchRoute = useMatchRoute();
+
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton asChild isActive={Boolean(matchRoute({ fuzzy, to }))} tooltip={tooltip ?? label}>
+        <Link to={to}>
+          <Icon className="size-4" />
+          <span>{label}</span>
+        </Link>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
+}
+
 export function AppSidebar() {
   const { queryClient } = useRouteContext({ strict: false });
   const navigate = useNavigate();
@@ -94,171 +136,45 @@ export function AppSidebar() {
       <SidebarContent>
         <SidebarGroup>
           <SidebarMenu>
-            <SidebarMenuItem>
-              <Link to="/">
-                {({ isActive }) => (
-                  <SidebarMenuButton isActive={isActive} tooltip="Dashboard">
-                    <LayoutDashboardIcon className="size-4" />
-                    <span>Dashboard</span>
-                  </SidebarMenuButton>
-                )}
-              </Link>
-            </SidebarMenuItem>
+            <NavItem fuzzy={false} icon={LayoutDashboardIcon} label="Dashboard" to="/" />
           </SidebarMenu>
         </SidebarGroup>
         <SidebarGroup>
           <SidebarGroupLabel>Family &amp; friends</SidebarGroupLabel>
           <SidebarMenu>
-            <SidebarMenuItem>
-              <Link to="/family/kids">
-                {({ isActive }) => (
-                  <SidebarMenuButton isActive={isActive} tooltip="Kids">
-                    <BabyIcon className="size-4" />
-                    <span>Kids</span>
-                  </SidebarMenuButton>
-                )}
-              </Link>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Link to="/family/pets">
-                {({ isActive }) => (
-                  <SidebarMenuButton isActive={isActive} tooltip="Pets">
-                    <PawPrintIcon className="size-4" />
-                    <span>Pets</span>
-                  </SidebarMenuButton>
-                )}
-              </Link>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Link to="/family/contacts">
-                {({ isActive }) => (
-                  <SidebarMenuButton isActive={isActive} tooltip="Contacts">
-                    <BookUserIcon className="size-4" />
-                    <span>Contacts</span>
-                  </SidebarMenuButton>
-                )}
-              </Link>
-            </SidebarMenuItem>
+            <NavItem icon={BabyIcon} label="Kids" to="/family/kids" />
+            <NavItem icon={PawPrintIcon} label="Pets" to="/family/pets" />
+            <NavItem icon={BookUserIcon} label="Contacts" to="/family/contacts" />
           </SidebarMenu>
         </SidebarGroup>
         <SidebarGroup>
           <SidebarGroupLabel>Expenses</SidebarGroupLabel>
           <SidebarMenu>
-            <SidebarMenuItem>
-              <Link to="/expenses/monthly-expenses">
-                {({ isActive }) => (
-                  <SidebarMenuButton isActive={isActive} tooltip="Monthly expenses">
-                    <PiggyBankIcon className="size-4" />
-                    <span>Monthly expenses</span>
-                  </SidebarMenuButton>
-                )}
-              </Link>
-            </SidebarMenuItem>
+            <NavItem icon={PiggyBankIcon} label="Monthly expenses" to="/expenses/monthly-expenses" />
           </SidebarMenu>
         </SidebarGroup>
         <SidebarGroup>
           <SidebarGroupLabel>Storage</SidebarGroupLabel>
           <SidebarMenu>
-            <SidebarMenuItem>
-              <Link to="/storage/locations">
-                {({ isActive }) => (
-                  <SidebarMenuButton isActive={isActive} tooltip="Storage locations">
-                    <MapPinIcon className="size-4" />
-                    <span>Locations</span>
-                  </SidebarMenuButton>
-                )}
-              </Link>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Link to="/storage/items">
-                {({ isActive }) => (
-                  <SidebarMenuButton isActive={isActive} tooltip="Items">
-                    <PackageOpenIcon className="size-4" />
-                    <span>Items</span>
-                  </SidebarMenuButton>
-                )}
-              </Link>
-            </SidebarMenuItem>
+            <NavItem icon={MapPinIcon} label="Locations" to="/storage/locations" tooltip="Storage locations" />
+            <NavItem icon={PackageOpenIcon} label="Items" to="/storage/items" />
           </SidebarMenu>
         </SidebarGroup>
         <SidebarGroup>
           <SidebarGroupLabel>Food & Groceries</SidebarGroupLabel>
           <SidebarMenu>
-            <SidebarMenuItem>
-              <Link to="/food/shopping-lists">
-                {({ isActive }) => (
-                  <SidebarMenuButton isActive={isActive} tooltip="Shopping lists">
-                    <ListTodoIcon className="size-4" />
-                    <span>Shopping lists</span>
-                  </SidebarMenuButton>
-                )}
-              </Link>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Link to="/food/meal-plan">
-                {({ isActive }) => (
-                  <SidebarMenuButton isActive={isActive} tooltip="Meal plans">
-                    <CookingPotIcon className="size-4" />
-                    <span>Weekly meal plans</span>
-                  </SidebarMenuButton>
-                )}
-              </Link>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Link to="/food/recipes">
-                {({ isActive }) => (
-                  <SidebarMenuButton isActive={isActive} tooltip="Recipes">
-                    <ScrollTextIcon className="size-4" />
-                    <span>Recipes</span>
-                  </SidebarMenuButton>
-                )}
-              </Link>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Link to="/food/ingredients">
-                {({ isActive }) => (
-                  <SidebarMenuButton isActive={isActive} tooltip="Ingredients">
-                    <CarrotIcon className="size-4" />
-                    <span>Ingredients</span>
-                  </SidebarMenuButton>
-                )}
-              </Link>
-            </SidebarMenuItem>
+            <NavItem icon={ListTodoIcon} label="Shopping lists" to="/food/shopping-lists" />
+            <NavItem icon={CookingPotIcon} label="Weekly meal plans" to="/food/meal-plan" tooltip="Meal plans" />
+            <NavItem icon={ScrollTextIcon} label="Recipes" to="/food/recipes" />
+            <NavItem icon={CarrotIcon} label="Ingredients" to="/food/ingredients" />
           </SidebarMenu>
         </SidebarGroup>
         <SidebarGroup>
           <SidebarGroupLabel>{household ? `Manage "${household.name}"` : 'Manage'}</SidebarGroupLabel>
           <SidebarMenu>
-            <SidebarMenuItem>
-              <Link to="/manage/household-members">
-                {({ isActive }) => (
-                  <SidebarMenuButton isActive={isActive} tooltip="Household members">
-                    <UsersIcon className="size-4" />
-                    <span>Household members</span>
-                  </SidebarMenuButton>
-                )}
-              </Link>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Link to="/manage/activity">
-                {({ isActive }) => (
-                  <SidebarMenuButton isActive={isActive} tooltip="Activity">
-                    <HistoryIcon className="size-4" />
-                    <span>Activity</span>
-                  </SidebarMenuButton>
-                )}
-              </Link>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Link to="/manage/settings">
-                {({ isActive }) => (
-                  <SidebarMenuButton isActive={isActive} tooltip="Settings">
-                    <CogIcon className="size-4" />
-                    <span>Settings</span>
-                  </SidebarMenuButton>
-                )}
-              </Link>
-            </SidebarMenuItem>
+            <NavItem icon={UsersIcon} label="Household members" to="/manage/household-members" />
+            <NavItem icon={HistoryIcon} label="Activity" to="/manage/activity" />
+            <NavItem icon={CogIcon} label="Settings" to="/manage/settings" />
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
