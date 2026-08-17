@@ -1,6 +1,5 @@
-import { expect, test } from '@playwright/test';
-
 import { ContactsPage } from '../pages/contacts.page';
+import { expect, test } from '../support/test';
 
 test.describe('contacts', () => {
   // Every spec is self-contained: it creates uniquely-named data and removes it, so it's

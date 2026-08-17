@@ -1,8 +1,7 @@
 import path from 'node:path';
 
-import { expect, test } from '@playwright/test';
-
 import { UserProfilePage } from '../pages/user-profile.page';
+import { expect, test } from '../support/test';
 
 const AVATAR_FIXTURE = path.resolve(import.meta.dirname, '..', 'support', 'fixtures', 'avatar.png');
 

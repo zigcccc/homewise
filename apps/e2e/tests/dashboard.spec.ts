@@ -1,5 +1,3 @@
-import { expect, test } from '@playwright/test';
-
 import { SEED_EXPENSES, SEED_MEAL_PLAN, SEED_RECIPE } from '@homewise/server/seed-fixtures';
 
 import { ContactsPage } from '../pages/contacts.page';
@@ -7,6 +5,7 @@ import { DashboardPage } from '../pages/dashboard.page';
 import { HouseholdMembersPage } from '../pages/household-members.page';
 import { KidsPage } from '../pages/kids.page';
 import { ShoppingListsPage } from '../pages/shopping-lists.page';
+import { expect, test } from '../support/test';
 
 /**
  * The dashboard owns none of its data, so it asserts on what the seed pins down (this week's meals,

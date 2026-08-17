@@ -1,9 +1,8 @@
-import { expect, test } from '@playwright/test';
-
 import { MedicalPage } from '../pages/medical.page';
 import { stubPlaceSearch } from '../support/places';
 import { createChildProfile, removeManagedMember } from '../support/profiles';
 import { deleteOutOfBand } from '../support/records';
+import { expect, test } from '../support/test';
 
 test.describe('medical information', () => {
   test('sets the medical ID and creates, edits, links, and removes a contact', async ({ page }) => {

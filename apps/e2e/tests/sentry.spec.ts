@@ -1,7 +1,6 @@
-import { expect, test } from '@playwright/test';
-
 import { DashboardPage } from '../pages/dashboard.page';
 import { API_URL } from '../playwright.config';
+import { expect, test } from '../support/test';
 
 /**
  * Two properties of the Sentry integration that nothing else would notice breaking.

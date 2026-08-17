@@ -1,9 +1,8 @@
-import { expect, test } from '@playwright/test';
-
 import { SEED_INGREDIENTS, SEED_RECIPE } from '@homewise/server/seed-fixtures';
 
 import { IngredientsPage } from '../pages/ingredients.page';
 import { RecipesPage } from '../pages/recipes.page';
+import { expect, test } from '../support/test';
 
 test.describe('recipes', () => {
   // Every spec is self-contained: it creates uniquely-named data and removes it, so it's

@@ -1,9 +1,8 @@
-import { expect, test } from '@playwright/test';
-
 import { SEED_INGREDIENTS, SEED_RECIPE, SEED_STORES } from '@homewise/server/seed-fixtures';
 
 import { IngredientsPage } from '../pages/ingredients.page';
 import { API_URL } from '../playwright.config';
+import { expect, test } from '../support/test';
 
 test.describe('ingredient library', () => {
   // Every spec is self-contained: it creates uniquely-named data and removes it, so it's

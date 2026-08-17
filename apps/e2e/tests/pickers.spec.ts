@@ -1,11 +1,10 @@
 import { randomUUID } from 'node:crypto';
 
-import { expect, type Page, test } from '@playwright/test';
-
 import { MAX_PAGE_SIZE } from '@homewise/server/models';
 
 import { IngredientsPage } from '../pages/ingredients.page';
 import { API_URL } from '../playwright.config';
+import { expect, type Page, test } from '../support/test';
 
 /** One page's worth, mirroring `OPTIONS_PAGE_SIZE`. */
 const PAGE_SIZE = 25;

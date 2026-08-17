@@ -1,7 +1,6 @@
-import { expect, test } from '@playwright/test';
-
 import { AppNav } from '../pages/app-nav.page';
 import { DashboardPage } from '../pages/dashboard.page';
+import { expect, test } from '../support/test';
 
 test.describe('sidebar navigation', () => {
   test('renders every entry as a link, with nothing interactive inside it', async ({ page }) => {

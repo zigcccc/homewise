@@ -1,10 +1,9 @@
-import { expect, type Page, test } from '@playwright/test';
-
 import { SEED_STORAGE_ITEMS, SEED_STORAGE_LOCATIONS } from '@homewise/server/seed-fixtures';
 
 import { StorageItemsPage, StorageLocationsPage } from '../pages/storage.page';
 import { API_URL } from '../playwright.config';
 import { deleteOutOfBand } from '../support/records';
+import { expect, type Page, test } from '../support/test';
 
 const [GARAGE, CELLAR] = SEED_STORAGE_LOCATIONS;
 

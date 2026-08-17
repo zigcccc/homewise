@@ -1,8 +1,7 @@
-import { expect, test } from '@playwright/test';
-
 import { SEED_HOUSEHOLD_NAME } from '@homewise/server/seed-fixtures';
 
 import { SettingsPage } from '../pages/settings.page';
+import { expect, test } from '../support/test';
 
 // The household-rename spec lives in serial-seed-mutations.spec.ts (it mutates a
 // shared seed row). This delete-gating check is read-only, so it runs in parallel.

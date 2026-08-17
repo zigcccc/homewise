@@ -1,7 +1,6 @@
-import { expect, test } from '@playwright/test';
-
 import { DictionaryPage } from '../pages/dictionary.page';
 import { createChildProfile, removeManagedMember } from '../support/profiles';
+import { expect, test } from '../support/test';
 
 test.describe('child dictionary', () => {
   test('adds, edits, searches, archives, restores, and deletes words', async ({ page }) => {

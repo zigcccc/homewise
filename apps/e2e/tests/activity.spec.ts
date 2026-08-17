@@ -1,11 +1,10 @@
-import { expect, test } from '@playwright/test';
-
 import { SEED_ACTIVITY, SEED_USER } from '@homewise/server/seed-fixtures';
 
 import { ActivityPage } from '../pages/activity.page';
 import { ContactsPage } from '../pages/contacts.page';
 import { DashboardPage } from '../pages/dashboard.page';
 import { ShoppingListsPage } from '../pages/shopping-lists.page';
+import { expect, test } from '../support/test';
 
 /**
  * The activity feed is the one view every other spec writes into — each worker's contacts, expenses

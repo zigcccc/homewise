@@ -1,9 +1,8 @@
-import { expect, type Page, test } from '@playwright/test';
-
 import { SEED_INGREDIENTS } from '@homewise/server/seed-fixtures';
 
 import { IngredientsPage } from '../pages/ingredients.page';
 import { Pagination } from '../pages/pagination';
+import { expect, type Page, test } from '../support/test';
 
 /**
  * Every paginated list shares one bar and one pair of search params, so the ingredients table

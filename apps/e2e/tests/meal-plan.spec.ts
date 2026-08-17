@@ -1,12 +1,10 @@
-import { expect, test } from '@playwright/test';
-
 import { SEED_CHILD_MEMBER, SEED_RECIPE, SEED_SECOND_USER, SEED_USER } from '@homewise/server/seed-fixtures';
 
 import { HouseholdMembersPage } from '../pages/household-members.page';
 import { MealPlanPage } from '../pages/meal-plan.page';
 import { API_URL } from '../playwright.config';
-import { SECOND_USER_STORAGE_STATE } from '../support/paths';
 import { removeManagedMember } from '../support/profiles';
+import { expect, test } from '../support/test';
 
 /**
  * Each test owns a distinct far-future Monday, reached straight through the URL.
@@ -176,7 +174,11 @@ test.describe('meal plan', () => {
     }
   });
 
-  test('keeps an open inline edit on its own meal when the day fills underneath it', async ({ browser, page }) => {
+  test('keeps an open inline edit on its own meal when the day fills underneath it', async ({
+    browser,
+    household,
+    page,
+  }) => {
     const mealPlan = new MealPlanPage(page);
     const { monday } = WEEKS.identity;
     const stamp = Date.now();
@@ -198,7 +200,7 @@ test.describe('meal plan', () => {
       // by `x-homewise-client-id` and skips its own events, so posting as the same user would only
       // work because `APIRequestContext` happens not to send that header — an invisible dependency
       // that would turn into an unexplained timeout the day anything sets `extraHTTPHeaders`.
-      const actorContext = await browser.newContext({ storageState: SECOND_USER_STORAGE_STATE });
+      const actorContext = await browser.newContext({ storageState: await household.sessionFor('second') });
 
       try {
         const response = await actorContext.request.post(`${API_URL}/meal-plan/meals`, {

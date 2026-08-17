@@ -1,7 +1,6 @@
-import { expect, test } from '@playwright/test';
-
 import { MonthlyExpensesPage } from '../pages/monthly-expenses.page';
 import { API_URL } from '../playwright.config';
+import { expect, test } from '../support/test';
 
 /**
  * Every spec works in a **far-future month of its own**.

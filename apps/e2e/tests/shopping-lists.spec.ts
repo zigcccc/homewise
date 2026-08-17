@@ -1,5 +1,3 @@
-import { expect, type Page, test } from '@playwright/test';
-
 import {
   SEED_CHILD_MEMBER,
   SEED_INGREDIENTS,
@@ -11,6 +9,7 @@ import {
 import { IngredientsPage } from '../pages/ingredients.page';
 import { ShoppingListsPage } from '../pages/shopping-lists.page';
 import { API_URL } from '../playwright.config';
+import { expect, type Page, test } from '../support/test';
 
 /** The seeded recipe's id, which nothing hard-codes — looked up so a reseed can't strand the spec. */
 async function recipeIdByTitle(page: Page, title: string) {
