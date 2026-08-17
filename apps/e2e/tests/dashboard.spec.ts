@@ -65,7 +65,7 @@ test.describe('dashboard', () => {
     await expect(dashboard.spending()).toContainText('paid back');
     await expect(dashboard.spending().getByText(paidBackAmount, { exact: true })).toHaveClass(/line-through/);
 
-    // "An overdue row exists", not a named item: every worker lends from this table.
+    // "An overdue row exists", not a named item: the loans specs lend from this same table.
     await expect(dashboard.loans().getByText('Overdue').first()).toBeVisible();
   });
 
@@ -149,7 +149,7 @@ test.describe('dashboard', () => {
 
       await dashboard.goto();
 
-      // The tile, not the card: every worker's profiles land in this one card at once.
+      // The tile, not the card: every profile this worker has made lands in this one card.
       const tile = dashboard.familyProfiles().getByRole('link').filter({ hasText: name });
 
       await expect(tile).toBeVisible();
@@ -175,7 +175,7 @@ test.describe('dashboard', () => {
 
       await dashboard.goto();
 
-      // Containment, not first place: other workers are adding contacts the whole time.
+      // Containment, not first place: the contacts specs put birthdays on this household too.
       await expect(dashboard.birthdays()).toContainText(name);
       await expect(dashboard.birthdays()).toContainText('Tomorrow');
     } finally {

@@ -12,8 +12,8 @@ export class DashboardPage {
   }
 
   /**
-   * `auth.setup.ts` waits on this before saving `storageState`, so every spec starts behind it —
-   * hence the greeting rather than any card, whose data the parallel workers keep changing.
+   * `support/test.ts` waits on this before saving a session, so every spec starts behind it — hence
+   * the greeting rather than any card, whose data every other spec on the worker keeps changing.
    */
   async expectLoaded({
     householdName = SEED_HOUSEHOLD_NAME,

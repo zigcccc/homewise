@@ -10,18 +10,23 @@ import { deleteHouseholdIfPresent } from '../support/households';
 import { expect, test } from '../support/test';
 
 /**
- * The specs that mutate a **shared seed row** the rest of the suite observes:
+ * The specs that mutate a seed row the rest of the suite reads:
  *   - the household name (the dashboard/auth specs assert it),
  *   - the seed user's name (ditto),
  *   - household ownership (member removal, role changes, and every profile
  *     teardown are owner-only, so briefly de-owning the seed user would break
- *     anything running alongside it), and
+ *     anything running afterwards), and
  *   - the onboarding user's household, which `onboarding.spec.ts` also owns.
  *
  * They live in the `exclusive` Playwright project, which depends on `parallel`
  * and so runs only after every parallel spec has finished — and this file runs on
- * a single worker, so these mutators never overlap each other either. Each still
- * round-trips its change so a shared-DB rerun starts clean.
+ * a single worker, so these mutators never overlap each other either.
+ *
+ * Per-worker households already keep these off other workers' rows, so the phase
+ * is no longer what makes them safe. It stays because it makes them *recoverable*:
+ * a mutator that dies mid-round-trip leaves its household renamed or de-owned, and
+ * going last means there is nothing left on that worker to break. Each still
+ * round-trips its change, so a rerun starts clean.
  */
 
 test('renames the household and restores it', async ({ page }) => {

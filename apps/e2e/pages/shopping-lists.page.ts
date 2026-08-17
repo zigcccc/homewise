@@ -63,7 +63,7 @@ export class ShoppingListsPage {
    */
   async createListFromUi() {
     // Every id on screen, not just the open one: the index route's auto-select can land *after* the
-    // click, so "wait for the id to change" would hand back another spec's list.
+    // click, so "wait for the id to change" would hand back whichever list it settled on.
     const before = new Set(
       await this.page
         .locator('a[href^="/food/shopping-lists/"]')

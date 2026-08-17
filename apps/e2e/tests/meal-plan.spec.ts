@@ -3,17 +3,23 @@ import { SEED_CHILD_MEMBER, SEED_RECIPE, SEED_SECOND_USER, SEED_USER } from '@ho
 import { HouseholdMembersPage } from '../pages/household-members.page';
 import { MealPlanPage } from '../pages/meal-plan.page';
 import { API_URL } from '../playwright.config';
-import { removeManagedMember } from '../support/profiles';
+import { clearDayNoteOn, deleteMealsOn, deleteMemberNamed } from '../support/records';
 import { expect, test } from '../support/test';
 
 /**
  * Each test owns a distinct far-future Monday, reached straight through the URL.
  *
- * That's the whole isolation strategy: the `parallel` project is `fullyParallel` against one shared
- * seeded household, so two specs planning meals on "next Tuesday" would collide. A week in 2099 is
- * one no other spec and no human will ever open, which makes these idempotent across reruns without
- * any date arithmetic in the suite. The seeded household stays read-only here — `SEED_RECIPE` and
+ * Isolation between *workers* comes from each having its own household, but tests inside one worker
+ * still share it, so two of them planning meals on "next Tuesday" would collide. A week in 2099 is
+ * one no other test and no human will ever open, which also makes these idempotent across reruns
+ * without any date arithmetic. The seeded rows stay read-only here — `SEED_RECIPE` and
  * `SEED_CHILD_MEMBER` are asserted against, never mutated.
+ *
+ * Teardown goes through `cleanup`, not a `finally`. This is the spec that proved why: when the first
+ * test below overran its budget, Playwright closed the page before the `finally` ran, its recipe meal
+ * survived, and both retries then died on two cards sharing a label instead of retrying anything
+ * (issue #41). `cleanup` runs against the API after the page is gone, and is registered *before* the
+ * thing it removes, so a half-finished create is covered too.
  */
 const WEEKS = {
   plan: { monday: '2099-01-05', tuesday: '2099-01-06', wednesday: '2099-01-07' },
@@ -27,43 +33,41 @@ const WEEKS = {
 } as const;
 
 test.describe('meal plan', () => {
-  test('plans a week inline — recipe, custom entry, members and notes', async ({ page }) => {
+  test('plans a week inline — recipe, custom entry, members and notes', async ({ cleanup, page }) => {
     test.slow();
     const mealPlan = new MealPlanPage(page);
     const { monday, tuesday, wednesday } = WEEKS.plan;
     const lunch = `E2E Lunch ${Date.now()}`;
 
+    cleanup.add((api) => deleteMealsOn(api, monday, SEED_RECIPE.title));
+    cleanup.add((api) => deleteMealsOn(api, tuesday, lunch));
+    cleanup.add((api) => clearDayNoteOn(api, wednesday));
+
     await mealPlan.goto(monday);
 
-    try {
-      // Picking a recipe is the whole interaction — it creates the meal with everyone eating it.
-      await mealPlan.addRecipeMeal(monday, SEED_RECIPE.title);
-      await expect(mealPlan.meal(monday, SEED_RECIPE.title)).toContainText('Everyone');
+    // Picking a recipe is the whole interaction — it creates the meal with everyone eating it.
+    await mealPlan.addRecipeMeal(monday, SEED_RECIPE.title);
+    await expect(mealPlan.meal(monday, SEED_RECIPE.title)).toContainText('Everyone');
 
-      await mealPlan.addFreeTextMeal(tuesday, lunch);
-      await expect(mealPlan.meal(tuesday, lunch)).toContainText('Everyone');
+    await mealPlan.addFreeTextMeal(tuesday, lunch);
+    await expect(mealPlan.meal(tuesday, lunch)).toContainText('Everyone');
 
-      await mealPlan.assignMeal(tuesday, lunch, [SEED_CHILD_MEMBER.nickname]);
-      await expect(mealPlan.meal(tuesday, lunch)).toContainText(SEED_CHILD_MEMBER.nickname);
-      await expect(mealPlan.meal(tuesday, lunch)).not.toContainText('Everyone');
+    await mealPlan.assignMeal(tuesday, lunch, [SEED_CHILD_MEMBER.nickname]);
+    await expect(mealPlan.meal(tuesday, lunch)).toContainText(SEED_CHILD_MEMBER.nickname);
+    await expect(mealPlan.meal(tuesday, lunch)).not.toContainText('Everyone');
 
-      await mealPlan.setMealNote(tuesday, lunch, 'Double batch');
-      await expect(mealPlan.meal(tuesday, lunch)).toContainText('Double batch');
+    await mealPlan.setMealNote(tuesday, lunch, 'Double batch');
+    await expect(mealPlan.meal(tuesday, lunch)).toContainText('Double batch');
 
-      await mealPlan.setDayNote(wednesday, 'Picnic — 8 adults, 2 children');
-      await expect(mealPlan.dayRow(wednesday)).toContainText('Picnic — 8 adults, 2 children');
+    await mealPlan.setDayNote(wednesday, 'Picnic — 8 adults, 2 children');
+    await expect(mealPlan.dayRow(wednesday)).toContainText('Picnic — 8 adults, 2 children');
 
-      // Reload: proves every inline edit reached the database rather than just the cache.
-      await mealPlan.goto(monday);
-      await expect(mealPlan.meal(monday, SEED_RECIPE.title)).toBeVisible();
-      await expect(mealPlan.meal(tuesday, lunch)).toContainText(SEED_CHILD_MEMBER.nickname);
-      await expect(mealPlan.meal(tuesday, lunch)).toContainText('Double batch');
-      await expect(mealPlan.dayRow(wednesday)).toContainText('Picnic — 8 adults, 2 children');
-    } finally {
-      await mealPlan.removeMealIfPresent(monday, SEED_RECIPE.title);
-      await mealPlan.removeMealIfPresent(tuesday, lunch);
-      await mealPlan.clearDayNote(wednesday);
-    }
+    // Reload: proves every inline edit reached the database rather than just the cache.
+    await mealPlan.goto(monday);
+    await expect(mealPlan.meal(monday, SEED_RECIPE.title)).toBeVisible();
+    await expect(mealPlan.meal(tuesday, lunch)).toContainText(SEED_CHILD_MEMBER.nickname);
+    await expect(mealPlan.meal(tuesday, lunch)).toContainText('Double batch');
+    await expect(mealPlan.dayRow(wednesday)).toContainText('Picnic — 8 adults, 2 children');
   });
 
   test('abandons an empty custom entry instead of creating one', async ({ page }) => {
@@ -92,34 +96,31 @@ test.describe('meal plan', () => {
     await expect(mealPlan.dayRow(wednesday).getByRole('listitem')).toHaveCount(0);
   });
 
-  test('folds the add actions away once everyone has a meal', async ({ page }) => {
+  test('folds the add actions away once everyone has a meal', async ({ cleanup, page }) => {
     const mealPlan = new MealPlanPage(page);
     const { monday } = WEEKS.coverage;
     const lunch = `E2E Coverage ${Date.now()}`;
 
+    cleanup.add((api) => deleteMealsOn(api, monday, lunch));
     await mealPlan.goto(monday);
 
-    try {
-      // A new meal feeds everyone, so the day is planned the moment it exists.
-      await mealPlan.addFreeTextMeal(monday, lunch);
-      await expect(mealPlan.coverageHint(monday)).toBeHidden();
-      await expect(mealPlan.pickRecipeButton(monday)).toBeHidden();
-      await expect(mealPlan.addAnotherButton(monday)).toBeVisible();
+    // A new meal feeds everyone, so the day is planned the moment it exists.
+    await mealPlan.addFreeTextMeal(monday, lunch);
+    await expect(mealPlan.coverageHint(monday)).toBeHidden();
+    await expect(mealPlan.pickRecipeButton(monday)).toBeHidden();
+    await expect(mealPlan.addAnotherButton(monday)).toBeVisible();
 
-      // Narrow it to the child and the two adults are suddenly unfed — which is the state the whole
-      // hint exists to surface, since the day still *looks* planned.
-      await mealPlan.assignMeal(monday, lunch, [SEED_CHILD_MEMBER.nickname]);
+    // Narrow it to the child and the two adults are suddenly unfed — which is the state the whole
+    // hint exists to surface, since the day still *looks* planned.
+    await mealPlan.assignMeal(monday, lunch, [SEED_CHILD_MEMBER.nickname]);
 
-      await expect(mealPlan.coverageHint(monday)).toContainText(SEED_USER.name);
-      await expect(mealPlan.coverageHint(monday)).toContainText(SEED_SECOND_USER.name);
-      await expect(mealPlan.coverageHint(monday)).not.toContainText(SEED_CHILD_MEMBER.nickname);
-      await expect(mealPlan.pickRecipeButton(monday)).toBeVisible();
-    } finally {
-      await mealPlan.removeMealIfPresent(monday, lunch);
-    }
+    await expect(mealPlan.coverageHint(monday)).toContainText(SEED_USER.name);
+    await expect(mealPlan.coverageHint(monday)).toContainText(SEED_SECOND_USER.name);
+    await expect(mealPlan.coverageHint(monday)).not.toContainText(SEED_CHILD_MEMBER.nickname);
+    await expect(mealPlan.pickRecipeButton(monday)).toBeVisible();
   });
 
-  test('offers only adults and kids a meal — not pets or external members', async ({ page }) => {
+  test('offers only adults and kids a meal — not pets or external members', async ({ cleanup, page }) => {
     const mealPlan = new MealPlanPage(page);
     const { monday } = WEEKS.roles;
     const stamp = Date.now();
@@ -127,55 +128,51 @@ test.describe('meal plan', () => {
     const pet = `E2E Roles Pet ${stamp}`;
     const external = `E2E Roles External ${stamp}`;
 
-    // Both are household members like any other; neither eats lunch off the plan. The seed has no
-    // pet and no external member, so without creating them this spec would assert nothing. Nothing
-    // else in the suite minds them existing — and because they're ineligible, they can't move the
-    // coverage spec's count either.
+    cleanup.add((api) => deleteMealsOn(api, monday, lunch));
+    cleanup.add((api) => deleteMemberNamed(api, pet));
+    cleanup.add((api) => deleteMemberNamed(api, external));
+
+    // Both are household members like any other; neither eats lunch off the plan. The household has
+    // no pet and no external member, so without creating them this spec would assert nothing. Being
+    // ineligible, they can't move the coverage spec's count either — but they are removed on the way
+    // out regardless, because an *eligible* leftover would.
     const members = new HouseholdMembersPage(page);
     await members.goto();
     await members.addManagedMemberWithRole(pet, 'Pet');
     await members.addManagedMemberWithRole(external, 'External');
 
-    try {
-      await mealPlan.goto(monday);
-      await mealPlan.addFreeTextMeal(monday, lunch);
+    await mealPlan.goto(monday);
+    await mealPlan.addFreeTextMeal(monday, lunch);
 
-      const names = await mealPlan.assignableMemberNames(monday, lunch);
+    const names = await mealPlan.assignableMemberNames(monday, lunch);
 
-      expect(names).not.toContain(pet);
-      expect(names).not.toContain(external);
-      expect(names).toEqual(expect.arrayContaining([SEED_USER.name, SEED_CHILD_MEMBER.nickname]));
-    } finally {
-      await mealPlan.removeMealIfPresent(monday, lunch);
-      await removeManagedMember(page, pet);
-      await removeManagedMember(page, external);
-    }
+    expect(names).not.toContain(pet);
+    expect(names).not.toContain(external);
+    expect(names).toEqual(expect.arrayContaining([SEED_USER.name, SEED_CHILD_MEMBER.nickname]));
   });
 
-  test('removes a meal and puts it back with Undo', async ({ page }) => {
+  test('removes a meal and puts it back with Undo', async ({ cleanup, page }) => {
     const mealPlan = new MealPlanPage(page);
     const { monday } = WEEKS.undo;
     const lunch = `E2E Undo ${Date.now()}`;
 
+    cleanup.add((api) => deleteMealsOn(api, monday, lunch));
     await mealPlan.goto(monday);
 
-    try {
-      await mealPlan.addFreeTextMeal(monday, lunch);
-      await mealPlan.assignMeal(monday, lunch, [SEED_CHILD_MEMBER.nickname]);
+    await mealPlan.addFreeTextMeal(monday, lunch);
+    await mealPlan.assignMeal(monday, lunch, [SEED_CHILD_MEMBER.nickname]);
 
-      await mealPlan.removeMeal(monday, lunch);
-      await mealPlan.undoRemove();
+    await mealPlan.removeMeal(monday, lunch);
+    await mealPlan.undoRemove();
 
-      // Undo restores the meal as it was, assignment included — not just its name.
-      await expect(mealPlan.meal(monday, lunch)).toBeVisible();
-      await expect(mealPlan.meal(monday, lunch)).toContainText(SEED_CHILD_MEMBER.nickname);
-    } finally {
-      await mealPlan.removeMealIfPresent(monday, lunch);
-    }
+    // Undo restores the meal as it was, assignment included — not just its name.
+    await expect(mealPlan.meal(monday, lunch)).toBeVisible();
+    await expect(mealPlan.meal(monday, lunch)).toContainText(SEED_CHILD_MEMBER.nickname);
   });
 
   test('keeps an open inline edit on its own meal when the day fills underneath it', async ({
     browser,
+    cleanup,
     household,
     page,
   }) => {
@@ -186,92 +183,85 @@ test.describe('meal plan', () => {
     const renamed = `E2E Renamed ${stamp}`;
     const neighbour = `E2E Identity ${stamp} a`;
 
+    // The rename means the meal answers to one of two labels depending on how far this got.
+    cleanup.add((api) => deleteMealsOn(api, monday, mine));
+    cleanup.add((api) => deleteMealsOn(api, monday, renamed));
+    cleanup.add((api) => deleteMealsOn(api, monday, neighbour));
+
     await mealPlan.goto(monday);
 
+    await mealPlan.addFreeTextMeal(monday, mine);
+    await mealPlan.openLabelEditor(monday, mine);
+    await mealPlan.labelEditor(monday, mine).fill(renamed);
+
+    // Another member adds a meal to the same day, at position 0. Realtime refetches the list under
+    // the open editor and everything below shifts down a place.
+    //
+    // Genuinely a second account, not this tab's own request context. The acting tab is identified
+    // by `x-homewise-client-id` and skips its own events, so posting as the same user would only
+    // work because `APIRequestContext` happens not to send that header — an invisible dependency
+    // that would turn into an unexplained timeout the day anything sets `extraHTTPHeaders`.
+    const actorContext = await browser.newContext({ storageState: await household.sessionFor('second') });
+
     try {
-      await mealPlan.addFreeTextMeal(monday, mine);
-      await mealPlan.openLabelEditor(monday, mine);
-      await mealPlan.labelEditor(monday, mine).fill(renamed);
-
-      // Another member adds a meal to the same day, at position 0. Realtime refetches the list under
-      // the open editor and everything below shifts down a place.
-      //
-      // Genuinely a second account, not this tab's own request context. The acting tab is identified
-      // by `x-homewise-client-id` and skips its own events, so posting as the same user would only
-      // work because `APIRequestContext` happens not to send that header — an invisible dependency
-      // that would turn into an unexplained timeout the day anything sets `extraHTTPHeaders`.
-      const actorContext = await browser.newContext({ storageState: await household.sessionFor('second') });
-
-      try {
-        const response = await actorContext.request.post(`${API_URL}/meal-plan/meals`, {
-          data: { day: monday, position: 0, title: neighbour },
-        });
-        expect(response.ok()).toBe(true);
-      } finally {
-        await actorContext.close();
-      }
-      await expect(mealPlan.meal(monday, neighbour)).toBeVisible();
-
-      await mealPlan.labelEditor(monday, mine).press('Enter');
-
-      // The rename has to follow the meal it was opened on. Keyed by position, the editor would have
-      // moved onto whichever meal took the old index — renaming one the user never touched.
-      await expect(mealPlan.meal(monday, renamed)).toBeVisible();
-      await expect(mealPlan.meal(monday, neighbour)).toBeVisible();
-      await expect(mealPlan.meal(monday, mine)).toHaveCount(0);
+      const response = await actorContext.request.post(`${API_URL}/meal-plan/meals`, {
+        data: { day: monday, position: 0, title: neighbour },
+      });
+      expect(response.ok()).toBe(true);
     } finally {
-      await mealPlan.goto(monday);
-      await mealPlan.removeMealIfPresent(monday, renamed);
-      await mealPlan.removeMealIfPresent(monday, mine);
-      await mealPlan.removeMealIfPresent(monday, neighbour);
+      await actorContext.close();
     }
+    await expect(mealPlan.meal(monday, neighbour)).toBeVisible();
+
+    await mealPlan.labelEditor(monday, mine).press('Enter');
+
+    // The rename has to follow the meal it was opened on. Keyed by position, the editor would have
+    // moved onto whichever meal took the old index — renaming one the user never touched.
+    await expect(mealPlan.meal(monday, renamed)).toBeVisible();
+    await expect(mealPlan.meal(monday, neighbour)).toBeVisible();
+    await expect(mealPlan.meal(monday, mine)).toHaveCount(0);
   });
 
-  test('moves a meal to another day from the menu', async ({ page }) => {
+  test('moves a meal to another day from the menu', async ({ cleanup, page }) => {
     const mealPlan = new MealPlanPage(page);
     const { monday, tuesday } = WEEKS.menuMove;
     const lunch = `E2E Move ${Date.now()}`;
 
+    // Either day, depending on whether the move landed.
+    cleanup.add((api) => deleteMealsOn(api, monday, lunch));
+    cleanup.add((api) => deleteMealsOn(api, tuesday, lunch));
+
     await mealPlan.goto(monday);
+    await mealPlan.addFreeTextMeal(monday, lunch);
 
-    try {
-      await mealPlan.addFreeTextMeal(monday, lunch);
+    await mealPlan.moveMealToDay(monday, lunch, 'Tuesday');
 
-      await mealPlan.moveMealToDay(monday, lunch, 'Tuesday');
-
-      // Both halves matter: a move that copies would leave Monday populated.
-      await expect(mealPlan.meal(tuesday, lunch)).toBeVisible();
-      await expect(mealPlan.dayRow(monday).getByRole('listitem')).toHaveCount(0);
-    } finally {
-      await mealPlan.removeMealIfPresent(tuesday, lunch);
-      await mealPlan.removeMealIfPresent(monday, lunch);
-    }
+    // Both halves matter: a move that copies would leave Monday populated.
+    await expect(mealPlan.meal(tuesday, lunch)).toBeVisible();
+    await expect(mealPlan.dayRow(monday).getByRole('listitem')).toHaveCount(0);
   });
 
-  test('moves a meal to another day by dragging it', async ({ page }) => {
+  test('moves a meal to another day by dragging it', async ({ cleanup, page }) => {
     test.slow();
     const mealPlan = new MealPlanPage(page);
     const { monday, wednesday } = WEEKS.drag;
     const lunch = `E2E Drag ${Date.now()}`;
 
+    cleanup.add((api) => deleteMealsOn(api, monday, lunch));
+    cleanup.add((api) => deleteMealsOn(api, wednesday, lunch));
+
     await mealPlan.goto(monday);
+    await mealPlan.addFreeTextMeal(monday, lunch);
 
-    try {
-      await mealPlan.addFreeTextMeal(monday, lunch);
+    await mealPlan.dragMeal(monday, lunch, wednesday);
 
-      await mealPlan.dragMeal(monday, lunch, wednesday);
+    await expect(mealPlan.meal(wednesday, lunch)).toBeVisible();
+    await expect(mealPlan.dayRow(monday).getByRole('listitem')).toHaveCount(0);
 
-      await expect(mealPlan.meal(wednesday, lunch)).toBeVisible();
-      await expect(mealPlan.dayRow(monday).getByRole('listitem')).toHaveCount(0);
-
-      // Reload: the drag path is entirely separate code from the menu path, so this is the only
-      // thing proving the move actually reached the server rather than just the optimistic cache.
-      await mealPlan.goto(monday);
-      await expect(mealPlan.meal(wednesday, lunch)).toBeVisible();
-    } finally {
-      await mealPlan.removeMealIfPresent(wednesday, lunch);
-      await mealPlan.removeMealIfPresent(monday, lunch);
-    }
+    // Reload: the drag path is entirely separate code from the menu path, so this is the only
+    // thing proving the move actually reached the server rather than just the optimistic cache.
+    await mealPlan.goto(monday);
+    await expect(mealPlan.meal(wednesday, lunch)).toBeVisible();
   });
 
   test('pages through weeks and widens the range', async ({ page }) => {

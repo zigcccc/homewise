@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { type Browser, test as base } from '@playwright/test';
+import { type APIRequestContext, type Browser, test as base } from '@playwright/test';
 
 import { seedAccounts } from '@homewise/server/seed-fixtures';
 
@@ -46,6 +46,22 @@ type Options = {
   sessionAs: Session | 'none';
 };
 
+type Cleanup = {
+  /**
+   * Registers teardown for a row this test created. Runs after the test whatever became of it —
+   * passed, failed, or timed out.
+   *
+   * The last one matters most. A test that overruns its budget has its page closed mid-flight, so a
+   * `finally` block that drives the UI never reaches its first click; the row survives, and the
+   * retry inherits a household the previous attempt was halfway through changing. This runs in
+   * fixture teardown against a fresh `APIRequestContext`, which owes the dead page nothing.
+   *
+   * Use it for rows whose only purpose is to exist. Where deleting *through the UI* is the thing
+   * under test, that stays in the test body where it can be asserted on.
+   */
+  add(job: (api: APIRequestContext) => Promise<void>): void;
+};
+
 type Household = {
   /** This worker's household's three accounts. Their emails are what make the household its own. */
   accounts: SeedAccounts;
@@ -59,7 +75,7 @@ type Household = {
   sessionFor: (who: Session) => Promise<string>;
 };
 
-export const test = base.extend<Options, { household: Household }>({
+export const test = base.extend<Options & { cleanup: Cleanup }, { household: Household }>({
   sessionAs: ['owner', { option: true }],
 
   household: [
@@ -83,6 +99,88 @@ export const test = base.extend<Options, { household: Household }>({
 
   storageState: async ({ household, sessionAs }, use) => {
     await use(sessionAs === 'none' ? { cookies: [], origins: [] } : await household.sessionFor(sessionAs));
+  },
+
+  /**
+   * Records what the browser saw, and attaches it to the test if it fails.
+   *
+   * A timeout otherwise reports only where Playwright gave up waiting — which, when the app has hit
+   * its root error boundary, is every later step in the spec and none of the reason. The page errors,
+   * the console, and any 4xx/5xx are what say which loader rejected.
+   *
+   * An override rather than an `auto` fixture, so a test that never opens a page still doesn't.
+   */
+  page: async ({ page }, use, testInfo) => {
+    const log: string[] = [];
+    // Capped, so a page erroring in a render loop can't turn the attachment into a megabyte.
+    const record = (line: string) => {
+      if (log.length < 200) {
+        log.push(`${new Date().toISOString().slice(11, 23)}  ${line}`);
+      }
+    };
+
+    page.on('pageerror', (error) => record(`pageerror       ${error.message}`));
+    page.on('console', (message) => {
+      if (message.type() === 'error' || message.type() === 'warning') {
+        record(`console.${message.type().padEnd(7)} ${message.text()}`);
+      }
+    });
+    page.on('requestfailed', (request) => {
+      record(`requestfailed   ${request.method()} ${request.url()} — ${request.failure()?.errorText}`);
+    });
+    page.on('response', (response) => {
+      if (response.status() >= 400) {
+        record(`HTTP ${response.status()}        ${response.request().method()} ${response.url()}`);
+      }
+    });
+
+    await use(page);
+
+    if (testInfo.status !== testInfo.expectedStatus && log.length > 0) {
+      await testInfo.attach('browser.log', { body: log.join('\n'), contentType: 'text/plain' });
+    }
+  },
+
+  cleanup: async ({ household, playwright, sessionAs }, use) => {
+    const jobs: ((api: APIRequestContext) => Promise<void>)[] = [];
+
+    await use({
+      add: (job) => {
+        jobs.push(job);
+      },
+    });
+
+    if (jobs.length === 0) {
+      return;
+    }
+
+    // As whoever the test ran as, so a spec acting for a different member cleans up in the household
+    // it actually wrote to. A signed-out spec has no session of its own, and the owner's will do.
+    const api = await playwright.request.newContext({
+      storageState: await household.sessionFor(sessionAs === 'none' ? 'owner' : sessionAs),
+    });
+    const failures: string[] = [];
+
+    try {
+      // Reverse order, so a row that depends on an earlier one goes first. Each job is attempted
+      // whatever the one before it did: the point of this fixture is that nothing is left behind,
+      // and one refused delete must not skip the rest.
+      for (const job of jobs.reverse()) {
+        try {
+          await job(api);
+        } catch (error) {
+          failures.push(error instanceof Error ? error.message : String(error));
+        }
+      }
+    } finally {
+      await api.dispose();
+    }
+
+    if (failures.length > 0) {
+      // Playwright reports a teardown error alongside the test's own, so this can't hide a failure —
+      // and a silent 4xx here looks exactly like a clean pass.
+      throw new Error(`Cleanup left rows behind:\n${failures.map((message) => `  - ${message}`).join('\n')}`);
+    }
   },
 });
 

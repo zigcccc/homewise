@@ -7,9 +7,10 @@ import { ShoppingListsPage } from '../pages/shopping-lists.page';
 import { expect, test } from '../support/test';
 
 /**
- * The activity feed is the one view every other spec writes into — each worker's contacts, expenses
- * and lists all land here. So nothing below asserts on position, ordering or count: each case
- * creates a uniquely-named row, filters the feed down to it, and asks only whether its line exists.
+ * The activity feed is the one view every other spec writes into: every contact, expense and list
+ * this worker's tests touch lands here, and they run before and after these. So nothing below
+ * asserts on position, ordering or count — each case creates a uniquely-named row, filters the feed
+ * down to it, and asks only whether its line exists.
  *
  * That is also what makes the feature worth testing here rather than by unit test: the thing under
  * test is that a change made through the real UI reaches the log at all, having passed through
@@ -177,7 +178,7 @@ test.describe('activity log', () => {
     }
 
     // A seeded line standing for several edits to one recipe — seeded rather than driven, because folding
-    // turns on what the *previous* write was, and every worker writes here.
+    // turns on what the *previous* write was, and every other test on this worker writes here too.
     await activity.goto();
     await activity.find(run.label);
 
@@ -197,7 +198,7 @@ test.describe('activity log', () => {
     await activity.goto();
 
     // The seed writes entries spanning today, yesterday and earlier, so at least one heading is
-    // always present however many rows the parallel workers have added on top.
+    // always present however many rows the rest of the suite has added on top.
     await expect.poll(() => activity.dayHeadings()).toContain('Today');
   });
 });
