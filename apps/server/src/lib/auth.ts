@@ -47,9 +47,9 @@ export const auth = betterAuth({
     return isAllowedOrigin(origin) ? [...allowedOrigins, origin] : [...allowedOrigins];
   },
   secret: env.BETTER_AUTH_SECRET,
-  // Signs the session and user into a cookie so the auth guard stops querying Postgres on every
-  // request — it was the first query of each cold container, and the one paying the ~650ms connect.
-  // The cost is that a revoked session or a role change stays live until the cookie ages out.
+  // Serves the session from a signed cookie so the auth guard stops querying Postgres per request.
+  // The cookie carries identity only — every permission is re-read from the database by
+  // `withHousehold` — but a session revoked elsewhere stays usable until it ages out.
   session: { cookieCache: { enabled: true, maxAge: 300 } },
   user: {
     additionalFields: {
