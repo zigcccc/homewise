@@ -1,6 +1,6 @@
 ---
 name: e2e-testing
-description: How Playwright E2E works on Homewise (apps/e2e) — the setup/parallel/exclusive project phases, Page Objects, the shared seed fixtures, the isolated test Postgres on :8766, E2E_WEB_MODE=dev, and the CI job. Use when adding or changing a spec, deciding where a new spec belongs, debugging a flaky or failing E2E run, or verifying that a feature works.
+description: How Playwright E2E works on Homewise (apps/e2e) — one household per worker via support/test.ts, the parallel/exclusive project phases, the cleanup fixture, Page Objects, the seed fixtures, the isolated test Postgres on :8766, E2E_WEB_MODE=dev, and the CI job. Use when adding or changing a spec, deciding where a new spec belongs, debugging a flaky or failing E2E run, or verifying that a feature works.
 ---
 
 # End-to-end testing
@@ -25,25 +25,45 @@ pnpm --filter @homewise/e2e db:test:down   # Remove the test Postgres
 
 ## Structure
 
-- `tests/*.spec.ts` are the specs; `tests/auth.setup.ts` is a `setup` project that logs the seed
-  users in once and saves `storageState`, so specs start already authenticated. `pages/*.page.ts`
-  are **Page Object Models** — selectors and actions live there so specs read as intent; `support/`
-  holds config + `global-setup`/`global-teardown`.
-- **Three project phases run in order** (`setup` → `parallel` → `exclusive`), sequenced by
-  `dependencies`. Nearly everything belongs in `parallel`, which is `fullyParallel` — that's why
-  specs must use uniquely-named rows. The handful that mutate a *shared seed row* (household name,
-  user name, ownership) are quarantined into `serial-seed-mutations.spec.ts`, the single `exclusive`
-  file, which runs alone at the end. Put a spec there only if it can't be made self-contained; a new
-  spec needs no config change.
+- `tests/*.spec.ts` are the specs; `pages/*.page.ts` are **Page Object Models** — selectors and
+  actions live there so specs read as intent; `support/` holds config + `global-setup`/
+  `global-teardown`, and `support/test.ts`, which is where the suite's own `test` comes from.
+- **Import `test` and `expect` from `../support/test`, never from `@playwright/test`.** A spec that
+  imports the base `test` gets no session and no cleanup fixture.
+- **Every worker gets its own household.** `globalSetup` seeds one per worker
+  (`SEED_HOUSEHOLD_SLOTS` = `config.workers`) and `parallelIndex` picks which — Playwright's own
+  "one account per parallel worker" pattern. Only the accounts' *emails* differ between households;
+  every name is identical, because names are household-scoped, so `SEED_*` stays directly
+  assertable. **Tests inside one worker still share its household** and run serially, so they must
+  still use uniquely-named rows and must not assert global counts or ordering.
+- **Two project phases run in order** (`parallel` → `exclusive`), sequenced by `dependencies`.
+  Nearly everything belongs in `parallel`. The handful that mutate a seed row the rest of the suite
+  reads (household name, user name, ownership) stay quarantined in `serial-seed-mutations.spec.ts`,
+  the single `exclusive` file, which runs last. Per-worker households already keep those off other
+  workers; the phase remains because a mutator that dies mid-round-trip leaves its household renamed
+  or de-owned, and going last means nothing is left to break. A new spec needs no config change.
+- **Sessions**: the default is the household's owner. `test.use({ sessionAs: 'second' })`,
+  `'onboarding'`, or `'none'` (signed out) switches; a spec needing a *second live* session takes the
+  `household` fixture and passes `await household.sessionFor('second')` to `browser.newContext`.
+  Logins are lazy and memoised per worker, and the session files live under `outputDir`, which
+  Playwright empties every run — so one can never outlive the seed that created its user.
 - **Fixtures are one source of truth**: the seeded user/household/member come from
   `apps/server/src/db/seed-fixtures.ts`, imported by both the seed and the tests via
   `@homewise/server/seed-fixtures`. Never hard-code seeded creds/names in a spec.
 - **Selectors**: prefer role/label queries; add a `data-testid` only when semantics aren't enough.
   Make CRUD specs **self-contained** — create a uniquely-named row (e.g. `` `Thing ${Date.now()}` ``),
-  assert, then remove it — so they're idempotent across reruns and never mutate the shared seed
-  fixture. Create it **inside the `try`**, so a helper that throws part-way still reaches the
-  cleanup. Don't `expect` in the `finally` — a failing cleanup assertion replaces the failure you
-  actually wanted to read.
+  assert, then remove it — so they're idempotent across reruns and never mutate a seeded row.
+- **Tear down with the `cleanup` fixture, not a `finally`.** `cleanup.add((api) => …)` registers an
+  API call that runs after the test whatever became of it. That last part is the point: a test that
+  overruns its budget has its page closed mid-flight, so a `finally` driving the UI never reaches its
+  first click — which is how one flaky moment came to cost all three attempts (issue #41). Register
+  it **before** creating the thing, so a half-finished create is covered too. Helpers live in
+  `support/records.ts` (`deleteByName`, `deleteMemberNamed`, `deleteMealsOn`, `clearDayNoteOn`); a
+  refused request raises rather than passing quietly. A leftover **member** is the one that bites
+  hardest — an eligible one changes who counts as fed, so it turns the meal plan's coverage spec red
+  with nothing in that spec to explain it. Where deleting *through the UI* is the behaviour under
+  test, that stays in the test body where it can be asserted on — but don't `expect` in a `finally`,
+  since a failing cleanup assertion replaces the failure you actually wanted to read.
 - **Comment the trap, not the phase.** The GIVEN/WHEN/THEN labels are the Vitest layer's convention
   (see `unit-testing`) and don't belong here: a spec already reads as a sequence of user actions, so
   labelling them adds a line per step and says nothing. Comment what a reader would get wrong.
@@ -81,9 +101,10 @@ since the column header names the column, not the input. Locate them by that nam
 - **CI**: the `e2e` job lives in `.github/workflows/ci.yml` and runs exactly what a dev machine runs
   — full app on the runner, throwaway Postgres, no Neon and no deployed preview (that switch removed
   serverless cold starts and Neon round-trip latency as flake sources). It needs
-  `BETTER_AUTH_SECRET`, `HOMEWISE_RESEND_API_KEY`, `HOMEWISE_FILES_READ_WRITE_TOKEN` and
-  `HOMEWISE_ABLY_API_KEY`; the blob and Ably keys must be real — the photo specs upload for real, and
-  the server refuses to boot without a broker. `DATABASE_URL` is **not** set on the job —
+  `BETTER_AUTH_SECRET`, `HOMEWISE_RESEND_API_KEY` and `HOMEWISE_ABLY_API_KEY`; the Ably key must be
+  real, since the server refuses to boot without a broker and the realtime specs only mean anything
+  against one. No blob token: `playwright.config.ts` sets `HOMEWISE_LOCAL_FILE_STORAGE`, so the photo
+  specs write to the runner's disk. `DATABASE_URL` is **not** set on the job —
   `globalSetup`/`webServer` supply the test DB. Neon still backs the *deployed* preview
   (`preview.yml` migrates + seeds a per-PR branch during the server build), but no test touches it.
 - **Not a turbo task** — run it directly (`pnpm test:e2e` = `pnpm --filter @homewise/e2e test`).
@@ -125,6 +146,12 @@ declaring done.
 intended behavior — never delete it or `.skip` it just to go green. A red E2E on a PR is a required
 signal, not noise. Locally, `test:report` opens the HTML report; on CI the report + traces upload as
 an artifact on failure.
+
+**Reading a failure.** A failing test attaches a `browser.log` with its page errors, console
+errors/warnings and any 4xx/5xx — that is what to read first when a timeout names a step that looks
+fine, because the real answer is usually a rejected loader further up. The webServers' **stderr** is
+piped to the terminal (Playwright's default), so a server-side stack trace is already in the run
+output; stdout is ignored on purpose, since the request log would bury it.
 
 **Never intercept the network to cover an error branch.** Faking a response from our own API is
 mocking something we own. An unhappy path that E2E can't reach either belongs in the Vitest layer or
