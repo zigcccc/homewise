@@ -185,11 +185,7 @@ test.describe('dashboard', () => {
   });
 });
 
-/**
- * One load, deliberately — the note above applies here too, and this only needs the header. The
- * viewport is a phone's, which is what puts `useIsMobile` on the mobile branch; both projects
- * otherwise run Desktop Chrome, so every other dashboard test still exercises the four-button row.
- */
+/** The only spec on a phone viewport; the rest of the suite runs Desktop Chrome. */
 test.describe('quick actions on a phone', () => {
   test.use({ viewport: { height: 844, width: 390 } });
 
@@ -197,9 +193,7 @@ test.describe('quick actions on a phone', () => {
     const dashboard = new DashboardPage(page);
     await dashboard.goto();
 
-    // The bug this replaced: four buttons in a `w-fit` group made the page scroll sideways. Measured
-    // on the app's own scrollport, not on `documentElement` — `SidebarInset` is `overflow-hidden`,
-    // so the document never overflows and the assertion would pass with the bug still in place.
+    // The app scrolls, not the document — measuring `documentElement` passes with the bug in place.
     const overflows = await page.evaluate(() => {
       const scrollport = document.querySelector('[data-scroll-restoration-id="app-content"]');
 

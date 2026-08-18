@@ -64,10 +64,7 @@ export class DashboardPage {
     return this.card('Recent activity');
   }
 
-  /**
-   * The mobile bottom sheet. Below `md` the four quick actions collapse behind one button; the sheet
-   * is a Radix dialog, so it answers to the dialog role.
-   */
+  /** On a phone the quick actions collapse behind one button, which opens a sheet. */
   async openQuickActions() {
     await this.page.getByRole('button', { name: 'Quick actions' }).click();
 
