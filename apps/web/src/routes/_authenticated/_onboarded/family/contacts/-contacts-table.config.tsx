@@ -1,6 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
-import { createColumnHelper } from '@tanstack/react-table';
 import { MoreHorizontal, PencilIcon, TrashIcon } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -8,6 +7,7 @@ import { toast } from 'sonner';
 import {
   Badge,
   Button,
+  createDataTableColumnHelper,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -25,9 +25,9 @@ import {
 } from '@/modules/contacts';
 import { ConfirmDeleteDialog, formatDate, serverMessage } from '@/modules/shared';
 
-const columnHelper = createColumnHelper<HouseholdContact>();
+const columnHelper = createDataTableColumnHelper<HouseholdContact>();
 
-export const contactColumns = [
+export const contactColumns = columnHelper.columns([
   columnHelper.accessor('name', {
     header: 'Name',
     cell: (info) => (
@@ -63,7 +63,7 @@ export const contactColumns = [
     // record, and its edit dialog seeds a form from every field.
     cell: (info) => <ContactRowActions contact={info.row.original} />,
   }),
-];
+]);
 
 function BirthdayCell({ dateOfBirth }: { dateOfBirth: string | null }) {
   if (!dateOfBirth) {

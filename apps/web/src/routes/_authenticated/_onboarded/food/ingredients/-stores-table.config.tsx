@@ -1,21 +1,27 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { createColumnHelper } from '@tanstack/react-table';
 import { MoreHorizontal, PencilIcon, TrashIcon } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
 import { createStoreModel } from '@homewise/server/stores';
-import { Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@homewise/ui/core';
+import {
+  Button,
+  createDataTableColumnHelper,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@homewise/ui/core';
 
 import { parseResponse } from '@/api/client';
 import { invalidateIngredients } from '@/modules/ingredients';
 import { ConfirmDeleteDialog, InlineCell, serverMessage } from '@/modules/shared';
 import { $deleteStore, invalidateStores, type Store, StoreFormDialog, useInlineStorePatch } from '@/modules/stores';
 
-const columnHelper = createColumnHelper<Store>();
+const columnHelper = createDataTableColumnHelper<Store>();
 
 /** The name is edited straight in the table; the dialog stays the way to reach the notes field. */
-export const storesTableColumns = [
+export const storesTableColumns = columnHelper.columns([
   columnHelper.accessor('name', {
     header: 'Name',
     cell: (info) => <StoreNameCell id={info.row.original.id} name={info.getValue()} />,
@@ -33,7 +39,7 @@ export const storesTableColumns = [
     cell: (info) => <StoreRowActions store={info.row.original} />,
     header: '',
   }),
-];
+]);
 
 function StoreNameCell({ id, name }: { id: number; name: string }) {
   const { save } = useInlineStorePatch(id);

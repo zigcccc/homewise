@@ -1,5 +1,4 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { createColumnHelper } from '@tanstack/react-table';
 import { MoreHorizontalIcon, TrashIcon, Undo2Icon } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -8,6 +7,7 @@ import { expenseTitle } from '@homewise/server/expenses';
 import {
   Badge,
   Button,
+  createDataTableColumnHelper,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -190,46 +190,49 @@ function RowActions({ expense }: { expense: Expense }) {
   );
 }
 
-const columnHelper = createColumnHelper<Expense>();
+const columnHelper = createDataTableColumnHelper<Expense>();
 
 /** Takes the manage-categories handler because the picker in every row offers a way in to the sheet. */
-export const expensesTableColumns = (onManageCategories: () => void) => [
-  columnHelper.accessor('title', {
-    cell: (info) => (
-      <div className="flex items-center gap-2">
-        <TitleCell id={info.row.original.id} title={info.getValue()} />
-        {info.row.original.paidBackAt && <Badge variant="secondary">Paid back</Badge>}
-      </div>
-    ),
-    header: 'Title',
-  }),
-  columnHelper.accessor('amount', {
-    cell: (info) => (
-      <AmountCell
-        amount={info.getValue()}
-        currency={info.row.original.currency}
-        id={info.row.original.id}
-        paidBack={Boolean(info.row.original.paidBackAt)}
-      />
-    ),
-    header: 'Amount',
-  }),
-  columnHelper.accessor('recordedAt', {
-    cell: (info) => <RecordedAtCell id={info.row.original.id} recordedAt={info.getValue()} />,
-    header: 'Date',
-  }),
-  columnHelper.accessor('category', {
-    cell: (info) => <CategoryCell category={info.getValue()} id={info.row.original.id} onManage={onManageCategories} />,
-    header: 'Category',
-  }),
-  columnHelper.display({
-    // The one cell that genuinely needs the row: the delete dialog names the expense, the menu
-    // label does too, and the paid-back toggle reads the stamp.
-    cell: (info) => <RowActions expense={info.row.original} />,
-    header: '',
-    id: 'actions',
-    // One icon button wide, hard against the right edge — without this the column takes a share of
-    // the table's leftover width and the button floats in the middle of it.
-    meta: { className: 'w-px text-right' },
-  }),
-];
+export const expensesTableColumns = (onManageCategories: () => void) =>
+  columnHelper.columns([
+    columnHelper.accessor('title', {
+      cell: (info) => (
+        <div className="flex items-center gap-2">
+          <TitleCell id={info.row.original.id} title={info.getValue()} />
+          {info.row.original.paidBackAt && <Badge variant="secondary">Paid back</Badge>}
+        </div>
+      ),
+      header: 'Title',
+    }),
+    columnHelper.accessor('amount', {
+      cell: (info) => (
+        <AmountCell
+          amount={info.getValue()}
+          currency={info.row.original.currency}
+          id={info.row.original.id}
+          paidBack={Boolean(info.row.original.paidBackAt)}
+        />
+      ),
+      header: 'Amount',
+    }),
+    columnHelper.accessor('recordedAt', {
+      cell: (info) => <RecordedAtCell id={info.row.original.id} recordedAt={info.getValue()} />,
+      header: 'Date',
+    }),
+    columnHelper.accessor('category', {
+      cell: (info) => (
+        <CategoryCell category={info.getValue()} id={info.row.original.id} onManage={onManageCategories} />
+      ),
+      header: 'Category',
+    }),
+    columnHelper.display({
+      // The one cell that genuinely needs the row: the delete dialog names the expense, the menu
+      // label does too, and the paid-back toggle reads the stamp.
+      cell: (info) => <RowActions expense={info.row.original} />,
+      header: '',
+      id: 'actions',
+      // One icon button wide, hard against the right edge — without this the column takes a share of
+      // the table's leftover width and the button floats in the middle of it.
+      meta: { className: 'w-px text-right' },
+    }),
+  ]);

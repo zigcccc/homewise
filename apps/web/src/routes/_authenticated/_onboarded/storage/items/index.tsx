@@ -21,7 +21,6 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-  getRowId,
   Select,
   SelectContent,
   SelectItem,
@@ -85,7 +84,7 @@ function StorageItemsRoute() {
 
   const setSearchParam = useSearchParamSetter(Route);
 
-  const table = useDataTable({ columns, data: itemsPage.items, getRowId });
+  const table = useDataTable({ columns, data: itemsPage.items });
 
   const isFiltered =
     Boolean(searchParams.search) || searchParams.loanStatus !== 'all' || Boolean(searchParams.locationId);

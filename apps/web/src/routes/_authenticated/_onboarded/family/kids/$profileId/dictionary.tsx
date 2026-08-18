@@ -1,7 +1,7 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 import { BookHeartIcon, PlusIcon } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import z from 'zod';
 
 import { childDictionaryEntrySortKey } from '@homewise/server/child-dictionaries';
@@ -150,7 +150,9 @@ function DictionaryEntries({
     listChildDictionaryEntriesQueryOptions(dictionary.id, toQuery(searchParams))
   );
 
-  const columns = createEntriesTableColumns(profileId);
+  // A fresh array here rebuilds the column definitions on every realtime refetch, tearing down any
+  // inline editor open at the time — the same trap the expenses table documents.
+  const columns = useMemo(() => createEntriesTableColumns(profileId), [profileId]);
   const table = useDataTable({ data: entriesPage.items, columns });
 
   const isFiltered = Boolean(searchParams.search);

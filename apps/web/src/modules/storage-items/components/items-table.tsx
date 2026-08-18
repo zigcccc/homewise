@@ -1,6 +1,5 @@
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
-import { createColumnHelper } from '@tanstack/react-table';
 import { HandCoinsIcon, MoreHorizontal, MoveRightIcon, PencilIcon, TrashIcon, UndoIcon } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -9,6 +8,7 @@ import { storageItemName } from '@homewise/server/storage-items';
 import {
   Badge,
   Button,
+  createDataTableColumnHelper,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -38,14 +38,14 @@ import {
 import { ItemFormDialog } from './item-form-dialog';
 import { LendItemDialog } from './lend-item-dialog';
 
-const columnHelper = createColumnHelper<StorageItem>();
+const columnHelper = createDataTableColumnHelper<StorageItem>();
 
 /**
  * The item table, shared by the global list and one location's contents. The location column is
  * dropped on a location's own page, where every row would repeat the page's own title.
  */
 export function createStorageItemColumns({ showLocation }: { showLocation: boolean }) {
-  return [
+  return columnHelper.columns([
     columnHelper.accessor('photoUrl', {
       header: '',
       cell: (info) => <Thumbnail alt={info.row.original.name} src={info.getValue()} />,
@@ -88,7 +88,7 @@ export function createStorageItemColumns({ showLocation }: { showLocation: boole
       // the record, and its "Move to" needs the location it is currently in.
       cell: (info) => <ItemRowActions item={info.row.original} />,
     }),
-  ];
+  ]);
 }
 
 function QuantityCell({ id, quantity }: { id: number; quantity: number }) {
