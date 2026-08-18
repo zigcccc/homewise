@@ -116,12 +116,23 @@ smell: it hides what the cell actually depends on and re-renders it for changes 
 reads. The one standing exception is the row-actions cell, whose delete dialog and menu labels
 genuinely name the record — comment it where you use it.
 
-**Every `useReactTable` passes `getRowId`** (exported from `@homewise/ui/core` beside `DataTable`).
-Its default is the row *index*, which `DataTable` uses as React's key — so when the list changes,
-each row's subtree keeps the state it had at that position while its props move on to a different
-record. An inline editor then belongs to one row and writes to another: an open rename committed
-after a realtime refetch renamed whichever ingredient took the old index. `ingredients.spec.ts`
-covers it by adding a row above an open editor mid-edit.
+**Build every table with `useDataTable`, never `useTable` directly** (`@homewise/ui/core`). It binds
+the app's `features` and `getRowId` in one place. `getRowId` is why it exists: react-table's default
+is the row *index*, which `DataTable` uses as React's key — so when the list changes, each row's
+subtree keeps the state it had at that position while its props move on to a different record. An
+inline editor then belongs to one row and writes to another: an open rename committed after a
+realtime refetch renamed whichever ingredient took the old index. `ingredients.spec.ts` covers it by
+adding a row above an open editor mid-edit. Don't pass `getRowId` at the call site — the hook owns it.
+
+**Columns come from `createDataTableColumnHelper<Row>()`, wrapped in `columnHelper.columns([…])`.**
+The helper binds the features type so a column file never names it. The `columns()` wrapper is not
+optional dressing: a plain array widens every column's value type, and `useDataTable` then rejects it
+outright — v9's `ColumnDef` is invariant in that parameter. Inside the wrapper each `info.getValue()`
+stays typed as the field it reads.
+
+**Column arrays must be reference-stable.** Module scope where they take no arguments, `useMemo`
+where they do (with a `useCallback`'d handler, or the memo is defeated). A fresh array rebuilds the
+column definitions on every realtime refetch and tears down any inline editor open at the time.
 
 **An inline editor makes list identity load-bearing.** Key rows/cards by the record's own id
 (`getRowId` for tables, `key={record.id}` for lists) and hold the editing flag *inside* the row
@@ -133,10 +144,18 @@ mid-edit; keep them.
 Table columns and row-action dialogs go in a co-located `-<feature>.config.tsx`, mirroring
 `-household-members.config.tsx`.
 
+We are on react-table **v9**. Ignore v8 answers found online — `useReactTable`, `getCoreRowModel` and
+the `declare module` meta augmentation are all gone. The package ships its own reference:
+`node_modules/@tanstack/react-table/skills/` and `.../table-core/skills/`, which is more precise than
+the website.
+
 **A paginated list ends with `ListPagination`** (`@/modules/shared`), which wraps the kit's
 `DataTablePagination`. The bar takes plain props — page, size, total — rather than reading table
-state, because sorting and filtering here are already server-side and live in the URL, so
-`useDataTable` still only ever gets `getCoreRowModel`. That is also why the same bar sits under the
+state, because sorting and filtering here are already server-side and live in the URL. That is also
+why the shared `tableFeatures()` call in `data-table.tsx` is empty apart from its `columnMeta` slot —
+no row model beyond the core one is ever built. A table that genuinely needs a client-side feature
+registers it in that one shared call, not at its own call site; an unregistered feature doesn't fail
+loudly, its methods are simply absent from the instance. That is also why the same bar sits under the
 recipe **grid**, which has no table at all. See `web-conventions` for the route half.
 
 `ListPagination` owns the stickiness (`sticky bottom-0 z-10 -mb-4 border-t bg-background`), not the

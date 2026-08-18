@@ -50,6 +50,17 @@ route covers whatever renders into its `<Outlet />`, so an overlay route needs n
 A route using `useSuspenseQuery` must also add a loader `ensureQueryData` alongside its
 `pendingComponent`.
 
+**"Landing here sends you somewhere else" is a `beforeLoad` redirect, never a rendered `<Navigate>`.**
+Read `search` and the query cache in `beforeLoad` and `throw redirect(...)`; a viewport check can go
+there too (`isMobileViewport()` from `@homewise/ui/hooks`, the non-hook half of `useIsMobile`). The
+difference only shows when the destination can bounce you back — `$listId` redirects out of a
+completed list while the filter hides it — and then it decides between a loop and no loop. Two
+redirects inside one navigation resolve against each other once; a rendered `<Navigate>` makes the
+return trip a *fresh render* that fires the jump again, forever. It survived for a while on
+react-router ≤1.170.27 only because an already-loaded route's `onPendingReady` happened to be
+deferred a microtask; 1.170.28 correctly stopped deferring it and the bounce became infinite. The
+shopping-list section is the worked example, and `serial-seed-mutations.spec.ts` covers it.
+
 ### Tabs are routes, not a search param
 
 **Tabs (and any switch between distinct sub-views) are real nested routes, not a `?tab=` search
