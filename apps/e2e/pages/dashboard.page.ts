@@ -64,6 +64,13 @@ export class DashboardPage {
     return this.card('Recent activity');
   }
 
+  /** On a phone the quick actions collapse behind one button, which opens a sheet. */
+  async openQuickActions() {
+    await this.page.getByRole('button', { name: 'Quick actions' }).click();
+
+    return this.page.getByRole('dialog', { name: 'Quick actions' });
+  }
+
   /** The quick action, not the expenses page's toolbar button — hence `Expense`, not `Add expense`. */
   async openExpenseDialog() {
     await this.page.getByRole('button', { exact: true, name: 'Expense' }).click();

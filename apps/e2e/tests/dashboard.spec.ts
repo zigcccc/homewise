@@ -184,3 +184,41 @@ test.describe('dashboard', () => {
     }
   });
 });
+
+/** The only spec on a phone viewport; the rest of the suite runs Desktop Chrome. */
+test.describe('quick actions on a phone', () => {
+  test.use({ viewport: { height: 844, width: 390 } });
+
+  test('collapse behind a bottom sheet that closes when an action is taken', async ({ page }) => {
+    const dashboard = new DashboardPage(page);
+    await dashboard.goto();
+
+    // The app scrolls, not the document — measuring `documentElement` passes with the bug in place.
+    const overflows = await page.evaluate(() => {
+      const scrollport = document.querySelector('[data-scroll-restoration-id="app-content"]');
+
+      if (!scrollport) {
+        throw new Error('No app scrollport — the layout moved and this assertion measures nothing.');
+      }
+
+      return scrollport.scrollWidth > scrollport.clientWidth;
+    });
+    expect(overflows).toBe(false);
+
+    // `Expense` is the quick action rendered as a button; the two that navigate are links.
+    await expect(page.getByRole('button', { exact: true, name: 'Expense' })).toBeHidden();
+
+    const sheet = await dashboard.openQuickActions();
+    await expect(sheet.getByRole('link', { name: 'Plan a meal' })).toBeVisible();
+
+    await sheet.getByRole('button', { exact: true, name: 'Contact' }).click();
+
+    // Taking an action closes the sheet and leaves its dialog open behind it.
+    await expect(sheet).toBeHidden();
+    const dialog = page.getByRole('dialog', { name: 'Create contact' });
+    await expect(dialog).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+  });
+});
