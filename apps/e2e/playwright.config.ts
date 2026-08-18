@@ -4,8 +4,6 @@ import path from 'node:path';
 import { defineConfig, devices } from '@playwright/test';
 import { config as loadEnv } from 'dotenv';
 
-import { STORAGE_STATE } from './support/paths';
-
 // Optional, git-ignored local overrides (e.g. a custom TEST_DATABASE_URL). CI
 // supplies everything it needs via workflow env, so this file is not required.
 loadEnv({ path: path.resolve(import.meta.dirname, '.env.test') });
@@ -30,10 +28,11 @@ export default defineConfig({
   testDir: './tests',
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  // Worker count is a server-capacity knob, not a correctness one — spec isolation
-  // (the project phases below + round-tripped mutators) holds at any count. We serve
-  // the production build (see webServer), which handles this concurrency; both are
-  // capped modestly to match the machine's headroom.
+  // Worker count is a server-capacity knob, not a correctness one — `globalSetup`
+  // seeds one household per worker, so isolation holds at any count, including a
+  // `--workers` override. We serve the production build (see webServer), which
+  // handles this concurrency; both are capped modestly to match the machine's
+  // headroom.
   workers: process.env.CI ? 2 : 3,
   // Generous timeouts so a slow-but-correct action under load completes rather than
   // flaking (server latency, not the assertion, is what varies).
@@ -47,29 +46,28 @@ export default defineConfig({
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
-  // Three phases run in order (setup → parallel → exclusive), sequenced by
-  // `dependencies`. The bulk of the suite parallelizes; the few specs that mutate
-  // a shared seed row are quarantined into a single-file `exclusive` phase that
-  // runs alone at the end, so they never overlap owner-dependent or
-  // name-asserting specs (nor each other).
+  // Two phases, sequenced by `dependencies`. The bulk of the suite parallelizes;
+  // the specs that mutate their household's own seed rows (its name, the owner's
+  // name, ownership itself) stay quarantined in a single-file `exclusive` phase
+  // that runs alone at the end. Per-worker households make them safe to run
+  // alongside everything else, but a mutator that dies mid-round-trip would leave
+  // its household renamed or de-owned for the rest of that worker's tests — going
+  // last costs ~10s and takes that away.
+  //
+  // Sessions come from `support/test.ts`, not from `use.storageState`: each worker
+  // signs into its own household's accounts on demand. There is no `setup` project.
   projects: [
-    // Logs the seeded users in once and saves their sessions; every other project
-    // reuses them via storageState, so tests don't re-authenticate.
-    { name: 'setup', testMatch: /auth\.setup\.ts$/ },
     {
       name: 'parallel',
-      testIgnore: [/auth\.setup\.ts$/, /serial-seed-mutations\.spec\.ts$/],
-      use: { ...devices['Desktop Chrome'], storageState: STORAGE_STATE },
-      dependencies: ['setup'],
-      // Every spec here uses unique data, so tests can run fully concurrently.
+      testIgnore: [/serial-seed-mutations\.spec\.ts$/],
+      use: { ...devices['Desktop Chrome'] },
+      // Every worker owns a separate household, so tests can run fully concurrently.
       fullyParallel: true,
     },
     {
-      // Shared-seed mutators (household name, user name, ownership). One file, run
-      // serially, only after every parallel spec has finished.
       name: 'exclusive',
       testMatch: /serial-seed-mutations\.spec\.ts$/,
-      use: { ...devices['Desktop Chrome'], storageState: STORAGE_STATE },
+      use: { ...devices['Desktop Chrome'] },
       dependencies: ['parallel'],
       fullyParallel: false,
     },

@@ -8,35 +8,42 @@ export class Picker {
   ) {}
 
   private input() {
-    return this.page.getByRole('combobox', { name: this.name });
+    return this.content().getByRole('combobox', { name: this.name });
   }
 
   /** By slot, not `role=status` — dnd-kit keeps a live region on the page that also matches that. */
   private loading() {
-    return this.page.locator('[data-slot="combobox-loading"]');
+    return this.content().locator('[data-slot="combobox-loading"]');
   }
 
   /** Pass the group heading, or this also counts standing rows like the shop picker's "None". */
   options(group?: string) {
-    const root = group ? this.page.getByRole('group', { name: group }) : this.page;
+    const root = group ? this.content().getByRole('group', { name: group }) : this.content();
 
     return root.getByRole('option');
   }
 
   /** Substring by default: a row's accessible name carries its meta too — a type, a category. */
   option(name: string, { exact = false }: { exact?: boolean } = {}) {
-    return this.page.getByRole('option', { exact, name });
+    return this.content().getByRole('option', { exact, name });
   }
 
   createButton(term: string) {
-    return this.page.getByRole('button', { name: `Create "${term}"` });
+    return this.content().getByRole('button', { name: `Create "${term}"` });
   }
 
   loadMoreButton() {
-    return this.page.getByRole('button', { name: 'Load more' });
+    return this.content().getByRole('button', { name: 'Load more' });
   }
 
-  /** The open popup. Radix keeps a closed one mounted through its exit animation, hence the state. */
+  /**
+   * The open popup, and the root of every locator above.
+   *
+   * Radix keeps a closed popover mounted through its exit animation, so a spec that opens a second
+   * picker straight after using one sees **two** of everything — matching `data-state="open"` is what
+   * keeps the strict-mode violation off. Scoping the rest to it matters as much as the state does:
+   * unscoped, `getByRole('combobox', …)` found the closing popover's input just as happily.
+   */
   private content() {
     return this.page.locator('[data-slot="combobox-content"][data-state="open"]');
   }

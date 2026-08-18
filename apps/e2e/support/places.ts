@@ -4,7 +4,7 @@ import { type Page } from '@playwright/test';
  * Fakes Photon, the keyless OpenStreetMap geocoder behind `PlaceAutocomplete`.
  *
  * This is the one thing the suite fakes outright, and it is deliberate: Photon belongs to somebody
- * else, is free, and documents no SLA. Driving it live from `fullyParallel` workers is the shape of
+ * else, is free, and documents no SLA. Driving it live from every worker at once is the shape of
  * the Resend flakiness that produced `HOMEWISE_DISABLE_EMAILS` — plus the specs here are about what
  * the app does with an answer, not about whether a stranger's server has one. Every Homewise request
  * still goes to the real server.

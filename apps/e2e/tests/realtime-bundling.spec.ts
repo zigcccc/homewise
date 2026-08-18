@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../support/test';
 
 /**
  * The Ably client is constructed at module scope, so *when its module is evaluated* decides when a
@@ -13,7 +13,7 @@ import { expect, test } from '@playwright/test';
  * makes a usable signal.
  */
 test.describe('realtime bundling', () => {
-  test.use({ storageState: { cookies: [], origins: [] } });
+  test.use({ sessionAs: 'none' });
 
   test('does not construct the Ably client for a signed-out visitor', async ({ page }) => {
     const tokenRequests: string[] = [];

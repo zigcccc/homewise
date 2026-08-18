@@ -1,5 +1,3 @@
-import { expect, test } from '@playwright/test';
-
 import { SEED_HOUSEHOLD_NAME, SEED_SECOND_USER, SEED_USER } from '@homewise/server/seed-fixtures';
 
 import { HouseholdMembersPage } from '../pages/household-members.page';
@@ -9,21 +7,26 @@ import { SettingsPage } from '../pages/settings.page';
 import { ShoppingListsPage } from '../pages/shopping-lists.page';
 import { UserProfilePage } from '../pages/user-profile.page';
 import { deleteHouseholdIfPresent } from '../support/households';
-import { ONBOARDING_STORAGE_STATE, SECOND_USER_STORAGE_STATE } from '../support/paths';
+import { expect, test } from '../support/test';
 
 /**
- * The specs that mutate a **shared seed row** the rest of the suite observes:
+ * The specs that mutate a seed row the rest of the suite reads:
  *   - the household name (the dashboard/auth specs assert it),
  *   - the seed user's name (ditto),
  *   - household ownership (member removal, role changes, and every profile
  *     teardown are owner-only, so briefly de-owning the seed user would break
- *     anything running alongside it), and
+ *     anything running afterwards), and
  *   - the onboarding user's household, which `onboarding.spec.ts` also owns.
  *
  * They live in the `exclusive` Playwright project, which depends on `parallel`
  * and so runs only after every parallel spec has finished — and this file runs on
- * a single worker, so these mutators never overlap each other either. Each still
- * round-trips its change so a shared-DB rerun starts clean.
+ * a single worker, so these mutators never overlap each other either.
+ *
+ * Per-worker households already keep these off other workers' rows, so the phase
+ * is no longer what makes them safe. It stays because it makes them *recoverable*:
+ * a mutator that dies mid-round-trip leaves its household renamed or de-owned, and
+ * going last means there is nothing left on that worker to break. Each still
+ * round-trips its change, so a rerun starts clean.
  */
 
 test('renames the household and restores it', async ({ page }) => {
@@ -58,12 +61,12 @@ test('edits the user display name and restores it', async ({ page }) => {
   await expect(profile.breadcrumb(SEED_USER.name)).toBeVisible();
 });
 
-test('transfers household ownership to a member and back', async ({ page, browser }) => {
+test('transfers household ownership to a member and back', async ({ browser, household, page }) => {
   const ownerMembers = new HouseholdMembersPage(page);
   await ownerMembers.goto();
   await expect(ownerMembers.memberRow(SEED_USER.name)).toContainText('(owner)');
 
-  const secondContext = await browser.newContext({ storageState: SECOND_USER_STORAGE_STATE });
+  const secondContext = await browser.newContext({ storageState: await household.sessionFor('second') });
   const secondPage = await secondContext.newPage();
   const secondMembers = new HouseholdMembersPage(secondPage);
 
@@ -108,7 +111,7 @@ test('changes an account member’s role (owner action), then restores it', asyn
   }
 });
 
-test('keeps one household’s realtime changes out of another household', async ({ page, browser }) => {
+test('keeps one household’s realtime changes out of another household', async ({ browser, household, page }) => {
   // Three tabs. The insider is the control: it proves the event was actually broadcast, which is
   // what makes the outsider's silence evidence of isolation rather than of a slow round trip.
   // Lives here rather than in the parallel project because it takes over the onboarding user's
@@ -120,10 +123,10 @@ test('keeps one household’s realtime changes out of another household', async 
 
   const actor = new IngredientsPage(page);
 
-  const insiderContext = await browser.newContext({ storageState: SECOND_USER_STORAGE_STATE });
+  const insiderContext = await browser.newContext({ storageState: await household.sessionFor('second') });
   const insider = new IngredientsPage(await insiderContext.newPage());
 
-  const outsiderContext = await browser.newContext({ storageState: ONBOARDING_STORAGE_STATE });
+  const outsiderContext = await browser.newContext({ storageState: await household.sessionFor('onboarding') });
   const outsiderPage = await outsiderContext.newPage();
   const outsider = new IngredientsPage(outsiderPage);
 
@@ -171,7 +174,7 @@ test('keeps one household’s realtime changes out of another household', async 
   }
 });
 
-test('keeps realtime working after the household changes without a page load', async ({ browser }) => {
+test('keeps realtime working after the household changes without a page load', async ({ browser, household }) => {
   // The Ably client is scoped to the tab and never closed, so it outlives the household it was
   // authorized for: its token names one channel, and a household swap moves the tab to another.
   // Every path here after the first household exists is client-side routing, so the tab carries
@@ -181,7 +184,7 @@ test('keeps realtime working after the household changes without a page load', a
   test.slow();
 
   const stamp = Date.now();
-  const context = await browser.newContext({ storageState: ONBOARDING_STORAGE_STATE });
+  const context = await browser.newContext({ storageState: await household.sessionFor('onboarding') });
   const page = await context.newPage();
   const onboarding = new OnboardingPage(page);
 
@@ -315,7 +318,7 @@ test('still opens the meal-plan import when the household has no lists', async (
  * Exclusive because it needs a known number of lists: the detail pane only outlives its subject
  * while the household still has another one.
  */
-test('keeps the app alive when the open list is deleted by another member', async ({ page, browser }) => {
+test('keeps the app alive when the open list is deleted by another member', async ({ browser, household, page }) => {
   const lists = new ShoppingListsPage(page);
   await lists.deleteAllLists();
 
@@ -325,7 +328,7 @@ test('keeps the app alive when the open list is deleted by another member', asyn
   await expect(lists.listLink(keeper)).toBeVisible();
   await expect(lists.listLink(doomed)).toBeVisible();
 
-  const otherContext = await browser.newContext({ storageState: SECOND_USER_STORAGE_STATE });
+  const otherContext = await browser.newContext({ storageState: await household.sessionFor('second') });
   const other = new ShoppingListsPage(await otherContext.newPage());
 
   try {

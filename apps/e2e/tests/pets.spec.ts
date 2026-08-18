@@ -1,11 +1,10 @@
 import path from 'node:path';
 
-import { expect, test } from '@playwright/test';
-
 import { HouseholdMembersPage } from '../pages/household-members.page';
 import { MedicalPage } from '../pages/medical.page';
 import { PetsPage } from '../pages/pets.page';
 import { createPetProfile, removeManagedMember } from '../support/profiles';
+import { expect, test } from '../support/test';
 
 const AVATAR_FIXTURE = path.resolve(import.meta.dirname, '..', 'support', 'fixtures', 'avatar.png');
 

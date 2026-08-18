@@ -1,16 +1,16 @@
-import { expect, type Page, test } from '@playwright/test';
-
 import { SEED_INGREDIENTS } from '@homewise/server/seed-fixtures';
 
 import { IngredientsPage } from '../pages/ingredients.page';
 import { Pagination } from '../pages/pagination';
+import { expect, type Page, test } from '../support/test';
 
 /**
  * Every paginated list shares one bar and one pair of search params, so the ingredients table
  * stands in for all of them.
  *
  * `pageSize=3` is below the picker's smallest option on purpose: it makes three pages out of the
- * seed. Nothing asserts a total — specs run in parallel and another may add an ingredient mid-run.
+ * seed. Nothing asserts a total: the ingredient library is this worker's, but the specs that write
+ * to it run before and after these, so the count is theirs to move.
  */
 const PAGE_SIZE = 3;
 const url = (params = '') => `/food/ingredients?pageSize=${PAGE_SIZE}${params}`;
@@ -121,7 +121,7 @@ test.describe('pagination', () => {
   });
 });
 
-/** Off the bar, so nothing hard-codes a count another spec can move. */
+/** Off the bar, so nothing hard-codes a count an earlier test on this worker can have moved. */
 async function totalFrom(pagination: Pagination) {
   const label = await pagination.range().innerText();
   const total = label.split(' of ').at(-1);

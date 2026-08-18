@@ -1,6 +1,5 @@
-import { expect, test } from '@playwright/test';
-
 import { HouseholdMembersPage } from '../pages/household-members.page';
+import { expect, test } from '../support/test';
 
 const pad = (value: number) => value.toString().padStart(2, '0');
 

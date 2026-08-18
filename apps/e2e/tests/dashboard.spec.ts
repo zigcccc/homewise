@@ -1,5 +1,3 @@
-import { expect, test } from '@playwright/test';
-
 import { SEED_EXPENSES, SEED_MEAL_PLAN, SEED_RECIPE } from '@homewise/server/seed-fixtures';
 
 import { ContactsPage } from '../pages/contacts.page';
@@ -7,6 +5,7 @@ import { DashboardPage } from '../pages/dashboard.page';
 import { HouseholdMembersPage } from '../pages/household-members.page';
 import { KidsPage } from '../pages/kids.page';
 import { ShoppingListsPage } from '../pages/shopping-lists.page';
+import { expect, test } from '../support/test';
 
 /**
  * The dashboard owns none of its data, so it asserts on what the seed pins down (this week's meals,
@@ -66,7 +65,7 @@ test.describe('dashboard', () => {
     await expect(dashboard.spending()).toContainText('paid back');
     await expect(dashboard.spending().getByText(paidBackAmount, { exact: true })).toHaveClass(/line-through/);
 
-    // "An overdue row exists", not a named item: every worker lends from this table.
+    // "An overdue row exists", not a named item: the loans specs lend from this same table.
     await expect(dashboard.loans().getByText('Overdue').first()).toBeVisible();
   });
 
@@ -150,7 +149,7 @@ test.describe('dashboard', () => {
 
       await dashboard.goto();
 
-      // The tile, not the card: every worker's profiles land in this one card at once.
+      // The tile, not the card: every profile this worker has made lands in this one card.
       const tile = dashboard.familyProfiles().getByRole('link').filter({ hasText: name });
 
       await expect(tile).toBeVisible();
@@ -176,7 +175,7 @@ test.describe('dashboard', () => {
 
       await dashboard.goto();
 
-      // Containment, not first place: other workers are adding contacts the whole time.
+      // Containment, not first place: the contacts specs put birthdays on this household too.
       await expect(dashboard.birthdays()).toContainText(name);
       await expect(dashboard.birthdays()).toContainText('Tomorrow');
     } finally {

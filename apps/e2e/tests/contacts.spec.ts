@@ -1,6 +1,5 @@
-import { expect, test } from '@playwright/test';
-
 import { ContactsPage } from '../pages/contacts.page';
+import { expect, test } from '../support/test';
 
 test.describe('contacts', () => {
   // Every spec is self-contained: it creates uniquely-named data and removes it, so it's
@@ -171,8 +170,8 @@ test.describe('contacts', () => {
       await contacts.add(january, { birthday: '05. 01. 1990', type: 'Friend' });
       await contacts.add(december, { birthday: '31. 12. 1990', type: 'Friend' });
 
-      // The shared tag narrows to exactly these two rows, so a contact another worker is creating at
-      // the same time can't wander into the order being asserted.
+      // The shared tag narrows to exactly these two rows, so a birthday left on the household by an
+      // earlier test can't wander into the order being asserted.
       await contacts.search(tag);
       await contacts.sortBy('Birthday');
 

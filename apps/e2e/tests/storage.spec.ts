@@ -1,10 +1,9 @@
-import { expect, type Page, test } from '@playwright/test';
-
 import { SEED_STORAGE_ITEMS, SEED_STORAGE_LOCATIONS } from '@homewise/server/seed-fixtures';
 
 import { StorageItemsPage, StorageLocationsPage } from '../pages/storage.page';
 import { API_URL } from '../playwright.config';
-import { deleteOutOfBand } from '../support/records';
+import { deleteByName } from '../support/records';
+import { expect, type Page, test } from '../support/test';
 
 const [GARAGE, CELLAR] = SEED_STORAGE_LOCATIONS;
 
@@ -180,98 +179,85 @@ test.describe('storage', () => {
     await expect(dialog).toContainText('Name must contain at least 1 character');
   });
 
-  test('moves an item between locations', async ({ page }) => {
+  test('moves an item between locations', async ({ cleanup, page }) => {
     const items = new StorageItemsPage(page);
     const locations = new StorageLocationsPage(page);
     const name = `E2E Movable ${Date.now()}`;
     const bystander = `E2E Bystander ${Date.now()}`;
 
-    try {
-      await items.goto();
-      await items.add({ location: GARAGE.name, name });
-      await expect(items.row(name)).toContainText(GARAGE.name);
+    // The bystander goes in behind the app's back, so it comes out the same way. Both are registered
+    // rather than torn down in a `finally`: this test's page is closed the moment it overruns, and
+    // a row left behind here accumulates in the household for the rest of the run.
+    cleanup.add((api) => deleteByName(api, 'storage-items', name));
+    cleanup.add((api) => deleteByName(api, 'storage-items', bystander));
 
-      // Another member stores something while the menu is open. Every location's item count moves,
-      // which refetches the list the "Move to" menu reads — and if that reaches the table's columns,
-      // `flexRender` remounts every cell and this menu closes under the user's hand.
-      await items.openRowMenu(name);
-      const refetched = page.waitForResponse(
-        (response) => response.url().includes('/storage-items?') && response.request().method() === 'GET'
-      );
-      await addItemOutOfBand(page, bystander);
-      await refetched;
+    await items.goto();
+    await items.add({ location: GARAGE.name, name });
+    await expect(items.row(name)).toContainText(GARAGE.name);
 
-      // The menu is asserted on rather than the row: it's modal, so the table behind it is
-      // `aria-hidden` and out of reach while it's open — which is also the whole point.
-      await expect(page.getByRole('menuitem', { name: 'Move to' })).toBeVisible();
-      await items.moveToFromOpenMenu(CELLAR.name);
-      await expect(items.row(name)).toContainText(CELLAR.name);
+    // Another member stores something while the menu is open. Every location's item count moves,
+    // which refetches the list the "Move to" menu reads — and if that reaches the table's columns,
+    // `flexRender` remounts every cell and this menu closes under the user's hand.
+    await items.openRowMenu(name);
+    const refetched = page.waitForResponse(
+      (response) => response.url().includes('/storage-items?') && response.request().method() === 'GET'
+    );
+    await addItemOutOfBand(page, bystander);
+    await refetched;
 
-      // It really left the one and arrived in the other, not just relabelled a cell.
-      await locations.goto();
-      await locations.open(CELLAR.name);
-      await expect(items.row(name)).toBeVisible();
+    // The menu is asserted on rather than the row: it's modal, so the table behind it is
+    // `aria-hidden` and out of reach while it's open — which is also the whole point.
+    await expect(page.getByRole('menuitem', { name: 'Move to' })).toBeVisible();
+    await items.moveToFromOpenMenu(CELLAR.name);
+    await expect(items.row(name)).toContainText(CELLAR.name);
 
-      await locations.goto();
-      await locations.open(GARAGE.name);
-      await expect(items.row(name)).toBeHidden();
+    // It really left the one and arrived in the other, not just relabelled a cell.
+    await locations.goto();
+    await locations.open(CELLAR.name);
+    await expect(items.row(name)).toBeVisible();
 
-      // And back, this time hovering the submenu open the way a person does. The keyboard route
-      // above is the one the shifting-list case needs, but on its own it proved nothing about the
-      // pointer: a sub-trigger that never opens under the mouse still answers `ArrowRight`.
-      await items.goto();
-      await items.search(name);
-      await items.moveTo(name, GARAGE.name);
-      await expect(items.row(name)).toContainText(GARAGE.name);
-    } finally {
-      try {
-        await items.goto();
-        await items.search('');
-        await items.deleteIfPresent(name);
-      } finally {
-        // The bystander went in behind the app's back, so it comes out the same way — left behind it
-        // would accumulate one row per run in the household every other spec reads.
-        await deleteOutOfBand(page, 'storage-items', bystander);
-      }
-    }
+    await locations.goto();
+    await locations.open(GARAGE.name);
+    await expect(items.row(name)).toBeHidden();
+
+    // And back, this time hovering the submenu open the way a person does. The keyboard route
+    // above is the one the shifting-list case needs, but on its own it proved nothing about the
+    // pointer: a sub-trigger that never opens under the mouse still answers `ArrowRight`.
+    await items.goto();
+    await items.search(name);
+    await items.moveTo(name, GARAGE.name);
+    await expect(items.row(name)).toContainText(GARAGE.name);
   });
 
-  test('lends an item to a new contact and takes it back', async ({ page }) => {
+  test('lends an item to a new contact and takes it back', async ({ cleanup, page }) => {
     const items = new StorageItemsPage(page);
     const name = `E2E Lendable ${Date.now()}`;
     const borrower = `E2E Borrower ${Date.now()}`;
 
-    try {
-      await items.goto();
-      await items.add({ location: GARAGE.name, name });
-      await expect(items.row(name)).toContainText('Here');
+    // The loan mints a contact, which outlives the item. Both go out of band rather than sending
+    // this spec off to the address book — left behind, the contact grows the list this feature's
+    // own combobox loads.
+    cleanup.add((api) => deleteByName(api, 'storage-items', name));
+    cleanup.add((api) => deleteByName(api, 'contacts', borrower));
 
-      await items.lendToNewContact(name, borrower);
-      await expect(items.row(name)).toContainText('On loan');
-      await expect(items.row(name)).toContainText(borrower);
+    await items.goto();
+    await items.add({ location: GARAGE.name, name });
+    await expect(items.row(name)).toContainText('Here');
 
-      // The loan filter finds it, and the "here" filter no longer does.
-      await items.filterByStatus('On loan');
-      await expect(items.row(name)).toBeVisible();
-      await items.filterByStatus('Here');
-      await expect(items.row(name)).toBeHidden();
+    await items.lendToNewContact(name, borrower);
+    await expect(items.row(name)).toContainText('On loan');
+    await expect(items.row(name)).toContainText(borrower);
 
-      await items.filterByStatus('All items');
-      await items.markReturned(name);
-      await expect(items.row(name)).toContainText('Here');
-      await expect(items.row(name)).not.toContainText(borrower);
-    } finally {
-      try {
-        await items.goto();
-        await items.search('');
-        await items.deleteIfPresent(name);
-      } finally {
-        // The loan minted a contact, which outlives the item. Removed out of band rather than by
-        // detouring this spec through the address book — left behind, it grows the list this
-        // feature's combobox loads on every run.
-        await deleteOutOfBand(page, 'contacts', borrower);
-      }
-    }
+    // The loan filter finds it, and the "here" filter no longer does.
+    await items.filterByStatus('On loan');
+    await expect(items.row(name)).toBeVisible();
+    await items.filterByStatus('Here');
+    await expect(items.row(name)).toBeHidden();
+
+    await items.filterByStatus('All items');
+    await items.markReturned(name);
+    await expect(items.row(name)).toContainText('Here');
+    await expect(items.row(name)).not.toContainText(borrower);
   });
 
   test('keeps the page behind the lend dialog while the dialog loads', async ({ page }) => {

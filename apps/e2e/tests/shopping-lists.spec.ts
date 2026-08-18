@@ -1,5 +1,3 @@
-import { expect, type Page, test } from '@playwright/test';
-
 import {
   SEED_CHILD_MEMBER,
   SEED_INGREDIENTS,
@@ -11,6 +9,7 @@ import {
 import { IngredientsPage } from '../pages/ingredients.page';
 import { ShoppingListsPage } from '../pages/shopping-lists.page';
 import { API_URL } from '../playwright.config';
+import { expect, type Page, test } from '../support/test';
 
 /** The seeded recipe's id, which nothing hard-codes — looked up so a reseed can't strand the spec. */
 async function recipeIdByTitle(page: Page, title: string) {
@@ -30,7 +29,7 @@ async function recipeIdByTitle(page: Page, title: string) {
 /**
  * Seeded members, by the name they're displayed under. Looked up rather than hard-coded for the
  * usual reason, and needed at all so a planted meal can name exactly who's eating it — see the
- * import spec, where "everyone" would be whatever other specs have left on the roster.
+ * import spec, where "everyone" would be whatever the roster happens to hold by then.
  */
 async function memberIdsByName(page: Page, names: string[]) {
   const response = await page.context().request.get(`${API_URL}/households/my`);
@@ -228,7 +227,7 @@ test.describe('shopping lists', () => {
 
       // Not reachable by direct link either, while the filter is off. Asserted as "not this list"
       // rather than "the bare index": the redirect lands on the index, which then auto-selects
-      // whichever list is first — another spec's, in parallel.
+      // whichever list is first, which is nothing this test can name.
       await page.goto(`/food/shopping-lists/${listId}`);
       await expect(page).not.toHaveURL(new RegExp(`/food/shopping-lists/${listId}(\\?|$)`));
 
@@ -620,8 +619,8 @@ test.describe('shopping lists', () => {
     await lists.goto();
 
     // Its own list first, before anything asserts on the master column: with no lists at all the
-    // layout drops the two panes for a full-width empty state, and this project has other specs
-    // creating and deleting lists in the same household at the same time.
+    // layout drops the two panes for a full-width empty state, and whether the household has any
+    // lists left by this point is not this test's to assume.
     const listId = await lists.createList();
 
     try {

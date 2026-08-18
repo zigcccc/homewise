@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 
 import { nameStartsWith } from '../support/text';
 import { Drag } from './drag';
@@ -11,10 +11,9 @@ import { Picker } from './picker';
  * located by `aria-label` and scoped to the card or day they belong to — several cards carry
  * identically-shaped controls, and an unscoped role query would match whichever rendered first.
  *
- * Every method takes an ISO day, and `goto` takes the Monday to open on. That's how specs stay
- * isolated under `fullyParallel` against a single shared household: each one owns a distinct
- * far-future week reached straight through the URL, so no two specs — and no human — ever touch the
- * same days.
+ * Every method takes an ISO day, and `goto` takes the Monday to open on. Workers are isolated by
+ * having a household each, but the tests inside one share it, so each owns a distinct far-future
+ * week reached straight through the URL — no two tests, and no human, ever touch the same days.
  */
 export class MealPlanPage {
   private readonly drag: Drag;
@@ -180,59 +179,80 @@ export class MealPlanPage {
 
   // ── Day notes ─────────────────────────────────────────────────────────────
 
+  /**
+   * Returns only once the server has acknowledged the note and the editor has closed.
+   *
+   * Enter alone proves nothing: it returns before the app has done anything, and the caller's next
+   * assertion can be satisfied by the *open* editor — React reseeds the textarea's `defaultValue`
+   * from `day.note`, and a textarea's default value is its text content. So a reader could not tell
+   * a saved note from an unsaved one, and when this spec did fail (once in thirteen full runs, on the
+   * note being absent after a reload) the failure surfaced fifteen lines later with nothing to say
+   * about the write. That cause was never reproduced — this does not claim to fix it, it makes the
+   * next occurrence point at itself.
+   */
   async setDayNote(day: string, note: string) {
     await this.dayRow(day)
       .getByRole('button', { name: /note for /i })
       .click();
     const field = this.dayNoteEditor(day);
     await field.fill(note);
+
+    // Armed before the keypress that triggers it, or the response can land first.
+    const saved = this.page.waitForResponse(
+      (response) => response.url().includes(`/meal-plan/days/${day}`) && response.request().method() === 'PUT'
+    );
     await field.press('Enter');
+
+    expect((await saved).status(), `saving the note on ${day}`).toBe(200);
+    await expect(this.dayNoteEditor(day)).toBeHidden();
   }
 
   private dayNoteEditor(day: string) {
     return this.dayRow(day).getByRole('textbox', { name: /^Note for/ });
   }
 
-  async clearDayNote(day: string) {
-    if (
-      (await this.dayRow(day)
-        .getByRole('button', { name: /^Edit the note for /i })
-        .count()) === 0
-    ) {
-      return;
-    }
-
-    await this.setDayNote(day, '');
-  }
-
   // ── Moving and removing ───────────────────────────────────────────────────
 
-  private async openMealMenu(day: string, label: string) {
-    await this.meal(day, label)
-      .getByRole('button', { name: `Meal actions for ${label}` })
-      .click();
+  /** Takes the meal rather than its day and label, so a caller can hand it `.first()` of several. */
+  private async openMealMenu(meal: Locator, label: string) {
+    await meal.getByRole('button', { name: `Meal actions for ${label}` }).click();
   }
 
   /** The keyboard/touch move path: `⋯ → Move to day → <weekday>`. */
   async moveMealToDay(day: string, label: string, targetWeekday: string) {
-    await this.openMealMenu(day, label);
+    await this.openMealMenu(this.meal(day, label), label);
     await this.page.getByRole('menuitem', { name: 'Move to day' }).click();
     await this.page.getByRole('menuitem', { name: nameStartsWith(`${targetWeekday},`) }).click();
   }
 
-  /** Removes immediately — the confirmation is an Undo toast, not a dialog. */
+  /**
+   * Removes immediately — the confirmation is an Undo toast, not a dialog.
+   *
+   * Strict, and stays that way: a spec removing *the* meal wants to hear about a second one.
+   */
   async removeMeal(day: string, label: string) {
-    await this.openMealMenu(day, label);
+    await this.openMealMenu(this.meal(day, label), label);
     await this.page.getByRole('menuitem', { name: 'Remove' }).click();
     await expect(this.meal(day, label)).toBeHidden();
   }
 
-  async removeMealIfPresent(day: string, label: string) {
-    if ((await this.meal(day, label).count()) === 0) {
-      return;
+  /**
+   * Clears the day of everything carrying `label` — none, one, or a duplicate. The teardown path.
+   *
+   * A test that exceeds its timeout has its page closed mid-flight, so its cleanup never runs and its
+   * meal survives. The retry then plans a second meal with the same label on the same day, and from
+   * there every strict locator on that day resolves to two elements: all three attempts fail on the
+   * duplicate rather than on whatever actually went wrong. Removing `.first()` until the day is empty
+   * is what makes a bad attempt something the next one can recover from. See issue #41.
+   */
+  async removeAllMeals(day: string, label: string) {
+    for (let remaining = await this.meal(day, label).count(); remaining > 0; remaining -= 1) {
+      await this.openMealMenu(this.meal(day, label).first(), label);
+      await this.page.getByRole('menuitem', { name: 'Remove' }).click();
+      // By count, not by the removed card's own visibility: with two on the day, `.first()` is still
+      // matched by the survivor the moment the first one goes.
+      await expect(this.meal(day, label)).toHaveCount(remaining - 1);
     }
-
-    await this.removeMeal(day, label);
   }
 
   /** Sonner's live region, where the Undo action lives. */
