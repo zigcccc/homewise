@@ -64,6 +64,16 @@ export class DashboardPage {
     return this.card('Recent activity');
   }
 
+  /**
+   * The mobile bottom sheet. Below `md` the four quick actions collapse behind one button; the sheet
+   * is a Radix dialog, so it answers to the dialog role.
+   */
+  async openQuickActions() {
+    await this.page.getByRole('button', { name: 'Quick actions' }).click();
+
+    return this.page.getByRole('dialog', { name: 'Quick actions' });
+  }
+
   /** The quick action, not the expenses page's toolbar button — hence `Expense`, not `Add expense`. */
   async openExpenseDialog() {
     await this.page.getByRole('button', { exact: true, name: 'Expense' }).click();
