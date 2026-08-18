@@ -58,6 +58,9 @@ async function ensureUser(
       id: randomUUID(),
       accountId: userId,
       providerId: 'credential',
+      // better-auth 1.7 matches the credential account on this too — omit it and the seeded user
+      // exists but cannot log in, which reads as "Invalid email or password".
+      issuer: 'local:credential',
       userId,
       password: hashedPassword,
     });

@@ -33,6 +33,9 @@ export const account = pgTable('account', {
   id: text('id').primaryKey(),
   accountId: text('account_id').notNull(),
   providerId: text('provider_id').notNull(),
+  // Required by better-auth since 1.7: sign-in matches the credential account on it, so a row
+  // without it is a user who cannot log in. `local:<providerId>` for anything but real OAuth.
+  issuer: text('issuer').notNull(),
   userId: text('user_id')
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),

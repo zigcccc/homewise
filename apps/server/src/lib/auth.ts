@@ -36,6 +36,7 @@ const isPreviewEnv = process.env.VERCEL_ENV === 'preview';
 export const auth = betterAuth({
   appName: 'Homewise Auth',
   basePath: '/auth',
+  baseURL: env.BETTER_AUTH_URL,
   database: drizzleAdapter(db, { provider: 'pg', schema }),
   advanced: isPreviewEnv ? { defaultCookieAttributes: { sameSite: 'none', secure: true } } : undefined,
   plugins:

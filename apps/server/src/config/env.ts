@@ -1,6 +1,8 @@
 import dotenv from 'dotenv';
 import z from 'zod';
 
+import { SERVER_PORT } from './server';
+
 dotenv.config();
 
 const nodeEnv = z.enum(['development', 'production', 'test']);
@@ -70,6 +72,17 @@ const envModel = z
      * a blank env var in the dashboard is how you turn Sentry off for an environment, and it must
      * not be the thing that stops the server starting.
      */
+    /**
+     * Public origin this server is reached at, e.g. `https://api.home-wise.app`. better-auth builds
+     * its callback and redirect URLs from it; since 1.7 it warns at boot when it has none and falls
+     * back to deriving one per request, which is wrong the moment a proxy or a preview alias sits in
+     * front. better-auth reads this variable's name itself, so setting it in the deployment is
+     * enough — the default below only covers local development and the E2E suite.
+     *
+     * Deliberately not fail-closed: an unset value leaves 1.6's behaviour, so refusing to boot would
+     * take deployments down for a warning rather than for a break.
+     */
+    BETTER_AUTH_URL: z.url().optional(),
     SENTRY_DSN: z
       .union([z.url(), z.literal('')])
       .optional()
@@ -126,6 +139,9 @@ const envModel = z
   // Everything else keeps the old convenience: an unset NODE_ENV is a local boot.
   .transform((parsed) => ({
     ...parsed,
+    BETTER_AUTH_URL:
+      parsed.BETTER_AUTH_URL ??
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : `http://localhost:${SERVER_PORT}`),
     HOMEWISE_REALTIME_NAMESPACE: parsed.HOMEWISE_REALTIME_NAMESPACE ?? 'local',
     NODE_ENV: parsed.NODE_ENV ?? ('development' as const),
   }));
