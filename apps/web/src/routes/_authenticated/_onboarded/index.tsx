@@ -127,9 +127,7 @@ function QuickActionButton({
  * Two open a dialog the owning module already exports whole; two navigate, because creating a list
  * or a meal is wired into its own page's state.
  *
- * Below `md` they collapse into a sheet: `ButtonGroup` is `w-fit` and never wraps, so on a phone the
- * row outgrew the viewport and left the content scrolling sideways. The sheet also has room for a
- * fifth action, which the row does not.
+ * Below `md` they collapse into a sheet: `ButtonGroup` never wraps, so the row outgrew a phone.
  */
 function QuickActions() {
   const isMobile = useIsMobile();
