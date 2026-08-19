@@ -1,0 +1,4 @@
+# Drizzle's migration meta. Each snapshot is a full picture of the schema rather than a diff — that
+# is how `generate` derives SQL — so every migration adds a file the size of the whole schema, and
+# nobody reads them. Collapsed in diffs and excluded from language stats; still fully versioned.
+apps/server/migrations/meta/** linguist-generated=true
