@@ -79,17 +79,23 @@ export function InlineCell({
 }) {
   const [editing, setEditing] = useState(false);
 
+  // No control to size against, so none of the grid-over-sizer machinery applies — and rendering the
+  // sizer anyway would put a second, invisible copy of the value in the DOM for anything reading it.
+  if (readOnly) {
+    return (
+      <span className={cn(boxClassName, 'flex min-w-0 flex-1 items-center border-transparent', displayClassName)}>
+        {display}
+      </span>
+    );
+  }
+
   return (
     // `min-w-0 flex-1` for the cells that sit in a flex row beside something else (the expense title
     // and its paid-back badge): without them this shrinks to max-content and the editor opens as a
     // box hugging the text. Both are inert everywhere else.
     <div className={cn('grid min-w-0 flex-1 grid-cols-1', !fill && maxWidthClassName)}>
       <span className={sizerClassName}>{display}</span>
-      {readOnly ? (
-        <span className={cn(restingClassName, 'border-transparent hover:bg-transparent', displayClassName)}>
-          {display}
-        </span>
-      ) : editing ? (
+      {editing ? (
         <div className="col-start-1 row-start-1">
           {/* Mounted only while editing, so `defaultValues` reseed on every open with no reset effect. */}
           <InlineTextField

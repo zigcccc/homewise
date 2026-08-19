@@ -2,7 +2,14 @@
 // main bundle (see `_onboarded.tsx`), and an extra hop risks dragging the Ably client back into it.
 import { captureException } from '@sentry/react';
 import { type QueryClient, useQueryClient } from '@tanstack/react-query';
-import { AblyProvider, ChannelProvider, useAbly, useChannel, useConnectionStateListener } from 'ably/react';
+import {
+  AblyProvider,
+  ChannelProvider,
+  useAbly,
+  useChannel,
+  useChannelStateListener,
+  useConnectionStateListener,
+} from 'ably/react';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -174,6 +181,8 @@ function RealtimeSync({ channel }: { channel: string }) {
   // `skip` until that token resolves. Attaching alongside the request instead of after it is a
   // race: an attach that reaches Ably still carrying the previous household's token is refused with
   // 40160, and a channel that fails that way is never retried — the tab goes silent for good.
+  const [channelState, setChannelState] = useState<string>('initialized');
+
   useChannel({ channelName: channel, skip: authorizedChannel !== channel }, HOUSEHOLD_EVENT_NAME, (message) => {
     const parsed = householdEventMessageModel.safeParse(message.data);
 
@@ -198,6 +207,10 @@ function RealtimeSync({ channel }: { channel: string }) {
     invalidateActivity(queryClient);
   });
 
+  // Off a listener rather than the channel object: its `state` mutates in place, so reading it
+  // during render would leave the attribute stuck on whatever it said when this last re-rendered.
+  useChannelStateListener(channel, (change) => setChannelState(change.current));
+
   useConnectionStateListener('connected', () => {
     // The first connect is just startup; the loaders have already fetched everything.
     if (!hasConnected.current) {
@@ -213,7 +226,12 @@ function RealtimeSync({ channel }: { channel: string }) {
     toast.success('Reconnected — refreshing.');
   });
 
-  return null;
+  /**
+   * Nothing visible — but a tab that has not attached yet silently misses everything published in the
+   * meantime, and until now nothing said which state it was in. The attribute is the only honest
+   * signal available: `connected` is the socket, `attached` is this channel actually subscribed.
+   */
+  return <span className="hidden" data-realtime={channelState} />;
 }
 
 /**
@@ -226,6 +244,10 @@ export function RealtimeProvider({ channel, children }: { channel: string; child
   // the body rather than an effect because the SDK wants it before its hooks attach, and it is
   // idempotent — StrictMode's double render costs nothing. Never paired with a `close()`: nothing
   // closes this connection, and nothing should.
+  //
+  // Deferring the dial-out to here is what keeps a member with no realtime access off the channel
+  // entirely: `_onboarded` never renders this for them, and merely importing the client would
+  // otherwise have connected on their behalf.
   realtimeClient.connect();
 
   return (
