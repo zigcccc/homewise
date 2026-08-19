@@ -108,6 +108,7 @@ the one-liners below.
 | A Vitest test, or deciding whether something earns one | `unit-testing` |
 | Any server-side image, photo, avatar or file upload | `working-with-images-on-server` |
 | Ably SDK questions beyond our own wiring | `using-ably` |
+| Roles, permissions or who may call an endpoint | `server-conventions`, `web-conventions` |
 | Committing work | `commit-files` |
 
 ## Non-negotiables
@@ -133,6 +134,7 @@ Each of these has already shipped as a bug or cost real time. Where a skill is n
 17. **Before finishing, run all four**: `pnpm check-types`, `pnpm lint` (zero diagnostics), `pnpm knip`, `pnpm test`. Then run `pnpm test:e2e` **once** as the final gate — not while iterating. Report the result honestly: if it fails, say so with the output rather than declaring done.
 18. **Never truncate or seed the dev database on :8765.** The E2E and unit suites own :8766 and :8767 and reset those themselves.
 19. **Comments are short — one line, or none.** Write only what the code can't say itself: a live constraint or a trap. Not rationale essays, not the archaeology of how the code got here; the PR body and git history hold those. A comment that needs a paragraph is a sign the code needs the work instead.
+20. **Every household-scoped sub-app declares a permission area** — `withHousehold('recipes')`, one per mount, with read-vs-write derived from the HTTP method. A new module adds one entry to `lib/permissions.ts` and passes it here; nothing else, and no route carries a permission check of its own. The web gates on the same definition via `useCan`. → `server-conventions`, `web-conventions`
 
 ## Keeping this file small
 
