@@ -6,8 +6,7 @@ import { type HouseholdMemberRole, householdMemberRole } from '#modules/househol
 /**
  * Who eats off the plan. A pet doesn't, and an external member is by definition eating elsewhere —
  * neither belongs in the "who's eating this?" picker, in the count of who still needs a meal, or in
- * the headcount a shopping-list import scales its amounts to. A `null` role is none of these either,
- * so it doesn't count.
+ * the headcount a shopping-list import scales its amounts to.
  *
  * Lives here rather than in `households` because it is a statement about meals, not about the
  * roster; and on the server rather than on the web because the import's headcount needs it too, and

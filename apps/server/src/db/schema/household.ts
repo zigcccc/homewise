@@ -37,7 +37,11 @@ export const householdMember = pgTable('household_member', {
     .references(() => household.id, { onDelete: 'cascade' }),
   name: text('name'),
   nickname: text('nickname'),
-  role: householdMemberRoleEnum(),
+  /**
+   * What this person may do here. Not null and with no default on purpose: a default would turn a
+   * write site that forgot the role into a silent adult, and drizzle-zod makes it required without one.
+   */
+  role: householdMemberRoleEnum().notNull(),
 });
 
 export const householdInvite = pgTable('household_invite', {
@@ -48,7 +52,8 @@ export const householdInvite = pgTable('household_invite', {
   memberId: integer('member_id').references(() => householdMember.id, { onDelete: 'cascade' }),
   token: text('token').notNull().unique(),
   email: text('email').notNull(),
-  role: householdMemberRoleEnum(),
+  /** The role the invitee joins as. Copied onto their member row by `acceptInvite`. */
+  role: householdMemberRoleEnum().notNull(),
   claimed: boolean('claimed').default(false),
 });
 

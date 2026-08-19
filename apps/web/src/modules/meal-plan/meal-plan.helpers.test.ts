@@ -113,21 +113,16 @@ describe('stillNeedsAMeal', () => {
 
 describe('eligibleMembers', () => {
   it('should keep only the roles that eat off the plan', () => {
-    // GIVEN: one member of every role, plus one with none
+    // GIVEN: one member of every role
     const members = [
       { id: 1, role: 'adult' as const },
       { id: 2, role: 'child' as const },
       { id: 3, role: 'pet' as const },
       { id: 4, role: 'external' as const },
-      { id: 5, role: null },
     ];
 
     // THEN: only the adult and the child should survive
     expect(eligibleMembers(members).map(({ id }) => id)).toEqual([1, 2]);
-  });
-
-  it('should drop a member with no role rather than throwing', () => {
-    expect(eligibleMembers([{ role: null }])).toEqual([]);
   });
 });
 

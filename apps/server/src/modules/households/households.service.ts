@@ -10,6 +10,7 @@ import { sendEmail } from '#lib/resend';
 
 import {
   type CreateHouseholdMember,
+  type HouseholdMemberRole,
   type InsertHousehold,
   type InviteHouseholdMembers,
   type PatchHousehold,
@@ -159,6 +160,20 @@ export class HouseholdsService {
   public static async patch(householdId: number, partialData: PatchHousehold) {
     const existing = await db.query.household.findFirst({ where: eq(schema.household.id, householdId) });
 
+    // Ownership is transferred through this patch, and the column only points at `user` — so without
+    // this the household could be handed to any account in the database, member or not.
+    const nextOwnerId = partialData.ownerId;
+    if (nextOwnerId && nextOwnerId !== existing?.ownerId) {
+      const target = await db.query.householdMember.findFirst({
+        where: (fields, { and, eq }) =>
+          and(eq(fields.householdId, householdId), eq(fields.userId, nextOwnerId), eq(fields.role, 'adult')),
+      });
+
+      if (!target) {
+        throw new HTTPException(400, { message: 'The new owner must be an adult member of this household.' });
+      }
+    }
+
     const [updatedHousehold] = await db
       .update(schema.household)
       .set(partialData)
@@ -242,6 +257,32 @@ export class HouseholdsService {
     }
 
     return { data: updated, changeset: changedColumns(existing, patch) };
+  }
+
+  /**
+   * Changes what a member may do. Separate from {@link patchHouseholdMember} because that one is
+   * owner-or-self and this one is owner-only — a member who could set their own role could promote
+   * themselves to `adult`.
+   */
+  public static async patchHouseholdMemberRole(householdId: number, memberId: number, role: HouseholdMemberRole) {
+    const existing = await HouseholdsService.readHouseholdMember(householdId, memberId);
+
+    // A pet is never an account holder, so a row that has one can never become one.
+    if (role === 'pet' && existing.userId) {
+      throw new HTTPException(400, { message: 'A member with an account cannot be a pet.' });
+    }
+
+    const [updated] = await db
+      .update(schema.householdMember)
+      .set({ role })
+      .where(and(eq(schema.householdMember.householdId, householdId), eq(schema.householdMember.id, memberId)))
+      .returning();
+
+    if (!updated) {
+      throw somethingWentWrong();
+    }
+
+    return { data: updated, changeset: changedColumns(existing, { role }) };
   }
 
   public static async deleteHouseholdMember(householdId: number, memberId: number) {
@@ -341,6 +382,10 @@ export class HouseholdsService {
 
     if (member.userId) {
       throw new HTTPException(400, { message: 'This member already has an account.' });
+    }
+
+    if (member.role === 'pet') {
+      throw new HTTPException(400, { message: 'A pet cannot be invited to create an account.' });
     }
 
     const { token } = await auth.api.generateOneTimeToken({ headers });

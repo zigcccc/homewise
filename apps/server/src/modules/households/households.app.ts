@@ -20,6 +20,7 @@ import {
   inviteHouseholdMembersQueryParamsModel,
   patchHouseholdMemberModel,
   patchHouseholdMemberPathParamsModel,
+  patchHouseholdMemberRoleModel,
   patchHouseholdModel,
   readHouseholdInviteQueryParamsModel,
 } from './households.model';
@@ -80,6 +81,40 @@ const myHouseholdApp = new Hono<AppContext>()
         household.id,
         member.id,
         c.req.valid('json')
+      );
+
+      c.var.emit({
+        entity: 'household_member',
+        id: updatedMember.id,
+        operation: 'update',
+        label: HouseholdsService.memberDisplayName(updatedMember),
+        changes: changeset,
+      });
+
+      return c.json(updatedMember, 200);
+    }
+  )
+  .patch(
+    '/members/:id/role',
+    withHouseholdOwner,
+    zValidator('param', patchHouseholdMemberPathParamsModel),
+    zValidator('json', patchHouseholdMemberRoleModel),
+    async (c) => {
+      const { id: householdMemberId } = c.req.valid('param');
+      const { role } = c.req.valid('json');
+      const { household, user } = c.var;
+      const member = await HouseholdsService.readHouseholdMember(household.id, householdMemberId);
+
+      // The owner is the one account every owner-only route trusts. Letting them demote their own row
+      // would lock the household out of renaming, transferring or deleting itself.
+      if (member.userId === user.id && role !== 'adult') {
+        throw new HTTPException(400, { message: 'Transfer ownership before changing your own role.' });
+      }
+
+      const { data: updatedMember, changeset } = await HouseholdsService.patchHouseholdMemberRole(
+        household.id,
+        member.id,
+        role
       );
 
       c.var.emit({
@@ -173,7 +208,8 @@ const myHouseholdApp = new Hono<AppContext>()
 
     return c.json(invites, 200);
   })
-  .delete('/invites/:id', withHouseholdOwner, zValidator('param', deleteHouseholdInvitePathParamsModel), async (c) => {
+  // Symmetric with sending one: an adult who can invite someone can take that invite back.
+  .delete('/invites/:id', zValidator('param', deleteHouseholdInvitePathParamsModel), async (c) => {
     const deleted = await HouseholdsService.deleteInvite(c.var.household.id, c.req.valid('param').id);
 
     c.var.emit({ entity: 'household_invite', id: deleted.id, operation: 'delete', label: deleted.email });

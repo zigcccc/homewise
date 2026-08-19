@@ -12,6 +12,7 @@ import {
   type CreatePlannedMeal,
   MAX_RANGE_DAYS,
   MEAL_LABEL_ERROR,
+  MEAL_ROLES,
   type MealPlanRangeQueryParams,
   type PatchPlannedMeal,
 } from './meal-plan.model';
@@ -105,7 +106,9 @@ export class MealPlanService {
   }
 
   /**
-   * Same guard for the people a meal is assigned to.
+   * Same guard for the people a meal is assigned to, narrowed to the roles that actually eat off the
+   * plan — a pet or an external posted straight at the API would otherwise be stored as an eater and
+   * then skew the headcount a shopping-list import scales to, which filters by `MEAL_ROLES`.
    *
    * Deduplicated before the count comparison, because the query returns distinct rows: `[7, 7]` would
    * otherwise find one row for two ids and 404 on a member that is perfectly valid. `replaceMembers`
@@ -121,7 +124,13 @@ export class MealPlanService {
     const found = await executor
       .select({ id: schema.householdMember.id })
       .from(schema.householdMember)
-      .where(and(eq(schema.householdMember.householdId, householdId), inArray(schema.householdMember.id, unique)));
+      .where(
+        and(
+          eq(schema.householdMember.householdId, householdId),
+          inArray(schema.householdMember.id, unique),
+          inArray(schema.householdMember.role, MEAL_ROLES)
+        )
+      );
 
     if (found.length !== unique.length) {
       throw notFound('Household member');

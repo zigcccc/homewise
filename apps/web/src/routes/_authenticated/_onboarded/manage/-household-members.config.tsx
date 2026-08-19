@@ -48,7 +48,7 @@ import {
 
 import { client, parseResponse } from '@/api/client';
 import { HouseholdMemberRoleSelectItems } from '@/modules/households/components';
-import { formatDateTime } from '@/modules/shared';
+import { formatDateTime, serverMessage } from '@/modules/shared';
 
 type HouseholdMember = NonNullable<Awaited<InferResponseType<typeof client.households.my.$get>>>['members'][number];
 
@@ -92,7 +92,7 @@ export const membersTableColumns = membersTableBuilder.columns([
       const { mutateAsync: updateMemberRoleAsync, isPending: isUpdating } = useMutation({
         mutationFn: async (role: HouseholdMemberRole) =>
           parseResponse(
-            client.households.my.members[':id'].$patch({
+            client.households.my.members[':id'].role.$patch({
               param: { id: info.row.original.id.toString() },
               json: { role },
             })
@@ -104,8 +104,8 @@ export const membersTableColumns = membersTableBuilder.columns([
           const parsedRole = householdMemberRole.parse(newRole);
           await updateMemberRoleAsync(parsedRole);
           await queryClient.invalidateQueries({ queryKey: ['households'] });
-        } catch {
-          toast.error('Something went wrong');
+        } catch (error) {
+          toast.error(serverMessage(error, 'Something went wrong'));
         }
       };
 
@@ -210,7 +210,8 @@ export const membersTableColumns = membersTableBuilder.columns([
                     </TooltipContent>
                   )}
                 </Tooltip>
-                {member.isManaged && (
+                {/* A pet never holds an account, so there is nothing to invite it to. */}
+                {member.isManaged && member.role !== 'pet' && (
                   <DropdownMenuItem onClick={() => setInviteOpen(true)}>
                     <UserPlusIcon />
                     Invite to create account
@@ -467,7 +468,7 @@ export const invitesTableColumns = invitesTableBuilder.columns([
     header: '',
     id: 'actions',
     cell: function InvitesTableActions(props) {
-      const { user, queryClient } = useRouteContext({ from: '/_authenticated/_onboarded/manage/household-members' });
+      const { queryClient } = useRouteContext({ from: '/_authenticated/_onboarded/manage/household-members' });
       const { mutateAsync: revokeInviteAsync } = useMutation({
         mutationFn: async (inviteId: number) =>
           parseResponse(client.households.my.invites[':id'].$delete({ param: { id: inviteId.toString() } })),
@@ -496,21 +497,10 @@ export const invitesTableColumns = invitesTableBuilder.columns([
           <DropdownMenuContent align="end">
             <DropdownMenuGroup>
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <DropdownMenuItem
-                    disabled={props.row.original.household.ownerId !== user.id}
-                    onClick={handleRevokeInvite}
-                    variant="destructive"
-                  >
-                    <BanIcon />
-                    Revoke invite
-                  </DropdownMenuItem>
-                </TooltipTrigger>
-                {props.row.original.household.ownerId !== user.id && (
-                  <TooltipContent>Only owners can revoke invites</TooltipContent>
-                )}
-              </Tooltip>
+              <DropdownMenuItem onClick={handleRevokeInvite} variant="destructive">
+                <BanIcon />
+                Revoke invite
+              </DropdownMenuItem>
             </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>

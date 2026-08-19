@@ -49,8 +49,8 @@ export const isToday = (iso: string) => iso === toISODate(new Date());
  * Who eats off the plan — the roles, from the server, so this picker and the headcount a
  * shopping-list import scales to can't drift apart.
  */
-export const eligibleMembers = <T extends { role: HouseholdMemberRole | null }>(members: T[]) =>
-  members.filter((member) => member.role !== null && MEAL_ROLES.includes(member.role));
+export const eligibleMembers = <T extends { role: HouseholdMemberRole }>(members: T[]) =>
+  members.filter((member) => MEAL_ROLES.includes(member.role));
 
 /**
  * The eligible members with nothing to eat on a day.
