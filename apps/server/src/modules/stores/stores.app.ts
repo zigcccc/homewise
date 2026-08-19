@@ -12,7 +12,7 @@ import { StoresService } from './stores.service';
  * they can the ingredient library these hang off.
  */
 const storesApp = new Hono<AppContext>()
-  .use(withHousehold)
+  .use(withHousehold('stores'))
   .get('/', zValidator('query', listStoresQueryParamsModel), async (c) => {
     const stores = await StoresService.list(c.var.household.id, c.req.valid('query'));
 

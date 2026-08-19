@@ -21,7 +21,7 @@ import { StorageItemsService } from './storage-items.service';
  * Writes are multipart, since an item carries a photo. Fully collaborative.
  */
 const storageItemsApp = new Hono<AppContext>()
-  .use(withHousehold)
+  .use(withHousehold('storageItems'))
   .get('/', zValidator('query', listStorageItemsQueryParamsModel), async (c) => {
     const items = await StorageItemsService.list(c.var.household.id, c.req.valid('query'));
 

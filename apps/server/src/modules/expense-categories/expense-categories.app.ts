@@ -17,7 +17,7 @@ import { ExpenseCategoriesService } from './expense-categories.service';
  * the same way they can the shops the ingredient library hangs off.
  */
 const expenseCategoriesApp = new Hono<AppContext>()
-  .use(withHousehold)
+  .use(withHousehold('expenseCategories'))
   .get('/', zValidator('query', listExpenseCategoriesQueryParamsModel), async (c) => {
     const categories = await ExpenseCategoriesService.list(c.var.household.id, c.req.valid('query'));
 

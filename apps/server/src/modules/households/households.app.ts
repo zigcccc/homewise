@@ -27,9 +27,16 @@ import {
 } from './households.model';
 import { HouseholdsService } from './households.service';
 
-/** Routes scoped to the caller's own household — `c.var.household` is guaranteed by `withHousehold`. */
-const myHouseholdApp = new Hono<AppContext>()
-  .use(withHousehold)
+/**
+ * The household record itself. `GET` is readable by every role — the app shell needs the household's
+ * name and the caller's own row whatever they may do — while changing or deleting it stays with the
+ * owner.
+ */
+const householdRecordApp = new Hono<AppContext>()
+  // Exact path rather than the default `ALL /*`: `.route()` flattens a sub-app's middleware into its
+  // parent, so a wildcard here would also run on `/members/*` and `/invites/*` below — resolving the
+  // household twice and flushing an empty event buffer on the way out.
+  .use('/', withHousehold('household'))
   .get('/', async (c) => {
     const household = await HouseholdsService.readForUser(c.var.user.id);
 
@@ -72,9 +79,13 @@ const myHouseholdApp = new Hono<AppContext>()
     await HouseholdsService.delete(c.var.household.id);
 
     return c.json({ success: true }, 202);
-  })
+  });
+
+/** The roster. Not readable by an external: it carries every member's name and email address. */
+const householdMembersApp = new Hono<AppContext>()
+  .use(withHousehold('householdMembers'))
   .patch(
-    '/members/:id',
+    '/:id',
     zValidator('param', patchHouseholdMemberPathParamsModel),
     zValidator('json', patchHouseholdMemberModel),
     async (c) => {
@@ -104,7 +115,7 @@ const myHouseholdApp = new Hono<AppContext>()
     }
   )
   .patch(
-    '/members/:id/role',
+    '/:id/role',
     withHouseholdOwner,
     zValidator('param', patchHouseholdMemberPathParamsModel),
     zValidator('json', patchHouseholdMemberRoleModel),
@@ -137,7 +148,7 @@ const myHouseholdApp = new Hono<AppContext>()
       return c.json(updatedMember, 200);
     }
   )
-  .delete('/members/:id', zValidator('param', deleteHouseholdMemberPathParamsModel), async (c) => {
+  .delete('/:id', zValidator('param', deleteHouseholdMemberPathParamsModel), async (c) => {
     const { id: householdMemberId } = c.req.valid('param');
     const { household, user } = c.var;
     const member = await HouseholdsService.readHouseholdMember(household.id, householdMemberId);
@@ -157,7 +168,7 @@ const myHouseholdApp = new Hono<AppContext>()
 
     return c.json({ success: true }, 202);
   })
-  .post('/members', zValidator('json', createHouseholdMembersModel), async (c) => {
+  .post('/', zValidator('json', createHouseholdMembersModel), async (c) => {
     const members = await HouseholdsService.addHouseholdMembers(c.var.household.id, c.req.valid('json').members);
 
     // One line each: adding three people is three things that happened, not one.
@@ -173,7 +184,7 @@ const myHouseholdApp = new Hono<AppContext>()
     return c.json(members, 201);
   })
   .post(
-    '/members/:id/invite',
+    '/:id/invite',
     zValidator('param', inviteExistingMemberPathParamsModel),
     zValidator('json', inviteExistingMemberModel),
     zValidator('query', inviteHouseholdMembersQueryParamsModel),
@@ -189,9 +200,16 @@ const myHouseholdApp = new Hono<AppContext>()
 
       return c.json({ success: true }, 200);
     }
-  )
+  );
+
+/**
+ * Sending invites. Its own sub-app purely so the singular `/invite` path is preserved — mounting the
+ * plural one twice would run its middleware on both, which is the flattening trap.
+ */
+const householdInviteApp = new Hono<AppContext>()
+  .use(withHousehold('householdMembers'))
   .post(
-    '/invite',
+    '/',
     zValidator('json', inviteHouseholdMembersModel),
     zValidator('query', inviteHouseholdMembersQueryParamsModel),
     async (c) => {
@@ -211,20 +229,30 @@ const myHouseholdApp = new Hono<AppContext>()
 
       return c.json({ success: true }, 200);
     }
-  )
-  .get('/invites/active', async (c) => {
+  );
+
+/** Pending invites — same area as the roster, since an invite names an email address. */
+const householdInvitesApp = new Hono<AppContext>()
+  .use(withHousehold('householdMembers'))
+  .get('/active', async (c) => {
     const invites = await HouseholdsService.listActiveInvitesForHousehold(c.var.household.id);
 
     return c.json(invites, 200);
   })
   // Symmetric with sending one: an adult who can invite someone can take that invite back.
-  .delete('/invites/:id', zValidator('param', deleteHouseholdInvitePathParamsModel), async (c) => {
+  .delete('/:id', zValidator('param', deleteHouseholdInvitePathParamsModel), async (c) => {
     const deleted = await HouseholdsService.deleteInvite(c.var.household.id, c.req.valid('param').id);
 
     c.var.emit({ entity: 'household_invite', id: deleted.id, operation: 'delete', label: deleted.email });
 
     return c.json({ success: true }, 202);
   });
+
+const myHouseholdApp = new Hono<AppContext>()
+  .route('/', householdRecordApp)
+  .route('/members', householdMembersApp)
+  .route('/invite', householdInviteApp)
+  .route('/invites', householdInvitesApp);
 
 const householdsApp = new Hono<AppContext>()
   .post('/', zValidator('json', createHouseholdModel), async (c) => {

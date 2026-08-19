@@ -12,7 +12,7 @@ import { ChildProfilesService } from './child-profiles.service';
  * dictionary). Fully collaborative: any household member can create and manage a profile.
  */
 const childProfilesApp = new Hono<AppContext>()
-  .use(withHousehold)
+  .use(withHousehold('childProfiles'))
   .get('/', async (c) => {
     const { household } = c.var;
     const profiles = await ChildProfilesService.list(household.id, household.ownerId);

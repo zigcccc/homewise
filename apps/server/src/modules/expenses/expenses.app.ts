@@ -22,7 +22,7 @@ import { ExpensesService } from './expenses.service';
  * order, and a later literal path is swallowed by an earlier parameter.
  */
 const expensesApp = new Hono<AppContext>()
-  .use(withHousehold)
+  .use(withHousehold('expenses'))
   .get('/', zValidator('query', listExpensesQueryParamsModel), async (c) => {
     const expenses = await ExpensesService.list(c.var.household.id, c.req.valid('query'));
 

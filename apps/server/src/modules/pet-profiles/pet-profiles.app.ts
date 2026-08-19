@@ -12,7 +12,7 @@ import { PetProfilesService } from './pet-profiles.service';
  * Fully collaborative: any household member can create and manage a profile.
  */
 const petProfilesApp = new Hono<AppContext>()
-  .use(withHousehold)
+  .use(withHousehold('petProfiles'))
   .get('/', async (c) => {
     const { household } = c.var;
     const profiles = await PetProfilesService.list(household.id, household.ownerId);

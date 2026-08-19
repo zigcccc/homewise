@@ -17,7 +17,7 @@ import { StorageLocationsService } from './storage-locations.service';
  * garage can say the garage exists.
  */
 const storageLocationsApp = new Hono<AppContext>()
-  .use(withHousehold)
+  .use(withHousehold('storageLocations'))
   .get('/', zValidator('query', listStorageLocationsQueryParamsModel), async (c) => {
     const locations = await StorageLocationsService.list(c.var.household.id, c.req.valid('query'));
 
