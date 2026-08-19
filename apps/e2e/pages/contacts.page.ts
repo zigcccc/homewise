@@ -156,6 +156,50 @@ export class ContactsPage {
     await expect(dialog).toBeHidden();
   }
 
+  /**
+   * Creates the other person from the relation picker on the open contact's page, then names the
+   * relation in the dialog that follows — the flow for someone who isn't in the book yet.
+   */
+  async createRelatedContact(name: string, role: string, inverseRole?: string) {
+    await this.page.getByRole('button', { name: 'Add relation', exact: true }).click();
+    await new Picker(this.page, 'Search contacts…').createVia(name, 'Create new contact');
+
+    // By title, not `.first()`: the create dialog is still animating out as the relation one arrives.
+    const create = this.page.getByRole('dialog', { name: 'Create contact' });
+    // Retyping the name just searched for is the whole reason the create row is worth having.
+    await expect(create.getByLabel('Name')).toHaveValue(name);
+    await create.getByRole('button', { name: 'Create contact' }).click();
+
+    const relation = this.page.getByRole('dialog', { name: 'Add relation' });
+    await this.pickInDialog(relation.getByRole('combobox', { name: `${name} is` }), role);
+
+    if (inverseRole) {
+      await this.pickInDialog(relation.getByRole('combobox', { name: 'which makes' }), inverseRole);
+    }
+
+    await relation.getByRole('button', { name: 'Add relation' }).click();
+    await expect(relation).toBeHidden();
+  }
+
+  /**
+   * The same from inside an already-open contact dialog, where the new contact joins the form's own
+   * relations list instead.
+   *
+   * Scoped with `.last()` rather than by title: the dialog underneath is often a create dialog too,
+   * and then both carry the same heading. Portals mount in order, so the nested one is the later.
+   */
+  async createRelatedContactInDialog(name: string, role: string) {
+    await this.page.getByRole('dialog').getByRole('button', { name: 'Add relation', exact: true }).click();
+    await new Picker(this.page, 'Search contacts…').createVia(name, 'Create new contact');
+
+    const nested = this.page.getByRole('dialog').last();
+    await expect(nested.getByLabel('Name')).toHaveValue(name);
+    await nested.getByRole('button', { name: 'Create contact' }).click();
+    await expect(this.page.getByRole('dialog')).toHaveCount(1);
+
+    await this.pickInDialog(this.page.getByRole('dialog').getByRole('combobox', { name: `${name}'s relation` }), role);
+  }
+
   private async pickInDialog(combobox: ReturnType<Page['getByRole']>, option: string) {
     await combobox.click();
     await this.page.getByRole('option', { name: option, exact: true }).click();

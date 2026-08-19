@@ -153,6 +153,68 @@ test.describe('contacts', () => {
     }
   });
 
+  test('creates the other person from the relation picker, and relates them in the same go', async ({ page }) => {
+    const contacts = new ContactsPage(page);
+    await contacts.goto();
+
+    const stamp = Date.now();
+    const existing = `E2E Mojca ${stamp}`;
+    const created = `E2E Rok ${stamp}`;
+
+    try {
+      await contacts.add(existing, { type: 'Family' });
+      await contacts.open(existing);
+
+      // WHEN: the person being related isn't in the book at all, and is made from the picker itself
+      await contacts.createRelatedContact(created, 'Son', 'Mother');
+
+      // THEN: her page should carry the relation, exactly as if he had been there to pick
+      await expect(contacts.relation(created)).toContainText('Son');
+
+      // THEN: and he should be a contact in his own right, reading the relation the other way round
+      await contacts.goto();
+      await expect(contacts.row(created)).toBeVisible();
+      await contacts.open(created);
+      await expect(contacts.relation(existing)).toContainText('Mother');
+    } finally {
+      await contacts.goto();
+      await contacts.deleteIfPresent(existing);
+      await contacts.deleteIfPresent(created);
+    }
+  });
+
+  test('creates the other person from the relation picker inside the contact dialog', async ({ page }) => {
+    const contacts = new ContactsPage(page);
+    await contacts.goto();
+
+    const stamp = Date.now();
+    const created = `E2E Tina ${stamp}`;
+    const related = `E2E Miha ${stamp}`;
+
+    try {
+      // GIVEN: a contact being created whose brother isn't in the book either — neither of them has
+      // an id yet, and only one of them can ride along with the payload
+      await contacts.openCreateDialog(created);
+      await contacts.setType('Family');
+
+      // WHEN: the brother is created from the picker in the dialog, and the relation named there
+      await contacts.createRelatedContactInDialog(related, 'Brother');
+      await contacts.submitCreate();
+
+      // THEN: both should exist, and the relation should read from either side
+      await contacts.open(created);
+      await expect(contacts.relation(related)).toContainText('Brother');
+
+      await contacts.goto();
+      await contacts.open(related);
+      await expect(contacts.relation(created)).toContainText('Sibling');
+    } finally {
+      await contacts.goto();
+      await contacts.deleteIfPresent(created);
+      await contacts.deleteIfPresent(related);
+    }
+  });
+
   test('sorts by whose birthday is next rather than by the stored date', async ({ page }) => {
     const contacts = new ContactsPage(page);
     await contacts.goto();

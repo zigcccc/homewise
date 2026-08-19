@@ -69,6 +69,15 @@ export class Picker {
     await this.createButton(term).click();
   }
 
+  /**
+   * A create row that names the action rather than the term — the contact picker's "Create new
+   * contact", which opens a form instead of minting a record from the search box alone.
+   */
+  async createVia(term: string, label: string) {
+    await this.search(term);
+    await this.content().getByRole('button', { name: label }).click();
+  }
+
   // Paging only appends, so the caller's row-count assertion is what waits for the page to land.
   async loadMore() {
     await this.loadMoreButton().click();
