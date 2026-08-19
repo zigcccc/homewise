@@ -1,5 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useQueryClient } from '@tanstack/react-query';
 import { PlusIcon, TrashIcon } from 'lucide-react';
+import { useState } from 'react';
 import { type SubmitHandler, useFieldArray, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import z from 'zod';
@@ -36,11 +38,14 @@ import {
   Textarea,
 } from '@homewise/ui/core';
 
-import { DateField } from '@/modules/shared';
+import { parseResponse } from '@/api/client';
+import { DateField, serverMessage } from '@/modules/shared';
 
+import { $createContact, type CreatedContact, invalidateContacts } from '../contacts.queries';
 import {
   contactLinkTypeLabels,
   contactRelationRoleLabels,
+  contactTypeLabels,
   PERSONAL_CONTACT_TYPES,
   type RelationDraft,
   showsPersonalDetails,
@@ -84,10 +89,14 @@ export type EditableContact = {
   relations?: RelationDraft[];
 };
 
-function toDefaults(contact?: EditableContact, defaultType: ContactType = 'medical'): ContactFormValues {
+function toDefaults(
+  contact?: EditableContact,
+  defaultType: ContactType = 'medical',
+  defaultName?: string
+): ContactFormValues {
   return {
     type: contact?.type ?? defaultType,
-    name: contact?.name ?? '',
+    name: contact?.name ?? defaultName ?? '',
     description: contact?.description ?? '',
     email: contact?.email ?? '',
     phone: contact?.phone ?? '',
@@ -108,6 +117,7 @@ function toDefaults(contact?: EditableContact, defaultType: ContactType = 'medic
  */
 export function ContactFormDialog({
   contact,
+  defaultName,
   defaultType,
   excludeId,
   isLoading = false,
@@ -118,6 +128,8 @@ export function ContactFormDialog({
   typeLabels,
 }: {
   contact?: EditableContact;
+  /** What a new contact is called before anything is typed — the term the picker was searched with. */
+  defaultName?: string;
   /** What a new contact starts as. The owner that opens this decides — a vet, or an address-book entry. */
   defaultType?: ContactType;
   /** The contact being edited, so the relation picker can't offer it a relation to itself. */
@@ -145,6 +157,7 @@ export function ContactFormDialog({
         ) : (
           <ContactForm
             contact={contact}
+            defaultName={defaultName}
             defaultType={defaultType}
             excludeId={excludeId}
             offersRelations={offersRelations}
@@ -160,6 +173,7 @@ export function ContactFormDialog({
 
 function ContactForm({
   contact,
+  defaultName,
   defaultType,
   excludeId,
   offersRelations: relationsAllowed,
@@ -168,6 +182,7 @@ function ContactForm({
   typeLabels,
 }: {
   contact?: EditableContact;
+  defaultName?: string;
   defaultType?: ContactType;
   excludeId?: number;
   offersRelations?: boolean;
@@ -177,7 +192,7 @@ function ContactForm({
 }) {
   const form = useForm<ContactFormValues>({
     resolver: zodResolver(contactFormModel),
-    defaultValues: toDefaults(contact, defaultType),
+    defaultValues: toDefaults(contact, defaultType, defaultName),
   });
 
   // Watched rather than read once: these sections appear and disappear as the type is changed, in
@@ -192,6 +207,9 @@ function ContactForm({
   const links = useFieldArray({ control: form.control, name: 'links' });
   const relations = useFieldArray({ control: form.control, name: 'relations' });
 
+  // Wrapped rather than held as a bare string: a picker closed on an empty search would never open it.
+  const [creating, setCreating] = useState<{ name: string } | undefined>(undefined);
+
   const offersRelations = relationsAllowed && showsPersonalDetails(selectedType, relations.fields.length > 0);
   const relatedIds = new Set(relations.fields.map((relation) => relation.relatedContactId));
 
@@ -201,248 +219,185 @@ function ContactForm({
   };
 
   return (
-    <Form {...form}>
-      <form className="space-y-4" onSubmit={form.handleSubmit(submit)}>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Name</FormLabel>
-                <FormControl>
-                  <Input {...field} placeholder="e.g. Dr. Novak" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="type"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Type</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger className="w-full">
-                      <span>{typeLabels[field.value]}</span>
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {contactType.options.map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {typeLabels[option]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Email</FormLabel>
-                <FormControl>
-                  <Input {...field} placeholder="name@example.com" type="email" value={field.value ?? ''} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="phone"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Phone</FormLabel>
-                <FormControl>
-                  <Input {...field} placeholder="e.g. +386 40 123 456" value={field.value ?? ''} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          {offersBirthday && (
+    <>
+      <Form {...form}>
+        <form className="space-y-4" onSubmit={form.handleSubmit(submit)}>
+          <div className="grid gap-4 sm:grid-cols-2">
             <FormField
               control={form.control}
-              name="dateOfBirth"
+              name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Birthday (optional)</FormLabel>
+                  <FormLabel>Name</FormLabel>
                   <FormControl>
-                    <DateField onChange={field.onChange} value={field.value ?? ''} />
+                    <Input {...field} placeholder="e.g. Dr. Novak" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-          )}
-        </div>
-        <FormField
-          control={form.control}
-          name="address"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Address</FormLabel>
-              <FormControl>
-                {/* Spelled out rather than `{...field}`: an undefined `value` would flip the
-                    component to uncontrolled mid-edit, and its `onChange` takes the string itself. */}
-                <PlaceAutocomplete
-                  name={field.name}
-                  onBlur={field.onBlur}
-                  onChange={field.onChange}
-                  placeholder="Street, city"
-                  ref={field.ref}
-                  value={field.value ?? ''}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Notes</FormLabel>
-              <FormControl>
-                <Textarea {...field} placeholder="Anything worth remembering" value={field.value ?? ''} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <FormLabel>Links</FormLabel>
-            <Button
-              onClick={() => links.append({ name: '', url: '', type: 'web' })}
-              size="sm"
-              type="button"
-              variant="outline"
-            >
-              <PlusIcon />
-              Add link
-            </Button>
+            <FormField
+              control={form.control}
+              name="type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Type</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <span>{typeLabels[field.value]}</span>
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {contactType.options.map((option) => (
+                        <SelectItem key={option} value={option}>
+                          {typeLabels[option]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="name@example.com" type="email" value={field.value ?? ''} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="phone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Phone</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="e.g. +386 40 123 456" value={field.value ?? ''} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            {offersBirthday && (
+              <FormField
+                control={form.control}
+                name="dateOfBirth"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Birthday (optional)</FormLabel>
+                    <FormControl>
+                      <DateField onChange={field.onChange} value={field.value ?? ''} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
           </div>
-          {links.fields.length === 0 ? (
-            <p className="text-muted-foreground text-sm">No links yet. Add a website or social profile.</p>
-          ) : (
-            <div className="space-y-2">
-              {links.fields.map((item, index) => (
-                <div className="flex items-start gap-2" key={item.id}>
-                  <FormField
-                    control={form.control}
-                    name={`links.${index}.name`}
-                    render={({ field }) => (
-                      <FormItem className="w-32 shrink-0">
-                        <FormControl>
-                          <Input {...field} placeholder="Label" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+          <FormField
+            control={form.control}
+            name="address"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Address</FormLabel>
+                <FormControl>
+                  {/* Spelled out rather than `{...field}`: an undefined `value` would flip the
+                    component to uncontrolled mid-edit, and its `onChange` takes the string itself. */}
+                  <PlaceAutocomplete
+                    name={field.name}
+                    onBlur={field.onBlur}
+                    onChange={field.onChange}
+                    placeholder="Street, city"
+                    ref={field.ref}
+                    value={field.value ?? ''}
                   />
-                  <FormField
-                    control={form.control}
-                    name={`links.${index}.url`}
-                    render={({ field }) => (
-                      <FormItem className="flex-1">
-                        <FormControl>
-                          {/* Plain text (not type="url") so a bare domain isn't blocked by native
-                              validation before the schema prepends https://. */}
-                          <Input {...field} placeholder="https://…" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name={`links.${index}.type`}
-                    render={({ field }) => (
-                      <FormItem className="w-28 shrink-0">
-                        <Select onValueChange={field.onChange} value={field.value ?? 'web'}>
-                          <FormControl>
-                            <SelectTrigger className="w-full">
-                              <span>{contactLinkTypeLabels[field.value ?? 'web']}</span>
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {contactLinkType.options.map((option) => (
-                              <SelectItem key={option} value={option}>
-                                {contactLinkTypeLabels[option]}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <Button
-                    aria-label="Remove link"
-                    className="shrink-0"
-                    onClick={() => links.remove(index)}
-                    size="icon"
-                    type="button"
-                    variant="ghost"
-                  >
-                    <TrashIcon />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="description"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Notes</FormLabel>
+                <FormControl>
+                  <Textarea {...field} placeholder="Anything worth remembering" value={field.value ?? ''} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        {offersRelations && (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <FormLabel>Relations</FormLabel>
-              <AddContactCombobox
-                excludeId={excludeId}
-                label="Add relation"
-                linkedIds={relatedIds}
-                onCreate={() => toast.info('Save this contact first, then add the other person.')}
-                onLink={async (related) => {
-                  // `INVERSE_ROLE` fills in the reverse wording; the contact's own page overrides it.
-                  relations.append({ relatedContactId: related.id, relatedContactName: related.name, role: 'friend' });
-                }}
-                typeLabels={typeLabels}
-                types={PERSONAL_CONTACT_TYPES}
-              />
+              <FormLabel>Links</FormLabel>
+              <Button
+                onClick={() => links.append({ name: '', url: '', type: 'web' })}
+                size="sm"
+                type="button"
+                variant="outline"
+              >
+                <PlusIcon />
+                Add link
+              </Button>
             </div>
-            {relations.fields.length === 0 ? (
-              <p className="text-muted-foreground text-sm">No relations yet. Add a partner, parent or sibling.</p>
+            {links.fields.length === 0 ? (
+              <p className="text-muted-foreground text-sm">No links yet. Add a website or social profile.</p>
             ) : (
               <div className="space-y-2">
-                {relations.fields.map((item, index) => (
-                  <div className="flex items-center gap-2" key={item.id}>
-                    <span className="min-w-0 flex-1 truncate text-sm">{item.relatedContactName}</span>
-                    <span className="shrink-0 text-muted-foreground text-sm">is</span>
+                {links.fields.map((item, index) => (
+                  <div className="flex items-start gap-2" key={item.id}>
                     <FormField
                       control={form.control}
-                      name={`relations.${index}.role`}
+                      name={`links.${index}.name`}
                       render={({ field }) => (
-                        <FormItem className="w-40 shrink-0">
-                          <Select onValueChange={field.onChange} value={field.value ?? 'friend'}>
+                        <FormItem className="w-32 shrink-0">
+                          <FormControl>
+                            <Input {...field} placeholder="Label" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name={`links.${index}.url`}
+                      render={({ field }) => (
+                        <FormItem className="flex-1">
+                          <FormControl>
+                            {/* Plain text (not type="url") so a bare domain isn't blocked by native
+                              validation before the schema prepends https://. */}
+                            <Input {...field} placeholder="https://…" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name={`links.${index}.type`}
+                      render={({ field }) => (
+                        <FormItem className="w-28 shrink-0">
+                          <Select onValueChange={field.onChange} value={field.value ?? 'web'}>
                             <FormControl>
-                              <SelectTrigger aria-label={`${item.relatedContactName}'s relation`} className="w-full">
-                                <span>{contactRelationRoleLabels[field.value ?? 'friend']}</span>
+                              <SelectTrigger className="w-full">
+                                <span>{contactLinkTypeLabels[field.value ?? 'web']}</span>
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {contactRelationRole.options.map((option) => (
+                              {contactLinkType.options.map((option) => (
                                 <SelectItem key={option} value={option}>
-                                  {contactRelationRoleLabels[option]}
+                                  {contactLinkTypeLabels[option]}
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -452,9 +407,9 @@ function ContactForm({
                       )}
                     />
                     <Button
-                      aria-label={`Remove ${item.relatedContactName}`}
+                      aria-label="Remove link"
                       className="shrink-0"
-                      onClick={() => relations.remove(index)}
+                      onClick={() => links.remove(index)}
                       size="icon"
                       type="button"
                       variant="ghost"
@@ -466,14 +421,144 @@ function ContactForm({
               </div>
             )}
           </div>
-        )}
 
-        <DialogFooter>
-          <Button loading={form.formState.isSubmitting} type="submit">
-            {contact ? 'Save changes' : 'Create contact'}
-          </Button>
-        </DialogFooter>
-      </form>
-    </Form>
+          {offersRelations && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <FormLabel>Relations</FormLabel>
+                <AddContactCombobox
+                  excludeId={excludeId}
+                  label="Add relation"
+                  linkedIds={relatedIds}
+                  onCreate={(search) => setCreating({ name: search })}
+                  onLink={async (related) => {
+                    // `INVERSE_ROLE` fills in the reverse wording; the contact's own page overrides it.
+                    relations.append({
+                      relatedContactId: related.id,
+                      relatedContactName: related.name,
+                      role: 'friend',
+                    });
+                  }}
+                  typeLabels={typeLabels}
+                  types={PERSONAL_CONTACT_TYPES}
+                />
+              </div>
+              {relations.fields.length === 0 ? (
+                <p className="text-muted-foreground text-sm">No relations yet. Add a partner, parent or sibling.</p>
+              ) : (
+                <div className="space-y-2">
+                  {relations.fields.map((item, index) => (
+                    <div className="flex items-center gap-2" key={item.id}>
+                      <span className="min-w-0 flex-1 truncate text-sm">{item.relatedContactName}</span>
+                      <span className="shrink-0 text-muted-foreground text-sm">is</span>
+                      <FormField
+                        control={form.control}
+                        name={`relations.${index}.role`}
+                        render={({ field }) => (
+                          <FormItem className="w-40 shrink-0">
+                            <Select onValueChange={field.onChange} value={field.value ?? 'friend'}>
+                              <FormControl>
+                                <SelectTrigger aria-label={`${item.relatedContactName}'s relation`} className="w-full">
+                                  <span>{contactRelationRoleLabels[field.value ?? 'friend']}</span>
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {contactRelationRole.options.map((option) => (
+                                  <SelectItem key={option} value={option}>
+                                    {contactRelationRoleLabels[option]}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <Button
+                        aria-label={`Remove ${item.relatedContactName}`}
+                        className="shrink-0"
+                        onClick={() => relations.remove(index)}
+                        size="icon"
+                        type="button"
+                        variant="ghost"
+                      >
+                        <TrashIcon />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button loading={form.formState.isSubmitting} type="submit">
+              {contact ? 'Save changes' : 'Create contact'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </Form>
+
+      {/* Outside the form, not inside the relations section: a portal still bubbles React events up
+          the component tree, so a submit in there would run this form's own. */}
+      {creating && (
+        <CreateRelatedContactDialog
+          defaultName={creating.name}
+          onCreated={(created) =>
+            // The reverse wording is left to `INVERSE_ROLE`, as it is for a contact picked here.
+            relations.append({ relatedContactId: created.id, relatedContactName: created.name, role: 'friend' })
+          }
+          onOpenChange={(next) => !next && setCreating(undefined)}
+          open
+        />
+      )}
+    </>
+  );
+}
+
+/**
+ * Creates the far end of a relation and hands it back.
+ *
+ * A relation is stored by id, so unlike a store or an ingredient the person cannot travel with the
+ * payload and be found-or-created on save — there is nothing to point at until the row exists. Hence a
+ * real write here, and hence the address book's own labels: the other end of a relation is always a
+ * person, never a pet's vet, whatever the form around it is relabelling `medical` as.
+ *
+ * It offers no relations of its own, which is also what stops it opening another copy of itself.
+ */
+export function CreateRelatedContactDialog({
+  defaultName,
+  onCreated,
+  onOpenChange,
+  open,
+}: {
+  defaultName?: string;
+  onCreated: (contact: CreatedContact) => void;
+  onOpenChange: (open: boolean) => void;
+  open: boolean;
+}) {
+  const queryClient = useQueryClient();
+
+  const submit = async ({ relations: _unused, ...fields }: ContactFormValues) => {
+    try {
+      const created = await parseResponse($createContact({ json: fields }));
+      invalidateContacts(queryClient);
+      toast.success('Contact added.');
+      onCreated(created);
+    } catch (error) {
+      toast.error(serverMessage(error, 'Could not add contact.'));
+      throw error; // Keep the dialog open so the user can retry.
+    }
+  };
+
+  return (
+    <ContactFormDialog
+      defaultName={defaultName}
+      defaultType="family"
+      onOpenChange={onOpenChange}
+      onSubmit={submit}
+      open={open}
+      typeLabels={contactTypeLabels}
+    />
   );
 }

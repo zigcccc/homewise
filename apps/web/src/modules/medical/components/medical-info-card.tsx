@@ -75,6 +75,8 @@ export function MedicalInfoCard({
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<MedicalContact | undefined>(undefined);
+  // What the picker was searched with, so a create opens on the name already typed.
+  const [creatingName, setCreatingName] = useState<string | undefined>(undefined);
   const [removing, setRemoving] = useState<MedicalContact | undefined>(undefined);
 
   const linkedIds = new Set(medicalInfo.contacts.map((contact) => contact.id));
@@ -126,8 +128,9 @@ export function MedicalInfoCard({
     }
   };
 
-  const openCreateDialog = () => {
+  const openCreateDialog = (search: string) => {
     setEditing(undefined);
+    setCreatingName(search);
     setFormOpen(true);
   };
 
@@ -217,6 +220,7 @@ export function MedicalInfoCard({
                       aria-label={`Edit ${contact.name}`}
                       onClick={() => {
                         setEditing(contact);
+                        setCreatingName(undefined);
                         setFormOpen(true);
                       }}
                       size="icon"
@@ -242,6 +246,7 @@ export function MedicalInfoCard({
 
       <ContactFormDialog
         contact={editing}
+        defaultName={creatingName}
         onOpenChange={setFormOpen}
         onSubmit={submitContact}
         open={formOpen}
