@@ -8,6 +8,24 @@ description: Homewise UI patterns and the shared ShadCN kit in packages/ui — r
 Read `CLAUDE.md` first — it wins on any conflict. For routes, loaders and queries see
 `web-conventions`; this skill is everything that renders.
 
+## Read-only forms
+
+A form a member may not submit gets `<fieldset className="contents" disabled={!canWrite}>` around its
+body rather than a `disabled` on every control. One attribute disables every descendant, Radix
+triggers included, and it never touches React props — so `FormControl`'s id/aria wiring is untouched
+and the `FormControl` trap below does not apply. The submit disappears on its own: it renders on
+`formState.isDirty`, and a disabled fieldset can never become dirty.
+
+- **`className="contents"` is required.** A bare `<fieldset>` is a block box with
+  `min-inline-size: min-content`, which breaks `space-y-*` rhythm and any grid or flex shrinking inside.
+- **Watch what else is a `<button>`.** `MaskedInput` reveals its value with a pencil button, so a
+  fieldset takes away the only way to read the value — pass `revealed={!canWrite || …}` so a read-only
+  viewer sees it outright. Anything else whose *read* path runs through a button has the same problem.
+- **Whole controls hide rather than disable** (`<Can>`): a row of greyed-out menu items is noise to
+  someone who can never use them, and a disabled `DropdownMenuItem` inside a `TooltipTrigger asChild`
+  swallows its own click.
+
+
 ## Read the kit before writing markup
 
 `packages/ui` is ShadCN components built on Radix UI primitives + TailwindCSS v4. Add new components

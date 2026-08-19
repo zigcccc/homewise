@@ -12,6 +12,14 @@ conventions live in the skills it points at, and CLAUDE.md's non-negotiables win
 The conventions this procedure leans on, each loaded when you reach its step: `server-conventions`,
 `server-build-and-imports`, `realtime-events`, `web-conventions`, `ui-conventions`, `e2e-testing`.
 
+> **A new module declares a permission area.** Add one entry to `PERMISSION_AREAS`
+> (`apps/server/src/lib/permissions.ts`) and pass it to `withHousehold('<area>')` when you mount the
+> sub-app — the argument is required, and `app.route-coverage.test.ts` names the module if the mount is
+> missed. Add it to `NAV_GROUPS` (`apps/web/src/modules/shared/constants/areas.ts`) too, which is what
+> puts it in the sidebar *and* guards its routes. Adults and children get a new area automatically;
+> externals and pets are denied it unless you say otherwise.
+
+
 ## Before writing code
 
 Settle these with the user; each one changes the schema and is expensive to retrofit:

@@ -8,6 +8,29 @@ description: Conventions for apps/web — TanStack Router file-based routes, tab
 TanStack Router + TanStack Query over the Hono RPC client. Read `CLAUDE.md` first — it wins on any
 conflict. For anything you *render* — components, forms, tables, dialogs — see `ui-conventions`.
 
+## Capability
+
+`useCan()` (`modules/shared/hooks/use-can.ts`) answers what the current member may do, over the same
+`permissions.ts` the server enforces with. **It defaults to `'write'`** — inside the shell every role
+reads everything it can reach, so a component asking about an area is asking whether it may change it.
+
+- **It reads the household query, not route context.** `beforeLoad` results are cached per match, so a
+  role changed in another tab — which arrives as a realtime invalidation of `['households']` — would
+  leave every button on screen until the next navigation. Reading the query is reactive, denies while
+  the role is unknown, and works in components that also render outside the shell (`add-member-forms`
+  renders in onboarding, where there is no `_onboarded` match to read `from`).
+- **Route context is still right for guards**, which run per navigation: `_onboarded`'s `beforeLoad`
+  bounces a member out of a section they cannot read, and `requireWrite(area)` guards the three routes
+  that only exist to write (`recipes/new`, `recipes/$recipeId/edit`, `shopping-lists/import`).
+- **`NAV_GROUPS` (`modules/shared/constants/areas.ts`) is the only place a path is tied to an area.**
+  The sidebar renders from it and the guard reads from it, so a section cannot appear in the nav
+  without being reachable, or be reachable without appearing. `Settings` is gated on `write` rather
+  than `read`, because the page is nothing but mutations.
+- **An `external` member has its own home** (`/external`) rather than a filtered dashboard, and does
+  **not** join the realtime channel — there is one channel per household and every event carries the
+  display name of what changed, including things that role may not read.
+
+
 ## Routing
 
 File-based routing. Route file conventions:
