@@ -1,6 +1,7 @@
 import { SEED_INGREDIENTS, SEED_SECOND_USER } from '@homewise/server/seed-fixtures';
 
 import { ActivityPage } from '../pages/activity.page';
+import { AppNav } from '../pages/app-nav.page';
 import { ContactsPage } from '../pages/contacts.page';
 import { IngredientsPage } from '../pages/ingredients.page';
 import { MealPlanPage } from '../pages/meal-plan.page';
@@ -29,6 +30,9 @@ test.describe('realtime', () => {
 
     // The actor: SEED_SECOND_USER — a different account, a different browser context, the same
     // household. Two tabs of one user would work too, but this proves the cross-account case.
+    // Subscribed, not merely rendered — otherwise the actor can publish into a tab that is still attaching.
+    await new AppNav(page).waitForRealtime();
+
     const actorContext = await browser.newContext({ storageState: await household.sessionFor('second') });
     const actor = new IngredientsPage(await actorContext.newPage());
 
@@ -62,6 +66,9 @@ test.describe('realtime', () => {
     await observer.goto(REALTIME_WEEK);
     await expect(observer.meal(REALTIME_WEEK, lunch)).toHaveCount(0);
 
+    // Subscribed, not merely rendered — otherwise the actor can publish into a tab that is still attaching.
+    await new AppNav(page).waitForRealtime();
+
     const actorContext = await browser.newContext({ storageState: await household.sessionFor('second') });
     const actor = new MealPlanPage(await actorContext.newPage());
 
@@ -92,6 +99,9 @@ test.describe('realtime', () => {
     const listId = await observer.createList();
     await observer.addIngredient(item);
     await expect(observer.progress()).toHaveText('0 of 1 ticked');
+
+    // Subscribed, not merely rendered — otherwise the actor can publish into a tab that is still attaching.
+    await new AppNav(page).waitForRealtime();
 
     const actorContext = await browser.newContext({ storageState: await household.sessionFor('second') });
     const actor = new ShoppingListsPage(await actorContext.newPage());
@@ -127,6 +137,9 @@ test.describe('realtime', () => {
     await observer.goto();
     await observer.find(name);
     await expect(observer.entry(name)).toHaveCount(0);
+
+    // Subscribed, not merely rendered — otherwise the actor can publish into a tab that is still attaching.
+    await new AppNav(page).waitForRealtime();
 
     const actorContext = await browser.newContext({ storageState: await household.sessionFor('second') });
     const actorPage = await actorContext.newPage();
