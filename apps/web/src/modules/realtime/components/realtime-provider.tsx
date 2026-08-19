@@ -222,6 +222,12 @@ function RealtimeSync({ channel }: { channel: string }) {
  * it invalidated immediately, and pub/sub is only the passive path for everyone else.
  */
 export function RealtimeProvider({ channel, children }: { channel: string; children: ReactNode }) {
+  // The client is constructed with `autoConnect: false`, so this is what opens the socket. Called in
+  // the body rather than an effect because the SDK wants it before its hooks attach, and it is
+  // idempotent — StrictMode's double render costs nothing. Never paired with a `close()`: nothing
+  // closes this connection, and nothing should.
+  realtimeClient.connect();
+
   return (
     <AblyProvider client={realtimeClient}>
       <ChannelProvider channelName={channel}>

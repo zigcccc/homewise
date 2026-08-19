@@ -15,8 +15,10 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as AuthenticatedOnboardedRouteImport } from './routes/_authenticated/_onboarded'
 import { Route as AuthenticatedJoinHouseholdRouteImport } from './routes/_authenticated/join-household'
+import { Route as AuthenticatedNoAccessRouteImport } from './routes/_authenticated/no-access'
 import { Route as AuthenticatedOnboardingRouteRouteImport } from './routes/_authenticated/onboarding/route'
 import { Route as AuthenticatedOnboardedIndexRouteImport } from './routes/_authenticated/_onboarded/index'
+import { Route as AuthenticatedOnboardedExternalRouteImport } from './routes/_authenticated/_onboarded/external'
 import { Route as AuthenticatedOnboardedUserProfileRouteImport } from './routes/_authenticated/_onboarded/user-profile'
 import { Route as AuthenticatedOnboardingIndexRouteImport } from './routes/_authenticated/onboarding/index'
 import { Route as AuthenticatedOnboardingCreateHouseholdRouteImport } from './routes/_authenticated/onboarding/create-household'
@@ -84,6 +86,11 @@ const AuthenticatedJoinHouseholdRoute =
     path: '/join-household',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedNoAccessRoute = AuthenticatedNoAccessRouteImport.update({
+  id: '/no-access',
+  path: '/no-access',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedOnboardingRouteRoute =
   AuthenticatedOnboardingRouteRouteImport.update({
     id: '/onboarding',
@@ -94,6 +101,12 @@ const AuthenticatedOnboardedIndexRoute =
   AuthenticatedOnboardedIndexRouteImport.update({
     id: '/',
     path: '/',
+    getParentRoute: () => AuthenticatedOnboardedRoute,
+  } as any)
+const AuthenticatedOnboardedExternalRoute =
+  AuthenticatedOnboardedExternalRouteImport.update({
+    id: '/external',
+    path: '/external',
     getParentRoute: () => AuthenticatedOnboardedRoute,
   } as any)
 const AuthenticatedOnboardedUserProfileRoute =
@@ -328,6 +341,8 @@ export interface FileRoutesByFullPath {
   '/verify-email': typeof VerifyEmailRoute
   '/onboarding': typeof AuthenticatedOnboardingRouteRouteWithChildren
   '/join-household': typeof AuthenticatedJoinHouseholdRoute
+  '/no-access': typeof AuthenticatedNoAccessRoute
+  '/external': typeof AuthenticatedOnboardedExternalRoute
   '/user-profile': typeof AuthenticatedOnboardedUserProfileRoute
   '/onboarding/create-household': typeof AuthenticatedOnboardingCreateHouseholdRoute
   '/onboarding/invite-members': typeof AuthenticatedOnboardingInviteMembersRoute
@@ -372,6 +387,8 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/verify-email': typeof VerifyEmailRoute
   '/join-household': typeof AuthenticatedJoinHouseholdRoute
+  '/no-access': typeof AuthenticatedNoAccessRoute
+  '/external': typeof AuthenticatedOnboardedExternalRoute
   '/user-profile': typeof AuthenticatedOnboardedUserProfileRoute
   '/onboarding/create-household': typeof AuthenticatedOnboardingCreateHouseholdRoute
   '/onboarding/invite-members': typeof AuthenticatedOnboardingInviteMembersRoute
@@ -413,6 +430,8 @@ export interface FileRoutesById {
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRouteRouteWithChildren
   '/_authenticated/_onboarded': typeof AuthenticatedOnboardedRouteWithChildren
   '/_authenticated/join-household': typeof AuthenticatedJoinHouseholdRoute
+  '/_authenticated/no-access': typeof AuthenticatedNoAccessRoute
+  '/_authenticated/_onboarded/external': typeof AuthenticatedOnboardedExternalRoute
   '/_authenticated/_onboarded/user-profile': typeof AuthenticatedOnboardedUserProfileRoute
   '/_authenticated/onboarding/create-household': typeof AuthenticatedOnboardingCreateHouseholdRoute
   '/_authenticated/onboarding/invite-members': typeof AuthenticatedOnboardingInviteMembersRoute
@@ -461,6 +480,8 @@ export interface FileRouteTypes {
     | '/verify-email'
     | '/onboarding'
     | '/join-household'
+    | '/no-access'
+    | '/external'
     | '/user-profile'
     | '/onboarding/create-household'
     | '/onboarding/invite-members'
@@ -505,6 +526,8 @@ export interface FileRouteTypes {
     | '/signup'
     | '/verify-email'
     | '/join-household'
+    | '/no-access'
+    | '/external'
     | '/user-profile'
     | '/onboarding/create-household'
     | '/onboarding/invite-members'
@@ -545,6 +568,8 @@ export interface FileRouteTypes {
     | '/_authenticated/onboarding'
     | '/_authenticated/_onboarded'
     | '/_authenticated/join-household'
+    | '/_authenticated/no-access'
+    | '/_authenticated/_onboarded/external'
     | '/_authenticated/_onboarded/user-profile'
     | '/_authenticated/onboarding/create-household'
     | '/_authenticated/onboarding/invite-members'
@@ -636,6 +661,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedJoinHouseholdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/no-access': {
+      id: '/_authenticated/no-access'
+      path: '/no-access'
+      fullPath: '/no-access'
+      preLoaderRoute: typeof AuthenticatedNoAccessRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/onboarding': {
       id: '/_authenticated/onboarding'
       path: '/onboarding'
@@ -648,6 +680,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedOnboardedIndexRouteImport
+      parentRoute: typeof AuthenticatedOnboardedRoute
+    }
+    '/_authenticated/_onboarded/external': {
+      id: '/_authenticated/_onboarded/external'
+      path: '/external'
+      fullPath: '/external'
+      preLoaderRoute: typeof AuthenticatedOnboardedExternalRouteImport
       parentRoute: typeof AuthenticatedOnboardedRoute
     }
     '/_authenticated/_onboarded/user-profile': {
@@ -1047,6 +1086,7 @@ const AuthenticatedOnboardedFoodRecipesRecipeIdRouteRouteWithChildren =
   )
 
 interface AuthenticatedOnboardedRouteChildren {
+  AuthenticatedOnboardedExternalRoute: typeof AuthenticatedOnboardedExternalRoute
   AuthenticatedOnboardedUserProfileRoute: typeof AuthenticatedOnboardedUserProfileRoute
   AuthenticatedOnboardedIndexRoute: typeof AuthenticatedOnboardedIndexRoute
   AuthenticatedOnboardedExpensesMonthlyExpensesRouteRoute: typeof AuthenticatedOnboardedExpensesMonthlyExpensesRouteRouteWithChildren
@@ -1072,6 +1112,7 @@ interface AuthenticatedOnboardedRouteChildren {
 
 const AuthenticatedOnboardedRouteChildren: AuthenticatedOnboardedRouteChildren =
   {
+    AuthenticatedOnboardedExternalRoute: AuthenticatedOnboardedExternalRoute,
     AuthenticatedOnboardedUserProfileRoute:
       AuthenticatedOnboardedUserProfileRoute,
     AuthenticatedOnboardedIndexRoute: AuthenticatedOnboardedIndexRoute,
@@ -1124,6 +1165,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedOnboardingRouteRoute: typeof AuthenticatedOnboardingRouteRouteWithChildren
   AuthenticatedOnboardedRoute: typeof AuthenticatedOnboardedRouteWithChildren
   AuthenticatedJoinHouseholdRoute: typeof AuthenticatedJoinHouseholdRoute
+  AuthenticatedNoAccessRoute: typeof AuthenticatedNoAccessRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
@@ -1131,6 +1173,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
     AuthenticatedOnboardingRouteRouteWithChildren,
   AuthenticatedOnboardedRoute: AuthenticatedOnboardedRouteWithChildren,
   AuthenticatedJoinHouseholdRoute: AuthenticatedJoinHouseholdRoute,
+  AuthenticatedNoAccessRoute: AuthenticatedNoAccessRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
