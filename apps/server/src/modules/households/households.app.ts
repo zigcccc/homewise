@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 
+import { can } from '#lib/permissions';
 import { zValidator } from '#lib/validation';
 import { withHousehold, withHouseholdOwner } from '#middleware/household.middleware';
 import { type AppContext } from '#types/app.type';
@@ -36,9 +37,17 @@ const myHouseholdApp = new Hono<AppContext>()
       return c.body(null, 404);
     }
 
+    // The one response shaped by role: a viewer who can't read the roster still needs the shell, so
+    // they get the household and their own row and nothing about anyone else.
+    const { viewer } = c.var;
+    const visibleMembers = can(viewer.role, 'householdMembers', 'read')
+      ? household.members
+      : household.members.filter((member) => member.id === viewer.memberId);
+
     const mappedHousehold = {
       ...household,
-      members: household.members.map((member) => HouseholdsService.toMemberResponse(member, household.ownerId)),
+      members: visibleMembers.map((member) => HouseholdsService.toMemberResponse(member, household.ownerId)),
+      viewer,
     };
 
     return c.json(mappedHousehold, 200);

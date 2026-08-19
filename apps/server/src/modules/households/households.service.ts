@@ -105,16 +105,30 @@ export class HouseholdsService {
   }
 
   /**
-   * Same scoping as {@link readForUser}, but without loading members — cheap enough to run on every
-   * household-scoped request via the `withHousehold` middleware.
+   * Same scoping as {@link readForUser}, but carrying only the caller's own member row rather than the
+   * whole roster — cheap enough to run on every household-scoped request via the `withHousehold`
+   * middleware, which needs the role to decide what the request may do.
+   *
+   * Left-joined rather than a second query, and the `where` still matches on ownership *or*
+   * membership: an owner is reachable through `ownerId` alone, so their member row may be absent here
+   * even though one is always written at creation.
    */
   public static async readSummaryForUser(userId: string) {
-    const household = await db.query.household.findFirst({
-      where: (households, { eq, or }) =>
-        or(eq(households.ownerId, userId), HouseholdsService.getUserHouseholdSql(userId)),
-    });
+    const [row] = await db
+      .select({
+        household: schema.household,
+        memberId: schema.householdMember.id,
+        role: schema.householdMember.role,
+      })
+      .from(schema.household)
+      .leftJoin(
+        schema.householdMember,
+        and(eq(schema.householdMember.householdId, schema.household.id), eq(schema.householdMember.userId, userId))
+      )
+      .where(or(eq(schema.household.ownerId, userId), HouseholdsService.getUserHouseholdSql(userId)))
+      .limit(1);
 
-    return household;
+    return row;
   }
 
   /**

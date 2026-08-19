@@ -4,6 +4,7 @@ import { HTTPException } from 'hono/http-exception';
 
 import { notFound } from '#lib/errors';
 import { ActivityService } from '#modules/activity/activity.service';
+import { type HouseholdMemberRole } from '#modules/households/households.model';
 import { type HouseholdSummary, HouseholdsService } from '#modules/households/households.service';
 import { type HouseholdEvent } from '#modules/realtime/realtime.model';
 import { RealtimeService } from '#modules/realtime/realtime.service';
@@ -12,6 +13,8 @@ import { type AppContext } from '#types/app.type';
 export type HouseholdContext = {
   Variables: AppContext['Variables'] & {
     household: HouseholdSummary;
+    /** Who is asking, resolved alongside the household rather than in a second query. */
+    viewer: { isOwner: boolean; memberId: number | null; role: HouseholdMemberRole };
     /**
      * Announces what this request changed to the rest of the household, and records it in the
      * activity log. Buffered and flushed once the handler succeeds — call it as many times as the
@@ -36,16 +39,29 @@ export type HouseholdContext = {
  * hears about it is not theirs to decide.
  */
 export const withHousehold = createMiddleware<HouseholdContext>(async (c, next) => {
-  const household = await HouseholdsService.readSummaryForUser(c.var.user.id);
+  const row = await HouseholdsService.readSummaryForUser(c.var.user.id);
 
-  if (!household) {
+  if (!row) {
+    throw notFound('Household');
+  }
+
+  const { household, memberId, role: memberRole } = row;
+  const isOwner = household.ownerId === c.var.user.id;
+
+  // The join misses only when the caller matched on `ownerId` alone, and an owner is an adult by
+  // definition — every other path here has a member row.
+  const role = memberRole ?? (isOwner ? 'adult' : null);
+
+  if (!role) {
     throw notFound('Household');
   }
 
   c.set('household', household);
+  c.set('viewer', { isOwner, memberId, role });
   // Every error, trace and log from a household-scoped route becomes filterable by household — the
   // unit a bug report ("our recipes stopped syncing") actually arrives in.
   setTag('householdId', household.id);
+  setTag('householdRole', role);
 
   const buffered: HouseholdEvent[] = [];
   c.set('emit', (...events) => {
@@ -77,7 +93,7 @@ export const withHousehold = createMiddleware<HouseholdContext>(async (c, next) 
 
 /** Guards owner-only actions. Must run after {@link withHousehold}. */
 export const withHouseholdOwner = createMiddleware<HouseholdContext>(async (c, next) => {
-  if (c.var.household.ownerId !== c.var.user.id) {
+  if (!c.var.viewer.isOwner) {
     throw new HTTPException(403, { message: 'Only household owners can perform this action.' });
   }
 
