@@ -11,7 +11,8 @@ import { ContactFormDialog, type ContactFormValues } from './contact-form-dialog
 /**
  * The address book's own create/edit dialog — `ContactFormDialog` with the contacts endpoints behind
  * it. The generic one stays caller-driven because the owners that mint a contact (a medical record, a
- * loan) each post somewhere else; this is the one place that writes a contact as a contact.
+ * loan) each post somewhere else; this is where a contact is written *as* a contact, alongside
+ * `CreateRelatedContactDialog`, which writes the far end of a relation and nothing else.
  */
 export function ContactDialog({
   contactId,

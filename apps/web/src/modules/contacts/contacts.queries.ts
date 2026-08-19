@@ -19,6 +19,9 @@ export type ListContactsQuery = InferRequestType<typeof $listContacts>['query'];
 type ContactsPage = InferResponseType<typeof $listContacts, 200>;
 export type HouseholdContact = ContactsPage['items'][number];
 
+/** A freshly created contact, as the create endpoint hands it back. 201, not 200. */
+export type CreatedContact = InferResponseType<typeof $createContact, 201>;
+
 /** One contact in full: the row, its links, and who it's related to. */
 export type ContactDetail = InferResponseType<typeof $readContact, 200>;
 

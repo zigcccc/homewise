@@ -100,7 +100,8 @@ export function LendItemDialog({
 
 function LendForm({ item, onDone }: { item: StorageItem; onDone: () => void }) {
   const queryClient = useQueryClient();
-  const [createOpen, setCreateOpen] = useState(false);
+  // The whole search term, not a flag: an empty one is still a dialog that should open.
+  const [creating, setCreating] = useState<{ name: string } | undefined>(undefined);
   // The picker hands back the whole contact; the form only carries the id, so the name is kept here.
   const [pickedName, setPickedName] = useState<string | undefined>(undefined);
 
@@ -156,7 +157,7 @@ function LendForm({ item, onDone }: { item: StorageItem; onDone: () => void }) {
               <FormItem>
                 <FormLabel>Who has it</FormLabel>
                 <AddContactCombobox
-                  onCreate={() => setCreateOpen(true)}
+                  onCreate={(search) => setCreating({ name: search })}
                   onLink={async (contact) => {
                     setPickedName(contact.name);
                     form.setValue('contactId', contact.id, { shouldDirty: true });
@@ -226,16 +227,17 @@ function LendForm({ item, onDone }: { item: StorageItem; onDone: () => void }) {
       </Form>
 
       <ContactFormDialog
-        onOpenChange={setCreateOpen}
+        defaultName={creating?.name}
+        onOpenChange={(next) => !next && setCreating(undefined)}
         onSubmit={async (values) => {
           // Held on the form rather than created here: the loan endpoint mints the contact in the
           // same transaction, so an abandoned dialog leaves no address-book entry behind.
           form.setValue('newContact', values, { shouldDirty: true });
           form.setValue('contactId', undefined, { shouldDirty: true });
           form.clearErrors('contactId');
-          setCreateOpen(false);
+          setCreating(undefined);
         }}
-        open={createOpen}
+        open={Boolean(creating)}
         typeLabels={contactTypeLabels}
       />
     </>

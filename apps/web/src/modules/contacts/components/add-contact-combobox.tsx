@@ -50,7 +50,8 @@ export function AddContactCombobox({
   label?: string;
   /** Omit where only one contact is ever chosen — nothing can already be attached. */
   linkedIds?: ReadonlySet<number>;
-  onCreate: () => void;
+  /** Handed whatever was typed in the search box, so the create dialog can open with the name in it. */
+  onCreate: (search: string) => void;
   onLink: (contact: HouseholdContact) => Promise<void>;
   /** Replaces the default action button entirely. Must be a combobox trigger. */
   trigger?: ReactNode;
@@ -99,8 +100,10 @@ export function AddContactCombobox({
             <ComboboxSeparator />
             <ComboboxAction
               onClick={() => {
+                // Read before closing: `close()` resets the search this is meant to pass on.
+                const typed = options.search.trim();
                 close();
-                onCreate();
+                onCreate(typed);
               }}
             >
               <PlusIcon />

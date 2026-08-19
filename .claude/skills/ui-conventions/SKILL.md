@@ -233,6 +233,22 @@ applies even to single-field dialogs.
 view (`useInView`): `order-last ml-auto`, `type="button"` + `handleSubmit`. Scope the E2E locator to
 `page.locator('form')`.
 
+**A dialog opened from inside a form is a sibling of `<form>`, never a child of it.** Radix portals
+its content out of the DOM, but React still bubbles *synthetic* events up the **component** tree — so
+a submit in the nested dialog also runs the outer form's `onSubmit`. Return a fragment holding
+`<Form>…</Form>` and the dialog side by side (`LendItemDialog`, `ContactForm`'s relations section).
+The same goes for any state the nested dialog needs: hold the picker's search term as
+`{ name: string } | undefined` rather than a bare string, since an empty search is still a dialog
+that has to open.
+
+**A picker's "create new" row either defers or writes, and which one is forced by the payload.** A
+value the parent's payload can carry by *name* (an ingredient, a shop) defers: the row hands back a
+`{ kind: 'new', name }` and nothing is created until the parent saves, so an abandoned draft leaves
+nothing behind — see `shouldOfferCreate` in `modules/shared/helpers/paged-query.ts`. A value stored
+by **id** (a contact on a relation) cannot: there is nothing to point at until the row exists, so the
+row opens a real create dialog and writes immediately. Don't reach for the deferred shape where the
+foreign key rules it out — and pass the typed search down as the new record's name either way.
+
 **A dialog that loads its own data catches its own suspense.** Wrap the body in
 `<Suspense fallback={<Spinner className="min-h-64" />}>` inside `DialogContent`. Without it a
 `useSuspenseQuery` — usually a combobox's options, several layers down — reaches the *route's*

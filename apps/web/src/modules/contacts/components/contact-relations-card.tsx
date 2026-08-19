@@ -33,6 +33,7 @@ import { contactRelationRoleLabels, PERSONAL_CONTACT_TYPES } from '../helpers';
 import { contactTypeLabels } from '../helpers/labels';
 import { AddContactCombobox } from './add-contact-combobox';
 import { AddRelationDialog } from './add-relation-dialog';
+import { CreateRelatedContactDialog } from './contact-form-dialog';
 
 /**
  * Who this contact is related to, and what they are to each other.
@@ -43,6 +44,8 @@ import { AddRelationDialog } from './add-relation-dialog';
  */
 export function ContactRelationsCard({ contact }: { contact: ContactDetail }) {
   const [picking, setPicking] = useState<{ id: number; name: string } | undefined>(undefined);
+  // Wrapped rather than held as a bare string: a picker closed on an empty search would never open it.
+  const [creating, setCreating] = useState<{ name: string } | undefined>(undefined);
   const titleId = useId();
 
   const relatedIds = new Set(contact.relations.map((relation) => relation.contact.id));
@@ -74,12 +77,24 @@ export function ContactRelationsCard({ contact }: { contact: ContactDetail }) {
           excludeId={contact.id}
           label="Add relation"
           linkedIds={relatedIds}
-          onCreate={() => toast.info('Add the person as a contact first, then relate them here.')}
+          onCreate={(search) => setCreating({ name: search })}
           onLink={async (related) => setPicking({ id: related.id, name: related.name })}
           typeLabels={contactTypeLabels}
           types={PERSONAL_CONTACT_TYPES}
         />
       </CardContent>
+
+      {/* Created first, then named: the relation needs an id, and the role dialog is the same one a
+          contact picked from the list gets — including the reverse wording, which `INVERSE_ROLE` can
+          only guess at. */}
+      {creating && (
+        <CreateRelatedContactDialog
+          defaultName={creating.name}
+          onCreated={(created) => setPicking({ id: created.id, name: created.name })}
+          onOpenChange={(next) => !next && setCreating(undefined)}
+          open
+        />
+      )}
 
       {picking && (
         <AddRelationDialog
