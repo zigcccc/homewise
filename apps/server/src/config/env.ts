@@ -7,6 +7,21 @@ dotenv.config();
 
 const nodeEnv = z.enum(['development', 'production', 'test']);
 
+/**
+ * Where this deployment is actually reached, for {@link envModel}'s `BETTER_AUTH_URL` default.
+ *
+ * `VERCEL_URL` is the *deployment's* own `*.vercel.app` host, which is right for a preview and wrong
+ * for production — production is reached at its custom domain, and pointing auth's callbacks at the
+ * deployment host instead would only show up as a redirect landing on the wrong origin.
+ * `VERCEL_PROJECT_PRODUCTION_URL` is that domain.
+ */
+function vercelOrigin() {
+  const host =
+    process.env.VERCEL_ENV === 'production' ? process.env.VERCEL_PROJECT_PRODUCTION_URL : process.env.VERCEL_URL;
+
+  return host ? `https://${host}` : undefined;
+}
+
 const envModel = z
   .object({
     HOMEWISE_RESEND_API_KEY: z.string(),
@@ -139,9 +154,7 @@ const envModel = z
   // Everything else keeps the old convenience: an unset NODE_ENV is a local boot.
   .transform((parsed) => ({
     ...parsed,
-    BETTER_AUTH_URL:
-      parsed.BETTER_AUTH_URL ??
-      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : `http://localhost:${SERVER_PORT}`),
+    BETTER_AUTH_URL: parsed.BETTER_AUTH_URL ?? vercelOrigin() ?? `http://localhost:${SERVER_PORT}`,
     HOMEWISE_REALTIME_NAMESPACE: parsed.HOMEWISE_REALTIME_NAMESPACE ?? 'local',
     NODE_ENV: parsed.NODE_ENV ?? ('development' as const),
   }));

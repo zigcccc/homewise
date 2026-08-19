@@ -3,6 +3,7 @@ import { createFileRoute, redirect } from '@tanstack/react-router';
 import { Spinner } from '@homewise/ui/core';
 import { isMobileViewport } from '@homewise/ui/hooks';
 
+import { RouteError } from '@/modules/shared';
 import { listQueryFor, listShoppingListsQueryOptions } from '@/modules/shopping-lists';
 
 /**
@@ -40,5 +41,6 @@ export const Route = createFileRoute('/_authenticated/_onboarded/food/shopping-l
     }
   },
   component: () => null,
+  errorComponent: () => <RouteError title="Couldn't load your shopping lists" />,
   pendingComponent: () => <Spinner />,
 });
