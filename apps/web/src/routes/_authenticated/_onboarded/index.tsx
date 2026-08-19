@@ -24,7 +24,7 @@ import { useIsMobile } from '@homewise/ui/hooks';
 import { ContactDialog } from '@/modules/contacts';
 import { ExpenseFormDialog } from '@/modules/expenses';
 import { getMyHouseholdQueryOptions } from '@/modules/households';
-import { Actionbar, formatDate, PageLayout, RouteError, todayISODay } from '@/modules/shared';
+import { Actionbar, formatDate, PageLayout, RouteError, todayISODay, useCan } from '@/modules/shared';
 
 import { ActivityCard, dashboardActivityQueryOptions } from './-components/activity-card';
 import { BirthdaysCard, dashboardBirthdayContactsQueryOptions } from './-components/birthdays-card';
@@ -134,17 +134,43 @@ function QuickActions() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [openDialog, setOpenDialog] = useState<'contact' | 'expense' | null>(null);
 
+  const can = useCan();
+  // Every one of these starts a write, so a member who can't make one is offered nothing at all.
   const actions = useMemo(
     () =>
-      [
-        { icon: PlusIcon, key: 'expense', label: 'Expense', onSelect: () => setOpenDialog('expense') },
-        { icon: ListTodoIcon, key: 'shopping-list', label: 'Shopping list', to: '/food/shopping-lists' },
-        { icon: CookingPotIcon, key: 'meal-plan', label: 'Plan a meal', to: '/food/meal-plan' },
-        { icon: BookUserIcon, key: 'contact', label: 'Contact', onSelect: () => setOpenDialog('contact') },
-      ] as const,
-    []
+      (
+        [
+          {
+            area: 'expenses',
+            icon: PlusIcon,
+            key: 'expense',
+            label: 'Expense',
+            onSelect: () => setOpenDialog('expense'),
+          },
+          {
+            area: 'shoppingLists',
+            icon: ListTodoIcon,
+            key: 'shopping-list',
+            label: 'Shopping list',
+            to: '/food/shopping-lists',
+          },
+          { area: 'mealPlan', icon: CookingPotIcon, key: 'meal-plan', label: 'Plan a meal', to: '/food/meal-plan' },
+          {
+            area: 'contacts',
+            icon: BookUserIcon,
+            key: 'contact',
+            label: 'Contact',
+            onSelect: () => setOpenDialog('contact'),
+          },
+        ] as const
+      ).filter((action) => can(action.area)),
+    [can]
   );
   const closeSheet = useCallback(() => setSheetOpen(false), []);
+
+  if (actions.length === 0) {
+    return null;
+  }
 
   return (
     <>

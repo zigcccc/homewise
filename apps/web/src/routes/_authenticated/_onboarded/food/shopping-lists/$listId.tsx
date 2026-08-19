@@ -27,7 +27,7 @@ import {
 } from '@homewise/ui/core';
 
 import { parseResponse } from '@/api/client';
-import { ConfirmDeleteDialog, InlineTextField, RouteError, serverMessage } from '@/modules/shared';
+import { Can, ConfirmDeleteDialog, InlineTextField, RouteError, serverMessage, useCan } from '@/modules/shared';
 import {
   $completeList,
   $createSection,
@@ -81,6 +81,7 @@ function ShoppingListDetailRoute() {
   const queryClient = useQueryClient();
 
   const [renaming, setRenaming] = useState(false);
+  const canWrite = useCan()('shoppingLists');
   const [completeOpen, setCompleteOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [addingSection, setAddingSection] = useState(false);
@@ -200,7 +201,8 @@ function ShoppingListDetailRoute() {
             />
           ) : (
             <button
-              className="flex cursor-pointer items-center gap-2 rounded-md text-left font-medium text-lg hover:bg-accent"
+              className="flex cursor-pointer items-center gap-2 rounded-md text-left font-medium text-lg hover:bg-accent disabled:cursor-default disabled:hover:bg-transparent"
+              disabled={!canWrite}
               onClick={() => setRenaming(true)}
               type="button"
             >
@@ -227,37 +229,39 @@ function ShoppingListDetailRoute() {
               Mark done
             </Button>
           )}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button className="h-8 w-8 p-0" variant="ghost">
-                <span className="sr-only">List actions</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem asChild>
-                <Link search={{ target: id }} to="/food/shopping-lists/import">
-                  <CookingPotIcon />
-                  Add from meal plan
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setAddingSection(true)}>
-                <PlusIcon />
-                Add section
-              </DropdownMenuItem>
-              {list.completedAt && (
-                <DropdownMenuItem onClick={() => void reopen()}>
-                  <RotateCcwIcon />
-                  Reopen list
+          <Can area="shoppingLists">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button className="h-8 w-8 p-0" variant="ghost">
+                  <span className="sr-only">List actions</span>
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem asChild>
+                  <Link search={{ target: id }} to="/food/shopping-lists/import">
+                    <CookingPotIcon />
+                    Add from meal plan
+                  </Link>
                 </DropdownMenuItem>
-              )}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setDeleteOpen(true)} variant="destructive">
-                <TrashIcon />
-                Delete list
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                <DropdownMenuItem onClick={() => setAddingSection(true)}>
+                  <PlusIcon />
+                  Add section
+                </DropdownMenuItem>
+                {list.completedAt && (
+                  <DropdownMenuItem onClick={() => void reopen()}>
+                    <RotateCcwIcon />
+                    Reopen list
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setDeleteOpen(true)} variant="destructive">
+                  <TrashIcon />
+                  Delete list
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </Can>
         </div>
       </div>
 
@@ -286,7 +290,7 @@ function ShoppingListDetailRoute() {
                 items={items}
                 key={section?.id ?? 'ungrouped'}
                 listId={id}
-                readOnly={list.completedAt !== null}
+                readOnly={list.completedAt !== null || !canWrite}
                 section={section}
                 sections={list.sections}
               />
@@ -300,7 +304,7 @@ function ShoppingListDetailRoute() {
           the bottom of the pane while that place is out of view. `sticky` alone gets that — an always-
           fixed footer would eat height on the short lists that are most of them, and a second copy
           swapped in on scroll would be a second combobox with its own half-typed state. */}
-      {!list.completedAt && (
+      {!list.completedAt && canWrite && (
         <div className="sticky bottom-0 bg-background pt-2">
           <AddItemRow listId={id} />
         </div>

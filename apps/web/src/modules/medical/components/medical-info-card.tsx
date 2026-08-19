@@ -35,7 +35,7 @@ import {
   invalidateContacts,
   petContactTypeLabels,
 } from '@/modules/contacts';
-import { ConfirmDeleteDialog, UnsavedChangesDialog } from '@/modules/shared';
+import { ConfirmDeleteDialog, UnsavedChangesDialog, useCan } from '@/modules/shared';
 
 const $patchInfo = client['medical-info'][':id'].$patch;
 const $postContact = client['medical-info'][':id'].contacts.$post;
@@ -72,6 +72,8 @@ export function MedicalInfoCard({
 }) {
   const typeLabels = petLabels ? petContactTypeLabels : contactTypeLabels;
   const queryClient = useQueryClient();
+  // The record and its attached contacts are all written through `/medical-info`.
+  const canWrite = useCan()('medicalInfo');
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<MedicalContact | undefined>(undefined);
@@ -158,26 +160,28 @@ export function MedicalInfoCard({
       <CardContent className="space-y-6">
         <Form {...form}>
           <form className="space-y-4" onSubmit={form.handleSubmit(saveInfo)}>
-            <FormField
-              control={form.control}
-              name="medicalIdNumber"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel htmlFor="medicalIdNumber">Medical ID number</FormLabel>
-                  <FormControl>
-                    <Input id="medicalIdNumber" placeholder="e.g. insurance or health number" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+            <fieldset className="contents" disabled={!canWrite}>
+              <FormField
+                control={form.control}
+                name="medicalIdNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel htmlFor="medicalIdNumber">Medical ID number</FormLabel>
+                    <FormControl>
+                      <Input id="medicalIdNumber" placeholder="e.g. insurance or health number" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              {form.formState.isDirty && (
+                <div className="flex justify-end">
+                  <Button loading={isSavingInfo} type="submit">
+                    Save changes
+                  </Button>
+                </div>
               )}
-            />
-            {form.formState.isDirty && (
-              <div className="flex justify-end">
-                <Button loading={isSavingInfo} type="submit">
-                  Save changes
-                </Button>
-              </div>
-            )}
+            </fieldset>
           </form>
         </Form>
 
@@ -186,12 +190,14 @@ export function MedicalInfoCard({
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="font-medium text-sm">Contacts</h3>
-            <AddContactCombobox
-              linkedIds={linkedIds}
-              onCreate={openCreateDialog}
-              onLink={async (contact) => linkContact(contact.id)}
-              typeLabels={typeLabels}
-            />
+            {canWrite && (
+              <AddContactCombobox
+                linkedIds={linkedIds}
+                onCreate={openCreateDialog}
+                onLink={async (contact) => linkContact(contact.id)}
+                typeLabels={typeLabels}
+              />
+            )}
           </div>
 
           {medicalInfo.contacts.length === 0 ? (
@@ -216,26 +222,30 @@ export function MedicalInfoCard({
                     <ContactLinkChips links={contact.links} />
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
-                    <Button
-                      aria-label={`Edit ${contact.name}`}
-                      onClick={() => {
-                        setEditing(contact);
-                        setCreatingName(undefined);
-                        setFormOpen(true);
-                      }}
-                      size="icon"
-                      variant="ghost"
-                    >
-                      <PencilIcon />
-                    </Button>
-                    <Button
-                      aria-label={`Remove ${contact.name}`}
-                      onClick={() => setRemoving(contact)}
-                      size="icon"
-                      variant="ghost"
-                    >
-                      <TrashIcon />
-                    </Button>
+                    {canWrite && (
+                      <>
+                        <Button
+                          aria-label={`Edit ${contact.name}`}
+                          onClick={() => {
+                            setEditing(contact);
+                            setCreatingName(undefined);
+                            setFormOpen(true);
+                          }}
+                          size="icon"
+                          variant="ghost"
+                        >
+                          <PencilIcon />
+                        </Button>
+                        <Button
+                          aria-label={`Remove ${contact.name}`}
+                          onClick={() => setRemoving(contact)}
+                          size="icon"
+                          variant="ghost"
+                        >
+                          <TrashIcon />
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </li>
               ))}

@@ -11,6 +11,7 @@ export function useInlineExpensePatch(expenseId: number) {
   const queryClient = useQueryClient();
 
   return useInlinePatch(
+    'expenses',
     useMutation({
       mutationFn: async (json: PatchExpensePayload) =>
         parseResponse($patchExpense({ json, param: { id: String(expenseId) } })),

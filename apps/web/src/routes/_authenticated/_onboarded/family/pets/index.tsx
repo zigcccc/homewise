@@ -31,7 +31,7 @@ import {
 import { client, parseResponse } from '@/api/client';
 import { getMyHouseholdQueryOptions } from '@/modules/households';
 import { invalidatePetProfilesList, listPetProfilesQueryOptions, typeAndBreed } from '@/modules/pet-profiles';
-import { Actionbar, ageLabel, PageLayout } from '@/modules/shared';
+import { Actionbar, ageLabel, Can, PageLayout } from '@/modules/shared';
 
 export const Route = createFileRoute('/_authenticated/_onboarded/family/pets/')({
   async loader({ context }) {
@@ -152,15 +152,17 @@ function PetsRoute() {
                 <h2 className="font-medium text-sm">Suggestions</h2>
                 <div className="flex flex-wrap gap-2">
                   {petsWithoutProfile.map((pet) => (
-                    <Button
-                      disabled={isPending}
-                      key={pet.id}
-                      onClick={() => handleCreate(pet.id, pet.displayName)}
-                      variant="outline"
-                    >
-                      <PlusIcon />
-                      Create profile for {pet.displayName}
-                    </Button>
+                    <Can area="petProfiles">
+                      <Button
+                        disabled={isPending}
+                        key={pet.id}
+                        onClick={() => handleCreate(pet.id, pet.displayName)}
+                        variant="outline"
+                      >
+                        <PlusIcon />
+                        Create profile for {pet.displayName}
+                      </Button>
+                    </Can>
                   ))}
                 </div>
               </div>

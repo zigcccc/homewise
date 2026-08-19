@@ -32,6 +32,7 @@ import {
 
 import {
   Actionbar,
+  Can,
   ListPagination,
   PageLayout,
   RouteError,
@@ -118,10 +119,12 @@ function StorageItemsRoute() {
               Everything the household keeps somewhere — and who currently has it.
             </p>
           </div>
-          <Button disabled={!hasLocations} onClick={() => setAddOpen(true)}>
-            <PlusIcon />
-            Add item
-          </Button>
+          <Can area="storageItems">
+            <Button disabled={!hasLocations} onClick={() => setAddOpen(true)}>
+              <PlusIcon />
+              Add item
+            </Button>
+          </Can>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -205,17 +208,21 @@ function StorageItemsRoute() {
               {!isFiltered && (
                 <EmptyContent>
                   {hasLocations ? (
-                    <Button onClick={() => setAddOpen(true)}>
-                      <PlusIcon />
-                      Add item
-                    </Button>
-                  ) : (
-                    <Button asChild>
-                      <Link to="/storage/locations">
+                    <Can area="storageItems">
+                      <Button onClick={() => setAddOpen(true)}>
                         <PlusIcon />
-                        Add a location
-                      </Link>
-                    </Button>
+                        Add item
+                      </Button>
+                    </Can>
+                  ) : (
+                    <Can area="storageItems">
+                      <Button asChild>
+                        <Link to="/storage/locations">
+                          <PlusIcon />
+                          Add a location
+                        </Link>
+                      </Button>
+                    </Can>
                   )}
                 </EmptyContent>
               )}

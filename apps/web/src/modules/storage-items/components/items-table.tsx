@@ -92,7 +92,7 @@ export function createStorageItemColumns({ showLocation }: { showLocation: boole
 }
 
 function QuantityCell({ id, quantity }: { id: number; quantity: number }) {
-  const { save } = useInlineItemPatch(id);
+  const { save, readOnly } = useInlineItemPatch(id);
 
   return (
     <InlineCell
@@ -101,6 +101,7 @@ function QuantityCell({ id, quantity }: { id: number; quantity: number }) {
       displayClassName="tabular-nums"
       maxWidthClassName="max-w-20"
       onSave={async (value) => save({ quantity: Number(value) })}
+      readOnly={readOnly}
       schema={quantityText}
       value={String(quantity)}
     />
@@ -108,7 +109,7 @@ function QuantityCell({ id, quantity }: { id: number; quantity: number }) {
 }
 
 function ItemNameCell({ id, name, notes }: { id: number; name: string; notes: string | null }) {
-  const { save } = useInlineItemPatch(id);
+  const { save, readOnly } = useInlineItemPatch(id);
 
   return (
     <div className="space-y-0.5">
@@ -117,6 +118,7 @@ function ItemNameCell({ id, name, notes }: { id: number; name: string; notes: st
         display={name}
         fill
         onSave={async (value) => save({ name: value })}
+        readOnly={readOnly}
         schema={storageItemName}
         value={name}
       />
@@ -148,7 +150,7 @@ function ItemRowActions({ item }: { item: StorageItem }) {
   // The options projection, not the full list: an item written anywhere moves every location's
   // count, and this menu would re-render on numbers it never shows.
   const { data: locations } = useSuspenseQuery(listStorageLocationOptionsQueryOptions());
-  const { saveOrToast } = useInlineItemPatch(item.id);
+  const { saveOrToast, readOnly } = useInlineItemPatch(item.id);
   const [editOpen, setEditOpen] = useState(false);
   const [lendOpen, setLendOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -188,6 +190,11 @@ function ItemRowActions({ item }: { item: StorageItem }) {
   };
 
   const elsewhere = locations.filter((location) => location.id !== item.locationId);
+
+  // Edit, move, lend, return and delete — the menu is nothing but writes.
+  if (readOnly) {
+    return null;
+  }
 
   return (
     <div className="flex justify-end">

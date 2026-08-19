@@ -16,11 +16,12 @@ import {
 import { client, parseResponse } from '@/api/client';
 import { invalidateIngredients } from '@/modules/ingredients';
 import { invalidateRecipes, listRecipeTagsQueryOptions, RecipeForm, type RecipeFormValues } from '@/modules/recipes';
-import { Actionbar, PageLayout, RouteError, serverMessage } from '@/modules/shared';
+import { Actionbar, PageLayout, RouteError, requireWrite, serverMessage } from '@/modules/shared';
 
 const $createRecipe = client.recipes.$post;
 
 export const Route = createFileRoute('/_authenticated/_onboarded/food/recipes/new')({
+  beforeLoad: requireWrite('recipes'),
   async loader({ context }) {
     await context.queryClient.ensureQueryData(listRecipeTagsQueryOptions());
   },

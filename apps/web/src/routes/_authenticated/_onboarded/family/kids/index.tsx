@@ -31,7 +31,7 @@ import {
 import { client, parseResponse } from '@/api/client';
 import { dictionaryLabel, listChildProfilesQueryOptions } from '@/modules/child-profiles';
 import { getMyHouseholdQueryOptions } from '@/modules/households';
-import { Actionbar, ageLabel, PageLayout } from '@/modules/shared';
+import { Actionbar, ageLabel, Can, PageLayout } from '@/modules/shared';
 
 export const Route = createFileRoute('/_authenticated/_onboarded/family/kids/')({
   async loader({ context }) {
@@ -152,15 +152,17 @@ function KidsRoute() {
                 <h2 className="font-medium text-sm">Suggestions</h2>
                 <div className="flex flex-wrap gap-2">
                   {childrenWithoutProfile.map((child) => (
-                    <Button
-                      disabled={isPending}
-                      key={child.id}
-                      onClick={() => handleCreate(child.id, child.displayName)}
-                      variant="outline"
-                    >
-                      <PlusIcon />
-                      Create profile for {child.displayName}
-                    </Button>
+                    <Can area="childProfiles">
+                      <Button
+                        disabled={isPending}
+                        key={child.id}
+                        onClick={() => handleCreate(child.id, child.displayName)}
+                        variant="outline"
+                      >
+                        <PlusIcon />
+                        Create profile for {child.displayName}
+                      </Button>
+                    </Can>
                   ))}
                 </div>
               </div>

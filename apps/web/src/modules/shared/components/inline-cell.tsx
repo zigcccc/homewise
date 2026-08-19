@@ -56,6 +56,7 @@ export function InlineCell({
   fill = false,
   maxWidthClassName,
   onSave,
+  readOnly = false,
   schema,
   value,
 }: {
@@ -71,6 +72,8 @@ export function InlineCell({
    */
   maxWidthClassName?: string;
   onSave: (next: string) => Promise<unknown>;
+  /** Renders the value as plain text — no button, no editor — for a member who may not change it. */
+  readOnly?: boolean;
   schema: Parameters<typeof InlineTextField>[0]['schema'];
   value: string;
 }) {
@@ -82,7 +85,11 @@ export function InlineCell({
     // box hugging the text. Both are inert everywhere else.
     <div className={cn('grid min-w-0 flex-1 grid-cols-1', !fill && maxWidthClassName)}>
       <span className={sizerClassName}>{display}</span>
-      {editing ? (
+      {readOnly ? (
+        <span className={cn(restingClassName, 'border-transparent hover:bg-transparent', displayClassName)}>
+          {display}
+        </span>
+      ) : editing ? (
         <div className="col-start-1 row-start-1">
           {/* Mounted only while editing, so `defaultValues` reseed on every open with no reset effect. */}
           <InlineTextField

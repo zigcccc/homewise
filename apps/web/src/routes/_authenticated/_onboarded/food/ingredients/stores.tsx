@@ -19,7 +19,14 @@ import {
   useDataTable,
 } from '@homewise/ui/core';
 
-import { ListPagination, RouteError, SearchInput, SortDirectionToggle, useSearchParamSetter } from '@/modules/shared';
+import {
+  Can,
+  ListPagination,
+  RouteError,
+  SearchInput,
+  SortDirectionToggle,
+  useSearchParamSetter,
+} from '@/modules/shared';
 import { listStoresQueryOptions, StoreFormDialog } from '@/modules/stores';
 
 import { storesTableColumns } from './-stores-table.config';
@@ -92,10 +99,12 @@ function StoresRoute() {
             </EmptyHeader>
             {!isFiltered && (
               <EmptyContent>
-                <Button onClick={() => setAddOpen(true)}>
-                  <PlusIcon />
-                  Add shop
-                </Button>
+                <Can area="stores">
+                  <Button onClick={() => setAddOpen(true)}>
+                    <PlusIcon />
+                    Add shop
+                  </Button>
+                </Can>
               </EmptyContent>
             )}
           </Empty>

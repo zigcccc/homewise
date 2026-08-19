@@ -31,7 +31,7 @@ import {
 import { client, parseResponse } from '@/api/client';
 import { MedicalInfoCard } from '@/modules/medical';
 import { getPetProfileQueryOptions, invalidatePetProfile, petTypeLabels } from '@/modules/pet-profiles';
-import { DateField, resolveManagedImage, sexLabels, UnsavedChangesDialog } from '@/modules/shared';
+import { DateField, resolveManagedImage, sexLabels, UnsavedChangesDialog, useCan } from '@/modules/shared';
 
 import { ProfilePictureField } from './-components/profile-picture-field';
 
@@ -81,6 +81,7 @@ function GeneralTab() {
   const queryClient = useQueryClient();
   const { data: profile } = useSuspenseQuery(getPetProfileQueryOptions(Number(profileId)));
 
+  const canWrite = useCan()('petProfiles');
   const form = useForm<z.infer<typeof generalFormModel>>({
     resolver: zodResolver(generalFormModel),
     defaultValues: defaults(profile),
@@ -123,137 +124,141 @@ function GeneralTab() {
           </CardHeader>
           <CardContent>
             <form className="space-y-6" onSubmit={form.handleSubmit(onSubmit)}>
-              <div className="flex items-start gap-6">
-                <ProfilePictureField
-                  currentImage={formImage}
-                  displayName={profile.pet.displayName}
-                  onRemove={() => {
-                    form.setValue('imageFile', null, { shouldDirty: true });
-                    form.setValue('avatarFile', null, { shouldDirty: true });
-                    form.setValue('image', null, { shouldDirty: true });
-                  }}
-                  onSelectAvatar={(file, previewSrc) => {
-                    form.setValue('avatarFile', file, { shouldDirty: true });
-                    form.setValue('imageFile', null, { shouldDirty: true });
-                    form.setValue('image', previewSrc, { shouldDirty: true });
-                  }}
-                  onUploadFile={(file) => {
-                    form.setValue('imageFile', file, { shouldDirty: true });
-                    form.setValue('avatarFile', null, { shouldDirty: true });
-                    form.setValue('image', URL.createObjectURL(file), { shouldDirty: true });
-                  }}
-                />
-                {/* Height matches the avatar circle (size-24) so the text centers against it, not the taller picture column that also holds the button. */}
-                <div className="flex h-24 flex-1 flex-col justify-center space-y-1">
-                  <Label className="text-muted-foreground">Name</Label>
-                  <p className="font-medium">{profile.pet.displayName}</p>
-                  <p className="text-muted-foreground text-xs">
-                    Edit the name on the{' '}
-                    <Link className="underline hover:text-foreground" to="/manage/household-members">
-                      household member
-                    </Link>
-                    .
-                  </p>
+              {/* See the kid profile's twin: one attribute disables every control, and the Save button
+                  goes with it because a disabled fieldset can never become dirty. */}
+              <fieldset className="contents" disabled={!canWrite}>
+                <div className="flex items-start gap-6">
+                  <ProfilePictureField
+                    currentImage={formImage}
+                    displayName={profile.pet.displayName}
+                    onRemove={() => {
+                      form.setValue('imageFile', null, { shouldDirty: true });
+                      form.setValue('avatarFile', null, { shouldDirty: true });
+                      form.setValue('image', null, { shouldDirty: true });
+                    }}
+                    onSelectAvatar={(file, previewSrc) => {
+                      form.setValue('avatarFile', file, { shouldDirty: true });
+                      form.setValue('imageFile', null, { shouldDirty: true });
+                      form.setValue('image', previewSrc, { shouldDirty: true });
+                    }}
+                    onUploadFile={(file) => {
+                      form.setValue('imageFile', file, { shouldDirty: true });
+                      form.setValue('avatarFile', null, { shouldDirty: true });
+                      form.setValue('image', URL.createObjectURL(file), { shouldDirty: true });
+                    }}
+                  />
+                  {/* Height matches the avatar circle (size-24) so the text centers against it, not the taller picture column that also holds the button. */}
+                  <div className="flex h-24 flex-1 flex-col justify-center space-y-1">
+                    <Label className="text-muted-foreground">Name</Label>
+                    <p className="font-medium">{profile.pet.displayName}</p>
+                    <p className="text-muted-foreground text-xs">
+                      Edit the name on the{' '}
+                      <Link className="underline hover:text-foreground" to="/manage/household-members">
+                        household member
+                      </Link>
+                      .
+                    </p>
+                  </div>
                 </div>
-              </div>
 
-              <div className="grid gap-6 sm:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="type"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Type</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value ?? ''}>
+                <div className="grid gap-6 sm:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="type"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Type</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value ?? ''}>
+                          <FormControl>
+                            <SelectTrigger className="w-full">
+                              <span>{field.value ? petTypeLabels[field.value] : 'Not set'}</span>
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {petType.options.map((option) => (
+                              <SelectItem key={option} value={option}>
+                                {petTypeLabels[option]}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="breed"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel htmlFor="breed">Breed</FormLabel>
                         <FormControl>
-                          <SelectTrigger className="w-full">
-                            <span>{field.value ? petTypeLabels[field.value] : 'Not set'}</span>
-                          </SelectTrigger>
+                          <Input id="breed" placeholder="e.g. Golden Retriever" {...field} value={field.value ?? ''} />
                         </FormControl>
-                        <SelectContent>
-                          {petType.options.map((option) => (
-                            <SelectItem key={option} value={option}>
-                              {petTypeLabels[option]}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="breed"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel htmlFor="breed">Breed</FormLabel>
-                      <FormControl>
-                        <Input id="breed" placeholder="e.g. Golden Retriever" {...field} value={field.value ?? ''} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="dateOfBirth"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Date of birth</FormLabel>
-                      <FormControl>
-                        <DateField onChange={field.onChange} value={field.value ?? ''} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="joinedFamilyOn"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Joined the family</FormLabel>
-                      <FormControl>
-                        <DateField onChange={field.onChange} value={field.value ?? ''} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="sex"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Sex</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value ?? ''}>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="dateOfBirth"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Date of birth</FormLabel>
                         <FormControl>
-                          <SelectTrigger className="w-full">
-                            <span>{field.value ? sexLabels[field.value] : 'Not set'}</span>
-                          </SelectTrigger>
+                          <DateField onChange={field.onChange} value={field.value ?? ''} />
                         </FormControl>
-                        <SelectContent>
-                          {petSex.options.map((option) => (
-                            <SelectItem key={option} value={option}>
-                              {sexLabels[option]}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              {form.formState.isDirty && (
-                <div className="flex justify-end">
-                  <Button loading={isPending} type="submit">
-                    Save changes
-                  </Button>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="joinedFamilyOn"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Joined the family</FormLabel>
+                        <FormControl>
+                          <DateField onChange={field.onChange} value={field.value ?? ''} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="sex"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Sex</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value ?? ''}>
+                          <FormControl>
+                            <SelectTrigger className="w-full">
+                              <span>{field.value ? sexLabels[field.value] : 'Not set'}</span>
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {petSex.options.map((option) => (
+                              <SelectItem key={option} value={option}>
+                                {sexLabels[option]}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
-              )}
+
+                {form.formState.isDirty && (
+                  <div className="flex justify-end">
+                    <Button loading={isPending} type="submit">
+                      Save changes
+                    </Button>
+                  </div>
+                )}
+              </fieldset>
             </form>
           </CardContent>
         </Card>

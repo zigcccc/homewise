@@ -36,7 +36,7 @@ import {
 
 import { getMyHouseholdQueryOptions, listMyHouseholdActiveInvitesQueryOptions } from '@/modules/households';
 import { AddMemberTabs } from '@/modules/households/components';
-import { Actionbar, PageLayout } from '@/modules/shared';
+import { Actionbar, Can, PageLayout } from '@/modules/shared';
 
 import { invitesTableColumns, membersTableColumns } from './-household-members.config';
 
@@ -100,9 +100,11 @@ function HouseholdMembersRoute() {
               <TabsTrigger value="members">Members ({household.members.length})</TabsTrigger>
               <TabsTrigger value="invites">Pending invites ({invites.length})</TabsTrigger>
             </TabsList>
-            <Button className="pr-4" onClick={() => setInviteDialogOpen(true)} size="sm">
-              <PlusIcon /> Add member
-            </Button>
+            <Can area="householdMembers">
+              <Button className="pr-4" onClick={() => setInviteDialogOpen(true)} size="sm">
+                <PlusIcon /> Add member
+              </Button>
+            </Can>
           </div>
           <TabsContent value="members">
             <DataTable table={membersTable} />

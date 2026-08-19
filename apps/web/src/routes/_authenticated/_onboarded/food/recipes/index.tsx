@@ -36,6 +36,7 @@ import {
 import { listRecipesQueryOptions, listRecipeTagsQueryOptions, mealTypeLabels } from '@/modules/recipes';
 import {
   Actionbar,
+  Can,
   formatMinutes,
   ListPagination,
   PageLayout,
@@ -143,12 +144,14 @@ function RecipesRoute() {
               Everything you cook, in one place — searchable by name or by what's in it.
             </p>
           </div>
-          <Button asChild>
-            <Link to="/food/recipes/new">
-              <PlusIcon />
-              Add recipe
-            </Link>
-          </Button>
+          <Can area="recipes">
+            <Button asChild>
+              <Link to="/food/recipes/new">
+                <PlusIcon />
+                Add recipe
+              </Link>
+            </Button>
+          </Can>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -248,12 +251,14 @@ function RecipesRoute() {
             </EmptyHeader>
             {!isFiltered && (
               <EmptyContent>
-                <Button asChild>
-                  <Link to="/food/recipes/new">
-                    <PlusIcon />
-                    Add recipe
-                  </Link>
-                </Button>
+                <Can area="recipes">
+                  <Button asChild>
+                    <Link to="/food/recipes/new">
+                      <PlusIcon />
+                      Add recipe
+                    </Link>
+                  </Button>
+                </Can>
               </EmptyContent>
             )}
           </Empty>

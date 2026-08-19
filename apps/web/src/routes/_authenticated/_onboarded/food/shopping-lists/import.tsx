@@ -28,7 +28,7 @@ import {
 
 import { parseResponse } from '@/api/client';
 import { formatQuantity } from '@/modules/ingredients';
-import { DateField, serverMessage, useSearchParamSetter } from '@/modules/shared';
+import { DateField, requireWrite, serverMessage, useSearchParamSetter } from '@/modules/shared';
 import {
   $importFromMealPlan,
   invalidateShoppingLists,
@@ -83,6 +83,7 @@ const importFormModel = z.object({
 type ImportFormValues = z.infer<typeof importFormModel>;
 
 export const Route = createFileRoute('/_authenticated/_onboarded/food/shopping-lists/import')({
+  beforeLoad: requireWrite('shoppingLists'),
   validateSearch: searchParamsModel,
   loaderDeps: ({ search }) => rangeFor(search),
   async loader({ context, deps }) {

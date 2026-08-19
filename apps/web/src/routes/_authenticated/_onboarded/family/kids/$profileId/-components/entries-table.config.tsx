@@ -40,7 +40,7 @@ import {
 import { client, parseResponse } from '@/api/client';
 import { invalidateChildDictionaryEntries } from '@/modules/child-dictionaries';
 import { invalidateChildProfile } from '@/modules/child-profiles';
-import { ConfirmDeleteDialog, DateField, formatDate } from '@/modules/shared';
+import { Can, ConfirmDeleteDialog, DateField, formatDate } from '@/modules/shared';
 
 const $listEntries = client['child-dictionaries'][':id'].entries.$get;
 /** Narrowed to the 200 response — the bare inference unions in every error status too. */
@@ -291,42 +291,44 @@ export function createEntriesTableColumns(profileId: number) {
 
         return (
           <>
-            <DropdownMenu>
-              <div className="flex justify-end">
-                <DropdownMenuTrigger asChild>
-                  <Button className="h-8 w-8 p-0" variant="ghost">
-                    <span className="sr-only">Open menu</span>
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-              </div>
-              <DropdownMenuContent align="end">
-                <DropdownMenuGroup>
-                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                  <DropdownMenuItem onClick={() => setEditOpen(true)}>
-                    <PencilIcon />
-                    Edit word
-                  </DropdownMenuItem>
-                  {/*
-                   * Deliberately not wrapped in a Tooltip. A TooltipTrigger around an *enabled*
-                   * DropdownMenuItem swallows its onClick. The household-members table gets away with
-                   * the same pattern only because it renders TooltipContent conditionally, and the
-                   * items are disabled whenever that content is present.
-                   */}
-                  <DropdownMenuItem onClick={handleToggleArchived}>
-                    {entry.archived ? <ArchiveRestoreIcon /> : <ArchiveIcon />}
-                    {entry.archived ? 'Restore word' : 'Archive word'}
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                  <DropdownMenuItem onClick={() => setDeleteOpen(true)} variant="destructive">
-                    <TrashIcon />
-                    Delete word
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Can area="childDictionaries">
+              <DropdownMenu>
+                <div className="flex justify-end">
+                  <DropdownMenuTrigger asChild>
+                    <Button className="h-8 w-8 p-0" variant="ghost">
+                      <span className="sr-only">Open menu</span>
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                </div>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                    <DropdownMenuItem onClick={() => setEditOpen(true)}>
+                      <PencilIcon />
+                      Edit word
+                    </DropdownMenuItem>
+                    {/*
+                     * Deliberately not wrapped in a Tooltip. A TooltipTrigger around an *enabled*
+                     * DropdownMenuItem swallows its onClick. The household-members table gets away with
+                     * the same pattern only because it renders TooltipContent conditionally, and the
+                     * items are disabled whenever that content is present.
+                     */}
+                    <DropdownMenuItem onClick={handleToggleArchived}>
+                      {entry.archived ? <ArchiveRestoreIcon /> : <ArchiveIcon />}
+                      {entry.archived ? 'Restore word' : 'Archive word'}
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem onClick={() => setDeleteOpen(true)} variant="destructive">
+                      <TrashIcon />
+                      Delete word
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </Can>
 
             <Dialog onOpenChange={setEditOpen} open={editOpen}>
               <DialogContent>

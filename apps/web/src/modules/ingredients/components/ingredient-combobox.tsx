@@ -11,7 +11,7 @@ import {
   ComboboxTrigger,
 } from '@homewise/ui/core';
 
-import { AsyncComboboxContent, shouldOfferCreate, useAsyncOptions } from '@/modules/shared';
+import { AsyncComboboxContent, shouldOfferCreate, useAsyncOptions, useCan } from '@/modules/shared';
 
 import { ingredientCategoryLabels } from '../helpers';
 import { type Ingredient, listIngredientOptionsInfiniteQueryOptions } from '../ingredients.queries';
@@ -50,7 +50,8 @@ export function IngredientCombobox({
 
   const used = useMemo(() => new Set(usedIds), [usedIds]);
 
-  const offerCreate = shouldOfferCreate(options);
+  const canCreate = useCan()('ingredients');
+  const offerCreate = canCreate && shouldOfferCreate(options);
 
   const close = () => {
     setOpen(false);

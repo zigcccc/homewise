@@ -13,11 +13,12 @@ import {
   RecipeForm,
   type RecipeFormValues,
 } from '@/modules/recipes';
-import { RouteError, serverMessage } from '@/modules/shared';
+import { RouteError, requireWrite, serverMessage } from '@/modules/shared';
 
 const $patchRecipe = client.recipes[':id'].$patch;
 
 export const Route = createFileRoute('/_authenticated/_onboarded/food/recipes/$recipeId/edit')({
+  beforeLoad: requireWrite('recipes'),
   async loader({ context, params }) {
     await Promise.all([
       context.queryClient.ensureQueryData(getRecipeQueryOptions(Number(params.recipeId))),

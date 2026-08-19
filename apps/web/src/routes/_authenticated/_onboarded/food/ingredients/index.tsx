@@ -30,6 +30,7 @@ import {
   listIngredientsQueryOptions,
 } from '@/modules/ingredients';
 import {
+  Can,
   ListPagination,
   RouteError,
   SELECT_ALL,
@@ -166,10 +167,12 @@ function IngredientsRoute() {
             </EmptyHeader>
             {!isFiltered && (
               <EmptyContent>
-                <Button onClick={() => setAddOpen(true)}>
-                  <PlusIcon />
-                  Add ingredient
-                </Button>
+                <Can area="ingredients">
+                  <Button onClick={() => setAddOpen(true)}>
+                    <PlusIcon />
+                    Add ingredient
+                  </Button>
+                </Can>
               </EmptyContent>
             )}
           </Empty>

@@ -35,7 +35,7 @@ import { cn } from '@homewise/ui/lib';
 
 import { parseResponse } from '@/api/client';
 import { formatQuantity, MeasurementUnitSelectItems, measurementUnitLabels } from '@/modules/ingredients';
-import { InlineTextField, SELECT_NONE, serverMessage } from '@/modules/shared';
+import { Can, InlineTextField, SELECT_NONE, serverMessage } from '@/modules/shared';
 import {
   $deleteSection,
   $patchSection,
@@ -123,24 +123,26 @@ export function ListSection({
             <h2 className="font-medium text-muted-foreground text-sm uppercase tracking-wide">{section.label}</h2>
           )}
           {!readOnly && !renaming && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button className="h-7 w-7 p-0" variant="ghost">
-                  <span className="sr-only">Section actions</span>
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setRenaming(true)}>
-                  <PencilIcon />
-                  Rename section
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleRemoveSection} variant="destructive">
-                  <TrashIcon />
-                  Remove section
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Can area="shoppingLists">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button className="h-7 w-7 p-0" variant="ghost">
+                    <span className="sr-only">Section actions</span>
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setRenaming(true)}>
+                    <PencilIcon />
+                    Rename section
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleRemoveSection} variant="destructive">
+                    <TrashIcon />
+                    Remove section
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </Can>
           )}
         </div>
       )}
@@ -478,48 +480,50 @@ function ListItemRow({
       </div>
 
       {!readOnly && !editing && (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button className="h-7 w-7 shrink-0 p-0" variant="ghost">
-              <span className="sr-only">Actions for {item.label}</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => setEditing(true)}>
-              <PencilIcon />
-              Edit amount
-            </DropdownMenuItem>
-            {movable && (
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger>
-                  <CornerUpRightIcon />
-                  Move to
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent>
-                  {destinations.map((section) => (
-                    <DropdownMenuItem
-                      key={section.id}
-                      onClick={() => void saveItemOrToast(item.id, { sectionId: section.id })}
-                    >
-                      {section.label}
-                    </DropdownMenuItem>
-                  ))}
-                  {item.sectionId !== null && (
-                    <DropdownMenuItem onClick={() => void saveItemOrToast(item.id, { sectionId: null })}>
-                      No section
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
-            )}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => void removeItemWithUndo(item)} variant="destructive">
-              <TrashIcon />
-              Remove item
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <Can area="shoppingLists">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button className="h-7 w-7 shrink-0 p-0" variant="ghost">
+                <span className="sr-only">Actions for {item.label}</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setEditing(true)}>
+                <PencilIcon />
+                Edit amount
+              </DropdownMenuItem>
+              {movable && (
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
+                    <CornerUpRightIcon />
+                    Move to
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    {destinations.map((section) => (
+                      <DropdownMenuItem
+                        key={section.id}
+                        onClick={() => void saveItemOrToast(item.id, { sectionId: section.id })}
+                      >
+                        {section.label}
+                      </DropdownMenuItem>
+                    ))}
+                    {item.sectionId !== null && (
+                      <DropdownMenuItem onClick={() => void saveItemOrToast(item.id, { sectionId: null })}>
+                        No section
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => void removeItemWithUndo(item)} variant="destructive">
+                <TrashIcon />
+                Remove item
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </Can>
       )}
     </li>
   );

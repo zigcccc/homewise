@@ -32,6 +32,7 @@ import {
 import { listChildDictionaryEntriesQueryOptions } from '@/modules/child-dictionaries';
 import { getChildProfileQueryOptions } from '@/modules/child-profiles';
 import {
+  Can,
   ListPagination,
   RouteError,
   SearchInput,
@@ -163,10 +164,12 @@ function DictionaryEntries({
         <p className="text-muted-foreground text-sm">
           {dictionary.entryCount} {dictionary.entryCount === 1 ? 'word' : 'words'} collected
         </p>
-        <Button onClick={() => setAddOpen(true)}>
-          <PlusIcon />
-          Add word
-        </Button>
+        <Can area="childDictionaries">
+          <Button onClick={() => setAddOpen(true)}>
+            <PlusIcon />
+            Add word
+          </Button>
+        </Can>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
