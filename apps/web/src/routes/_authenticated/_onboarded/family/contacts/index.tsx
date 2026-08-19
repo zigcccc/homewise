@@ -21,7 +21,6 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-  getRowId,
   Select,
   SelectContent,
   SelectItem,
@@ -100,7 +99,7 @@ function ContactsRoute() {
 
   const setSearchParam = useSearchParamSetter(Route);
 
-  const table = useDataTable({ columns: contactColumns, data: contactsPage.items, getRowId });
+  const table = useDataTable({ columns: contactColumns, data: contactsPage.items });
 
   const isFiltered = Boolean(searchParams.search) || Boolean(searchParams.type);
 

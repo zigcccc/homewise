@@ -1,6 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { type QueryClient, useMutation, useQueryClient } from '@tanstack/react-query';
-import { createColumnHelper } from '@tanstack/react-table';
 import { type InferRequestType, type InferResponseType } from 'hono';
 import { ArchiveIcon, ArchiveRestoreIcon, MoreHorizontal, PencilIcon, TrashIcon } from 'lucide-react';
 import { useState } from 'react';
@@ -13,6 +12,7 @@ import {
   AvatarFallback,
   AvatarImage,
   Button,
+  createDataTableColumnHelper,
   Dialog,
   DialogClose,
   DialogContent,
@@ -186,11 +186,11 @@ export function EntryForm({
   );
 }
 
-const entriesTableBuilder = createColumnHelper<DictionaryEntry>();
+const entriesTableBuilder = createDataTableColumnHelper<DictionaryEntry>();
 
 /** Columns are built per profile so entry mutations can invalidate the owning profile's caches. */
 export function createEntriesTableColumns(profileId: number) {
-  return [
+  return entriesTableBuilder.columns([
     entriesTableBuilder.accessor('childPhrase', {
       header: 'Child says',
       cell(info) {
@@ -362,5 +362,5 @@ export function createEntriesTableColumns(profileId: number) {
         );
       },
     }),
-  ];
+  ]);
 }

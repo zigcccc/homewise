@@ -1,5 +1,4 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { createColumnHelper } from '@tanstack/react-table';
 import { MoreHorizontal, PencilIcon, TrashIcon } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -13,6 +12,7 @@ import {
 } from '@homewise/server/ingredients';
 import {
   Button,
+  createDataTableColumnHelper,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -38,7 +38,7 @@ import { StoreCombobox } from '@/modules/stores';
 
 const $deleteIngredient = client.ingredients[':id'].$delete;
 
-const columnHelper = createColumnHelper<Ingredient>();
+const columnHelper = createDataTableColumnHelper<Ingredient>();
 
 /**
  * Name, category and default unit are edited straight in the table: a recipe mints ingredients with
@@ -46,7 +46,7 @@ const columnHelper = createColumnHelper<Ingredient>();
  * cell takes only the id it patches and the value it shows, so nothing here depends on the rest of
  * the row.
  */
-export const ingredientsTableColumns = [
+export const ingredientsTableColumns = columnHelper.columns([
   columnHelper.accessor('name', {
     header: 'Name',
     cell: (info) => <IngredientNameCell id={info.row.original.id} name={info.getValue()} />,
@@ -74,7 +74,7 @@ export const ingredientsTableColumns = [
     cell: (info) => <IngredientRowActions ingredient={info.row.original} />,
     header: '',
   }),
-];
+]);
 
 function IngredientCategoryCell({ category, id }: { category: IngredientCategory; id: number }) {
   const { isPending, saveOrToast } = useInlineIngredientPatch(id);

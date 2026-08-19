@@ -1,10 +1,12 @@
 import {
   type Table as CoreTable,
-  flexRender,
-  getCoreRowModel,
+  createColumnHelper,
+  FlexRender,
+  metaHelper,
   type RowData,
   type TableOptions,
-  useReactTable,
+  tableFeatures,
+  useTable,
 } from '@tanstack/react-table';
 import {
   ChevronLeftIcon,
@@ -24,10 +26,14 @@ import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from './empty';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './table';
 
-declare module '@tanstack/react-table' {
-  // Both type parameters are unused here but have to be declared to match the interface being
-  // augmented — drop either one and the augmentation silently stops applying.
-  interface ColumnMeta<TData extends RowData, TValue> {
+/**
+ * What every table in this app runs on. Empty apart from the meta slot on purpose: sorting, filtering
+ * and pagination are server-side and live in the URL, so nothing beyond the core row model is ever
+ * built. A table that does need a client-side feature registers it here, once — a feature left
+ * unregistered doesn't fail loudly, its methods simply aren't on the instance.
+ */
+const features = tableFeatures({
+  columnMeta: metaHelper<{
     /**
      * Classes for this column's `<th>` **and** every one of its `<td>`s.
      *
@@ -37,11 +43,16 @@ declare module '@tanstack/react-table' {
      */
     className?: string;
     headerClassName?: string;
-  }
-}
+  }>(),
+});
+
+export type DataTableFeatures = typeof features;
+
+/** `createColumnHelper` with {@link features} already bound, so a column file never names them. */
+export const createDataTableColumnHelper = <Data extends RowData>() => createColumnHelper<DataTableFeatures, Data>();
 
 /**
- * Row identity for `useReactTable`, to pass as its `getRowId`. Not optional in practice: the default
+ * Row identity for {@link useDataTable}, which passes it for you. Not optional in practice: the default
  * is the row's *index*, which becomes React's key here — so when the data changes, every row's
  * subtree keeps whatever state it had at that position while its props move on to a different
  * record. A cell editing in place then belongs to one row and writes to another. Keying by the
@@ -52,16 +63,15 @@ declare module '@tanstack/react-table' {
 export const getRowId = <Data extends { id: number | string }>(row: Data) => String(row.id);
 
 /**
- * `useReactTable` with the two options every table in this app was passing by hand.
+ * `useTable` with this app's {@link features} and {@link getRowId} already in place.
  *
- * `getRowId` is the one that matters — see above; leaving it to the caller means one table
- * eventually ships without it and starts committing an inline edit to the wrong record. Both are
- * still overridable, so a table that needs sorting or filtering row models just passes its own.
+ * `getRowId` is the one that matters — see above; leaving it to the caller means one table eventually
+ * ships without it and starts committing an inline edit to the wrong record. Still overridable.
  */
 export function useDataTable<Data extends { id: number | string }>(
-  options: Omit<TableOptions<Data>, 'getCoreRowModel'> & Partial<Pick<TableOptions<Data>, 'getCoreRowModel'>>
+  options: Omit<TableOptions<DataTableFeatures, Data>, 'features'>
 ) {
-  return useReactTable({ getCoreRowModel: getCoreRowModel(), getRowId, ...options });
+  return useTable({ features, getRowId, ...options });
 }
 
 function DefaultEmptyComponent() {
@@ -230,7 +240,7 @@ export function DataTable<Data extends Record<string, unknown>>({
   onRowClick,
   table,
 }: {
-  table: CoreTable<Data>;
+  table: CoreTable<DataTableFeatures, Data>;
   emptyContent?: ReactNode;
   /**
    * Makes the whole row clickable — for a table whose rows lead somewhere.
@@ -260,7 +270,7 @@ export function DataTable<Data extends Record<string, unknown>>({
                     )}
                     key={header.id}
                   >
-                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                    {header.isPlaceholder ? null : <FlexRender header={header} />}
                   </TableHead>
                 );
               })}
@@ -272,7 +282,6 @@ export function DataTable<Data extends Record<string, unknown>>({
             rows.map((row) => (
               <TableRow
                 className={cn(onRowClick && 'cursor-pointer')}
-                data-state={row.getIsSelected() && 'selected'}
                 key={row.id}
                 onClick={
                   onRowClick &&
@@ -283,9 +292,9 @@ export function DataTable<Data extends Record<string, unknown>>({
                   })
                 }
               >
-                {row.getVisibleCells().map((cell) => (
+                {row.getAllCells().map((cell) => (
                   <TableCell className={cell.column.columnDef.meta?.className} key={cell.id}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    <FlexRender cell={cell} />
                   </TableCell>
                 ))}
               </TableRow>

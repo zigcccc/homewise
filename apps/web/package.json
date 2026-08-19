@@ -23,7 +23,6 @@
     "@sentry/react": "catalog:",
     "@tanstack/react-query": "catalog:",
     "@tanstack/react-router": "catalog:",
-    "@tanstack/react-table": "catalog:",
     "@tanstack/router-plugin": "catalog:",
     "@vercel/analytics": "catalog:",
     "@vercel/speed-insights": "catalog:",

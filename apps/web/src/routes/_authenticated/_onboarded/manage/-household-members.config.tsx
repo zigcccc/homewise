@@ -1,7 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import { useRouteContext } from '@tanstack/react-router';
-import { createColumnHelper } from '@tanstack/react-table';
 import { type InferRequestType, type InferResponseType } from 'hono';
 import { BanIcon, MoreHorizontal, PencilIcon, UserPlusIcon } from 'lucide-react';
 import { useState } from 'react';
@@ -16,6 +15,7 @@ import {
 } from '@homewise/server/households';
 import {
   Button,
+  createDataTableColumnHelper,
   Dialog,
   DialogClose,
   DialogContent,
@@ -58,9 +58,9 @@ type PatchMemberPayload = InferRequestType<typeof $patchMember>['json'];
 const $inviteMember = client.households.my.members[':id'].invite.$post;
 type InviteMemberPayload = InferRequestType<typeof $inviteMember>['json'];
 
-const membersTableBuilder = createColumnHelper<HouseholdMember>();
+const membersTableBuilder = createDataTableColumnHelper<HouseholdMember>();
 
-export const membersTableColumns = [
+export const membersTableColumns = membersTableBuilder.columns([
   membersTableBuilder.accessor('id', {
     header: 'ID',
     cell(info) {
@@ -262,7 +262,7 @@ export const membersTableColumns = [
       );
     },
   }),
-];
+]);
 
 function EditMemberDialog({
   member,
@@ -436,9 +436,9 @@ function InviteExistingMemberDialog({
 
 type HouseholdInvite = NonNullable<Awaited<InferResponseType<typeof client.households.my.invites.active.$get>>>[number];
 
-const invitesTableBuilder = createColumnHelper<HouseholdInvite>();
+const invitesTableBuilder = createDataTableColumnHelper<HouseholdInvite>();
 
-export const invitesTableColumns = [
+export const invitesTableColumns = invitesTableBuilder.columns([
   invitesTableBuilder.accessor('id', {
     header: 'ID',
     cell(info) {
@@ -517,4 +517,4 @@ export const invitesTableColumns = [
       );
     },
   }),
-];
+]);
