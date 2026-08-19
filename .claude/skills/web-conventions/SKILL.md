@@ -26,7 +26,8 @@ reads everything it can reach, so a component asking about an area is asking whe
   The sidebar renders from it and the guard reads from it, so a section cannot appear in the nav
   without being reachable, or be reachable without appearing. `Settings` is gated on `write` rather
   than `read`, because the page is nothing but mutations.
-- **An `external` member has its own home** (`/external`) rather than a filtered dashboard, and does
+- **An `external` member has its own home** (`/guest` — the role is `external` in the data, but the
+  surface reads as "guest" to the person on it) rather than a filtered dashboard, and does
   **not** join the realtime channel — there is one channel per household and every event carries the
   display name of what changed, including things that role may not read.
 

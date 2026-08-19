@@ -36,13 +36,13 @@ export const Route = createFileRoute('/_authenticated/_onboarded')({
 
     // An external's home is its own route — the dashboard is eleven queries they mostly cannot make.
     if (role === 'external' && location.pathname === '/') {
-      throw redirect({ to: '/external' });
+      throw redirect({ to: '/guest' });
     }
 
     // The one place a section is checked, off the same map the sidebar renders from.
     const section = areaForPath(location.pathname);
     if (section && !can(role, section.area, section.access ?? 'read')) {
-      throw redirect({ to: role === 'external' ? '/external' : '/' });
+      throw redirect({ to: role === 'external' ? '/guest' : '/' });
     }
 
     // After the household, not alongside it: the channel is cached per household id, and there's no

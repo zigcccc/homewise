@@ -2,12 +2,12 @@ import { expect, type Page } from '@playwright/test';
 
 import { SEED_EXTERNAL_USER, SEED_HOUSEHOLD_NAME } from '@homewise/server/seed-fixtures';
 
-/** Where an `external` member lands (`/external`) — their own home, not the dashboard. */
-export class ExternalHomePage {
+/** Where an `external` member lands (`/guest`) — their own home, not the dashboard. */
+export class GuestHomePage {
   constructor(private readonly page: Page) {}
 
   async goto() {
-    await this.page.goto('/external');
+    await this.page.goto('/guest');
     await this.expectLoaded();
   }
 
@@ -23,7 +23,7 @@ export class ExternalHomePage {
     userName?: string;
   } = {}) {
     await expect(this.page.getByRole('heading', { level: 1 })).toContainText(userName);
-    await expect(this.page.getByTestId('external-greeting')).toContainText(householdName);
+    await expect(this.page.getByTestId('guest-greeting')).toContainText(householdName);
   }
 
   card(title: string) {

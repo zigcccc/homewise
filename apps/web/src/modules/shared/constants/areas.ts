@@ -94,9 +94,9 @@ export const NAV_GROUPS: { items: NavEntry[]; label: string }[] = [
 const NAV_ENTRIES = NAV_GROUPS.flatMap((group) => group.items);
 
 /**
- * The section a path belongs to, or `undefined` for one that needs no capability (the dashboards, the
- * user's own profile). Prefix-matched on a path boundary, so `/external` is never taken for
- * `/expenses`.
+ * The section a path belongs to, or `undefined` for one that needs no capability (the two homes, the
+ * user's own profile). Matched on a path boundary rather than a bare prefix, so a future
+ * `/storage-something` could never be mistaken for `/storage`.
  */
 export function areaForPath(pathname: string) {
   return NAV_ENTRIES.find((entry) => pathname === entry.to || pathname.startsWith(`${entry.to}/`));

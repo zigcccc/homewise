@@ -1,7 +1,7 @@
 import { SEED_CHILD_DOCTOR, SEED_CHILD_MEMBER, SEED_CHILD_PROFILE, SEED_RECIPE } from '@homewise/server/seed-fixtures';
 
 import { AppNav } from '../pages/app-nav.page';
-import { ExternalHomePage } from '../pages/external-home.page';
+import { GuestHomePage } from '../pages/guest-home.page';
 import { KidsPage } from '../pages/kids.page';
 import { expect, test } from '../support/test';
 
@@ -18,12 +18,12 @@ test.describe('external member', () => {
   test('lands on its own home rather than the dashboard', async ({ page }) => {
     await page.goto('/');
 
-    await expect(page).toHaveURL(/\/external/);
-    await new ExternalHomePage(page).expectLoaded();
+    await expect(page).toHaveURL(/\/guest/);
+    await new GuestHomePage(page).expectLoaded();
   });
 
   test('is offered only the sections it can open', async ({ page }) => {
-    await new ExternalHomePage(page).goto();
+    await new GuestHomePage(page).goto();
     const nav = new AppNav(page);
 
     await expect(nav.navLink('Kids')).toBeVisible();
@@ -38,7 +38,7 @@ test.describe('external member', () => {
   test('is sent home from a section it cannot read', async ({ page }) => {
     await page.goto('/expenses/monthly-expenses');
 
-    await expect(page).toHaveURL(/\/external/);
+    await expect(page).toHaveURL(/\/guest/);
   });
 
   test('can read a recipe but not change one', async ({ page }) => {
@@ -85,7 +85,7 @@ test.describe('external member', () => {
       }
     });
 
-    await new ExternalHomePage(page).goto();
+    await new GuestHomePage(page).goto();
     await page.goto('/food/recipes');
     await expect(page.getByText(SEED_RECIPE.title).first()).toBeVisible();
 

@@ -121,7 +121,7 @@ export function AppSidebar() {
       <SidebarContent>
         <SidebarGroup>
           <SidebarMenu>
-            <NavItem fuzzy={false} icon={LayoutDashboardIcon} label="Dashboard" to={isExternal ? '/external' : '/'} />
+            <NavItem fuzzy={false} icon={LayoutDashboardIcon} label="Dashboard" to={isExternal ? '/guest' : '/'} />
           </SidebarMenu>
         </SidebarGroup>
         {/* Rendered from the same map the route guard reads, so a link can never appear for a section

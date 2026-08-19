@@ -6,7 +6,7 @@ import { type APIRequestContext, type Browser, test as base } from '@playwright/
 import { seedAccounts } from '@homewise/server/seed-fixtures';
 
 import { DashboardPage } from '../pages/dashboard.page';
-import { ExternalHomePage } from '../pages/external-home.page';
+import { GuestHomePage } from '../pages/guest-home.page';
 import { LoginPage } from '../pages/login.page';
 
 /**
@@ -218,10 +218,10 @@ async function authenticate(browser: Browser, accounts: SeedAccounts, who: Sessi
       await login.fillCredentials(account.email, account.password);
       await page.waitForURL(/\/onboarding/, { timeout: 15_000 });
     } else if (who === 'external') {
-      // An external's home is `/external`, not the dashboard — the shell redirects them off `/`.
+      // An external's home is `/guest`, not the dashboard — the shell redirects them off `/`.
       await login.fillCredentials(account.email, account.password);
-      await page.waitForURL(/\/external/, { timeout: 15_000 });
-      await new ExternalHomePage(page).expectLoaded({ userName: account.name });
+      await page.waitForURL(/\/guest/, { timeout: 15_000 });
+      await new GuestHomePage(page).expectLoaded({ userName: account.name });
     } else {
       await login.login(account.email, account.password);
       // Confirm the session actually works before persisting it — a saved-but-dead session turns
