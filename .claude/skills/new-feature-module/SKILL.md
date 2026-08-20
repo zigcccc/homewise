@@ -16,8 +16,8 @@ The conventions this procedure leans on, each loaded when you reach its step: `s
 > (`apps/server/src/lib/permissions.ts`) and pass it to `withHousehold('<area>')` when you mount the
 > sub-app — the argument is required, and `app.route-coverage.test.ts` names the module if the mount is
 > missed. Add it to `NAV_GROUPS` (`apps/web/src/modules/shared/constants/navigation.ts`) too, which is what
-> puts it in the sidebar *and* guards its routes. Adults and children get a new area automatically;
-> externals and pets are denied it unless you say otherwise. A new *event entity* also needs its area
+> puts it in the sidebar *and* guards its routes. A new area reaches adults read *and* write and
+> children read-only; externals and pets are denied it unless you say otherwise. A new *event entity* also needs its area
 > in `ENTITY_AREAS` (`realtime.model.ts`), which is what decides whether the change reaches the guest
 > channel — the `Record` is exhaustive, so the compiler asks.
 
