@@ -10,14 +10,15 @@ Read `CLAUDE.md` first — it wins on any conflict. For routes, loaders and quer
 
 ## Read-only forms
 
-A form a member may not submit gets `<fieldset className="contents" disabled={!canWrite}>` around its
-body rather than a `disabled` on every control. One attribute disables every descendant, Radix
-triggers included, and it never touches React props — so `FormControl`'s id/aria wiring is untouched
-and the `FormControl` trap below does not apply. The submit disappears on its own: it renders on
-`formState.isDirty`, and a disabled fieldset can never become dirty.
+A form a member may not submit gets `<FormFieldset disabled={!canWrite}>` around its body rather than
+a `disabled` on every control. One attribute disables every descendant, Radix triggers included, and
+it never touches React props — so `FormControl`'s id/aria wiring is untouched and the `FormControl`
+trap below does not apply. The submit disappears on its own: it renders on `formState.isDirty`, and a
+disabled fieldset can never become dirty.
 
-- **`className="contents"` is required.** A bare `<fieldset>` is a block box with
-  `min-inline-size: min-content`, which breaks `space-y-*` rhythm and any grid or flex shrinking inside.
+- **Use the kit's `FormFieldset`, never a bare `<fieldset>`.** It carries `contents`, which is
+  load-bearing: a plain `<fieldset>` is a block box with `min-inline-size: min-content`, which breaks
+  `space-y-*` rhythm and any grid or flex shrinking inside.
 - **Watch what else is a `<button>`.** `MaskedInput` reveals its value with a pencil button, so a
   fieldset takes away the only way to read the value — pass `revealed={!canWrite || …}` so a read-only
   viewer sees it outright. Anything else whose *read* path runs through a button has the same problem.
