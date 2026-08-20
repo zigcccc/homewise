@@ -51,12 +51,14 @@ export const withHousehold = (area: PermissionArea) =>
       throw notFound('Household');
     }
 
-    const { household, memberId, role: memberRole } = row;
+    // Split so `c.var.household` stays the household row and nothing else.
+    const { members, ...household } = row;
+    const [member] = members;
     const isOwner = household.ownerId === c.var.user.id;
 
     // The join misses only when the caller matched on `ownerId` alone, and an owner is an adult by
     // definition — every other path here has a member row.
-    const role = memberRole ?? (isOwner ? 'adult' : null);
+    const role = member?.role ?? (isOwner ? 'adult' : null);
 
     if (!role) {
       throw notFound('Household');
@@ -73,7 +75,7 @@ export const withHousehold = (area: PermissionArea) =>
     }
 
     c.set('household', household);
-    c.set('viewer', { isOwner, memberId, role });
+    c.set('viewer', { isOwner, memberId: member?.id ?? null, role });
     // Every error, trace and log from a household-scoped route becomes filterable by household — the
     // unit a bug report ("our recipes stopped syncing") actually arrives in.
     setTag('householdId', household.id);

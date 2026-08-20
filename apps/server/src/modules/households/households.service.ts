@@ -106,26 +106,26 @@ export class HouseholdsService {
   }
 
   /**
-   * The household plus the caller's own member row, for `withHousehold` to gate on. Left-joined, and
-   * the `where` still matches ownership *or* membership — an owner is reachable through `ownerId`
-   * alone, so their member row can be absent here.
+   * Same scoping as {@link readForUser}, but carrying only the caller's own member row — enough for
+   * `withHousehold` to know what the request may do, without loading the roster on every request.
+   *
+   * `members` can still come back empty: the scoping matches ownership *or* membership, and an owner
+   * is reachable through `ownerId` alone.
    */
   public static async readSummaryForUser(userId: string) {
-    const [row] = await db
-      .select({
-        household: schema.household,
-        memberId: schema.householdMember.id,
-        role: schema.householdMember.role,
-      })
-      .from(schema.household)
-      .leftJoin(
-        schema.householdMember,
-        and(eq(schema.householdMember.householdId, schema.household.id), eq(schema.householdMember.userId, userId))
-      )
-      .where(or(eq(schema.household.ownerId, userId), HouseholdsService.getUserHouseholdSql(userId)))
-      .limit(1);
+    const household = await db.query.household.findFirst({
+      where: (households, { eq, or }) =>
+        or(eq(households.ownerId, userId), HouseholdsService.getUserHouseholdSql(userId)),
+      with: {
+        members: {
+          where: (members, { eq }) => eq(members.userId, userId),
+          columns: { id: true, role: true },
+          limit: 1,
+        },
+      },
+    });
 
-    return row;
+    return household;
   }
 
   /**
