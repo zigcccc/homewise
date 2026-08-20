@@ -124,7 +124,7 @@ function ContactDetailRoute() {
             <h1 className="font-medium text-lg">{contact.name}</h1>
             <Badge variant="outline">{contactTypeLabels[contact.type]}</Badge>
           </div>
-          <Can area="contacts">
+          <Can access="write" area="contacts">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline">

@@ -119,7 +119,7 @@ function StorageItemsRoute() {
               Everything the household keeps somewhere — and who currently has it.
             </p>
           </div>
-          <Can area="storageItems">
+          <Can access="write" area="storageItems">
             <Button disabled={!hasLocations} onClick={() => setAddOpen(true)}>
               <PlusIcon />
               Add item
@@ -208,14 +208,14 @@ function StorageItemsRoute() {
               {!isFiltered && (
                 <EmptyContent>
                   {hasLocations ? (
-                    <Can area="storageItems">
+                    <Can access="write" area="storageItems">
                       <Button onClick={() => setAddOpen(true)}>
                         <PlusIcon />
                         Add item
                       </Button>
                     </Can>
                   ) : (
-                    <Can area="storageItems">
+                    <Can access="write" area="storageItems">
                       <Button asChild>
                         <Link to="/storage/locations">
                           <PlusIcon />

@@ -89,7 +89,7 @@ function GeneralTab() {
   // saved value re-masks while one left empty stays open. Deriving it in render instead would mask a field the
   // moment its first character landed.
   const [revealed, setRevealed] = useState(revealedDefaults(profile));
-  const canWrite = useCan()('childProfiles');
+  const canWrite = useCan('childProfiles', 'write');
 
   const form = useForm<z.infer<typeof generalFormModel>>({
     resolver: zodResolver(generalFormModel),
@@ -136,6 +136,7 @@ function GeneralTab() {
               {/* One attribute disables every control below, Radix triggers included — and it never
                   touches React props, so `FormControl`'s id/aria wiring is untouched. The Save button
                   disappears on its own: a disabled fieldset can never become dirty. */}
+              {/* `contents` so the fieldset disables its inputs without adding a box of its own to the layout. */}
               <fieldset className="contents" disabled={!canWrite}>
                 <div className="flex items-start gap-6">
                   <ProfilePictureField

@@ -194,7 +194,7 @@ function IngredientRowActions({ ingredient }: { ingredient: Ingredient }) {
 
   return (
     <div className="flex justify-end">
-      <Can area="ingredients">
+      <Can access="write" area="ingredients">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button className="h-8 w-8 p-0" variant="ghost">

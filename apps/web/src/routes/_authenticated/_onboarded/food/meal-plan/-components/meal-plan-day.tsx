@@ -399,7 +399,7 @@ function MealCard({
           </Button>
         )}
 
-        <Can area="mealPlan">
+        <Can access="write" area="mealPlan">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button aria-label={`Meal actions for ${meal.label}`} size="icon-sm" variant="ghost">

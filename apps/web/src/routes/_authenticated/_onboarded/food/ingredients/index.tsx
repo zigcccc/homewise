@@ -167,7 +167,7 @@ function IngredientsRoute() {
             </EmptyHeader>
             {!isFiltered && (
               <EmptyContent>
-                <Can area="ingredients">
+                <Can access="write" area="ingredients">
                   <Button onClick={() => setAddOpen(true)}>
                     <PlusIcon />
                     Add ingredient

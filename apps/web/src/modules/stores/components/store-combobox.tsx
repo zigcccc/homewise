@@ -54,7 +54,7 @@ export function StoreCombobox({
   const [open, setOpen] = useState(false);
   const options = useAsyncOptions({ enabled: open, queryOptions: listStoreOptionsInfiniteQueryOptions });
 
-  const canCreate = useCan()('stores');
+  const canCreate = useCan('stores', 'write');
   const offerCreate = canCreate && shouldOfferCreate(options);
 
   const select = (choice: StoreChoice) => {

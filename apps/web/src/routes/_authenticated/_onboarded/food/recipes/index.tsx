@@ -144,7 +144,7 @@ function RecipesRoute() {
               Everything you cook, in one place — searchable by name or by what's in it.
             </p>
           </div>
-          <Can area="recipes">
+          <Can access="write" area="recipes">
             <Button asChild>
               <Link to="/food/recipes/new">
                 <PlusIcon />
@@ -251,7 +251,7 @@ function RecipesRoute() {
             </EmptyHeader>
             {!isFiltered && (
               <EmptyContent>
-                <Can area="recipes">
+                <Can access="write" area="recipes">
                   <Button asChild>
                     <Link to="/food/recipes/new">
                       <PlusIcon />

@@ -1,28 +1,28 @@
 import { useQuery } from '@tanstack/react-query';
-import { useCallback } from 'react';
 
-import { can, type PermissionAccess, type PermissionArea } from '@homewise/server/permissions';
+import { type PermissionAccess, type PermissionArea } from '@homewise/server/permissions';
 
 import { getMyHouseholdQueryOptions } from '@/modules/households';
 
-/**
- * What the current member may do.
- *
- * **Defaults to `'write'`**, because inside the app shell that is the only question worth asking —
- * every role that gets this far reads everything it can reach, so a component asking about an area is
- * asking whether it may change it.
- *
- * Reads the household query rather than route context on purpose: `beforeLoad` results are cached per
- * match, so a role changed in another tab — which arrives here as a realtime invalidation of
- * `['households']` — would leave every button on screen until the next navigation. It also means this
- * is safe to call from a component that renders outside the shell, where there is no route context to
- * read; it denies until the household is known, which is the right way round.
- */
-export function useCan() {
-  const role = useQuery(getMyHouseholdQueryOptions()).data?.viewer.role;
+import { canRole } from '../helpers/permissions';
 
-  return useCallback(
-    (area: PermissionArea, access: PermissionAccess = 'write') => role !== undefined && can(role, area, access),
-    [role]
-  );
+/**
+ * The current member's role, or `undefined` until the household query has answered.
+ *
+ * For code that asks about several areas at once — the sidebar, the quick actions — where a hook per
+ * area is not an option. Everything else wants {@link useCan}.
+ */
+export function useHouseholdRole() {
+  return useQuery(getMyHouseholdQueryOptions()).data?.viewer.role;
+}
+
+/**
+ * Whether the current member may `read` or `write` an area — the same policy the server enforces.
+ *
+ * Reads the household query rather than route context: `beforeLoad` results are cached per match, so
+ * a role changed in another tab would leave every button on screen until the next navigation. It also
+ * works in a component that renders outside the shell, where there is no route context to read.
+ */
+export function useCan(area: PermissionArea, access: PermissionAccess) {
+  return canRole(useHouseholdRole(), area, access);
 }

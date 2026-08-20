@@ -61,7 +61,7 @@ export function ExpenseCategoryCombobox({
   const [open, setOpen] = useState(false);
   const options = useAsyncOptions({ enabled: open, queryOptions: listExpenseCategoryOptionsInfiniteQueryOptions });
 
-  const canCreate = useCan()('expenseCategories');
+  const canCreate = useCan('expenseCategories', 'write');
   const offerCreate = canCreate && shouldOfferCreate(options);
 
   const close = () => {

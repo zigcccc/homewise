@@ -100,7 +100,7 @@ function HouseholdMembersRoute() {
               <TabsTrigger value="members">Members ({household.members.length})</TabsTrigger>
               <TabsTrigger value="invites">Pending invites ({invites.length})</TabsTrigger>
             </TabsList>
-            <Can area="householdMembers">
+            <Can access="write" area="householdMembers">
               <Button className="pr-4" onClick={() => setInviteDialogOpen(true)} size="sm">
                 <PlusIcon /> Add member
               </Button>

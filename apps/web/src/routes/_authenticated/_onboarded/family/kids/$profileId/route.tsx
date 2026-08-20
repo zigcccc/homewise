@@ -109,7 +109,7 @@ function ProfileLayout() {
               <p className="text-muted-foreground text-sm">Child profile</p>
             </div>
           </div>
-          <Can area="childProfiles">
+          <Can access="write" area="childProfiles">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button className="h-9 w-9 p-0" variant="outline">

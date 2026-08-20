@@ -81,7 +81,7 @@ function StoreRowActions({ store }: { store: Store }) {
 
   return (
     <div className="flex justify-end">
-      <Can area="stores">
+      <Can access="write" area="stores">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button className="h-8 w-8 p-0" variant="ghost">

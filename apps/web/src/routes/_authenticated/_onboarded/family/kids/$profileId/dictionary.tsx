@@ -164,7 +164,7 @@ function DictionaryEntries({
         <p className="text-muted-foreground text-sm">
           {dictionary.entryCount} {dictionary.entryCount === 1 ? 'word' : 'words'} collected
         </p>
-        <Can area="childDictionaries">
+        <Can access="write" area="childDictionaries">
           <Button onClick={() => setAddOpen(true)}>
             <PlusIcon />
             Add word

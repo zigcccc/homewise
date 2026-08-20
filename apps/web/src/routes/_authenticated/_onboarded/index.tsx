@@ -1,5 +1,5 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
-import { createFileRoute, Link, type LinkProps } from '@tanstack/react-router';
+import { createFileRoute, Link, type LinkProps, redirect } from '@tanstack/react-router';
 import { format } from 'date-fns';
 import { BookUserIcon, CookingPotIcon, ListTodoIcon, type LucideIcon, PlusIcon, ZapIcon } from 'lucide-react';
 import { type ComponentProps, type ReactNode, useCallback, useMemo, useState } from 'react';
@@ -24,7 +24,15 @@ import { useIsMobile } from '@homewise/ui/hooks';
 import { ContactDialog } from '@/modules/contacts';
 import { ExpenseFormDialog } from '@/modules/expenses';
 import { getMyHouseholdQueryOptions } from '@/modules/households';
-import { Actionbar, formatDate, PageLayout, RouteError, todayISODay, useCan } from '@/modules/shared';
+import {
+  Actionbar,
+  canRole,
+  formatDate,
+  PageLayout,
+  RouteError,
+  todayISODay,
+  useHouseholdRole,
+} from '@/modules/shared';
 
 import { ActivityCard, dashboardActivityQueryOptions } from './-components/activity-card';
 import { BirthdaysCard, dashboardBirthdayContactsQueryOptions } from './-components/birthdays-card';
@@ -44,6 +52,13 @@ import {
 import { WeekMealsCard, weekMealsQueryOptions } from './-components/week-meals-card';
 
 export const Route = createFileRoute('/_authenticated/_onboarded/')({
+  // An external's home is `/guest` — this dashboard is eleven queries they mostly cannot make. Here
+  // rather than in the layout above, which would have to test the pathname to find this one route.
+  beforeLoad({ context }) {
+    if (context.role === 'external') {
+      throw redirect({ to: '/guest' });
+    }
+  },
   component: HomeRoute,
   pendingComponent: DashboardPending,
   errorComponent: () => <RouteError title="Couldn't load your dashboard" />,
@@ -134,7 +149,7 @@ function QuickActions() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [openDialog, setOpenDialog] = useState<'contact' | 'expense' | null>(null);
 
-  const can = useCan();
+  const role = useHouseholdRole();
   // Every one of these starts a write, so a member who can't make one is offered nothing at all.
   const actions = useMemo(
     () =>
@@ -163,8 +178,8 @@ function QuickActions() {
             onSelect: () => setOpenDialog('contact'),
           },
         ] as const
-      ).filter((action) => can(action.area)),
-    [can]
+      ).filter((action) => canRole(role, action.area, 'write')),
+    [role]
   );
   const closeSheet = useCallback(() => setSheetOpen(false), []);
 

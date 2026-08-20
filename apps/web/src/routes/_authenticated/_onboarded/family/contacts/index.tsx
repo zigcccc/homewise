@@ -132,7 +132,7 @@ function ContactsRoute() {
               The household address book — family, friends, and everyone you'd rather not have to look up.
             </p>
           </div>
-          <Can area="contacts">
+          <Can access="write" area="contacts">
             <Button onClick={() => setAddOpen(true)}>
               <PlusIcon />
               Add contact
@@ -204,7 +204,7 @@ function ContactsRoute() {
               </EmptyHeader>
               {!isFiltered && (
                 <EmptyContent>
-                  <Can area="contacts">
+                  <Can access="write" area="contacts">
                     <Button onClick={() => setAddOpen(true)}>
                       <PlusIcon />
                       Add contact

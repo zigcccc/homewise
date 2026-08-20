@@ -95,7 +95,7 @@ function ContactRowActions({ contact }: { contact: HouseholdContact }) {
 
   return (
     <div className="flex justify-end">
-      <Can area="contacts">
+      <Can access="write" area="contacts">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button className="h-8 w-8 p-0" variant="ghost">

@@ -99,7 +99,7 @@ function StoresRoute() {
             </EmptyHeader>
             {!isFiltered && (
               <EmptyContent>
-                <Can area="stores">
+                <Can access="write" area="stores">
                   <Button onClick={() => setAddOpen(true)}>
                     <PlusIcon />
                     Add shop

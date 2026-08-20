@@ -185,7 +185,7 @@ function MonthlyExpensesLayout() {
             <h1 className="font-medium text-lg">{monthLabel(searchParams.month, searchParams.year)}</h1>
             <MonthTotals summary={summary} />
           </div>
-          <Can area="expenses">
+          <Can access="write" area="expenses">
             <Button onClick={() => setAddOpen(true)}>
               <PlusIcon />
               Add expense
@@ -261,7 +261,7 @@ function MonthlyExpensesLayout() {
               </EmptyHeader>
               {!isFiltered && (
                 <EmptyContent>
-                  <Can area="expenses">
+                  <Can access="write" area="expenses">
                     <Button onClick={() => setAddOpen(true)}>
                       <PlusIcon />
                       Add expense

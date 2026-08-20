@@ -15,7 +15,6 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as AuthenticatedOnboardedRouteImport } from './routes/_authenticated/_onboarded'
 import { Route as AuthenticatedJoinHouseholdRouteImport } from './routes/_authenticated/join-household'
-import { Route as AuthenticatedNoAccessRouteImport } from './routes/_authenticated/no-access'
 import { Route as AuthenticatedOnboardingRouteRouteImport } from './routes/_authenticated/onboarding/route'
 import { Route as AuthenticatedOnboardedIndexRouteImport } from './routes/_authenticated/_onboarded/index'
 import { Route as AuthenticatedOnboardedGuestRouteImport } from './routes/_authenticated/_onboarded/guest'
@@ -86,11 +85,6 @@ const AuthenticatedJoinHouseholdRoute =
     path: '/join-household',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedNoAccessRoute = AuthenticatedNoAccessRouteImport.update({
-  id: '/no-access',
-  path: '/no-access',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
 const AuthenticatedOnboardingRouteRoute =
   AuthenticatedOnboardingRouteRouteImport.update({
     id: '/onboarding',
@@ -341,7 +335,6 @@ export interface FileRoutesByFullPath {
   '/verify-email': typeof VerifyEmailRoute
   '/onboarding': typeof AuthenticatedOnboardingRouteRouteWithChildren
   '/join-household': typeof AuthenticatedJoinHouseholdRoute
-  '/no-access': typeof AuthenticatedNoAccessRoute
   '/guest': typeof AuthenticatedOnboardedGuestRoute
   '/user-profile': typeof AuthenticatedOnboardedUserProfileRoute
   '/onboarding/create-household': typeof AuthenticatedOnboardingCreateHouseholdRoute
@@ -387,7 +380,6 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/verify-email': typeof VerifyEmailRoute
   '/join-household': typeof AuthenticatedJoinHouseholdRoute
-  '/no-access': typeof AuthenticatedNoAccessRoute
   '/guest': typeof AuthenticatedOnboardedGuestRoute
   '/user-profile': typeof AuthenticatedOnboardedUserProfileRoute
   '/onboarding/create-household': typeof AuthenticatedOnboardingCreateHouseholdRoute
@@ -430,7 +422,6 @@ export interface FileRoutesById {
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRouteRouteWithChildren
   '/_authenticated/_onboarded': typeof AuthenticatedOnboardedRouteWithChildren
   '/_authenticated/join-household': typeof AuthenticatedJoinHouseholdRoute
-  '/_authenticated/no-access': typeof AuthenticatedNoAccessRoute
   '/_authenticated/_onboarded/guest': typeof AuthenticatedOnboardedGuestRoute
   '/_authenticated/_onboarded/user-profile': typeof AuthenticatedOnboardedUserProfileRoute
   '/_authenticated/onboarding/create-household': typeof AuthenticatedOnboardingCreateHouseholdRoute
@@ -480,7 +471,6 @@ export interface FileRouteTypes {
     | '/verify-email'
     | '/onboarding'
     | '/join-household'
-    | '/no-access'
     | '/guest'
     | '/user-profile'
     | '/onboarding/create-household'
@@ -526,7 +516,6 @@ export interface FileRouteTypes {
     | '/signup'
     | '/verify-email'
     | '/join-household'
-    | '/no-access'
     | '/guest'
     | '/user-profile'
     | '/onboarding/create-household'
@@ -568,7 +557,6 @@ export interface FileRouteTypes {
     | '/_authenticated/onboarding'
     | '/_authenticated/_onboarded'
     | '/_authenticated/join-household'
-    | '/_authenticated/no-access'
     | '/_authenticated/_onboarded/guest'
     | '/_authenticated/_onboarded/user-profile'
     | '/_authenticated/onboarding/create-household'
@@ -659,13 +647,6 @@ declare module '@tanstack/react-router' {
       path: '/join-household'
       fullPath: '/join-household'
       preLoaderRoute: typeof AuthenticatedJoinHouseholdRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/no-access': {
-      id: '/_authenticated/no-access'
-      path: '/no-access'
-      fullPath: '/no-access'
-      preLoaderRoute: typeof AuthenticatedNoAccessRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/onboarding': {
@@ -1165,7 +1146,6 @@ interface AuthenticatedRouteChildren {
   AuthenticatedOnboardingRouteRoute: typeof AuthenticatedOnboardingRouteRouteWithChildren
   AuthenticatedOnboardedRoute: typeof AuthenticatedOnboardedRouteWithChildren
   AuthenticatedJoinHouseholdRoute: typeof AuthenticatedJoinHouseholdRoute
-  AuthenticatedNoAccessRoute: typeof AuthenticatedNoAccessRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
@@ -1173,7 +1153,6 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
     AuthenticatedOnboardingRouteRouteWithChildren,
   AuthenticatedOnboardedRoute: AuthenticatedOnboardedRouteWithChildren,
   AuthenticatedJoinHouseholdRoute: AuthenticatedJoinHouseholdRoute,
-  AuthenticatedNoAccessRoute: AuthenticatedNoAccessRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(

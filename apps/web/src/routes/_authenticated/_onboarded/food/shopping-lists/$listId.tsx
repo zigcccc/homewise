@@ -81,7 +81,7 @@ function ShoppingListDetailRoute() {
   const queryClient = useQueryClient();
 
   const [renaming, setRenaming] = useState(false);
-  const canWrite = useCan()('shoppingLists');
+  const canWrite = useCan('shoppingLists', 'write');
   const [completeOpen, setCompleteOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [addingSection, setAddingSection] = useState(false);
@@ -229,7 +229,7 @@ function ShoppingListDetailRoute() {
               Mark done
             </Button>
           )}
-          <Can area="shoppingLists">
+          <Can access="write" area="shoppingLists">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button className="h-8 w-8 p-0" variant="ghost">

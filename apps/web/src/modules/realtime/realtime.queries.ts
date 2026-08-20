@@ -1,5 +1,7 @@
 import { queryOptions } from '@tanstack/react-query';
 
+import { type HouseholdMemberRole } from '@homewise/server/households';
+
 import { client, parseResponse } from '@/api/client';
 
 /**
@@ -16,10 +18,14 @@ import { client, parseResponse } from '@/api/client';
  * channel, so Ably refused the attach and live updates silently stopped until a reload. Keying by
  * id makes that unrepresentable instead of relying on every household-lifecycle call site to
  * remember to evict this one.
+ *
+ * `role` is in the key for the same reason: the answer depends on it too — a member who may read
+ * only part of the household is named onto a cut of it — so a role that changes under a live tab
+ * would otherwise keep resolving to a channel its next token no longer authorizes.
  */
-export function getRealtimeChannelQueryOptions(householdId: number) {
+export function getRealtimeChannelQueryOptions(householdId: number, role: HouseholdMemberRole) {
   return queryOptions({
-    queryKey: ['realtime', 'channel', householdId],
+    queryKey: ['realtime', 'channel', householdId, role],
     queryFn: async () => parseResponse(client.realtime.channel.$get()),
     staleTime: Number.POSITIVE_INFINITY,
   });

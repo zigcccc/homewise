@@ -291,7 +291,7 @@ export function createEntriesTableColumns(profileId: number) {
 
         return (
           <>
-            <Can area="childDictionaries">
+            <Can access="write" area="childDictionaries">
               <DropdownMenu>
                 <div className="flex justify-end">
                   <DropdownMenuTrigger asChild>

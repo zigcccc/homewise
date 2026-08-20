@@ -123,7 +123,7 @@ export function ListSection({
             <h2 className="font-medium text-muted-foreground text-sm uppercase tracking-wide">{section.label}</h2>
           )}
           {!readOnly && !renaming && (
-            <Can area="shoppingLists">
+            <Can access="write" area="shoppingLists">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button className="h-7 w-7 p-0" variant="ghost">
@@ -480,7 +480,7 @@ function ListItemRow({
       </div>
 
       {!readOnly && !editing && (
-        <Can area="shoppingLists">
+        <Can access="write" area="shoppingLists">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button className="h-7 w-7 shrink-0 p-0" variant="ghost">

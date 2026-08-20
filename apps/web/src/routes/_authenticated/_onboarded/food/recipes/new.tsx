@@ -21,7 +21,9 @@ import { Actionbar, PageLayout, RouteError, requireWrite, serverMessage } from '
 const $createRecipe = client.recipes.$post;
 
 export const Route = createFileRoute('/_authenticated/_onboarded/food/recipes/new')({
-  beforeLoad: requireWrite('recipes'),
+  beforeLoad({ context }) {
+    requireWrite(context.role, 'recipes');
+  },
   async loader({ context }) {
     await context.queryClient.ensureQueryData(listRecipeTagsQueryOptions());
   },

@@ -80,7 +80,7 @@ function IngredientsLayout() {
               buy them at.
             </p>
           </div>
-          <Can area="ingredients">
+          <Can access="write" area="ingredients">
             <Button onClick={() => setAddOpen(true)}>
               <PlusIcon />
               {onStores ? 'Add shop' : 'Add ingredient'}

@@ -83,7 +83,9 @@ const importFormModel = z.object({
 type ImportFormValues = z.infer<typeof importFormModel>;
 
 export const Route = createFileRoute('/_authenticated/_onboarded/food/shopping-lists/import')({
-  beforeLoad: requireWrite('shoppingLists'),
+  beforeLoad({ context }) {
+    requireWrite(context.role, 'shoppingLists');
+  },
   validateSearch: searchParamsModel,
   loaderDeps: ({ search }) => rangeFor(search),
   async loader({ context, deps }) {

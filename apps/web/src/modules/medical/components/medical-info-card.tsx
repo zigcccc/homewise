@@ -73,7 +73,7 @@ export function MedicalInfoCard({
   const typeLabels = petLabels ? petContactTypeLabels : contactTypeLabels;
   const queryClient = useQueryClient();
   // The record and its attached contacts are all written through `/medical-info`.
-  const canWrite = useCan()('medicalInfo');
+  const canWrite = useCan('medicalInfo', 'write');
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<MedicalContact | undefined>(undefined);
@@ -160,6 +160,7 @@ export function MedicalInfoCard({
       <CardContent className="space-y-6">
         <Form {...form}>
           <form className="space-y-4" onSubmit={form.handleSubmit(saveInfo)}>
+            {/* `contents` so the fieldset disables its inputs without adding a box of its own to the layout. */}
             <fieldset className="contents" disabled={!canWrite}>
               <FormField
                 control={form.control}

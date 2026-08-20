@@ -5,8 +5,7 @@ import { type PermissionAccess, type PermissionArea } from '@homewise/server/per
 import { useCan } from '../hooks/use-can';
 
 /**
- * Renders its children only when the current member may act on `area`. Defaults to asking about
- * writes — see {@link useCan}.
+ * Renders its children only when the current member may do `access` on `area`.
  *
  * Hiding rather than disabling is deliberate for whole controls: a row of greyed-out buttons is noise
  * to someone who can never use them, and a disabled `DropdownMenuItem` wrapped in a tooltip trigger
@@ -19,10 +18,10 @@ export function Can({
   children,
   fallback = null,
 }: {
-  access?: PermissionAccess;
+  access: PermissionAccess;
   area: PermissionArea;
   children: ReactNode;
   fallback?: ReactNode;
 }) {
-  return useCan()(area, access) ? children : fallback;
+  return useCan(area, access) ? children : fallback;
 }

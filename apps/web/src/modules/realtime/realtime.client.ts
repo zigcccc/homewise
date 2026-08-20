@@ -14,13 +14,9 @@ const $createRealtimeToken = client.realtime.auth.$get;
  * `autoCodeSplitting` therefore lands it in that route's component chunk, which never loads for a
  * signed-out visitor. Re-exporting it from the barrel would pull it into the main bundle — the
  * route's `beforeLoad` imports the barrel for the channel query — and `/login` would start dialling
- * out. `no-realtime-client-before-onboarding.spec.ts` guards exactly that.
+ * out. `realtime-bundling.spec.ts` guards exactly that.
  */
 export const realtimeClient = new Ably.Realtime({
-  // Connecting is `RealtimeProvider`'s to start, not this module's. A role with no realtime access
-  // (an external — see `_onboarded.tsx`) never renders that provider, and with `autoConnect` on, merely
-  // importing this file would dial out on their behalf and retry a 403 token request forever.
-  autoConnect: false,
   // Not `authUrl`: Ably's own fetch doesn't send credentials, and our session is a cross-origin
   // cookie. Going through the RPC client reuses the same credentialed request every other call makes.
   authCallback: (_params, callback) => {

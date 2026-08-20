@@ -81,7 +81,7 @@ function GeneralTab() {
   const queryClient = useQueryClient();
   const { data: profile } = useSuspenseQuery(getPetProfileQueryOptions(Number(profileId)));
 
-  const canWrite = useCan()('petProfiles');
+  const canWrite = useCan('petProfiles', 'write');
   const form = useForm<z.infer<typeof generalFormModel>>({
     resolver: zodResolver(generalFormModel),
     defaultValues: defaults(profile),
@@ -126,6 +126,7 @@ function GeneralTab() {
             <form className="space-y-6" onSubmit={form.handleSubmit(onSubmit)}>
               {/* See the kid profile's twin: one attribute disables every control, and the Save button
                   goes with it because a disabled fieldset can never become dirty. */}
+              {/* `contents` so the fieldset disables its inputs without adding a box of its own to the layout. */}
               <fieldset className="contents" disabled={!canWrite}>
                 <div className="flex items-start gap-6">
                   <ProfilePictureField

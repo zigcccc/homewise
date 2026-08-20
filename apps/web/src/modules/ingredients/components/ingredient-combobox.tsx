@@ -50,7 +50,7 @@ export function IngredientCombobox({
 
   const used = useMemo(() => new Set(usedIds), [usedIds]);
 
-  const canCreate = useCan()('ingredients');
+  const canCreate = useCan('ingredients', 'write');
   const offerCreate = canCreate && shouldOfferCreate(options);
 
   const close = () => {

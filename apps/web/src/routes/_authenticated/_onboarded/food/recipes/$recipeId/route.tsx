@@ -144,7 +144,7 @@ function RecipeLayout() {
           </div>
           <div className="flex shrink-0 items-center gap-2">
             {!isEditing && (
-              <Can area="recipes">
+              <Can access="write" area="recipes">
                 <Button asChild variant="outline">
                   <Link params={{ recipeId }} to="/food/recipes/$recipeId/edit">
                     <PencilIcon />
@@ -153,7 +153,7 @@ function RecipeLayout() {
                 </Button>
               </Can>
             )}
-            <Can area="recipes">
+            <Can access="write" area="recipes">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button className="h-9 w-9 p-0" variant="outline">

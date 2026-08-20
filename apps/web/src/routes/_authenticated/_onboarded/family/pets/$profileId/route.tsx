@@ -103,7 +103,7 @@ function ProfileLayout() {
               <p className="text-muted-foreground text-sm">Pet profile</p>
             </div>
           </div>
-          <Can area="petProfiles">
+          <Can access="write" area="petProfiles">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button className="h-9 w-9 p-0" variant="outline">

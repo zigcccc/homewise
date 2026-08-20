@@ -18,7 +18,7 @@ import {
 
 import { type PermissionAccess, type PermissionArea } from '@homewise/server/permissions';
 
-export type NavEntry = {
+export type NavSection = {
   /** What the section is gated on. Defaults to `'read'`; `'write'` for a page that only edits. */
   access?: PermissionAccess;
   area: PermissionArea;
@@ -38,7 +38,7 @@ export type NavEntry = {
  * `/user-profile` is deliberately absent — it edits the caller's own account rather than the
  * household, so every role keeps it.
  */
-export const NAV_GROUPS: { items: NavEntry[]; label: string }[] = [
+export const NAV_GROUPS: { items: NavSection[]; label: string }[] = [
   {
     label: 'Family & friends',
     items: [
@@ -91,13 +91,13 @@ export const NAV_GROUPS: { items: NavEntry[]; label: string }[] = [
   },
 ];
 
-const NAV_ENTRIES = NAV_GROUPS.flatMap((group) => group.items);
+const NAV_SECTIONS = NAV_GROUPS.flatMap((group) => group.items);
 
 /**
  * The section a path belongs to, or `undefined` for one that needs no capability (the two homes, the
  * user's own profile). Matched on a path boundary rather than a bare prefix, so a future
  * `/storage-something` could never be mistaken for `/storage`.
  */
-export function areaForPath(pathname: string) {
-  return NAV_ENTRIES.find((entry) => pathname === entry.to || pathname.startsWith(`${entry.to}/`));
+export function sectionForPath(pathname: string) {
+  return NAV_SECTIONS.find((section) => pathname === section.to || pathname.startsWith(`${section.to}/`));
 }

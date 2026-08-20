@@ -241,7 +241,7 @@ function StorageLocationRoute() {
             value={searchParams.sortDirection}
           />
 
-          <Can area="storageLocations">
+          <Can access="write" area="storageLocations">
             <Button onClick={() => setAddOpen(true)}>
               <PlusIcon />
               Add item
@@ -265,7 +265,7 @@ function StorageLocationRoute() {
               </EmptyHeader>
               {!isFiltered && (
                 <EmptyContent>
-                  <Can area="storageLocations">
+                  <Can access="write" area="storageLocations">
                     <Button onClick={() => setAddOpen(true)}>
                       <PlusIcon />
                       Add item
@@ -312,7 +312,7 @@ function LocationActions({ location }: { location: StorageLocation }) {
 
   return (
     <>
-      <Can area="storageLocations">
+      <Can access="write" area="storageLocations">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button className="h-9 w-9 p-0" variant="ghost">

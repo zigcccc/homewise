@@ -89,7 +89,7 @@ export const membersTableColumns = membersTableBuilder.columns([
     header: 'Role',
     cell: function MembersTableRoleCell(info) {
       const { queryClient, user } = useRouteContext({ from: '/_authenticated/_onboarded/manage/household-members' });
-      const canWriteRoles = useCan()('householdMembers');
+      const canWriteRoles = useCan('householdMembers', 'write');
       const { mutateAsync: updateMemberRoleAsync, isPending: isUpdating } = useMutation({
         mutationFn: async (role: HouseholdMemberRole) =>
           parseResponse(
@@ -180,7 +180,7 @@ export const membersTableColumns = membersTableBuilder.columns([
         }
       };
 
-      const canWriteMembers = useCan()('householdMembers');
+      const canWriteMembers = useCan('householdMembers', 'write');
       const isCurrentUserOwner = member.householdOwnerId === user.id;
       const canManage = canWriteMembers && (isCurrentUserOwner || member.userId === user.id);
 
@@ -471,7 +471,7 @@ export const invitesTableColumns = invitesTableBuilder.columns([
     id: 'actions',
     cell: function InvitesTableActions(props) {
       const { queryClient } = useRouteContext({ from: '/_authenticated/_onboarded/manage/household-members' });
-      const canWriteInvites = useCan()('householdMembers');
+      const canWriteInvites = useCan('householdMembers', 'write');
       const { mutateAsync: revokeInviteAsync } = useMutation({
         mutationFn: async (inviteId: number) =>
           parseResponse(client.households.my.invites[':id'].$delete({ param: { id: inviteId.toString() } })),

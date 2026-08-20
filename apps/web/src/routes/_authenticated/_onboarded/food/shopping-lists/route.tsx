@@ -137,7 +137,7 @@ function ShoppingListsLayout() {
               />
               Show completed
             </Label>
-            <Can area="shoppingLists">
+            <Can access="write" area="shoppingLists">
               <Button asChild size="sm" variant="outline">
                 <Link search={{ target: 'new' }} to="/food/shopping-lists/import">
                   <CookingPotIcon />
@@ -145,7 +145,7 @@ function ShoppingListsLayout() {
                 </Link>
               </Button>
             </Can>
-            <Can area="shoppingLists">
+            <Can access="write" area="shoppingLists">
               <Button loading={isCreating} onClick={handleCreate} size="sm">
                 <PlusIcon />
                 New list
@@ -168,7 +168,7 @@ function ShoppingListsLayout() {
               <EmptyDescription>Start one and add what you need to buy.</EmptyDescription>
             </EmptyHeader>
             <EmptyContent>
-              <Can area="shoppingLists">
+              <Can access="write" area="shoppingLists">
                 <Button loading={isCreating} onClick={handleCreate}>
                   <PlusIcon />
                   New list

@@ -152,7 +152,7 @@ function PetsRoute() {
                 <h2 className="font-medium text-sm">Suggestions</h2>
                 <div className="flex flex-wrap gap-2">
                   {petsWithoutProfile.map((pet) => (
-                    <Can area="petProfiles">
+                    <Can access="write" area="petProfiles">
                       <Button
                         disabled={isPending}
                         key={pet.id}

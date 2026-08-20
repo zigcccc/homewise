@@ -152,7 +152,7 @@ function KidsRoute() {
                 <h2 className="font-medium text-sm">Suggestions</h2>
                 <div className="flex flex-wrap gap-2">
                   {childrenWithoutProfile.map((child) => (
-                    <Can area="childProfiles">
+                    <Can access="write" area="childProfiles">
                       <Button
                         disabled={isPending}
                         key={child.id}

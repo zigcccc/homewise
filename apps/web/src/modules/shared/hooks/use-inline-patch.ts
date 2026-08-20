@@ -26,7 +26,7 @@ export function useInlinePatch<Payload, Result>(
   mutation: Pick<UseMutationResult<Result, Error, Payload>, 'isPending' | 'mutateAsync'>
 ) {
   const { isPending, mutateAsync } = mutation;
-  const readOnly = !useCan()(area);
+  const readOnly = !useCan(area, 'write');
 
   const refuse = () => {
     if (import.meta.env.DEV) {

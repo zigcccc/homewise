@@ -34,7 +34,7 @@ import {
 import { authClient } from '@/auth/client';
 import { getSessionQueryOptions } from '@/auth/queries';
 import { getMyHouseholdQueryOptions } from '@/modules/households';
-import { NAV_GROUPS, useCan } from '@/modules/shared';
+import { canRole, NAV_GROUPS, useHouseholdRole } from '@/modules/shared';
 
 function SidebarAutocloseOnMobile() {
   const { setOpenMobile } = useSidebar();
@@ -89,7 +89,7 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const { data: auth } = useQuery(getSessionQueryOptions());
   const { data: household } = useQuery(getMyHouseholdQueryOptions());
-  const can = useCan();
+  const role = useHouseholdRole();
   const isExternal = household?.viewer.role === 'external';
 
   const { user } = auth?.data ?? {};
@@ -128,7 +128,7 @@ export function AppSidebar() {
             the guard would bounce, and a group with nothing left in it disappears rather than showing
             an empty heading. */}
         {NAV_GROUPS.map((group) => {
-          const items = group.items.filter((item) => can(item.area, item.access ?? 'read'));
+          const items = group.items.filter((section) => canRole(role, section.area, section.access ?? 'read'));
 
           if (items.length === 0) {
             return null;
@@ -140,8 +140,14 @@ export function AppSidebar() {
                 {group.label === 'Manage' && household ? `Manage "${household.name}"` : group.label}
               </SidebarGroupLabel>
               <SidebarMenu>
-                {items.map((item) => (
-                  <NavItem icon={item.icon} key={item.label} label={item.label} to={item.to} tooltip={item.tooltip} />
+                {items.map((section) => (
+                  <NavItem
+                    icon={section.icon}
+                    key={section.label}
+                    label={section.label}
+                    to={section.to}
+                    tooltip={section.tooltip}
+                  />
                 ))}
               </SidebarMenu>
             </SidebarGroup>

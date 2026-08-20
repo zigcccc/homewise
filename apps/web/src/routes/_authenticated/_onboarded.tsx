@@ -9,23 +9,22 @@ import { getRealtimeChannelQueryOptions } from '@/modules/realtime';
 // Imported from the components barrel rather than the domain one on purpose: this pulls in the Ably
 // client, and only the component below uses it, so autoCodeSplitting keeps it out of the main bundle.
 import { RealtimeProvider } from '@/modules/realtime/components';
-import { Actionbar, areaForPath } from '@/modules/shared';
+import { Actionbar, RouteError, sectionForPath } from '@/modules/shared';
 
 import { AppSidebar } from './-components/AppSidebar';
 
 export const Route = createFileRoute('/_authenticated/_onboarded')({
   async beforeLoad({ context, location }) {
+    // Only a 404 means "no household yet". Anything else is a real failure and belongs on the error
+    // component — swallowing it would send someone with a household straight into creating a second.
     const household = await context.queryClient
       .ensureQueryData(getMyHouseholdQueryOptions())
       .catch((error: unknown) => {
-        // A role with no household access at all (a pet, from before pets were barred from holding an
-        // account) 403s here. Without this it would look like "no household yet" and be walked into
-        // onboarding, where it would create a second one.
-        if (error instanceof Error && error.cause === 403) {
-          throw redirect({ to: '/no-access' });
+        if (error instanceof Error && error.cause === 404) {
+          return null;
         }
 
-        return null;
+        throw error;
       });
 
     if (!household) {
@@ -34,13 +33,8 @@ export const Route = createFileRoute('/_authenticated/_onboarded')({
 
     const { role } = household.viewer;
 
-    // An external's home is its own route — the dashboard is eleven queries they mostly cannot make.
-    if (role === 'external' && location.pathname === '/') {
-      throw redirect({ to: '/guest' });
-    }
-
     // The one place a section is checked, off the same map the sidebar renders from.
-    const section = areaForPath(location.pathname);
+    const section = sectionForPath(location.pathname);
     if (section && !can(role, section.area, section.access ?? 'read')) {
       throw redirect({ to: role === 'external' ? '/guest' : '/' });
     }
@@ -50,17 +44,15 @@ export const Route = createFileRoute('/_authenticated/_onboarded')({
     // round trip on first entry only — and it resolves the channel before first render, so its
     // provider never has to swap in later and remount the app underneath it.
     //
-    // Uncaught on purpose, for the roles that get one. The server can't boot without a broker
-    // configured and we've just proven the household exists, so the only way this fails is the API
-    // being unreachable — in which case the household query above would have failed too.
+    // Uncaught on purpose. The server can't boot without a broker configured and we've just proven
+    // the household exists, so the only way this fails is the API being unreachable — in which case
+    // the household query above would have failed too.
     //
-    // An external gets none: there is a single channel per household and every event carries the
-    // display name of what changed, so subscribing would hand them the names of shopping lists,
-    // expenses and contacts they are not allowed to read. Their data is near-static, and a refetch on
-    // navigation covers it — don't wire this back in.
-    const realtimeChannel = can(role, 'realtime', 'read')
-      ? (await context.queryClient.ensureQueryData(getRealtimeChannelQueryOptions(household.id))).name
-      : null;
+    // Which channel comes back depends on the role: a member who reads only part of the household is
+    // named onto a cut of it that carries nothing else. That decision is the server's, not ours.
+    const realtimeChannel = (
+      await context.queryClient.ensureQueryData(getRealtimeChannelQueryOptions(household.id, role))
+    ).name;
 
     // Matches the tag the server sets in `withHousehold`, so both halves of a report filter the same way.
     setTag('householdId', household.id);
@@ -72,15 +64,15 @@ export const Route = createFileRoute('/_authenticated/_onboarded')({
   // inside — so on a cold cache there's a window with nothing on screen. Full-viewport, matching
   // `_authenticated`: at this point the sidebar hasn't rendered either.
   pendingComponent: () => <Spinner className="min-h-dvh min-w-dvw" />,
+  // Without one, a failure here replaces the whole app with the router's default.
+  errorComponent: () => <RouteError title="Couldn't open your household" />,
 });
 
 function OnboardedRouteComponent() {
   const { householdId, realtimeChannel } = Route.useRouteContext();
 
-  // No channel means this role doesn't get live updates — see `beforeLoad`. The provider is skipped
-  // entirely rather than handed a null, so the Ably client is never even constructed for them.
-  const shell = (
-    <>
+  return (
+    <RealtimeProvider channel={realtimeChannel}>
       {householdId && <AppSidebar />}
       <SidebarInset className="overflow-hidden">
         <Actionbar.Provider>
@@ -100,8 +92,6 @@ function OnboardedRouteComponent() {
           </div>
         </Actionbar.Provider>
       </SidebarInset>
-    </>
+    </RealtimeProvider>
   );
-
-  return realtimeChannel ? <RealtimeProvider channel={realtimeChannel}>{shell}</RealtimeProvider> : shell;
 }

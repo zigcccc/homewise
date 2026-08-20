@@ -99,7 +99,7 @@ function StorageLocationsRoute() {
             <h1 className="font-medium text-lg">Storage locations</h1>
             <p className="text-muted-foreground text-sm">The places you keep things, and how much is in each.</p>
           </div>
-          <Can area="storageLocations">
+          <Can access="write" area="storageLocations">
             <Button onClick={() => setAddOpen(true)}>
               <PlusIcon />
               Add location
@@ -139,7 +139,7 @@ function StorageLocationsRoute() {
             </EmptyHeader>
             {!isFiltered && (
               <EmptyContent>
-                <Can area="storageLocations">
+                <Can access="write" area="storageLocations">
                   <Button onClick={() => setAddOpen(true)}>
                     <PlusIcon />
                     Add location
