@@ -16,6 +16,7 @@ import {
   Form,
   FormControl,
   FormField,
+  FormFieldset,
   FormItem,
   FormLabel,
   FormMessage,
@@ -126,8 +127,7 @@ function GeneralTab() {
             <form className="space-y-6" onSubmit={form.handleSubmit(onSubmit)}>
               {/* See the kid profile's twin: one attribute disables every control, and the Save button
                   goes with it because a disabled fieldset can never become dirty. */}
-              {/* `contents` so the fieldset disables its inputs without adding a box of its own to the layout. */}
-              <fieldset className="contents" disabled={!canWrite}>
+              <FormFieldset disabled={!canWrite}>
                 <div className="flex items-start gap-6">
                   <ProfilePictureField
                     currentImage={formImage}
@@ -259,7 +259,7 @@ function GeneralTab() {
                     </Button>
                   </div>
                 )}
-              </fieldset>
+              </FormFieldset>
             </form>
           </CardContent>
         </Card>

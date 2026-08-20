@@ -15,8 +15,7 @@ import { useCan } from './use-can';
  * live controls that have no form and so nowhere to hang a message: a select, a popover, a toggle.
  *
  * `readOnly` is what the cells render from. It is also enforced here rather than only there: a cell
- * that slipped through the gating would otherwise fire a request that can only 403, so in development
- * that throws and names the area instead of failing quietly in a toast.
+ * that slipped through the gating would otherwise fire a request that can only 403.
  *
  * Each domain still writes its own mutation — the endpoint, the optimistic cache write and which
  * lists an edit invalidates are all genuinely per-domain. This is only what surrounded them.
@@ -28,17 +27,9 @@ export function useInlinePatch<Payload, Result>(
   const { isPending, mutateAsync } = mutation;
   const readOnly = !useCan(area, 'write');
 
-  const refuse = () => {
-    if (import.meta.env.DEV) {
-      throw new Error(`useInlinePatch: a ${area} write was attempted by a member who cannot make one`);
-    }
-
-    toast.error('You do not have permission to change this.');
-  };
-
   const save = async (payload: Payload) => {
     if (readOnly) {
-      return refuse();
+      return toast.error('You do not have permission to change this.');
     }
 
     return await mutateAsync(payload);

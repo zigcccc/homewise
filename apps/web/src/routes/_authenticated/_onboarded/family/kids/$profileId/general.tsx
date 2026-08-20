@@ -17,6 +17,7 @@ import {
   Form,
   FormControl,
   FormField,
+  FormFieldset,
   FormItem,
   FormLabel,
   FormMessage,
@@ -136,8 +137,7 @@ function GeneralTab() {
               {/* One attribute disables every control below, Radix triggers included — and it never
                   touches React props, so `FormControl`'s id/aria wiring is untouched. The Save button
                   disappears on its own: a disabled fieldset can never become dirty. */}
-              {/* `contents` so the fieldset disables its inputs without adding a box of its own to the layout. */}
-              <fieldset className="contents" disabled={!canWrite}>
+              <FormFieldset disabled={!canWrite}>
                 <div className="flex items-start gap-6">
                   <ProfilePictureField
                     currentImage={formImage}
@@ -268,7 +268,7 @@ function GeneralTab() {
                     </Button>
                   </div>
                 )}
-              </fieldset>
+              </FormFieldset>
             </form>
           </CardContent>
         </Card>

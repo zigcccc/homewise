@@ -17,6 +17,7 @@ import {
   Form,
   FormControl,
   FormField,
+  FormFieldset,
   FormItem,
   FormLabel,
   FormMessage,
@@ -160,8 +161,7 @@ export function MedicalInfoCard({
       <CardContent className="space-y-6">
         <Form {...form}>
           <form className="space-y-4" onSubmit={form.handleSubmit(saveInfo)}>
-            {/* `contents` so the fieldset disables its inputs without adding a box of its own to the layout. */}
-            <fieldset className="contents" disabled={!canWrite}>
+            <FormFieldset disabled={!canWrite}>
               <FormField
                 control={form.control}
                 name="medicalIdNumber"
@@ -182,7 +182,7 @@ export function MedicalInfoCard({
                   </Button>
                 </div>
               )}
-            </fieldset>
+            </FormFieldset>
           </form>
         </Form>
 

@@ -13,7 +13,7 @@ import { canRole } from '../helpers/permissions';
  * area is not an option. Everything else wants {@link useCan}.
  */
 export function useHouseholdRole() {
-  return useQuery(getMyHouseholdQueryOptions()).data?.viewer.role;
+  return useQuery({ ...getMyHouseholdQueryOptions(), select: (household) => household.viewer.role }).data;
 }
 
 /**
@@ -24,5 +24,7 @@ export function useHouseholdRole() {
  * works in a component that renders outside the shell, where there is no route context to read.
  */
 export function useCan(area: PermissionArea, access: PermissionAccess) {
-  return canRole(useHouseholdRole(), area, access);
+  const role = useHouseholdRole();
+
+  return canRole(role, area, access);
 }
