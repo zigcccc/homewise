@@ -84,7 +84,7 @@ function GuestHomePending() {
         </div>
       }
     >
-      <FamilyProfilesCard.Skeleton />
+      <FamilyProfilesCard.Skeleton wide />
       <RecentRecipesCard.Skeleton />
     </GuestShell>
   );
@@ -107,7 +107,7 @@ function GuestHomeRoute() {
         </div>
       }
     >
-      <FamilyProfilesCard />
+      <FamilyProfilesCard wide />
       <RecentRecipesCard />
     </GuestShell>
   );

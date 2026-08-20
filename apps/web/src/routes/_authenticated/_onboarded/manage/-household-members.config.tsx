@@ -213,7 +213,7 @@ export const membersTableColumns = membersTableBuilder.columns([
                   )}
                 </Tooltip>
                 {/* A pet never holds an account, so there is nothing to invite it to. */}
-                {member.isManaged && member.role !== 'pet' && (
+                {canWriteMembers && member.isManaged && member.role !== 'pet' && (
                   <DropdownMenuItem onClick={() => setInviteOpen(true)}>
                     <UserPlusIcon />
                     Invite to create account

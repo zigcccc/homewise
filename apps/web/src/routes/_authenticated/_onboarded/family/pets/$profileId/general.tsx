@@ -125,9 +125,9 @@ function GeneralTab() {
           </CardHeader>
           <CardContent>
             <form className="space-y-6" onSubmit={form.handleSubmit(onSubmit)}>
-              {/* See the kid profile's twin: one attribute disables every control, and the Save button
-                  goes with it because a disabled fieldset can never become dirty. */}
-              <FormFieldset disabled={!canWrite}>
+              {/* See the kid profile's twin: one attribute disables every control, and the spacing has
+                  to live here rather than on the form, which `display: contents` leaves one child. */}
+              <FormFieldset className="space-y-6" disabled={!canWrite}>
                 <div className="flex items-start gap-6">
                   <ProfilePictureField
                     currentImage={formImage}
@@ -147,6 +147,7 @@ function GeneralTab() {
                       form.setValue('avatarFile', null, { shouldDirty: true });
                       form.setValue('image', URL.createObjectURL(file), { shouldDirty: true });
                     }}
+                    readOnly={!canWrite}
                   />
                   {/* Height matches the avatar circle (size-24) so the text centers against it, not the taller picture column that also holds the button. */}
                   <div className="flex h-24 flex-1 flex-col justify-center space-y-1">

@@ -126,7 +126,9 @@ function HouseholdMembersRoute() {
                         <RefreshCwIcon className={clsx(isRefetching && 'animate-spin')} />{' '}
                         {isRefetching ? 'Refreshing...' : 'Refresh'}
                       </Button>
-                      <Button onClick={() => setInviteDialogOpen(true)}>Send an invite</Button>
+                      <Can access="write" area="householdMembers">
+                        <Button onClick={() => setInviteDialogOpen(true)}>Send an invite</Button>
+                      </Can>
                     </ButtonGroup>
                   </EmptyContent>
                 </Empty>

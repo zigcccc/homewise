@@ -135,9 +135,9 @@ function GeneralTab() {
           <CardContent>
             <form className="space-y-6" onSubmit={form.handleSubmit(onSubmit)}>
               {/* One attribute disables every control below, Radix triggers included — and it never
-                  touches React props, so `FormControl`'s id/aria wiring is untouched. The Save button
-                  disappears on its own: a disabled fieldset can never become dirty. */}
-              <FormFieldset disabled={!canWrite}>
+                  touches React props, so `FormControl`'s id/aria wiring is untouched. The spacing has
+                  to live here, not on the form: `display: contents` leaves the form one child. */}
+              <FormFieldset className="space-y-6" disabled={!canWrite}>
                 <div className="flex items-start gap-6">
                   <ProfilePictureField
                     currentImage={formImage}
@@ -157,6 +157,7 @@ function GeneralTab() {
                       form.setValue('avatarFile', null, { shouldDirty: true });
                       form.setValue('image', URL.createObjectURL(file), { shouldDirty: true });
                     }}
+                    readOnly={!canWrite}
                   />
                   {/* Height matches the avatar circle (size-24) so the text centers against it, not the taller picture column that also holds the button. */}
                   <div className="flex h-24 flex-1 flex-col justify-center space-y-1">
@@ -211,64 +212,68 @@ function GeneralTab() {
                     )}
                   />
                 </div>
-
-                <div className="grid gap-6 sm:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="nationalId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel htmlFor="nationalId">National ID</FormLabel>
-                        <FormControl>
-                          <MaskedInput
-                            id="nationalId"
-                            onChange={field.onChange}
-                            onCopy={() => toast.success('Copied to clipboard')}
-                            onCopyError={() => toast.error('Could not copy to clipboard')}
-                            onHide={() => setRevealed((current) => ({ ...current, nationalId: false }))}
-                            onReveal={() => setRevealed((current) => ({ ...current, nationalId: true }))}
-                            placeholder="Not set"
-                            revealed={!canWrite || revealed.nationalId}
-                            value={field.value ?? ''}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="taxId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel htmlFor="taxId">Tax ID</FormLabel>
-                        <FormControl>
-                          <MaskedInput
-                            id="taxId"
-                            onChange={field.onChange}
-                            onCopy={() => toast.success('Copied to clipboard')}
-                            onCopyError={() => toast.error('Could not copy to clipboard')}
-                            onHide={() => setRevealed((current) => ({ ...current, taxId: false }))}
-                            onReveal={() => setRevealed((current) => ({ ...current, taxId: true }))}
-                            placeholder="Not set"
-                            revealed={!canWrite || revealed.taxId}
-                            value={field.value ?? ''}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                {form.formState.isDirty && (
-                  <div className="flex justify-end">
-                    <Button loading={isPending} type="submit">
-                      Save changes
-                    </Button>
-                  </div>
-                )}
               </FormFieldset>
+
+              {/* Outside the fieldset on purpose: `disabled` would take the Copy button with it, and a
+                  member who may read an ID may copy it. `readOnly` is what stops the editing. */}
+              <div className="grid gap-6 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="nationalId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel htmlFor="nationalId">National ID</FormLabel>
+                      <FormControl>
+                        <MaskedInput
+                          id="nationalId"
+                          onChange={field.onChange}
+                          onCopy={() => toast.success('Copied to clipboard')}
+                          onCopyError={() => toast.error('Could not copy to clipboard')}
+                          onHide={() => setRevealed((current) => ({ ...current, nationalId: false }))}
+                          onReveal={() => setRevealed((current) => ({ ...current, nationalId: true }))}
+                          placeholder="Not set"
+                          readOnly={!canWrite}
+                          revealed={revealed.nationalId}
+                          value={field.value ?? ''}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="taxId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel htmlFor="taxId">Tax ID</FormLabel>
+                      <FormControl>
+                        <MaskedInput
+                          id="taxId"
+                          onChange={field.onChange}
+                          onCopy={() => toast.success('Copied to clipboard')}
+                          onCopyError={() => toast.error('Could not copy to clipboard')}
+                          onHide={() => setRevealed((current) => ({ ...current, taxId: false }))}
+                          onReveal={() => setRevealed((current) => ({ ...current, taxId: true }))}
+                          placeholder="Not set"
+                          readOnly={!canWrite}
+                          revealed={revealed.taxId}
+                          value={field.value ?? ''}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {form.formState.isDirty && (
+                <div className="flex justify-end">
+                  <Button loading={isPending} type="submit">
+                    Save changes
+                  </Button>
+                </div>
+              )}
             </form>
           </CardContent>
         </Card>

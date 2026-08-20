@@ -45,7 +45,7 @@ import {
   useInlineMealPatch,
   weekdayLabel,
 } from '@/modules/meal-plan';
-import { Can, InlineTextField, serverMessage } from '@/modules/shared';
+import { Can, InlineTextField, serverMessage, useCan } from '@/modules/shared';
 
 import { MealMembers } from './meal-members';
 import { RecipeCombobox } from './recipe-combobox';
@@ -69,6 +69,7 @@ export function MealPlanDayRow({
   const queryClient = useQueryClient();
   const [editingNote, setEditingNote] = useState(false);
   const today = isToday(day.day);
+  const canWrite = useCan('mealPlan', 'write');
 
   // The day itself is a drop target, which is what lets a meal land on a day that has none yet.
   // Low priority so that when the day *does* have meals, the card under the pointer wins the
@@ -106,7 +107,7 @@ export function MealPlanDayRow({
             <span className="text-muted-foreground text-xs">{dayLabel(day.day)}</span>
             {today && <span className="font-normal text-primary text-xs">Today</span>}
           </h3>
-          {!day.note && !editingNote && (
+          {canWrite && !day.note && !editingNote && (
             <Button
               aria-label={`Add a note for ${dayName}`}
               onClick={() => setEditingNote(true)}
@@ -129,7 +130,8 @@ export function MealPlanDayRow({
             schema={putDayNoteModel.shape.note}
           />
         ) : (
-          day.note && (
+          day.note &&
+          (canWrite ? (
             <button
               aria-label={`Edit the note for ${dayName}`}
               className="flex w-full items-start gap-2 rounded-md bg-muted/60 px-2 py-1.5 text-left text-muted-foreground text-sm hover:bg-muted"
@@ -139,7 +141,12 @@ export function MealPlanDayRow({
               <StickyNoteIcon className="mt-0.5 size-3.5 shrink-0" />
               {day.note}
             </button>
-          )
+          ) : (
+            <p className="flex w-full items-start gap-2 rounded-md bg-muted/60 px-2 py-1.5 text-muted-foreground text-sm">
+              <StickyNoteIcon className="mt-0.5 size-3.5 shrink-0" />
+              {day.note}
+            </p>
+          ))
         )}
 
         {day.meals.length > 0 && (
@@ -166,7 +173,7 @@ export function MealPlanDayRow({
           </p>
         )}
 
-        <AddMeal collapsed={fullyPlanned} day={day.day} dayName={dayName} />
+        {canWrite && <AddMeal collapsed={fullyPlanned} day={day.day} dayName={dayName} />}
       </CardContent>
     </Card>
   );
@@ -333,14 +340,16 @@ function MealCard({
     >
       <div className="flex items-center gap-2">
         {/* A real button, so the drag handle is reachable by keyboard and touch, not pointer only. */}
-        <button
-          aria-label={`Move ${meal.label}`}
-          className="shrink-0 cursor-grab touch-none text-muted-foreground"
-          ref={handleRef}
-          type="button"
-        >
-          <GripVerticalIcon className="size-4" />
-        </button>
+        {!readOnly && (
+          <button
+            aria-label={`Move ${meal.label}`}
+            className="shrink-0 cursor-grab touch-none text-muted-foreground"
+            ref={handleRef}
+            type="button"
+          >
+            <GripVerticalIcon className="size-4" />
+          </button>
+        )}
 
         <div className="min-w-0 flex-1">
           {editingLabel ? (
@@ -449,7 +458,10 @@ function MealCard({
           />
         </div>
       ) : (
-        meal.note && (
+        meal.note &&
+        (readOnly ? (
+          <p className="mt-0.5 ml-6 px-1 text-muted-foreground text-xs">{meal.note}</p>
+        ) : (
           <button
             aria-label={`Edit the note on ${meal.label}`}
             className="mt-0.5 ml-6 rounded-md px-1 text-left text-muted-foreground text-xs hover:bg-accent"
@@ -458,7 +470,7 @@ function MealCard({
           >
             {meal.note}
           </button>
-        )
+        ))
       )}
     </li>
   );

@@ -168,9 +168,11 @@ export function AppSidebar() {
                       <AvatarImage alt={user.name} src={user.image || undefined} />
                       <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                     </Avatar>
-                    <div className="flex flex-col items-start gap-0.5 leading-none">
-                      <span className="font-medium">{user.name}</span>
-                      <span className="text-muted-foreground text-xs">{user.email}</span>
+                    {/* `min-w-0` is what lets the truncation happen: a flex child's default
+                        `min-width: auto` refuses to shrink below its content. */}
+                    <div className="flex min-w-0 flex-col items-start gap-0.5 leading-none">
+                      <span className="w-full truncate font-medium">{user.name}</span>
+                      <span className="w-full truncate text-muted-foreground text-xs">{user.email}</span>
                     </div>
                   </SidebarMenuButton>
                 </DropdownMenuTrigger>

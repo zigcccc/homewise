@@ -161,7 +161,8 @@ export function MedicalInfoCard({
       <CardContent className="space-y-6">
         <Form {...form}>
           <form className="space-y-4" onSubmit={form.handleSubmit(saveInfo)}>
-            <FormFieldset disabled={!canWrite}>
+            {/* The spacing belongs on the fieldset: `display: contents` leaves the form one child. */}
+            <FormFieldset className="space-y-4" disabled={!canWrite}>
               <FormField
                 control={form.control}
                 name="medicalIdNumber"
