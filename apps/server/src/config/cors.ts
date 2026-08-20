@@ -1,7 +1,12 @@
 import { cors } from 'hono/cors';
 
 // Origins allowed in every environment (production domains + local dev).
-export const allowedOrigins = ['http://localhost:3000', 'https://www.home-wise.app', 'https://home-wise.app'];
+export const allowedOrigins = [
+  'http://localhost:3000',
+  'https://dashboard.home-wise.app',
+  'https://www.home-wise.app',
+  'https://home-wise.app',
+];
 
 // In a Vercel preview, trust ONLY the exact web origin paired with this server
 // preview. The CI pipeline deploys the web to a deterministic alias
