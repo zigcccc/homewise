@@ -94,8 +94,7 @@ export type InviteExistingMember = z.infer<typeof inviteExistingMemberModel>;
 export const inviteExistingMemberPathParamsModel = z.object({ id: z.coerce.number<number>() });
 
 export const inviteHouseholdMembersQueryParamsModel = z.object({
-  // The invite email embeds this verbatim, so an unchecked value would have us mail a link to
-  // anywhere from our own domain. The web only ever sends `window.location.origin`.
+  // Embedded verbatim in the invite email, so an unchecked value mails a link to anywhere from us.
   callbackUrl: z.url().refine(isAllowedOrigin, { message: 'callbackUrl must be an allowed origin' }),
 });
 

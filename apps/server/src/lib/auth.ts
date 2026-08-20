@@ -26,8 +26,7 @@ export function forwardAuthCookies(c: Context, headers: Headers) {
 // In a Vercel preview, the web and the API live on two *different* sites:
 // `vercel.app` is on the Public Suffix List, so homewise-web-pr-<n>.vercel.app
 // and homewise-api-pr-<n>.vercel.app are cross-site (unlike production, where
-// dashboard.home-wise.app / api.home-wise.app share a registrable domain and are
-// same-site).
+// dashboard.home-wise.app / api.home-wise.app share a registrable domain).
 // A default `SameSite=Lax` session cookie is therefore NOT sent on the web's
 // cross-site XHR to the API, so get-session reads empty and the auth guard bounces
 // back to /login right after a successful login. `SameSite=None; Secure` fixes it.
