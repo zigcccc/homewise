@@ -104,27 +104,39 @@ async function seedHousehold(db: SeedDb, accounts: SeedAccounts, label: string) 
         throw new Error('failed to create seed household');
       }
 
-      await tx.insert(schema.householdMember).values([
-        { householdId: created.id, userId: ownerId, name: accounts.user.name, role: 'adult' },
-        {
-          householdId: created.id,
-          name: SEED_CHILD_MEMBER.name,
-          nickname: SEED_CHILD_MEMBER.nickname,
-          role: 'child',
-        },
-        { householdId: created.id, name: SEED_PET_MEMBER.name, role: 'pet' },
-      ]);
+      await tx
+        .insert(schema.householdMember)
+        .values({ householdId: created.id, userId: ownerId, name: accounts.user.name, role: 'adult' });
 
       return created;
     });
 
-    log('seeded preview household with members');
+    log('seeded preview household');
   } else {
     log('preview household already present — skipping');
   }
 
   if (!household) {
     throw new Error('failed to resolve seed household');
+  }
+
+  // 2b. The managed members, ensured rather than created with the household: a household seeded
+  // before a fixture existed would otherwise never receive it.
+  for (const member of [
+    { name: SEED_CHILD_MEMBER.name, nickname: SEED_CHILD_MEMBER.nickname, role: 'child' } as const,
+    { name: SEED_PET_MEMBER.name, nickname: null, role: 'pet' } as const,
+  ]) {
+    const [existing] = await db
+      .select()
+      .from(schema.householdMember)
+      .where(and(eq(schema.householdMember.householdId, household.id), eq(schema.householdMember.name, member.name)));
+
+    if (!existing) {
+      await db.insert(schema.householdMember).values({ householdId: household.id, ...member });
+      log(`seeded managed ${member.role} member`);
+    } else {
+      log(`managed ${member.role} member already present — skipping`);
+    }
   }
 
   // 3. Second account user, seeded as a non-owner adult member (idempotent by
