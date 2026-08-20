@@ -1,4 +1,5 @@
 import {
+  SEED_CHILD_MEMBER,
   SEED_EXPENSES,
   SEED_INGREDIENTS,
   SEED_RECIPE,
@@ -10,6 +11,7 @@ import {
 
 import { AppNav } from '../pages/app-nav.page';
 import { DashboardPage } from '../pages/dashboard.page';
+import { HouseholdMembersPage } from '../pages/household-members.page';
 import { expect, test } from '../support/test';
 
 /**
@@ -63,4 +65,40 @@ test.describe('child member', () => {
       await expect(page.getByRole('link', { name: create })).toHaveCount(0);
     });
   }
+
+  /**
+   * The surfaces the sweep above can't reach, because their write chrome isn't a "create" button on a
+   * list: a day card, a row menu, a second tab, a suggestion. Each was found by hand once already.
+   */
+  test('reads the meal plan without a way to fill a day', async ({ page }) => {
+    await page.goto('/food/meal-plan');
+
+    const day = page.locator('[data-testid^="meal-plan-day-"]').first();
+    await expect(day).toBeVisible();
+
+    await expect(page.getByRole('button', { name: /^Pick a recipe for/ })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /^Add a custom meal on/ })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /^Add a note for/ })).toHaveCount(0);
+  });
+
+  test('is offered no way to invite anybody', async ({ page }) => {
+    const members = new HouseholdMembersPage(page);
+    await page.goto('/manage/household-members');
+    await expect(members.memberRow(SEED_CHILD_MEMBER.nickname)).toBeVisible();
+
+    // A managed member without an account is the one row that offers to invite them into one.
+    await members.memberRow(SEED_CHILD_MEMBER.nickname).getByRole('button', { name: 'Open menu' }).click();
+    await expect(page.getByRole('menuitem', { name: 'Invite to create account' })).toHaveCount(0);
+    await page.keyboard.press('Escape');
+
+    await members.goToInvitesTab();
+    await expect(page.getByRole('button', { name: 'Send an invite' })).toHaveCount(0);
+  });
+
+  test('is not shown a suggestion it could not act on', async ({ page }) => {
+    await page.goto('/family/pets');
+
+    await expect(page.getByRole('heading', { level: 1, name: 'Pets' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Suggestions' })).toHaveCount(0);
+  });
 });

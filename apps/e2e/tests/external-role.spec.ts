@@ -67,13 +67,17 @@ test.describe('external member', () => {
     // doctor's name and phone number are the handoff this whole role is about.
     await expect(page.getByText(SEED_CHILD_DOCTOR.name)).toBeVisible();
     await expect(page.getByText(SEED_CHILD_DOCTOR.phone)).toBeVisible();
-    // The masked identifiers stay revealed: the pencil that unmasks them is a button, and the
-    // disabled fieldset would otherwise take it away along with everything else.
+    // The masked identifiers stand open, unmaskable and uneditable, with Copy still live — the one
+    // action that makes sense to someone who may read a number but not change it.
     const kids = new KidsPage(page);
     await expect(kids.identifierInput('nationalId')).toHaveValue(SEED_CHILD_PROFILE.nationalId);
-    await expect(kids.identifierInput('nationalId')).toBeDisabled();
-    // Nothing here offers a way to add or unlink a contact.
+    await expect(kids.identifierInput('nationalId')).not.toBeEditable();
+    await expect(kids.copyIdentifierButton('nationalId')).toBeEnabled();
+    await expect(kids.editIdentifierButton('nationalId')).toHaveCount(0);
+    await expect(kids.hideIdentifierButton('nationalId')).toHaveCount(0);
+    // Nothing here offers a way to add or unlink a contact, or to change the picture.
     await expect(page.getByRole('button', { name: 'Add contact' })).toHaveCount(0);
+    await expect(kids.photoButton).toHaveCount(0);
     // …and none of it editable. The save only renders once a field is dirty, which cannot happen.
     await expect(page.getByRole('button', { name: 'Save changes' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Profile actions' })).toHaveCount(0);
