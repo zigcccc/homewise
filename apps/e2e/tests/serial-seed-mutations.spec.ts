@@ -267,10 +267,8 @@ test('lists the newest first, with completion no part of the order', async ({ pa
 
   const older = await lists.createListFromUi();
   await lists.markDone();
-  // Completing a list with the filter off drops it out of the column and redirects off its detail
-  // pane. Asserted here rather than left implicit because it pins the timing: creating the next list
-  // straight away raced that redirect, and the section used to bounce between index and `$listId`
-  // until the router gave up ("Too many redirects"). Only CI was slow enough to hit it.
+  // Both, and before the next create: the column can empty while the redirect is still in flight.
+  await expect(page).toHaveURL(/\/food\/shopping-lists(\?|$)/);
   await expect(lists.listLink(older)).toHaveCount(0);
 
   const newer = await lists.createListFromUi();
