@@ -3,10 +3,11 @@ import { and, count, eq, inArray, isNull, or } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 
 import { db, schema } from '#db/core';
-import { changedColumns } from '#db/utils';
+import { changedColumns, isUniqueViolation } from '#db/utils';
 import { auth } from '#lib/auth';
 import { notFound, somethingWentWrong } from '#lib/errors';
 import { sendEmail } from '#lib/resend';
+import { MEAL_ROLES } from '#modules/meal-plan/meal-plan.model';
 
 import {
   type CreateHouseholdMember,
@@ -105,13 +106,9 @@ export class HouseholdsService {
   }
 
   /**
-   * Same scoping as {@link readForUser}, but carrying only the caller's own member row rather than the
-   * whole roster — cheap enough to run on every household-scoped request via the `withHousehold`
-   * middleware, which needs the role to decide what the request may do.
-   *
-   * Left-joined rather than a second query, and the `where` still matches on ownership *or*
-   * membership: an owner is reachable through `ownerId` alone, so their member row may be absent here
-   * even though one is always written at creation.
+   * The household plus the caller's own member row, for `withHousehold` to gate on. Left-joined, and
+   * the `where` still matches ownership *or* membership — an owner is reachable through `ownerId`
+   * alone, so their member row can be absent here.
    */
   public static async readSummaryForUser(userId: string) {
     const [row] = await db
@@ -273,11 +270,7 @@ export class HouseholdsService {
     return { data: updated, changeset: changedColumns(existing, patch) };
   }
 
-  /**
-   * Changes what a member may do. Separate from {@link patchHouseholdMember} because that one is
-   * owner-or-self and this one is owner-only — a member who could set their own role could promote
-   * themselves to `adult`.
-   */
+  /** Owner-only, unlike {@link patchHouseholdMember}: a member who could set their own role could promote themselves. */
   public static async patchHouseholdMemberRole(householdId: number, memberId: number, role: HouseholdMemberRole) {
     const existing = await HouseholdsService.readHouseholdMember(householdId, memberId);
 
@@ -286,11 +279,21 @@ export class HouseholdsService {
       throw new HTTPException(400, { message: 'A member with an account cannot be a pet.' });
     }
 
-    const [updated] = await db
-      .update(schema.householdMember)
-      .set({ role })
-      .where(and(eq(schema.householdMember.householdId, householdId), eq(schema.householdMember.id, memberId)))
-      .returning();
+    const updated = await db.transaction(async (tx) => {
+      const [row] = await tx
+        .update(schema.householdMember)
+        .set({ role })
+        .where(and(eq(schema.householdMember.householdId, householdId), eq(schema.householdMember.id, memberId)))
+        .returning();
+
+      // A member who no longer eats off the plan must not stay assigned to meals: nothing else would
+      // remove them, and the meal would keep counting someone the headcount no longer includes.
+      if (row && !MEAL_ROLES.includes(role)) {
+        await tx.delete(schema.plannedMealMember).where(eq(schema.plannedMealMember.householdMemberId, memberId));
+      }
+
+      return row;
+    });
 
     if (!updated) {
       throw somethingWentWrong();
@@ -453,6 +456,13 @@ export class HouseholdsService {
       throw notFound('Invite');
     }
 
+    // Belt to the migration's braces: invites predating the model that excludes pets are still rows
+    // in the table, and accepting one would mint the account-linked pet that migration just repaired.
+    if (invite.role === 'pet') {
+      await HouseholdsService.deleteInvite(invite.householdId, invite.id);
+      throw new HTTPException(400, { message: 'This invite is no longer valid.' });
+    }
+
     // Prevent a second membership if the accepting user already belongs to this household.
     const existingMembership = await db.query.householdMember.findFirst({
       where: (fields, { and, eq }) => and(eq(fields.householdId, invite.householdId), eq(fields.userId, userId)),
@@ -480,10 +490,23 @@ export class HouseholdsService {
         )
         .returning();
     } else {
-      [householdMember] = await db
-        .insert(schema.householdMember)
-        .values({ userId, householdId: invite.householdId, role: invite.role })
-        .returning();
+      try {
+        [householdMember] = await db
+          .insert(schema.householdMember)
+          .values({ userId, householdId: invite.householdId, role: invite.role })
+          .returning();
+      } catch (error) {
+        // The check above is read-before-insert, so two invites accepted at once can both pass it.
+        // The partial unique index is what actually decides; the loser reads the row that won rather
+        // than creating a second membership whose role would compete with the first for authority.
+        if (!isUniqueViolation(error)) {
+          throw error;
+        }
+
+        householdMember = await db.query.householdMember.findFirst({
+          where: (fields, { and, eq }) => and(eq(fields.householdId, invite.householdId), eq(fields.userId, userId)),
+        });
+      }
     }
 
     if (!householdMember) {

@@ -1,5 +1,5 @@
-import { relations } from 'drizzle-orm';
-import { boolean, integer, pgEnum, pgTable, text } from 'drizzle-orm/pg-core';
+import { relations, sql } from 'drizzle-orm';
+import { boolean, integer, pgEnum, pgTable, text, uniqueIndex } from 'drizzle-orm/pg-core';
 
 import { baseDbEntityFields } from './__shared/base';
 import { currencyEnum } from './__shared/currency';
@@ -29,20 +29,28 @@ export const household = pgTable('household', {
   currency: currencyEnum().notNull().default('EUR'),
 });
 
-export const householdMember = pgTable('household_member', {
-  ...baseDbEntityFields,
-  userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }),
-  householdId: integer('household_id')
-    .notNull()
-    .references(() => household.id, { onDelete: 'cascade' }),
-  name: text('name'),
-  nickname: text('nickname'),
-  /**
-   * What this person may do here. Not null and with no default on purpose: a default would turn a
-   * write site that forgot the role into a silent adult, and drizzle-zod makes it required without one.
-   */
-  role: householdMemberRoleEnum().notNull(),
-});
+export const householdMember = pgTable(
+  'household_member',
+  {
+    ...baseDbEntityFields,
+    userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }),
+    householdId: integer('household_id')
+      .notNull()
+      .references(() => household.id, { onDelete: 'cascade' }),
+    name: text('name'),
+    nickname: text('nickname'),
+    /** Not null and with no default: a default would turn a write site that forgot it into a silent adult. */
+    role: householdMemberRoleEnum().notNull(),
+  },
+  (table) => [
+    // One membership per account per household. Two would let `withHousehold` resolve either one's
+    // role, so a duplicate with a different role is authorization that changes between requests.
+    // Partial, because managed members have no `user_id` and there can be any number of those.
+    uniqueIndex('household_member_user_unique')
+      .on(table.householdId, table.userId)
+      .where(sql`${table.userId} IS NOT NULL`),
+  ]
+);
 
 export const householdInvite = pgTable('household_invite', {
   ...baseDbEntityFields,

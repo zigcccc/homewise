@@ -169,6 +169,13 @@
       "when": 1787135666937,
       "tag": "0023_dazzling_winter_soldier",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1787200696360,
+      "tag": "0024_graceful_apocalypse",
+      "breakpoints": true
     }
   ]
 }
