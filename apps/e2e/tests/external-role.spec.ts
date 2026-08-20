@@ -3,6 +3,8 @@ import { SEED_CHILD_DOCTOR, SEED_CHILD_MEMBER, SEED_CHILD_PROFILE, SEED_RECIPE }
 import { AppNav } from '../pages/app-nav.page';
 import { GuestHomePage } from '../pages/guest-home.page';
 import { KidsPage } from '../pages/kids.page';
+import { RecipesPage } from '../pages/recipes.page';
+import { realtimeListening } from '../support/realtime';
 import { expect, test } from '../support/test';
 
 /**
@@ -77,20 +79,50 @@ test.describe('external member', () => {
     await expect(page.getByRole('button', { name: 'Profile actions' })).toHaveCount(0);
   });
 
-  test('never asks for a realtime token', async ({ page }) => {
-    const tokenRequests: string[] = [];
-    page.on('request', (request) => {
-      if (request.url().includes('/realtime/')) {
-        tokenRequests.push(request.url());
-      }
-    });
+  /**
+   * Live updates, but only over the cut of the household this role may read.
+   *
+   * Events carry the name of what changed and often the values it changed to, so putting an external
+   * on the household channel would hand her every expense title and contact number in it. The server
+   * signs her onto `:guest` instead — the same isolation the per-household channel already relies on,
+   * one level in.
+   */
+  test('listens on the guest channel, not the household one', async ({ page }) => {
+    const channel = page.waitForResponse((response) => response.url().includes('/realtime/channel'));
 
     await new GuestHomePage(page).goto();
+
+    const { name } = (await (await channel).json()) as { name: string };
+    expect(name).toMatch(/:household:\d+:guest$/);
+  });
+
+  test('is served a recipe change live', async ({ browser, household, page }) => {
+    test.slow();
+    const listening = realtimeListening(page);
+    const title = `E2E Guest Recipe ${Date.now()}`;
+
     await page.goto('/food/recipes');
     await expect(page.getByText(SEED_RECIPE.title).first()).toBeVisible();
+    await listening();
 
-    // One channel per household, and every event carries the name of what changed — including things
-    // this member may not read. Not subscribing is the fix, so this is the assertion that guards it.
-    expect(tokenRequests).toEqual([]);
+    const actorContext = await browser.newContext({ storageState: await household.sessionFor('owner') });
+    const actor = new RecipesPage(await actorContext.newPage());
+
+    try {
+      await actor.goto();
+      await actor.openNewForm();
+      await actor.fillTitle(title);
+      await actor.addStep('Only step.');
+      await actor.save('Save recipe');
+
+      // No reload anywhere in this test: only a delivered event can put it on screen.
+      await expect(page.getByText(title).first()).toBeVisible();
+    } finally {
+      // Back to the list first: the detail page's breadcrumb is a disabled link carrying the title,
+      // which is what `deleteIfPresent` would otherwise try to click.
+      await actor.goto();
+      await actor.deleteIfPresent(title);
+      await actorContext.close();
+    }
   });
 });

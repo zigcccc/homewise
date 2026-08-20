@@ -1,11 +1,11 @@
 import { SEED_INGREDIENTS, SEED_SECOND_USER } from '@homewise/server/seed-fixtures';
 
 import { ActivityPage } from '../pages/activity.page';
-import { AppNav } from '../pages/app-nav.page';
 import { ContactsPage } from '../pages/contacts.page';
 import { IngredientsPage } from '../pages/ingredients.page';
 import { MealPlanPage } from '../pages/meal-plan.page';
 import { ShoppingListsPage } from '../pages/shopping-lists.page';
+import { realtimeListening } from '../support/realtime';
 import { expect, test } from '../support/test';
 
 /** This spec's own far-future week — see the note in `meal-plan.spec.ts`. */
@@ -24,14 +24,17 @@ test.describe('realtime', () => {
     const name = `E2E Realtime ${Date.now()}`;
 
     // The observer: SEED_USER, parked on the library.
+    // Before the tab navigates: the watcher has to be in place before the socket opens.
+    const listening = realtimeListening(page);
+
     const observer = new IngredientsPage(page);
     await observer.goto();
     await expect(observer.row(name)).toHaveCount(0);
 
     // The actor: SEED_SECOND_USER — a different account, a different browser context, the same
     // household. Two tabs of one user would work too, but this proves the cross-account case.
-    // Subscribed, not merely rendered — otherwise the actor can publish into a tab that is still attaching.
-    await new AppNav(page).waitForRealtime();
+    // Subscribed, not merely rendered — otherwise the actor publishes into a tab that is still attaching.
+    await listening();
 
     const actorContext = await browser.newContext({ storageState: await household.sessionFor('second') });
     const actor = new IngredientsPage(await actorContext.newPage());
@@ -62,12 +65,14 @@ test.describe('realtime', () => {
     test.slow();
     const lunch = `E2E Realtime Lunch ${Date.now()}`;
 
+    const listening = realtimeListening(page);
+
     const observer = new MealPlanPage(page);
     await observer.goto(REALTIME_WEEK);
     await expect(observer.meal(REALTIME_WEEK, lunch)).toHaveCount(0);
 
-    // Subscribed, not merely rendered — otherwise the actor can publish into a tab that is still attaching.
-    await new AppNav(page).waitForRealtime();
+    // Subscribed, not merely rendered — otherwise the actor publishes into a tab that is still attaching.
+    await listening();
 
     const actorContext = await browser.newContext({ storageState: await household.sessionFor('second') });
     const actor = new MealPlanPage(await actorContext.newPage());
@@ -94,14 +99,16 @@ test.describe('realtime', () => {
     test.slow();
     const item = SEED_INGREDIENTS[0]!.name;
 
+    const listening = realtimeListening(page);
+
     const observer = new ShoppingListsPage(page);
     await observer.goto();
     const listId = await observer.createList();
     await observer.addIngredient(item);
     await expect(observer.progress()).toHaveText('0 of 1 ticked');
 
-    // Subscribed, not merely rendered — otherwise the actor can publish into a tab that is still attaching.
-    await new AppNav(page).waitForRealtime();
+    // Subscribed, not merely rendered — otherwise the actor publishes into a tab that is still attaching.
+    await listening();
 
     const actorContext = await browser.newContext({ storageState: await household.sessionFor('second') });
     const actor = new ShoppingListsPage(await actorContext.newPage());
@@ -132,14 +139,16 @@ test.describe('realtime', () => {
     test.slow();
     const name = `E2E Realtime Feed ${Date.now()}`;
 
+    const listening = realtimeListening(page);
+
     // The observer: parked on the feed, already filtered to a name that cannot exist yet.
     const observer = new ActivityPage(page);
     await observer.goto();
     await observer.find(name);
     await expect(observer.entry(name)).toHaveCount(0);
 
-    // Subscribed, not merely rendered — otherwise the actor can publish into a tab that is still attaching.
-    await new AppNav(page).waitForRealtime();
+    // Subscribed, not merely rendered — otherwise the actor publishes into a tab that is still attaching.
+    await listening();
 
     const actorContext = await browser.newContext({ storageState: await household.sessionFor('second') });
     const actorPage = await actorContext.newPage();

@@ -53,15 +53,15 @@ const EXTERNAL_FORBIDDEN_READS: string[] = [
   '/stores',
   '/ingredients',
   '/activity',
-  '/realtime/channel',
-  '/realtime/auth',
   '/households/my/invites/active',
 ];
 
 /** What each role is allowed to read, so the spec can't pass by refusing everything. */
 const ALLOWED_READS = {
   child: ['/recipes', '/contacts', '/expenses', '/shopping-lists', '/storage-items', '/activity', '/households/my'],
-  external: ['/recipes', '/child-profiles', '/pet-profiles', '/households/my'],
+  // `/realtime/*` is readable, but answers with the `guest` channel rather than the household one —
+  // `external-role.spec.ts` is where that distinction is asserted.
+  external: ['/recipes', '/child-profiles', '/pet-profiles', '/households/my', '/realtime/channel', '/realtime/auth'],
 } as const;
 
 async function call(api: APIRequestContext, { body, method, path }: Call) {

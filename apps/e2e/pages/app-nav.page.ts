@@ -17,18 +17,6 @@ export class AppNav {
     return this.sidebar().getByRole('link', { exact: true, name });
   }
 
-  /**
-   * Waits until this tab is actually subscribed.
-   *
-   * An observer that has rendered is not yet listening — the socket opens when the realtime provider
-   * mounts, then a token is fetched, then the channel attaches, and anything published before that
-   * lands is simply missed. A spec whose *other* context acts the moment the first has loaded is
-   * racing all three, which is what used to make the cross-member specs flaky.
-   */
-  async waitForRealtime() {
-    await this.page.locator('[data-realtime="attached"]').waitFor({ state: 'attached' });
-  }
-
   /** Nested interactive elements. Anything but zero is the bug this guards against. */
   nestedButtons() {
     return this.sidebar().locator('a button');
