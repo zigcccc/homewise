@@ -19,9 +19,7 @@ import { client, parseResponse } from '@/api/client';
  * id makes that unrepresentable instead of relying on every household-lifecycle call site to
  * remember to evict this one.
  *
- * `role` is in the key for the same reason: the answer depends on it too — a member who may read
- * only part of the household is named onto a cut of it — so a role that changes under a live tab
- * would otherwise keep resolving to a channel its next token no longer authorizes.
+ * `role` is in the key for the same reason: it too changes which channel comes back.
  */
 export function getRealtimeChannelQueryOptions(householdId: number, role: HouseholdMemberRole) {
   return queryOptions({

@@ -1,28 +1,23 @@
-import { useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute, redirect } from '@tanstack/react-router';
-import { format } from 'date-fns';
 
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, Skeleton } from '@homewise/ui/core';
 
 import { getMyHouseholdQueryOptions } from '@/modules/households';
-import { Actionbar, formatDate, PageLayout, RouteError } from '@/modules/shared';
+import { Actionbar, PageLayout, RouteError } from '@/modules/shared';
 
 import {
   dashboardChildProfilesQueryOptions,
   dashboardPetProfilesQueryOptions,
   FamilyProfilesCard,
 } from './-components/family-profiles-card';
+import { HomeGreeting } from './-components/home-greeting';
 import { dashboardRecentRecipesQueryOptions, RecentRecipesCard } from './-components/recent-recipes-card';
 
 /**
  * Home for a member who is family but not part of running the household — a grandparent.
  *
- * `/guest` rather than `/external`: the role is `external` in the data, but this is the page that
- * person actually looks at, and "guest" is what it reads as to them.
- *
- * Its own route rather than a filtered dashboard: the dashboard is eleven queries across eight
- * domains, and an external can reach three of them. Filtering it would mean a conditional per card,
- * per query and per skeleton; this is the same three cards with none of that.
+ * `/guest` rather than `/external`: the role is `external` in the data, but "guest" is what the page
+ * reads as to the person looking at it.
  */
 export const Route = createFileRoute('/_authenticated/_onboarded/guest')({
   beforeLoad({ context }) {
@@ -42,16 +37,6 @@ export const Route = createFileRoute('/_authenticated/_onboarded/guest')({
     ]);
   },
 });
-
-function greeting() {
-  const hour = new Date().getHours();
-
-  if (hour < 12) {
-    return 'Good morning';
-  }
-
-  return hour < 18 ? 'Good afternoon' : 'Good evening';
-}
 
 /** The page around the cards, so the loading state and the loaded one can't drift apart. */
 function GuestShell({ children, header }: { children: React.ReactNode; header: React.ReactNode }) {
@@ -92,21 +77,9 @@ function GuestHomePending() {
 
 function GuestHomeRoute() {
   const { user } = Route.useRouteContext();
-  const { data: household } = useSuspenseQuery(getMyHouseholdQueryOptions());
 
   return (
-    <GuestShell
-      header={
-        <div>
-          <h1 className="font-medium text-lg">
-            {greeting()}, {user.name}
-          </h1>
-          <p className="text-muted-foreground text-sm" data-testid="guest-greeting">
-            {format(new Date(), 'EEEE')}, {formatDate(new Date())} · {household.name}
-          </p>
-        </div>
-      }
-    >
+    <GuestShell header={<HomeGreeting testId="guest-greeting" userName={user.name} />}>
       <FamilyProfilesCard wide />
       <RecentRecipesCard />
     </GuestShell>

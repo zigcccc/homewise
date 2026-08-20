@@ -1,6 +1,4 @@
-import { useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute, Link, type LinkProps, redirect } from '@tanstack/react-router';
-import { format } from 'date-fns';
 import { BookUserIcon, CookingPotIcon, ListTodoIcon, type LucideIcon, PlusIcon, ZapIcon } from 'lucide-react';
 import { type ComponentProps, type ReactNode, useCallback, useMemo, useState } from 'react';
 
@@ -24,15 +22,7 @@ import { useIsMobile } from '@homewise/ui/hooks';
 import { ContactDialog } from '@/modules/contacts';
 import { ExpenseFormDialog } from '@/modules/expenses';
 import { getMyHouseholdQueryOptions } from '@/modules/households';
-import {
-  Actionbar,
-  canRole,
-  formatDate,
-  PageLayout,
-  RouteError,
-  todayISODay,
-  useHouseholdRole,
-} from '@/modules/shared';
+import { Actionbar, canRole, PageLayout, RouteError, todayISODay, useHouseholdRole } from '@/modules/shared';
 
 import { ActivityCard, dashboardActivityQueryOptions } from './-components/activity-card';
 import { BirthdaysCard, dashboardBirthdayContactsQueryOptions } from './-components/birthdays-card';
@@ -41,6 +31,7 @@ import {
   dashboardPetProfilesQueryOptions,
   FamilyProfilesCard,
 } from './-components/family-profiles-card';
+import { HomeGreeting } from './-components/home-greeting';
 import { dashboardLoansQueryOptions, LoansCard } from './-components/loans-card';
 import { dashboardRecentRecipesQueryOptions, RecentRecipesCard } from './-components/recent-recipes-card';
 import { dashboardShoppingListsQueryOptions, ShoppingListsCard } from './-components/shopping-lists-card';
@@ -79,17 +70,6 @@ export const Route = createFileRoute('/_authenticated/_onboarded/')({
     ]);
   },
 });
-
-/** Off the local clock, so it agrees with the day the user is actually having. */
-function greeting() {
-  const hour = new Date().getHours();
-
-  if (hour < 12) {
-    return 'Good morning';
-  }
-
-  return hour < 18 ? 'Good afternoon' : 'Good evening';
-}
 
 /** Two shapes: some actions open a dialog, some navigate. */
 type QuickAction = { icon: LucideIcon; key: string; label: string } & (
@@ -289,21 +269,12 @@ function DashboardPending() {
 
 function HomeRoute() {
   const { user } = Route.useRouteContext();
-  const { data: household } = useSuspenseQuery(getMyHouseholdQueryOptions());
 
   return (
     <DashboardShell
       header={
         <>
-          <div>
-            <h1 className="font-medium text-lg">
-              {greeting()}, {user.name}
-            </h1>
-            {/* A testid, because the sidebar names the household too and `main` is ambiguous. */}
-            <p className="text-muted-foreground text-sm" data-testid="dashboard-greeting">
-              {format(new Date(), 'EEEE')}, {formatDate(new Date())} · {household.name}
-            </p>
-          </div>
+          <HomeGreeting testId="dashboard-greeting" userName={user.name} />
           <QuickActions />
         </>
       }

@@ -31,8 +31,7 @@ const CARD = {
 /** One tile per row by default: sharing a row with another card leaves no width to pair them up. */
 const TILE_GRID = 'grid gap-2';
 
-/** What `wide` adds — the card takes the whole row, so the tiles can too. Set on the guest home,
- * where this card doesn't share its row. */
+/** `wide` is for the guest home, where the card has the row to itself and the tiles can pair up. */
 const WIDE_CARD = 'md:col-span-2';
 const WIDE_TILE_GRID = 'md:grid-cols-2';
 

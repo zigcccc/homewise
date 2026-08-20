@@ -31,12 +31,9 @@ export type NavSection = {
 /**
  * The app's sections, and the capability each one needs.
  *
- * The **single** place a path is tied to an area: the sidebar renders from it and `_onboarded`'s
- * `beforeLoad` guards from it, so a section can never appear in the nav without also being reachable,
- * or be reachable without appearing.
- *
- * `/user-profile` is deliberately absent — it edits the caller's own account rather than the
- * household, so every role keeps it.
+ * The single place a path is tied to an area: the sidebar renders from it and `_onboarded`'s
+ * `beforeLoad` guards from it, so nav and reachability can't disagree. `/user-profile` is absent
+ * because it edits the caller's own account, not the household.
  */
 export const NAV_GROUPS: { items: NavSection[]; label: string }[] = [
   {
@@ -84,8 +81,7 @@ export const NAV_GROUPS: { items: NavSection[]; label: string }[] = [
     items: [
       { area: 'householdMembers', icon: UsersIcon, label: 'Household members', to: '/manage/household-members' },
       { area: 'activity', icon: HistoryIcon, label: 'Activity', to: '/manage/activity' },
-      // Gated on write, not read: the page is nothing but mutations — rename, currency, transfer,
-      // delete — so there is nothing on it for someone who cannot change the household.
+      // Write, not read: the page is nothing but mutations — rename, currency, transfer, delete.
       { access: 'write', area: 'household', icon: CogIcon, label: 'Settings', to: '/manage/settings' },
     ],
   },
@@ -95,8 +91,7 @@ const NAV_SECTIONS = NAV_GROUPS.flatMap((group) => group.items);
 
 /**
  * The section a path belongs to, or `undefined` for one that needs no capability (the two homes, the
- * user's own profile). Matched on a path boundary rather than a bare prefix, so a future
- * `/storage-something` could never be mistaken for `/storage`.
+ * user's own profile). Matched on a path boundary, so `/storage-something` is never `/storage`.
  */
 export function sectionForPath(pathname: string) {
   return NAV_SECTIONS.find((section) => pathname === section.to || pathname.startsWith(`${section.to}/`));

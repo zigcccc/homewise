@@ -15,8 +15,7 @@ import { AppSidebar } from './-components/AppSidebar';
 
 export const Route = createFileRoute('/_authenticated/_onboarded')({
   async beforeLoad({ context, location }) {
-    // Only a 404 means "no household yet". Anything else is a real failure and belongs on the error
-    // component — swallowing it would send someone with a household straight into creating a second.
+    // Only a 404 means "no household yet" — swallowing the rest sends a member into creating a second.
     const household = await context.queryClient
       .ensureQueryData(getMyHouseholdQueryOptions())
       .catch((error: unknown) => {
@@ -48,8 +47,7 @@ export const Route = createFileRoute('/_authenticated/_onboarded')({
     // the household exists, so the only way this fails is the API being unreachable — in which case
     // the household query above would have failed too.
     //
-    // Which channel comes back depends on the role: a member who reads only part of the household is
-    // named onto a cut of it that carries nothing else. That decision is the server's, not ours.
+    // Which channel comes back depends on the role — that decision is the server's, not ours.
     const realtimeChannel = (
       await context.queryClient.ensureQueryData(getRealtimeChannelQueryOptions(household.id, role))
     ).name;
