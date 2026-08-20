@@ -13,7 +13,7 @@ import { ActivityService } from './activity.service';
  * emit to make and no write to guard. Fully collaborative: what the household did is the household's.
  */
 const activityApp = new Hono<AppContext>()
-  .use(withHousehold)
+  .use(withHousehold('activity'))
   .get('/', zValidator('query', listActivityQueryParamsModel), async (c) => {
     const page = await ActivityService.list(c.var.household.id, c.req.valid('query'));
 

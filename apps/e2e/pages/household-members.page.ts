@@ -121,5 +121,11 @@ export class HouseholdMembersPage {
     const row = this.inviteRow(email);
     await row.getByRole('button', { name: 'Open menu' }).click();
     await this.page.getByRole('menuitem', { name: 'Revoke invite' }).click();
+
+    const confirm = this.page.getByRole('dialog', { name: 'Revoke this invite?' });
+    await confirm.getByRole('button', { name: 'Revoke invite' }).click();
+    await expect(confirm).toBeHidden();
+    // A closed dialog only proves the click landed; the row going is what proves the invite is gone.
+    await expect(row).toBeHidden();
   }
 }

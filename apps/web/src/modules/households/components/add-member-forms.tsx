@@ -125,6 +125,7 @@ function InviteMembersForm({ onInvited, secondaryAction }: { onInvited?: () => v
                   {idx === 0 && <FormLabel>Role</FormLabel>}
                   <FormControl>
                     <HouseholdMemberRoleSelect
+                      invitableOnly
                       name={field.name}
                       onValueChange={field.onChange}
                       triggerClassName="w-30"

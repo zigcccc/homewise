@@ -2,7 +2,7 @@ import * as Ably from 'ably';
 
 import { client, parseResponse } from '@/api/client';
 
-const $createRealtimeToken = client.realtime.auth.$post;
+const $createRealtimeToken = client.realtime.auth.$get;
 
 /**
  * The tab's one Ably connection, opened when this module is first evaluated and never replaced —

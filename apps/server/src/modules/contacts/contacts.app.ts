@@ -29,7 +29,7 @@ import { ContactsService } from './contacts.service';
  * about the relation and buries the contact's own edits under three indistinguishable lines.
  */
 const contactsApp = new Hono<AppContext>()
-  .use(withHousehold)
+  .use(withHousehold('contacts'))
   .get('/', zValidator('query', listContactsQueryParamsModel), async (c) => {
     const contacts = await ContactsService.list(c.var.household.id, c.req.valid('query'));
 

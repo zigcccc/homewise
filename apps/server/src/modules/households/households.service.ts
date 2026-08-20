@@ -3,13 +3,15 @@ import { and, count, eq, inArray, isNull, or } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 
 import { db, schema } from '#db/core';
-import { changedColumns } from '#db/utils';
+import { changedColumns, isUniqueViolation } from '#db/utils';
 import { auth } from '#lib/auth';
 import { notFound, somethingWentWrong } from '#lib/errors';
 import { sendEmail } from '#lib/resend';
+import { MEAL_ROLES } from '#modules/meal-plan/meal-plan.model';
 
 import {
   type CreateHouseholdMember,
+  type HouseholdMemberRole,
   type InsertHousehold,
   type InviteHouseholdMembers,
   type PatchHousehold,
@@ -104,13 +106,23 @@ export class HouseholdsService {
   }
 
   /**
-   * Same scoping as {@link readForUser}, but without loading members — cheap enough to run on every
-   * household-scoped request via the `withHousehold` middleware.
+   * Same scoping as {@link readForUser}, but carrying only the caller's own member row — enough for
+   * `withHousehold` to know what the request may do, without loading the roster on every request.
+   *
+   * `members` can still come back empty: the scoping matches ownership *or* membership, and an owner
+   * is reachable through `ownerId` alone.
    */
   public static async readSummaryForUser(userId: string) {
     const household = await db.query.household.findFirst({
       where: (households, { eq, or }) =>
         or(eq(households.ownerId, userId), HouseholdsService.getUserHouseholdSql(userId)),
+      with: {
+        members: {
+          where: (members, { eq }) => eq(members.userId, userId),
+          columns: { id: true, role: true },
+          limit: 1,
+        },
+      },
     });
 
     return household;
@@ -158,6 +170,20 @@ export class HouseholdsService {
 
   public static async patch(householdId: number, partialData: PatchHousehold) {
     const existing = await db.query.household.findFirst({ where: eq(schema.household.id, householdId) });
+
+    // Ownership is transferred through this patch, and the column only points at `user` — so without
+    // this the household could be handed to any account in the database, member or not.
+    const nextOwnerId = partialData.ownerId;
+    if (nextOwnerId && nextOwnerId !== existing?.ownerId) {
+      const target = await db.query.householdMember.findFirst({
+        where: (fields, { and, eq }) =>
+          and(eq(fields.householdId, householdId), eq(fields.userId, nextOwnerId), eq(fields.role, 'adult')),
+      });
+
+      if (!target) {
+        throw new HTTPException(400, { message: 'The new owner must be an adult member of this household.' });
+      }
+    }
 
     const [updatedHousehold] = await db
       .update(schema.household)
@@ -242,6 +268,38 @@ export class HouseholdsService {
     }
 
     return { data: updated, changeset: changedColumns(existing, patch) };
+  }
+
+  /** Owner-only, unlike {@link patchHouseholdMember}: a member who could set their own role could promote themselves. */
+  public static async patchHouseholdMemberRole(householdId: number, memberId: number, role: HouseholdMemberRole) {
+    const existing = await HouseholdsService.readHouseholdMember(householdId, memberId);
+
+    // A pet is never an account holder, so a row that has one can never become one.
+    if (role === 'pet' && existing.userId) {
+      throw new HTTPException(400, { message: 'A member with an account cannot be a pet.' });
+    }
+
+    const updated = await db.transaction(async (tx) => {
+      const [row] = await tx
+        .update(schema.householdMember)
+        .set({ role })
+        .where(and(eq(schema.householdMember.householdId, householdId), eq(schema.householdMember.id, memberId)))
+        .returning();
+
+      // A member who no longer eats off the plan must not stay assigned to meals: nothing else would
+      // remove them, and the meal would keep counting someone the headcount no longer includes.
+      if (row && !MEAL_ROLES.includes(role)) {
+        await tx.delete(schema.plannedMealMember).where(eq(schema.plannedMealMember.householdMemberId, memberId));
+      }
+
+      return row;
+    });
+
+    if (!updated) {
+      throw somethingWentWrong();
+    }
+
+    return { data: updated, changeset: changedColumns(existing, { role }) };
   }
 
   public static async deleteHouseholdMember(householdId: number, memberId: number) {
@@ -343,6 +401,10 @@ export class HouseholdsService {
       throw new HTTPException(400, { message: 'This member already has an account.' });
     }
 
+    if (member.role === 'pet') {
+      throw new HTTPException(400, { message: 'A pet cannot be invited to create an account.' });
+    }
+
     const { token } = await auth.api.generateOneTimeToken({ headers });
 
     const [invite] = await db
@@ -394,6 +456,13 @@ export class HouseholdsService {
       throw notFound('Invite');
     }
 
+    // Belt to the migration's braces: invites predating the model that excludes pets are still rows
+    // in the table, and accepting one would mint the account-linked pet that migration just repaired.
+    if (invite.role === 'pet') {
+      await HouseholdsService.deleteInvite(invite.householdId, invite.id);
+      throw new HTTPException(400, { message: 'This invite is no longer valid.' });
+    }
+
     // Prevent a second membership if the accepting user already belongs to this household.
     const existingMembership = await db.query.householdMember.findFirst({
       where: (fields, { and, eq }) => and(eq(fields.householdId, invite.householdId), eq(fields.userId, userId)),
@@ -421,10 +490,23 @@ export class HouseholdsService {
         )
         .returning();
     } else {
-      [householdMember] = await db
-        .insert(schema.householdMember)
-        .values({ userId, householdId: invite.householdId, role: invite.role })
-        .returning();
+      try {
+        [householdMember] = await db
+          .insert(schema.householdMember)
+          .values({ userId, householdId: invite.householdId, role: invite.role })
+          .returning();
+      } catch (error) {
+        // The check above is read-before-insert, so two invites accepted at once can both pass it.
+        // The partial unique index is what actually decides; the loser reads the row that won rather
+        // than creating a second membership whose role would compete with the first for authority.
+        if (!isUniqueViolation(error)) {
+          throw error;
+        }
+
+        householdMember = await db.query.householdMember.findFirst({
+          where: (fields, { and, eq }) => and(eq(fields.householdId, invite.householdId), eq(fields.userId, userId)),
+        });
+      }
     }
 
     if (!householdMember) {

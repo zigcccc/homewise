@@ -7,7 +7,7 @@ import { expect, test } from '../support/test';
  * main bundle, because `_onboarded`'s `beforeLoad` imports that barrel for the channel query. Every
  * signed-out visitor would then load the SDK and hammer a token endpoint that can only 401.
  *
- * Asserting on `POST /realtime/auth` rather than on a websocket: `authCallback` runs the instant the
+ * Asserting on any request to `/realtime/auth` rather than on a websocket: `authCallback` runs the instant the
  * client is constructed, so the token request is the first and most reliable evidence it exists. The
  * websocket never opens when that request 401s, and production chunk names are hashed, so neither
  * makes a usable signal.

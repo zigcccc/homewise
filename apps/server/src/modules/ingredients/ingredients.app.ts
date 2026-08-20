@@ -17,7 +17,7 @@ import { IngredientsService } from './ingredients.service';
  * Fully collaborative — any member can curate the vocabulary.
  */
 const ingredientsApp = new Hono<AppContext>()
-  .use(withHousehold)
+  .use(withHousehold('ingredients'))
   .get('/', zValidator('query', listIngredientsQueryParamsModel), async (c) => {
     const ingredients = await IngredientsService.list(c.var.household.id, c.req.valid('query'));
 

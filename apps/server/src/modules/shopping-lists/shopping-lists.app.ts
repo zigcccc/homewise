@@ -35,7 +35,7 @@ import { ShoppingListsService } from './shopping-lists.service';
  * one would bury every other thing the household did that day under a single trip to the shops.
  */
 const shoppingListsApp = new Hono<AppContext>()
-  .use(withHousehold)
+  .use(withHousehold('shoppingLists'))
   .get('/', zValidator('query', listShoppingListsQueryParamsModel), async (c) => {
     const lists = await ShoppingListsService.list(c.var.household.id, c.req.valid('query'));
 

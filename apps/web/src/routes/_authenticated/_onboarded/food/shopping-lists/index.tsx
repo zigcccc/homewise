@@ -29,7 +29,10 @@ export const Route = createFileRoute('/_authenticated/_onboarded/food/shopping-l
     }
 
     const lists = await context.queryClient.ensureQueryData(listShoppingListsQueryOptions(listQueryFor(search)));
-    const first = lists[0];
+    // Only a list the detail route will keep. The query already filters, so this matters when its
+    // answer is a beat behind — completing a list navigates here while the refetch is still in
+    // flight — and picking one `$listId` bounces straight back out is a loop, not a bounce.
+    const first = lists.find((list) => search.includeCompleted || list.completedAt === null);
 
     if (first) {
       throw redirect({

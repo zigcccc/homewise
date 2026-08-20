@@ -26,7 +26,7 @@ import { MealPlanService } from './meal-plan.service';
  * byte-identical invalidation.
  */
 const mealPlanApp = new Hono<AppContext>()
-  .use(withHousehold)
+  .use(withHousehold('mealPlan'))
   .get('/', zValidator('query', mealPlanRangeQueryParamsModel), async (c) => {
     const range = await MealPlanService.listRange(c.var.household.id, c.req.valid('query'));
 

@@ -13,7 +13,7 @@ import { MedicalService } from './medical.service';
  * deleted with it); this app manages the ID number and the attached contacts. Fully collaborative.
  */
 const medicalApp = new Hono<AppContext>()
-  .use(withHousehold)
+  .use(withHousehold('medicalInfo'))
   .patch(
     '/:id',
     zValidator('param', medicalInfoPathParamsModel),

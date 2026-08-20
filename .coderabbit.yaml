@@ -1,0 +1,8 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+reviews:
+  path_filters:
+    # Generated, and large enough to crowd out the diff that matters. `routeTree.gen.ts` is written by
+    # TanStack Router's plugin; each Drizzle snapshot is a full picture of the schema (~100KB) rather
+    # than a diff, so every migration adds one. Both are versioned — neither is worth reviewing.
+    - '!apps/web/src/routeTree.gen.ts'
+    - '!apps/server/migrations/meta/**'

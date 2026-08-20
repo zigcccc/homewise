@@ -25,6 +25,10 @@
       "types": "./src/lib/models.ts",
       "import": "./src/lib/models.ts"
     },
+    "./permissions": {
+      "types": "./src/lib/permissions.ts",
+      "import": "./src/lib/permissions.ts"
+    },
     "./households": {
       "types": "./src/modules/households/households.model.ts",
       "import": "./src/modules/households/households.model.ts"

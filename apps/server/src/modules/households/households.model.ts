@@ -37,9 +37,9 @@ export const patchHouseholdModel = createUpdateSchema(schema.household, househol
 export type PatchHousehold = z.infer<typeof patchHouseholdModel>;
 
 /**
- * All three columns are nullable — a member row created by an invite has none of them until the
+ * `name` and `nickname` are nullable — a member row created by an invite has neither until the
  * invitee fills them in — but a member added by hand is being described right now, so the API asks
- * for a name and a role and takes `''` for the optional nickname.
+ * for a name and takes `''` for the optional nickname. `role` is required by the column itself.
  */
 const memberName = z
   .string()
@@ -54,7 +54,7 @@ const serverOwnedMemberColumns = { ...dbOwnedColumns, userId: true } as const;
 
 export const createHouseholdMemberModel = createInsertSchema(schema.householdMember)
   .omit(serverOwnedMemberColumns)
-  .extend({ name: memberName, nickname: memberNickname, role: householdMemberRole });
+  .extend({ name: memberName, nickname: memberNickname });
 export type CreateHouseholdMember = z.infer<typeof createHouseholdMemberModel>;
 
 export const createHouseholdMembersModel = z.object({
@@ -62,17 +62,28 @@ export const createHouseholdMembersModel = z.object({
 });
 export type CreateHouseholdMembers = z.infer<typeof createHouseholdMembersModel>;
 
+/**
+ * Deliberately without `role`: this endpoint is owner-*or-self*, so a role here would let anyone
+ * promote themselves to `adult`. Changing a role is its own owner-only route.
+ */
 export const patchHouseholdMemberModel = createUpdateSchema(schema.householdMember)
-  .omit(serverOwnedMemberColumns)
+  .omit({ ...serverOwnedMemberColumns, role: true })
   .extend({ name: memberName.optional(), nickname: memberNickname });
 export type PatchHouseholdMember = z.infer<typeof patchHouseholdMemberModel>;
+
+export const patchHouseholdMemberRoleModel = z.object({ role: householdMemberRole });
+export type PatchHouseholdMemberRole = z.infer<typeof patchHouseholdMemberRoleModel>;
 
 export const patchHouseholdMemberPathParamsModel = z.object({ id: z.coerce.number<number>() });
 
 export const deleteHouseholdMemberPathParamsModel = z.object({ id: z.coerce.number<number>() });
 
+/** A pet is never an account holder, so it is never something you can invite someone to be. */
+export const invitableRole = householdMemberRole.exclude(['pet']);
+export type InvitableRole = z.infer<typeof invitableRole>;
+
 export const inviteHouseholdMembersModel = z.object({
-  members: z.array(z.object({ email: z.email(), role: householdMemberRole })),
+  members: z.array(z.object({ email: z.email(), role: invitableRole })),
 });
 export type InviteHouseholdMembers = z.infer<typeof inviteHouseholdMembersModel>;
 

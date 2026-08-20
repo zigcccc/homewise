@@ -20,7 +20,7 @@ import { RecipesService } from './recipes.service';
  * coerces to a number, so a later `/tags` would be swallowed and 400 instead of resolving.
  */
 const recipesApp = new Hono<AppContext>()
-  .use(withHousehold)
+  .use(withHousehold('recipes'))
   .get('/tags', async (c) => {
     const tags = await RecipesService.listTags(c.var.household.id);
 

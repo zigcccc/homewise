@@ -18,7 +18,7 @@ import { ChildDictionariesService } from './child-dictionaries.service';
  * (created and deleted with it); only its entries are managed here. Fully collaborative.
  */
 const childDictionariesApp = new Hono<AppContext>()
-  .use(withHousehold)
+  .use(withHousehold('childDictionaries'))
   .get(
     '/:id/entries',
     zValidator('param', childDictionaryPathParamsModel),
