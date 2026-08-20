@@ -32,6 +32,12 @@ member's change without refreshing.
   `publish`. `/users/me` doesn't emit — it isn't household-scoped, so `emit` doesn't exist there.
   `/households/my/*` **is** scoped and does emit; only creating a household and accepting an invite
   sit outside, and both call `ActivityService.record` directly.
+- **A household has two channels, and the role decides which one you are signed onto.** An event
+  carries the name of what changed and often the values it changed to, so a member who may read only
+  part of the household would learn the rest by listening. `publish` fans the readable subset out to
+  `…:guest` as well, using `ENTITY_AREAS` to map each event to its area; `channelName`/`audienceFor`
+  answer `GET /realtime/channel` and mint the token for the caller's role, so the client never picks.
+  A new event entity needs an `ENTITY_AREAS` line — the `Record` is exhaustive, so the compiler asks.
 - Nothing is emitted when a request fails: a thrown `HTTPException` never reaches the flush, and a
   validator's 400 leaves `c.res.ok` false.
 - `HOMEWISE_ABLY_API_KEY` is **required** — the server refuses to boot without it, like
