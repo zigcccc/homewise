@@ -23,7 +23,7 @@ import {
   type HouseholdContact,
   invalidateContacts,
 } from '@/modules/contacts';
-import { ConfirmDeleteDialog, formatDate, serverMessage } from '@/modules/shared';
+import { Can, ConfirmDeleteDialog, formatDate, serverMessage } from '@/modules/shared';
 
 const columnHelper = createDataTableColumnHelper<HouseholdContact>();
 
@@ -95,25 +95,27 @@ function ContactRowActions({ contact }: { contact: HouseholdContact }) {
 
   return (
     <div className="flex justify-end">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button className="h-8 w-8 p-0" variant="ghost">
-            <span className="sr-only">Open menu</span>
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => setEditOpen(true)}>
-            <PencilIcon />
-            Edit contact
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => setDeleteOpen(true)} variant="destructive">
-            <TrashIcon />
-            Delete contact
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <Can access="write" area="contacts">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button className="h-8 w-8 p-0" variant="ghost">
+              <span className="sr-only">Open menu</span>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setEditOpen(true)}>
+              <PencilIcon />
+              Edit contact
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setDeleteOpen(true)} variant="destructive">
+              <TrashIcon />
+              Delete contact
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </Can>
 
       {editOpen && <ContactDialog contactId={contact.id} onOpenChange={setEditOpen} open={editOpen} />}
 

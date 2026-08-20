@@ -6,6 +6,7 @@ import { type APIRequestContext, type Browser, test as base } from '@playwright/
 import { seedAccounts } from '@homewise/server/seed-fixtures';
 
 import { DashboardPage } from '../pages/dashboard.page';
+import { GuestHomePage } from '../pages/guest-home.page';
 import { LoginPage } from '../pages/login.page';
 
 /**
@@ -28,13 +29,15 @@ import { LoginPage } from '../pages/login.page';
 export * from '@playwright/test';
 
 /** Which of a household's three seeded accounts a test runs as. */
-export type Session = 'owner' | 'second' | 'onboarding';
+export type Session = 'owner' | 'second' | 'child' | 'external' | 'onboarding';
 
 type SeedAccounts = ReturnType<typeof seedAccounts>;
 
 const ACCOUNT_KEY = {
   owner: 'user',
   second: 'secondUser',
+  child: 'childUser',
+  external: 'externalUser',
   onboarding: 'onboardingUser',
 } satisfies Record<Session, keyof SeedAccounts>;
 
@@ -214,6 +217,11 @@ async function authenticate(browser: Browser, accounts: SeedAccounts, who: Sessi
       // This one has no household, so the onboarded guard sends it into the onboarding flow, not `/`.
       await login.fillCredentials(account.email, account.password);
       await page.waitForURL(/\/onboarding/, { timeout: 15_000 });
+    } else if (who === 'external') {
+      // An external's home is `/guest`, not the dashboard — the shell redirects them off `/`.
+      await login.fillCredentials(account.email, account.password);
+      await page.waitForURL(/\/guest/, { timeout: 15_000 });
+      await new GuestHomePage(page).expectLoaded({ userName: account.name });
     } else {
       await login.login(account.email, account.password);
       // Confirm the session actually works before persisting it — a saved-but-dead session turns

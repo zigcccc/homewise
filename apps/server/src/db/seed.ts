@@ -9,12 +9,15 @@ import { addDays, endOfMonth, startOfISOWeek, startOfMonth, todayISO } from '../
 import * as schema from './schema/core';
 import {
   SEED_ACTIVITY,
+  SEED_CHILD_DOCTOR,
   SEED_CHILD_MEMBER,
+  SEED_CHILD_PROFILE,
   SEED_EXPENSE_CATEGORIES,
   SEED_EXPENSES,
   SEED_HOUSEHOLD_NAME,
   SEED_INGREDIENTS,
   SEED_MEAL_PLAN,
+  SEED_PET_MEMBER,
   SEED_RECIPE,
   SEED_STORAGE_CONTACT,
   SEED_STORAGE_ITEMS,
@@ -101,26 +104,39 @@ async function seedHousehold(db: SeedDb, accounts: SeedAccounts, label: string) 
         throw new Error('failed to create seed household');
       }
 
-      await tx.insert(schema.householdMember).values([
-        { householdId: created.id, userId: ownerId, name: accounts.user.name, role: 'adult' },
-        {
-          householdId: created.id,
-          name: SEED_CHILD_MEMBER.name,
-          nickname: SEED_CHILD_MEMBER.nickname,
-          role: 'child',
-        },
-      ]);
+      await tx
+        .insert(schema.householdMember)
+        .values({ householdId: created.id, userId: ownerId, name: accounts.user.name, role: 'adult' });
 
       return created;
     });
 
-    log('seeded preview household with members');
+    log('seeded preview household');
   } else {
     log('preview household already present — skipping');
   }
 
   if (!household) {
     throw new Error('failed to resolve seed household');
+  }
+
+  // 2b. The managed members, ensured rather than created with the household: a household seeded
+  // before a fixture existed would otherwise never receive it.
+  for (const member of [
+    { name: SEED_CHILD_MEMBER.name, nickname: SEED_CHILD_MEMBER.nickname, role: 'child' } as const,
+    { name: SEED_PET_MEMBER.name, nickname: null, role: 'pet' } as const,
+  ]) {
+    const [existing] = await db
+      .select()
+      .from(schema.householdMember)
+      .where(and(eq(schema.householdMember.householdId, household.id), eq(schema.householdMember.name, member.name)));
+
+    if (!existing) {
+      await db.insert(schema.householdMember).values({ householdId: household.id, ...member });
+      log(`seeded managed ${member.role} member`);
+    } else {
+      log(`managed ${member.role} member already present — skipping`);
+    }
   }
 
   // 3. Second account user, seeded as a non-owner adult member (idempotent by
@@ -141,6 +157,28 @@ async function seedHousehold(db: SeedDb, accounts: SeedAccounts, label: string) 
     log('seeded second household member');
   } else {
     log('second household member already present — skipping');
+  }
+
+  // 3b. Account-linked members for the read-only roles, so the e2e suite can sign in as each and
+  // prove what they can and cannot do. Same idempotency as the second adult above.
+  for (const [account, role] of [
+    [accounts.childUser, 'child'],
+    [accounts.externalUser, 'external'],
+  ] as const) {
+    const user = await ensureUser(db, account, log);
+    const [membership] = await db
+      .select()
+      .from(schema.householdMember)
+      .where(and(eq(schema.householdMember.householdId, household.id), eq(schema.householdMember.userId, user.id)));
+
+    if (!membership) {
+      await db
+        .insert(schema.householdMember)
+        .values({ householdId: household.id, userId: user.id, name: account.name, role });
+      log(`seeded ${role} household member`);
+    } else {
+      log(`${role} household member already present — skipping`);
+    }
   }
 
   // 4. Onboarding user — a real account with NO household/membership, so the
@@ -517,6 +555,54 @@ async function seedHousehold(db: SeedDb, accounts: SeedAccounts, label: string) 
     log(`seeded ${missingItems.length} storage items`);
   } else {
     log('storage items already present — skipping');
+  }
+
+  // 13b. The seeded child's profile, with a doctor attached — the `external` role exists to read
+  // exactly this, and an external cannot create one to read.
+  const [childMember] = await db
+    .select()
+    .from(schema.householdMember)
+    .where(
+      and(eq(schema.householdMember.householdId, household.id), eq(schema.householdMember.name, SEED_CHILD_MEMBER.name))
+    );
+
+  if (childMember) {
+    const [existingProfile] = await db
+      .select()
+      .from(schema.childProfile)
+      .where(and(eq(schema.childProfile.householdId, household.id), eq(schema.childProfile.memberId, childMember.id)));
+
+    if (!existingProfile) {
+      await db.transaction(async (tx) => {
+        const [profile] = await tx
+          .insert(schema.childProfile)
+          .values({ householdId: household.id, memberId: childMember.id, ...SEED_CHILD_PROFILE })
+          .returning();
+
+        if (!profile) {
+          throw new Error('failed to create seed child profile');
+        }
+
+        const [info] = await tx
+          .insert(schema.medicalInfo)
+          .values({ householdId: household.id, childProfileId: profile.id })
+          .returning();
+        const [doctor] = await tx
+          .insert(schema.contact)
+          .values({ householdId: household.id, ...SEED_CHILD_DOCTOR })
+          .returning();
+
+        if (!info || !doctor) {
+          throw new Error('failed to attach the seed child doctor');
+        }
+
+        await tx.insert(schema.medicalInfoContact).values({ medicalInfoId: info.id, contactId: doctor.id });
+      });
+
+      log('seeded child profile with a doctor');
+    } else {
+      log('child profile already present — skipping');
+    }
   }
 
   // 14. The activity feed, last: these are a record of the work above, so they read as its history.

@@ -16,7 +16,7 @@ import {
 } from '@homewise/ui/core';
 
 import { IngredientFormDialog } from '@/modules/ingredients';
-import { Actionbar, PageLayout } from '@/modules/shared';
+import { Actionbar, Can, PageLayout } from '@/modules/shared';
 import { StoreFormDialog } from '@/modules/stores';
 
 export const Route = createFileRoute('/_authenticated/_onboarded/food/ingredients')({
@@ -80,10 +80,13 @@ function IngredientsLayout() {
               buy them at.
             </p>
           </div>
-          <Button onClick={() => setAddOpen(true)}>
-            <PlusIcon />
-            {onStores ? 'Add shop' : 'Add ingredient'}
-          </Button>
+          {/* Two areas behind one button: the tab decides which row it creates. */}
+          <Can access="write" area={onStores ? 'stores' : 'ingredients'}>
+            <Button onClick={() => setAddOpen(true)}>
+              <PlusIcon />
+              {onStores ? 'Add shop' : 'Add ingredient'}
+            </Button>
+          </Can>
         </div>
 
         <Tabs value={onStores ? 'stores' : 'ingredients'}>

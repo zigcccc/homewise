@@ -13,6 +13,7 @@ export function useInlineStorePatch(storeId: number) {
   const queryClient = useQueryClient();
 
   return useInlinePatch(
+    'stores',
     useMutation({
       mutationFn: async (json: PatchStorePayload) =>
         parseResponse($patchStore({ param: { id: storeId.toString() }, json })),

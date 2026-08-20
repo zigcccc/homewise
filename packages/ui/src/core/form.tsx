@@ -133,4 +133,16 @@ function FormMessage({ className, ...props }: ComponentProps<'p'>) {
   );
 }
 
-export { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage, useFormField };
+/**
+ * Disables every control inside it, without adding a box to the layout.
+ *
+ * `contents` is load-bearing: a `<fieldset>` is a block with `min-inline-size: min-content`, so a
+ * bare one breaks the surrounding spacing and stops grid children shrinking. Disabling propagates
+ * through the DOM rather than through props, so `FormControl`'s `Slot` is untouched and Tailwind's
+ * `disabled:` variant still matches.
+ */
+function FormFieldset({ className, ...props }: ComponentProps<'fieldset'>) {
+  return <fieldset className={cn('contents', className)} data-slot="form-fieldset" {...props} />;
+}
+
+export { Form, FormControl, FormDescription, FormField, FormFieldset, FormItem, FormLabel, FormMessage, useFormField };

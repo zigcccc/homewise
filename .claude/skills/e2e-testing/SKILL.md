@@ -43,7 +43,11 @@ pnpm --filter @homewise/e2e db:test:down   # Remove the test Postgres
   workers; the phase remains because a mutator that dies mid-round-trip leaves its household renamed
   or de-owned, and going last means nothing is left to break. A new spec needs no config change.
 - **Sessions**: the default is the household's owner. `test.use({ sessionAs: 'second' })`,
-  `'onboarding'`, or `'none'` (signed out) switches; a spec needing a *second live* session takes the
+  `'child'`, `'external'`, `'onboarding'`, or `'none'` (signed out) switches. `child` and `external`
+  are the read-only roles — a child lands on the dashboard like everyone else, an external lands on
+  `/guest`, which is why `authenticate` has a branch for it. Cover a role at the API
+  (`permissions.spec.ts`) rather than only through the UI: a hidden button proves nothing about what
+  happens when someone asks anyway; a spec needing a *second live* session takes the
   `household` fixture and passes `await household.sessionFor('second')` to `browser.newContext`.
   Logins are lazy and memoised per worker, and the session files live under `outputDir`, which
   Playwright empties every run — so one can never outlive the seed that created its user.

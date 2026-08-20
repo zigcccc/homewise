@@ -45,7 +45,7 @@ import {
   useInlineMealPatch,
   weekdayLabel,
 } from '@/modules/meal-plan';
-import { InlineTextField, serverMessage } from '@/modules/shared';
+import { Can, InlineTextField, serverMessage, useCan } from '@/modules/shared';
 
 import { MealMembers } from './meal-members';
 import { RecipeCombobox } from './recipe-combobox';
@@ -69,6 +69,7 @@ export function MealPlanDayRow({
   const queryClient = useQueryClient();
   const [editingNote, setEditingNote] = useState(false);
   const today = isToday(day.day);
+  const canWrite = useCan('mealPlan', 'write');
 
   // The day itself is a drop target, which is what lets a meal land on a day that has none yet.
   // Low priority so that when the day *does* have meals, the card under the pointer wins the
@@ -106,7 +107,7 @@ export function MealPlanDayRow({
             <span className="text-muted-foreground text-xs">{dayLabel(day.day)}</span>
             {today && <span className="font-normal text-primary text-xs">Today</span>}
           </h3>
-          {!day.note && !editingNote && (
+          {canWrite && !day.note && !editingNote && (
             <Button
               aria-label={`Add a note for ${dayName}`}
               onClick={() => setEditingNote(true)}
@@ -129,7 +130,8 @@ export function MealPlanDayRow({
             schema={putDayNoteModel.shape.note}
           />
         ) : (
-          day.note && (
+          day.note &&
+          (canWrite ? (
             <button
               aria-label={`Edit the note for ${dayName}`}
               className="flex w-full items-start gap-2 rounded-md bg-muted/60 px-2 py-1.5 text-left text-muted-foreground text-sm hover:bg-muted"
@@ -139,7 +141,12 @@ export function MealPlanDayRow({
               <StickyNoteIcon className="mt-0.5 size-3.5 shrink-0" />
               {day.note}
             </button>
-          )
+          ) : (
+            <p className="flex w-full items-start gap-2 rounded-md bg-muted/60 px-2 py-1.5 text-muted-foreground text-sm">
+              <StickyNoteIcon className="mt-0.5 size-3.5 shrink-0" />
+              {day.note}
+            </p>
+          ))
         )}
 
         {day.meals.length > 0 && (
@@ -166,7 +173,7 @@ export function MealPlanDayRow({
           </p>
         )}
 
-        <AddMeal collapsed={fullyPlanned} day={day.day} dayName={dayName} />
+        {canWrite && <AddMeal collapsed={fullyPlanned} day={day.day} dayName={dayName} />}
       </CardContent>
     </Card>
   );
@@ -269,12 +276,15 @@ function MealCard({
   const [editingLabel, setEditingLabel] = useState(false);
   const [editingNote, setEditingNote] = useState(false);
   // Addressed by the id this card mounted with, so a save can't land on whatever later takes its slot.
-  const { isPending, save, saveOrToast } = useInlineMealPatch(meal.id);
+  const { isPending, readOnly, save, saveOrToast } = useInlineMealPatch(meal.id);
+  // One signal for every control on the card: a save in flight, or not this member's meal to change.
+  const locked = isPending || readOnly;
 
   // `group` is the ISO day, which is what makes this a cross-container sortable: dropping onto
   // another day's card moves it between groups rather than just reordering within one.
   const { handleRef, isDragging, ref } = useSortable({
     accept: 'meal',
+    disabled: readOnly,
     group: currentDay,
     id: meal.id,
     index,
@@ -330,14 +340,16 @@ function MealCard({
     >
       <div className="flex items-center gap-2">
         {/* A real button, so the drag handle is reachable by keyboard and touch, not pointer only. */}
-        <button
-          aria-label={`Move ${meal.label}`}
-          className="shrink-0 cursor-grab touch-none text-muted-foreground"
-          ref={handleRef}
-          type="button"
-        >
-          <GripVerticalIcon className="size-4" />
-        </button>
+        {!readOnly && (
+          <button
+            aria-label={`Move ${meal.label}`}
+            className="shrink-0 cursor-grab touch-none text-muted-foreground"
+            ref={handleRef}
+            type="button"
+          >
+            <GripVerticalIcon className="size-4" />
+          </button>
+        )}
 
         <div className="min-w-0 flex-1">
           {editingLabel ? (
@@ -358,7 +370,7 @@ function MealCard({
               trigger={
                 <button
                   className="flex w-full items-center gap-1.5 rounded-md px-1 py-0.5 text-left font-medium text-sm hover:bg-accent"
-                  disabled={isPending}
+                  disabled={locked}
                   type="button"
                 >
                   <CookingPotIcon className="size-3.5 shrink-0 text-muted-foreground" />
@@ -369,7 +381,7 @@ function MealCard({
           ) : (
             <button
               className="w-full rounded-md px-1 py-0.5 text-left font-medium text-sm hover:bg-accent"
-              disabled={isPending}
+              disabled={locked}
               onClick={() => setEditingLabel(true)}
               type="button"
             >
@@ -379,13 +391,13 @@ function MealCard({
         </div>
 
         <MealMembers
-          disabled={isPending}
+          disabled={locked}
           meal={meal}
           members={members}
           onSave={(memberIds) => saveOrToast({ memberIds })}
         />
 
-        {!meal.note && !editingNote && (
+        {!meal.note && !editingNote && !readOnly && (
           <Button
             aria-label={`Add a note to ${meal.label}`}
             onClick={() => setEditingNote(true)}
@@ -396,39 +408,41 @@ function MealCard({
           </Button>
         )}
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button aria-label={`Meal actions for ${meal.label}`} size="icon-sm" variant="ghost">
-              <MoreHorizontalIcon />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem disabled={!previousDay} onClick={() => previousDay && onMove(meal.id, previousDay)}>
-              Previous day
-            </DropdownMenuItem>
-            <DropdownMenuItem disabled={!nextDay} onClick={() => nextDay && onMove(meal.id, nextDay)}>
-              Next day
-            </DropdownMenuItem>
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>Move to day</DropdownMenuSubTrigger>
-              <DropdownMenuPortal>
-                <DropdownMenuSubContent className="max-h-72 overflow-y-auto">
-                  {visibleDays
-                    .filter((day) => day !== currentDay)
-                    .map((day) => (
-                      <DropdownMenuItem key={day} onClick={() => onMove(meal.id, day)}>
-                        {weekdayLabel(day)}, {dayLabel(day)}
-                      </DropdownMenuItem>
-                    ))}
-                </DropdownMenuSubContent>
-              </DropdownMenuPortal>
-            </DropdownMenuSub>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => remove.mutate()} variant="destructive">
-              Remove
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <Can access="write" area="mealPlan">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button aria-label={`Meal actions for ${meal.label}`} size="icon-sm" variant="ghost">
+                <MoreHorizontalIcon />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem disabled={!previousDay} onClick={() => previousDay && onMove(meal.id, previousDay)}>
+                Previous day
+              </DropdownMenuItem>
+              <DropdownMenuItem disabled={!nextDay} onClick={() => nextDay && onMove(meal.id, nextDay)}>
+                Next day
+              </DropdownMenuItem>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>Move to day</DropdownMenuSubTrigger>
+                <DropdownMenuPortal>
+                  <DropdownMenuSubContent className="max-h-72 overflow-y-auto">
+                    {visibleDays
+                      .filter((day) => day !== currentDay)
+                      .map((day) => (
+                        <DropdownMenuItem key={day} onClick={() => onMove(meal.id, day)}>
+                          {weekdayLabel(day)}, {dayLabel(day)}
+                        </DropdownMenuItem>
+                      ))}
+                  </DropdownMenuSubContent>
+                </DropdownMenuPortal>
+              </DropdownMenuSub>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => remove.mutate()} variant="destructive">
+                Remove
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </Can>
       </div>
 
       {editingNote ? (
@@ -444,7 +458,10 @@ function MealCard({
           />
         </div>
       ) : (
-        meal.note && (
+        meal.note &&
+        (readOnly ? (
+          <p className="mt-0.5 ml-6 px-1 text-muted-foreground text-xs">{meal.note}</p>
+        ) : (
           <button
             aria-label={`Edit the note on ${meal.label}`}
             className="mt-0.5 ml-6 rounded-md px-1 text-left text-muted-foreground text-xs hover:bg-accent"
@@ -453,7 +470,7 @@ function MealCard({
           >
             {meal.note}
           </button>
-        )
+        ))
       )}
     </li>
   );

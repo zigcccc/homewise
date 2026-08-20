@@ -51,6 +51,7 @@ import {
 import { parseResponse } from '@/api/client';
 import {
   Actionbar,
+  Can,
   ConfirmDeleteDialog,
   ExternalLink,
   ListPagination,
@@ -240,10 +241,12 @@ function StorageLocationRoute() {
             value={searchParams.sortDirection}
           />
 
-          <Button onClick={() => setAddOpen(true)}>
-            <PlusIcon />
-            Add item
-          </Button>
+          <Can access="write" area="storageItems">
+            <Button onClick={() => setAddOpen(true)}>
+              <PlusIcon />
+              Add item
+            </Button>
+          </Can>
         </div>
 
         <DataTable
@@ -261,12 +264,14 @@ function StorageLocationRoute() {
                 </EmptyDescription>
               </EmptyHeader>
               {!isFiltered && (
-                <EmptyContent>
-                  <Button onClick={() => setAddOpen(true)}>
-                    <PlusIcon />
-                    Add item
-                  </Button>
-                </EmptyContent>
+                <Can access="write" area="storageItems">
+                  <EmptyContent>
+                    <Button onClick={() => setAddOpen(true)}>
+                      <PlusIcon />
+                      Add item
+                    </Button>
+                  </EmptyContent>
+                </Can>
               )}
             </Empty>
           }
@@ -307,24 +312,26 @@ function LocationActions({ location }: { location: StorageLocation }) {
 
   return (
     <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button className="h-9 w-9 p-0" variant="ghost">
-            <span className="sr-only">Open menu</span>
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => setEditOpen(true)}>
-            <PencilIcon />
-            Edit location
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setDeleteOpen(true)} variant="destructive">
-            <TrashIcon />
-            Delete location
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <Can access="write" area="storageLocations">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button className="h-9 w-9 p-0" variant="ghost">
+              <span className="sr-only">Open menu</span>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setEditOpen(true)}>
+              <PencilIcon />
+              Edit location
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setDeleteOpen(true)} variant="destructive">
+              <TrashIcon />
+              Delete location
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </Can>
 
       {editOpen && <LocationFormDialog location={location} onOpenChange={setEditOpen} open={editOpen} />}
 

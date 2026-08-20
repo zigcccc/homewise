@@ -12,7 +12,7 @@ import {
   ComboboxSeparator,
 } from '@homewise/ui/core';
 
-import { AsyncComboboxContent, shouldOfferCreate, useAsyncOptions } from '@/modules/shared';
+import { AsyncComboboxContent, shouldOfferCreate, useAsyncOptions, useCan } from '@/modules/shared';
 
 import { listStoreOptionsInfiniteQueryOptions } from '../stores.queries';
 
@@ -54,7 +54,8 @@ export function StoreCombobox({
   const [open, setOpen] = useState(false);
   const options = useAsyncOptions({ enabled: open, queryOptions: listStoreOptionsInfiniteQueryOptions });
 
-  const offerCreate = shouldOfferCreate(options);
+  const canCreate = useCan('stores', 'write');
+  const offerCreate = canCreate && shouldOfferCreate(options);
 
   const select = (choice: StoreChoice) => {
     onChange(choice);

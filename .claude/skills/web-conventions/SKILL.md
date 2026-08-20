@@ -8,6 +8,37 @@ description: Conventions for apps/web — TanStack Router file-based routes, tab
 TanStack Router + TanStack Query over the Hono RPC client. Read `CLAUDE.md` first — it wins on any
 conflict. For anything you *render* — components, forms, tables, dialogs — see `ui-conventions`.
 
+## Capability
+
+`useCan(area, access)` (`modules/shared/hooks/use-can.ts`) answers whether the current member may
+`read` or `write` an area, over the same `permissions.ts` the server enforces with. **Both arguments
+are required** — `useCan('ingredients')` would read as a question about ingredients in general, and
+the answer depends entirely on which half is meant. `<Can access="write" area="…">` is the same check
+around a whole control.
+
+- **It reads the household query, not route context.** `beforeLoad` results are cached per match, so a
+  role changed in another tab — which arrives as a realtime invalidation of `['households']` — would
+  leave every button on screen until the next navigation. Reading the query is reactive, denies while
+  the role is unknown, and works in components that also render outside the shell (`add-member-forms`
+  renders in onboarding, where there is no `_onboarded` match to read `from`).
+- **Asking about several areas at once takes `useHouseholdRole()` + `canRole(role, area, access)`** —
+  the sidebar filtering `NAV_GROUPS`, the dashboard filtering its quick actions. A hook cannot run in
+  a loop, and currying `useCan` into a callback just to allow it hid the question at every call site.
+- **Route context is still right for guards**, which run per navigation: `_onboarded`'s `beforeLoad`
+  bounces a member out of a section they cannot read, and `requireWrite(context.role, area)` is called
+  *inside* the `beforeLoad` of the three routes that only exist to write (`recipes/new`,
+  `recipes/$recipeId/edit`, `shopping-lists/import`), so a route that needs to do something else there
+  still can.
+- **`NAV_GROUPS` (`modules/shared/constants/navigation.ts`) is the only place a path is tied to an
+  area.** The sidebar renders from it and the guard reads from it, so a section cannot appear in the
+  nav without being reachable, or be reachable without appearing. `Settings` is gated on `write` rather
+  than `read`, because the page is nothing but mutations.
+- **An `external` member has its own home** (`/guest` — the role is `external` in the data, but the
+  surface reads as "guest" to the person on it) rather than a filtered dashboard. The redirect lives in
+  the index route's own `beforeLoad`, not in the layout above it: a layout would have to test the
+  pathname to find the one route it means.
+
+
 ## Routing
 
 File-based routing. Route file conventions:

@@ -15,7 +15,7 @@ import {
 
 import { parseResponse } from '@/api/client';
 import { invalidateIngredients } from '@/modules/ingredients';
-import { ConfirmDeleteDialog, InlineCell, serverMessage } from '@/modules/shared';
+import { Can, ConfirmDeleteDialog, InlineCell, serverMessage } from '@/modules/shared';
 import { $deleteStore, invalidateStores, type Store, StoreFormDialog, useInlineStorePatch } from '@/modules/stores';
 
 const columnHelper = createDataTableColumnHelper<Store>();
@@ -42,7 +42,7 @@ export const storesTableColumns = columnHelper.columns([
 ]);
 
 function StoreNameCell({ id, name }: { id: number; name: string }) {
-  const { save } = useInlineStorePatch(id);
+  const { save, readOnly } = useInlineStorePatch(id);
 
   return (
     <InlineCell
@@ -50,6 +50,7 @@ function StoreNameCell({ id, name }: { id: number; name: string }) {
       display={name}
       fill
       onSave={async (value) => save({ name: value })}
+      readOnly={readOnly}
       schema={createStoreModel.shape.name}
       value={name}
     />
@@ -80,24 +81,26 @@ function StoreRowActions({ store }: { store: Store }) {
 
   return (
     <div className="flex justify-end">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button className="h-8 w-8 p-0" variant="ghost">
-            <span className="sr-only">Open menu</span>
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => setEditOpen(true)}>
-            <PencilIcon />
-            Edit shop
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setDeleteOpen(true)} variant="destructive">
-            <TrashIcon />
-            Delete shop
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <Can access="write" area="stores">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button className="h-8 w-8 p-0" variant="ghost">
+              <span className="sr-only">Open menu</span>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setEditOpen(true)}>
+              <PencilIcon />
+              Edit shop
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setDeleteOpen(true)} variant="destructive">
+              <TrashIcon />
+              Delete shop
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </Can>
 
       <StoreFormDialog onOpenChange={setEditOpen} open={editOpen} store={store} />
 

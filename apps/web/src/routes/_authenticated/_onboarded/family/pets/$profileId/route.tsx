@@ -27,7 +27,7 @@ import {
 
 import { client, parseResponse } from '@/api/client';
 import { getPetProfileQueryOptions, invalidatePetProfile } from '@/modules/pet-profiles';
-import { Actionbar, ConfirmDeleteDialog, PageLayout } from '@/modules/shared';
+import { Actionbar, Can, ConfirmDeleteDialog, PageLayout } from '@/modules/shared';
 
 export const Route = createFileRoute('/_authenticated/_onboarded/family/pets/$profileId')({
   async loader({ context, params }) {
@@ -103,20 +103,22 @@ function ProfileLayout() {
               <p className="text-muted-foreground text-sm">Pet profile</p>
             </div>
           </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button className="h-9 w-9 p-0" variant="outline">
-                <span className="sr-only">Profile actions</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setDeleteOpen(true)} variant="destructive">
-                <TrashIcon />
-                Delete profile
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <Can access="write" area="petProfiles">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button className="h-9 w-9 p-0" variant="outline">
+                  <span className="sr-only">Profile actions</span>
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setDeleteOpen(true)} variant="destructive">
+                  <TrashIcon />
+                  Delete profile
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </Can>
         </div>
 
         {/* A single tab for now; the tabs shell stays as more pet sub-features are added. */}

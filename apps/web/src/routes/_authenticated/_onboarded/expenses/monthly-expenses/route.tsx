@@ -41,6 +41,7 @@ import {
 import { getMyHouseholdQueryOptions } from '@/modules/households';
 import {
   Actionbar,
+  Can,
   currentMonth,
   currentYear,
   formatAmount,
@@ -184,10 +185,12 @@ function MonthlyExpensesLayout() {
             <h1 className="font-medium text-lg">{monthLabel(searchParams.month, searchParams.year)}</h1>
             <MonthTotals summary={summary} />
           </div>
-          <Button onClick={() => setAddOpen(true)}>
-            <PlusIcon />
-            Add expense
-          </Button>
+          <Can access="write" area="expenses">
+            <Button onClick={() => setAddOpen(true)}>
+              <PlusIcon />
+              Add expense
+            </Button>
+          </Can>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -258,10 +261,12 @@ function MonthlyExpensesLayout() {
               </EmptyHeader>
               {!isFiltered && (
                 <EmptyContent>
-                  <Button onClick={() => setAddOpen(true)}>
-                    <PlusIcon />
-                    Add expense
-                  </Button>
+                  <Can access="write" area="expenses">
+                    <Button onClick={() => setAddOpen(true)}>
+                      <PlusIcon />
+                      Add expense
+                    </Button>
+                  </Can>
                 </EmptyContent>
               )}
             </Empty>

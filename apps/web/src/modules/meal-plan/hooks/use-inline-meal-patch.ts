@@ -23,6 +23,7 @@ export function useInlineMealPatch(mealId: number) {
   const queryClient = useQueryClient();
 
   return useInlinePatch(
+    'mealPlan',
     useMutation({
       mutationFn: async (json: PatchMealPayload) =>
         parseResponse($patchMeal({ param: { id: mealId.toString() }, json })),

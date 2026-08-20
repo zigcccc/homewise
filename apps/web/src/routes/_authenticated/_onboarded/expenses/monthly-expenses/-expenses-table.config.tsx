@@ -49,7 +49,7 @@ import {
 const inlineControlClassName = 'max-w-xs';
 
 function TitleCell({ id, title }: { id: number; title: string }) {
-  const { save } = useInlineExpensePatch(id);
+  const { save, readOnly } = useInlineExpensePatch(id);
 
   return (
     <InlineCell
@@ -57,6 +57,7 @@ function TitleCell({ id, title }: { id: number; title: string }) {
       display={title}
       fill
       onSave={async (next) => save({ title: next })}
+      readOnly={readOnly}
       schema={expenseTitle}
       value={title}
     />
@@ -74,7 +75,7 @@ function AmountCell({
   id: number;
   paidBack: boolean;
 }) {
-  const { save } = useInlineExpensePatch(id);
+  const { save, readOnly } = useInlineExpensePatch(id);
 
   return (
     <InlineCell
@@ -86,6 +87,7 @@ function AmountCell({
       maxWidthClassName={inlineControlClassName}
       // Non-null: `expenseAmountText` only passes for something `parseAmount` can read.
       onSave={async (next) => save({ amount: parseAmount(next)! })}
+      readOnly={readOnly}
       schema={expenseAmountText}
       value={String(amount)}
     />
@@ -93,13 +95,14 @@ function AmountCell({
 }
 
 function CategoryCell({ category, id, onManage }: { category: Expense['category']; id: number; onManage: () => void }) {
-  const { saveOrToast } = useInlineExpensePatch(id);
+  const { saveOrToast, readOnly } = useInlineExpensePatch(id);
 
   const value: ExpenseCategoryChoice = category ? { kind: 'existing', category } : { kind: 'none' };
 
   return (
     <ExpenseCategoryCombobox
       className={`${inlineControlClassName} ${inlineTriggerClassName}`}
+      disabled={readOnly}
       noneLabel="—"
       onChange={async (choice) => {
         if (choice.kind === 'new') {
@@ -116,7 +119,11 @@ function CategoryCell({ category, id, onManage }: { category: Expense['category'
 }
 
 function RecordedAtCell({ id, recordedAt }: { id: number; recordedAt: string }) {
-  const { saveOrToast } = useInlineExpensePatch(id);
+  const { saveOrToast, readOnly } = useInlineExpensePatch(id);
+
+  if (readOnly) {
+    return <span className="px-2 text-sm">{formatDate(recordedAt) ?? recordedAt}</span>;
+  }
 
   return (
     <InlineCellSizer
@@ -143,9 +150,13 @@ function RecordedAtCell({ id, recordedAt }: { id: number; recordedAt: string }) 
 
 function RowActions({ expense }: { expense: Expense }) {
   const queryClient = useQueryClient();
-  const { saveOrToast } = useInlineExpensePatch(expense.id);
+  const { saveOrToast, readOnly } = useInlineExpensePatch(expense.id);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const paidBack = Boolean(expense.paidBackAt);
+
+  if (readOnly) {
+    return null;
+  }
 
   return (
     <>

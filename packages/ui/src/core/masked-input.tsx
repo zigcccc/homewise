@@ -17,6 +17,8 @@ type MaskedInputProps = Omit<ComponentProps<typeof InputGroupInput>, 'onChange' 
   onChange: (value: string) => void;
   /** Whether the real value is shown/editable. Controlled by the parent so it can re-mask after a save. */
   revealed: boolean;
+  /** For a viewer who may read the value but not change it: shown in full, with Copy the only action. */
+  readOnly?: boolean;
   onReveal: () => void;
   /** Re-masks without saving — the crossed-eye action shown while revealed. */
   onHide: () => void;
@@ -34,8 +36,21 @@ type MaskedInputProps = Omit<ComponentProps<typeof InputGroupInput>, 'onChange' 
  * With no value there is nothing to copy or to re-mask, so those actions are dropped — and a revealed
  * empty field drops the addon entirely, leaving a plain text input.
  */
-function MaskedInput({ value, onChange, revealed, onReveal, onHide, onCopy, onCopyError, ...props }: MaskedInputProps) {
+function MaskedInput({
+  value,
+  onChange,
+  readOnly = false,
+  revealed,
+  onReveal,
+  onHide,
+  onCopy,
+  onCopyError,
+  ...props
+}: MaskedInputProps) {
   const hasValue = value.length > 0;
+  // Masking buys nothing from someone who can't edit: hiding it only costs them a click to see what
+  // they are already allowed to see. So the value stands open, and Copy is all that's left to offer.
+  const shown = readOnly || revealed;
   // Set by the pencil, read by the input it mounts. A field that opens revealed because it is empty must not
   // take focus on page load — with two of them, the last would win and scroll the page to itself. Once the
   // user has reached for the pencil it stays set, which is exactly when a revealed input should be focused.
@@ -52,12 +67,13 @@ function MaskedInput({ value, onChange, revealed, onReveal, onHide, onCopy, onCo
 
   return (
     <InputGroup>
-      {revealed ? (
+      {shown ? (
         // Distinct key from the masked branch so switching remounts the input, letting autoFocus fire.
         <InputGroupInput
-          autoFocus={focusOnReveal}
+          autoFocus={!readOnly && focusOnReveal}
           key="revealed"
           onChange={(event) => onChange(event.target.value)}
+          readOnly={readOnly}
           value={value}
           {...props}
         />
@@ -65,19 +81,19 @@ function MaskedInput({ value, onChange, revealed, onReveal, onHide, onCopy, onCo
         <InputGroupInput key="masked" readOnly value={mask(value)} {...props} />
       )}
       {/* The group's input padding keys off the addon's presence, so an actionless one would indent for nothing. */}
-      {(hasValue || !revealed) && (
+      {(hasValue || !shown) && (
         <InputGroupAddon align="inline-end">
           {hasValue && (
             <InputGroupButton aria-label="Copy" onClick={copy} size="icon-xs" type="button">
               <CopyIcon />
             </InputGroupButton>
           )}
-          {revealed && hasValue && (
+          {!readOnly && revealed && hasValue && (
             <InputGroupButton aria-label="Hide" onClick={onHide} size="icon-xs" type="button">
               <EyeOffIcon />
             </InputGroupButton>
           )}
-          {!revealed && (
+          {!readOnly && !revealed && (
             <InputGroupButton
               aria-label="Edit"
               onClick={() => {

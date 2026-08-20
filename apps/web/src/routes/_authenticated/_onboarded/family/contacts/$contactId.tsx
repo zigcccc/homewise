@@ -43,7 +43,7 @@ import {
   invalidateContacts,
   showsPersonalDetails,
 } from '@/modules/contacts';
-import { Actionbar, ConfirmDeleteDialog, PageLayout, RouteError, serverMessage } from '@/modules/shared';
+import { Actionbar, Can, ConfirmDeleteDialog, PageLayout, RouteError, serverMessage, useCan } from '@/modules/shared';
 
 export const Route = createFileRoute('/_authenticated/_onboarded/family/contacts/$contactId')({
   async loader({ context, params }) {
@@ -89,6 +89,7 @@ function ContactDetailRoute() {
     }
   };
 
+  const canWrite = useCan('contacts', 'write');
   const showsRelations = showsPersonalDetails(contact.type, contact.relations.length > 0);
   const hasDetails =
     Boolean(contact.description || contact.address || contact.email || contact.phone || contact.dateOfBirth) ||
@@ -124,25 +125,27 @@ function ContactDetailRoute() {
             <h1 className="font-medium text-lg">{contact.name}</h1>
             <Badge variant="outline">{contactTypeLabels[contact.type]}</Badge>
           </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setEditOpen(true)}>
-                <PencilIcon />
-                Edit contact
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setDeleteOpen(true)} variant="destructive">
-                <TrashIcon />
-                Delete contact
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <Can access="write" area="contacts">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">
+                  <span className="sr-only">Open menu</span>
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setEditOpen(true)}>
+                  <PencilIcon />
+                  Edit contact
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setDeleteOpen(true)} variant="destructive">
+                  <TrashIcon />
+                  Delete contact
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </Can>
         </div>
 
         <div className="space-y-6 lg:max-w-2/3">
@@ -172,15 +175,19 @@ function ContactDetailRoute() {
                     </EmptyMedia>
                     <EmptyTitle>Nothing recorded yet</EmptyTitle>
                     <EmptyDescription>
-                      A name is all this contact has. Add a phone number, an email, an address or a birthday.
+                      {canWrite
+                        ? 'A name is all this contact has. Add a phone number, an email, an address or a birthday.'
+                        : 'A name is all this contact has.'}
                     </EmptyDescription>
                   </EmptyHeader>
-                  <EmptyContent>
-                    <Button onClick={() => setEditOpen(true)}>
-                      <PencilIcon />
-                      Edit contact
-                    </Button>
-                  </EmptyContent>
+                  {canWrite && (
+                    <EmptyContent>
+                      <Button onClick={() => setEditOpen(true)}>
+                        <PencilIcon />
+                        Edit contact
+                      </Button>
+                    </EmptyContent>
+                  )}
                 </Empty>
               )}
             </CardContent>

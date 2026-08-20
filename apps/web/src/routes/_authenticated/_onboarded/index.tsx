@@ -1,6 +1,4 @@
-import { useSuspenseQuery } from '@tanstack/react-query';
-import { createFileRoute, Link, type LinkProps } from '@tanstack/react-router';
-import { format } from 'date-fns';
+import { createFileRoute, Link, type LinkProps, redirect } from '@tanstack/react-router';
 import { BookUserIcon, CookingPotIcon, ListTodoIcon, type LucideIcon, PlusIcon, ZapIcon } from 'lucide-react';
 import { type ComponentProps, type ReactNode, useCallback, useMemo, useState } from 'react';
 
@@ -24,7 +22,7 @@ import { useIsMobile } from '@homewise/ui/hooks';
 import { ContactDialog } from '@/modules/contacts';
 import { ExpenseFormDialog } from '@/modules/expenses';
 import { getMyHouseholdQueryOptions } from '@/modules/households';
-import { Actionbar, formatDate, PageLayout, RouteError, todayISODay } from '@/modules/shared';
+import { Actionbar, canRole, PageLayout, RouteError, todayISODay, useHouseholdRole } from '@/modules/shared';
 
 import { ActivityCard, dashboardActivityQueryOptions } from './-components/activity-card';
 import { BirthdaysCard, dashboardBirthdayContactsQueryOptions } from './-components/birthdays-card';
@@ -33,6 +31,7 @@ import {
   dashboardPetProfilesQueryOptions,
   FamilyProfilesCard,
 } from './-components/family-profiles-card';
+import { HomeGreeting } from './-components/home-greeting';
 import { dashboardLoansQueryOptions, LoansCard } from './-components/loans-card';
 import { dashboardRecentRecipesQueryOptions, RecentRecipesCard } from './-components/recent-recipes-card';
 import { dashboardShoppingListsQueryOptions, ShoppingListsCard } from './-components/shopping-lists-card';
@@ -44,6 +43,13 @@ import {
 import { WeekMealsCard, weekMealsQueryOptions } from './-components/week-meals-card';
 
 export const Route = createFileRoute('/_authenticated/_onboarded/')({
+  // An external's home is `/guest` — this dashboard is eleven queries they mostly cannot make. Here
+  // rather than in the layout above, which would have to test the pathname to find this one route.
+  beforeLoad({ context }) {
+    if (context.role === 'external') {
+      throw redirect({ to: '/guest' });
+    }
+  },
   component: HomeRoute,
   pendingComponent: DashboardPending,
   errorComponent: () => <RouteError title="Couldn't load your dashboard" />,
@@ -64,17 +70,6 @@ export const Route = createFileRoute('/_authenticated/_onboarded/')({
     ]);
   },
 });
-
-/** Off the local clock, so it agrees with the day the user is actually having. */
-function greeting() {
-  const hour = new Date().getHours();
-
-  if (hour < 12) {
-    return 'Good morning';
-  }
-
-  return hour < 18 ? 'Good afternoon' : 'Good evening';
-}
 
 /** Two shapes: some actions open a dialog, some navigate. */
 type QuickAction = { icon: LucideIcon; key: string; label: string } & (
@@ -134,17 +129,43 @@ function QuickActions() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [openDialog, setOpenDialog] = useState<'contact' | 'expense' | null>(null);
 
+  const role = useHouseholdRole();
+  // Every one of these starts a write, so a member who can't make one is offered nothing at all.
   const actions = useMemo(
     () =>
-      [
-        { icon: PlusIcon, key: 'expense', label: 'Expense', onSelect: () => setOpenDialog('expense') },
-        { icon: ListTodoIcon, key: 'shopping-list', label: 'Shopping list', to: '/food/shopping-lists' },
-        { icon: CookingPotIcon, key: 'meal-plan', label: 'Plan a meal', to: '/food/meal-plan' },
-        { icon: BookUserIcon, key: 'contact', label: 'Contact', onSelect: () => setOpenDialog('contact') },
-      ] as const,
-    []
+      (
+        [
+          {
+            area: 'expenses',
+            icon: PlusIcon,
+            key: 'expense',
+            label: 'Expense',
+            onSelect: () => setOpenDialog('expense'),
+          },
+          {
+            area: 'shoppingLists',
+            icon: ListTodoIcon,
+            key: 'shopping-list',
+            label: 'Shopping list',
+            to: '/food/shopping-lists',
+          },
+          { area: 'mealPlan', icon: CookingPotIcon, key: 'meal-plan', label: 'Plan a meal', to: '/food/meal-plan' },
+          {
+            area: 'contacts',
+            icon: BookUserIcon,
+            key: 'contact',
+            label: 'Contact',
+            onSelect: () => setOpenDialog('contact'),
+          },
+        ] as const
+      ).filter((action) => canRole(role, action.area, 'write')),
+    [role]
   );
   const closeSheet = useCallback(() => setSheetOpen(false), []);
+
+  if (actions.length === 0) {
+    return null;
+  }
 
   return (
     <>
@@ -248,21 +269,12 @@ function DashboardPending() {
 
 function HomeRoute() {
   const { user } = Route.useRouteContext();
-  const { data: household } = useSuspenseQuery(getMyHouseholdQueryOptions());
 
   return (
     <DashboardShell
       header={
         <>
-          <div>
-            <h1 className="font-medium text-lg">
-              {greeting()}, {user.name}
-            </h1>
-            {/* A testid, because the sidebar names the household too and `main` is ambiguous. */}
-            <p className="text-muted-foreground text-sm" data-testid="dashboard-greeting">
-              {format(new Date(), 'EEEE')}, {formatDate(new Date())} · {household.name}
-            </p>
-          </div>
+          <HomeGreeting testId="dashboard-greeting" userName={user.name} />
           <QuickActions />
         </>
       }

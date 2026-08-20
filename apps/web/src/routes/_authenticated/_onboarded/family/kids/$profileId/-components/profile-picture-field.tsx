@@ -47,12 +47,15 @@ export function ProfilePictureField({
   onSelectAvatar,
   onUploadFile,
   onRemove,
+  readOnly = false,
 }: {
   currentImage?: string | null;
   displayName: string;
   onSelectAvatar: (file: File, previewSrc: string) => void;
   onUploadFile: (file: File) => void;
   onRemove: () => void;
+  /** Hides the whole editor, avatar aside — a control nobody may use is chrome, not information. */
+  readOnly?: boolean;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -67,9 +70,11 @@ export function ProfilePictureField({
         <AvatarImage alt={displayName} src={currentImage || undefined} />
         <AvatarFallback className="text-2xl">{displayName.charAt(0)}</AvatarFallback>
       </Avatar>
-      <Button onClick={() => setOpen(true)} size="sm" type="button" variant="outline">
-        {currentImage ? 'Change photo' : 'Add a photo'}
-      </Button>
+      {!readOnly && (
+        <Button onClick={() => setOpen(true)} size="sm" type="button" variant="outline">
+          {currentImage ? 'Change photo' : 'Add a photo'}
+        </Button>
+      )}
 
       <Dialog onOpenChange={setOpen} open={open}>
         <DialogContent>

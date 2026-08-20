@@ -8,25 +8,7 @@ import {
   useRouteContext,
   useRouterState,
 } from '@tanstack/react-router';
-import {
-  BabyIcon,
-  BookUserIcon,
-  CarrotIcon,
-  CogIcon,
-  CookingPotIcon,
-  HistoryIcon,
-  LayoutDashboardIcon,
-  ListTodoIcon,
-  LogOutIcon,
-  type LucideIcon,
-  MapPinIcon,
-  PackageOpenIcon,
-  PawPrintIcon,
-  PiggyBankIcon,
-  ScrollTextIcon,
-  UserIcon,
-  UsersIcon,
-} from 'lucide-react';
+import { LayoutDashboardIcon, LogOutIcon, type LucideIcon, UserIcon } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 
 import {
@@ -52,6 +34,7 @@ import {
 import { authClient } from '@/auth/client';
 import { getSessionQueryOptions } from '@/auth/queries';
 import { getMyHouseholdQueryOptions } from '@/modules/households';
+import { canRole, NAV_GROUPS, useHouseholdRole } from '@/modules/shared';
 
 function SidebarAutocloseOnMobile() {
   const { setOpenMobile } = useSidebar();
@@ -106,6 +89,8 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const { data: auth } = useQuery(getSessionQueryOptions());
   const { data: household } = useQuery(getMyHouseholdQueryOptions());
+  const role = useHouseholdRole();
+  const isExternal = household?.viewer.role === 'external';
 
   const { user } = auth?.data ?? {};
 
@@ -136,47 +121,38 @@ export function AppSidebar() {
       <SidebarContent>
         <SidebarGroup>
           <SidebarMenu>
-            <NavItem fuzzy={false} icon={LayoutDashboardIcon} label="Dashboard" to="/" />
+            <NavItem fuzzy={false} icon={LayoutDashboardIcon} label="Dashboard" to={isExternal ? '/guest' : '/'} />
           </SidebarMenu>
         </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupLabel>Family &amp; friends</SidebarGroupLabel>
-          <SidebarMenu>
-            <NavItem icon={BabyIcon} label="Kids" to="/family/kids" />
-            <NavItem icon={PawPrintIcon} label="Pets" to="/family/pets" />
-            <NavItem icon={BookUserIcon} label="Contacts" to="/family/contacts" />
-          </SidebarMenu>
-        </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupLabel>Expenses</SidebarGroupLabel>
-          <SidebarMenu>
-            <NavItem icon={PiggyBankIcon} label="Monthly expenses" to="/expenses/monthly-expenses" />
-          </SidebarMenu>
-        </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupLabel>Storage</SidebarGroupLabel>
-          <SidebarMenu>
-            <NavItem icon={MapPinIcon} label="Locations" to="/storage/locations" tooltip="Storage locations" />
-            <NavItem icon={PackageOpenIcon} label="Items" to="/storage/items" />
-          </SidebarMenu>
-        </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupLabel>Food & Groceries</SidebarGroupLabel>
-          <SidebarMenu>
-            <NavItem icon={ListTodoIcon} label="Shopping lists" to="/food/shopping-lists" />
-            <NavItem icon={CookingPotIcon} label="Weekly meal plans" to="/food/meal-plan" tooltip="Meal plans" />
-            <NavItem icon={ScrollTextIcon} label="Recipes" to="/food/recipes" />
-            <NavItem icon={CarrotIcon} label="Ingredients" to="/food/ingredients" />
-          </SidebarMenu>
-        </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupLabel>{household ? `Manage "${household.name}"` : 'Manage'}</SidebarGroupLabel>
-          <SidebarMenu>
-            <NavItem icon={UsersIcon} label="Household members" to="/manage/household-members" />
-            <NavItem icon={HistoryIcon} label="Activity" to="/manage/activity" />
-            <NavItem icon={CogIcon} label="Settings" to="/manage/settings" />
-          </SidebarMenu>
-        </SidebarGroup>
+        {/* Rendered from the same map the route guard reads, so a link can never appear for a section
+            the guard would bounce, and a group with nothing left in it disappears rather than showing
+            an empty heading. */}
+        {NAV_GROUPS.map((group) => {
+          const items = group.items.filter((section) => canRole(role, section.area, section.access ?? 'read'));
+
+          if (items.length === 0) {
+            return null;
+          }
+
+          return (
+            <SidebarGroup key={group.label}>
+              <SidebarGroupLabel>
+                {group.label === 'Manage' && household ? `Manage "${household.name}"` : group.label}
+              </SidebarGroupLabel>
+              <SidebarMenu>
+                {items.map((section) => (
+                  <NavItem
+                    icon={section.icon}
+                    key={section.label}
+                    label={section.label}
+                    to={section.to}
+                    tooltip={section.tooltip}
+                  />
+                ))}
+              </SidebarMenu>
+            </SidebarGroup>
+          );
+        })}
       </SidebarContent>
       {user && (
         <SidebarFooter>
@@ -192,9 +168,11 @@ export function AppSidebar() {
                       <AvatarImage alt={user.name} src={user.image || undefined} />
                       <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                     </Avatar>
-                    <div className="flex flex-col items-start gap-0.5 leading-none">
-                      <span className="font-medium">{user.name}</span>
-                      <span className="text-muted-foreground text-xs">{user.email}</span>
+                    {/* `min-w-0` is what lets the truncation happen: a flex child's default
+                        `min-width: auto` refuses to shrink below its content. */}
+                    <div className="flex min-w-0 flex-col items-start gap-0.5 leading-none">
+                      <span className="w-full truncate font-medium">{user.name}</span>
+                      <span className="w-full truncate text-muted-foreground text-xs">{user.email}</span>
                     </div>
                   </SidebarMenuButton>
                 </DropdownMenuTrigger>

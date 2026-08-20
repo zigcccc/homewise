@@ -72,6 +72,16 @@ export class KidsPage {
     return this.maskedField(id).getByRole('button', { name: 'Edit' });
   }
 
+  /** The crossed-eye that re-masks a revealed identifier. */
+  hideIdentifierButton(id: Identifier) {
+    return this.maskedField(id).getByRole('button', { name: 'Hide' });
+  }
+
+  /** The one action a member who may read an identifier but not change it still gets. */
+  copyIdentifierButton(id: Identifier) {
+    return this.maskedField(id).getByRole('button', { name: 'Copy' });
+  }
+
   /** Reveals a masked identifier field and fills it. An empty field is already editable, so it has no pencil. */
   async setMaskedField(id: Identifier, value: string) {
     if (await this.editIdentifierButton(id).count()) {

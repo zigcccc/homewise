@@ -33,6 +33,7 @@ import {
 import { ContactDialog, contactTypeLabels, listContactsQueryOptions } from '@/modules/contacts';
 import {
   Actionbar,
+  Can,
   ListPagination,
   PageLayout,
   RouteError,
@@ -131,10 +132,12 @@ function ContactsRoute() {
               The household address book — family, friends, and everyone you'd rather not have to look up.
             </p>
           </div>
-          <Button onClick={() => setAddOpen(true)}>
-            <PlusIcon />
-            Add contact
-          </Button>
+          <Can access="write" area="contacts">
+            <Button onClick={() => setAddOpen(true)}>
+              <PlusIcon />
+              Add contact
+            </Button>
+          </Can>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -201,10 +204,12 @@ function ContactsRoute() {
               </EmptyHeader>
               {!isFiltered && (
                 <EmptyContent>
-                  <Button onClick={() => setAddOpen(true)}>
-                    <PlusIcon />
-                    Add contact
-                  </Button>
+                  <Can access="write" area="contacts">
+                    <Button onClick={() => setAddOpen(true)}>
+                      <PlusIcon />
+                      Add contact
+                    </Button>
+                  </Can>
                 </EmptyContent>
               )}
             </Empty>

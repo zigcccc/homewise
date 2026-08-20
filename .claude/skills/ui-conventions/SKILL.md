@@ -8,6 +8,47 @@ description: Homewise UI patterns and the shared ShadCN kit in packages/ui — r
 Read `CLAUDE.md` first — it wins on any conflict. For routes, loaders and queries see
 `web-conventions`; this skill is everything that renders.
 
+## Read-only forms
+
+A form a member may not submit gets `<FormFieldset disabled={!canWrite}>` around its body rather than
+a `disabled` on every control. One attribute disables every descendant, Radix triggers included, and
+it never touches React props — so `FormControl`'s id/aria wiring is untouched and the `FormControl`
+trap below does not apply. The submit disappears on its own: it renders on `formState.isDirty`, and a
+disabled fieldset can never become dirty.
+
+- **Use the kit's `FormFieldset`, never a bare `<fieldset>`.** It carries `contents`, which is
+  load-bearing: a plain `<fieldset>` is a block box with `min-inline-size: min-content`, which breaks
+  `space-y-*` rhythm and any grid or flex shrinking inside.
+- **The spacing moves onto the fieldset.** `display: contents` leaves the `<form>` with exactly one
+  element child, so a `space-y-*` on the form has nothing to space and every field collapses together.
+  Put the class on the `FormFieldset` — `space-y-*` still selects its element children, and their
+  margins apply in the form's flow. This shipped as "the fields look squashed" once already.
+- **A `disabled` fieldset has no escape hatch.** `disabled` propagates through the DOM to every
+  descendant form control; nesting an undisabled `<fieldset>` does not undo it. So a control a
+  read-only viewer legitimately still needs has to live **outside** the fieldset, with the field
+  itself made harmless some other way. `MaskedInput`'s `readOnly` is the worked example: the ID
+  fields on the kid profile sit outside the fieldset, `readOnly` opens the value and drops the
+  pencil and the crossed-eye, and Copy survives because nothing disabled it.
+- **Whole controls hide rather than disable** (`<Can>`): a row of greyed-out menu items is noise to
+  someone who can never use them, and a disabled `DropdownMenuItem` inside a `TooltipTrigger asChild`
+  swallows its own click.
+
+## What a read-only member must not be shown
+
+Hiding the create button is the start of the job, not the end. Every one of these shipped visible to
+a child before someone clicked it:
+
+- **Empty-state CTAs.** `EmptyContent` is a create button; gate it, and give the `EmptyDescription`
+  a read-only wording, because "Add one to get started" is nonsense to someone who can't.
+- **The heading over a gated list.** Filter the *data* on the capability, not each rendered button —
+  `<Can>` inside a `.map` leaves the `<h2>Suggestions</h2>` standing over nothing (and puts `key` on
+  the wrong element). Derive the empty list once: `const suggestions = canWrite ? … : []`.
+- **Row-menu items**, including the ones whose own condition is about the *row* (`isManaged`,
+  `role !== 'pet'`) rather than the viewer — `&&` the capability in too.
+- **Affordances with no button of their own**: a drag handle, a click-to-edit note, a checkbox. Render
+  the resting state as a `<p>` rather than a `<button>` that would only toast a refusal.
+
+
 ## Read the kit before writing markup
 
 `packages/ui` is ShadCN components built on Radix UI primitives + TailwindCSS v4. Add new components

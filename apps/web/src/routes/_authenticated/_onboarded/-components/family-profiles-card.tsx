@@ -28,8 +28,14 @@ const CARD = {
   title: 'Family profiles',
 } satisfies DashboardCardFrame;
 
-/** One per row: the card shares its row with the activity feed, and a tile needs the width to read. */
+/** One tile per row by default: sharing a row with another card leaves no width to pair them up. */
 const TILE_GRID = 'grid gap-2';
+
+/** `wide` is for the guest home, where the card has the row to itself and the tiles can pair up. */
+const WIDE_CARD = 'md:col-span-2';
+const WIDE_TILE_GRID = 'md:grid-cols-2';
+
+type FamilyProfilesCardProps = { wide?: boolean };
 
 type Profile = {
   dateOfBirth: string | null;
@@ -81,10 +87,10 @@ export const dashboardPetProfilesQueryOptions = () => listPetProfilesQueryOption
 /** Uneven, so the placeholder reads as a list of names. Also the tile keys. */
 const TILE_WIDTHS = ['w-24', 'w-16', 'w-20'];
 
-function FamilyProfilesCardSkeleton() {
+function FamilyProfilesCardSkeleton({ wide = false }: FamilyProfilesCardProps) {
   return (
-    <DashboardCard {...CARD}>
-      <div className={TILE_GRID}>
+    <DashboardCard {...CARD} className={wide ? WIDE_CARD : undefined}>
+      <div className={cn(TILE_GRID, wide && WIDE_TILE_GRID)}>
         {TILE_WIDTHS.map((width) => (
           <div className="flex items-center gap-3 rounded-lg border p-3" key={width}>
             <Skeleton className="size-8 shrink-0 rounded-full" />
@@ -99,7 +105,7 @@ function FamilyProfilesCardSkeleton() {
   );
 }
 
-export function FamilyProfilesCard() {
+export function FamilyProfilesCard({ wide = false }: FamilyProfilesCardProps) {
   const { data: children } = useSuspenseQuery(dashboardChildProfilesQueryOptions());
   const { data: pets } = useSuspenseQuery(dashboardPetProfilesQueryOptions());
 
@@ -125,11 +131,11 @@ export function FamilyProfilesCard() {
   ];
 
   return (
-    <DashboardCard {...CARD}>
+    <DashboardCard {...CARD} className={wide ? WIDE_CARD : undefined}>
       {profiles.length === 0 ? (
         <DashboardCardEmpty>No kid or pet profiles yet.</DashboardCardEmpty>
       ) : (
-        <div className={TILE_GRID}>
+        <div className={cn(TILE_GRID, wide && WIDE_TILE_GRID)}>
           {profiles.map((profile) => (
             <ProfileTile key={`${profile.kind}-${profile.id}`} {...profile} />
           ))}

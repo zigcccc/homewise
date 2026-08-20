@@ -31,7 +31,7 @@ import {
 import { client, parseResponse } from '@/api/client';
 import { dictionaryLabel, listChildProfilesQueryOptions } from '@/modules/child-profiles';
 import { getMyHouseholdQueryOptions } from '@/modules/households';
-import { Actionbar, ageLabel, PageLayout } from '@/modules/shared';
+import { Actionbar, ageLabel, PageLayout, useCan } from '@/modules/shared';
 
 export const Route = createFileRoute('/_authenticated/_onboarded/family/kids/')({
   async loader({ context }) {
@@ -54,10 +54,15 @@ function KidsRoute() {
     mutationFn: async (memberId: number) => parseResponse(client['child-profiles'].$post({ json: { memberId } })),
   });
 
-  // Children are eligible for a profile until they have one.
-  const childrenWithoutProfile = household.members.filter(
-    (member) => member.role === 'child' && !profiles.some((profile) => profile.memberId === member.id)
-  );
+  const canWrite = useCan('childProfiles', 'write');
+
+  // Children are eligible for a profile until they have one — and only to someone who could create
+  // it. A member who can't is shown an empty roster rather than a heading over nothing.
+  const childrenWithoutProfile = canWrite
+    ? household.members.filter(
+        (member) => member.role === 'child' && !profiles.some((profile) => profile.memberId === member.id)
+      )
+    : [];
 
   const handleCreate = async (memberId: number, displayName: string) => {
     try {
@@ -109,17 +114,21 @@ function KidsRoute() {
               </EmptyMedia>
               <EmptyTitle>No children in this household yet</EmptyTitle>
               <EmptyDescription>
-                Profiles are created for household members with the "child" role. Add one to get started.
+                {canWrite
+                  ? 'Profiles are created for household members with the "child" role. Add one to get started.'
+                  : 'Nobody has a kid profile yet.'}
               </EmptyDescription>
             </EmptyHeader>
-            <EmptyContent>
-              <Button asChild>
-                <Link to="/manage/household-members">
-                  <UsersIcon />
-                  Add a child
-                </Link>
-              </Button>
-            </EmptyContent>
+            {canWrite && (
+              <EmptyContent>
+                <Button asChild>
+                  <Link to="/manage/household-members">
+                    <UsersIcon />
+                    Add a child
+                  </Link>
+                </Button>
+              </EmptyContent>
+            )}
           </Empty>
         ) : (
           <>

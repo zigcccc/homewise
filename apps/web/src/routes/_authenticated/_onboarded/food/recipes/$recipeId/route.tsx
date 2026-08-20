@@ -21,7 +21,7 @@ import {
 
 import { client, parseResponse } from '@/api/client';
 import { getRecipeQueryOptions, invalidateRecipe, invalidateRecipes } from '@/modules/recipes';
-import { Actionbar, ConfirmDeleteDialog, PageLayout } from '@/modules/shared';
+import { Actionbar, Can, ConfirmDeleteDialog, PageLayout } from '@/modules/shared';
 
 const $patchRecipe = client.recipes[':id'].$patch;
 const $deleteRecipe = client.recipes[':id'].$delete;
@@ -144,35 +144,39 @@ function RecipeLayout() {
           </div>
           <div className="flex shrink-0 items-center gap-2">
             {!isEditing && (
-              <Button asChild variant="outline">
-                <Link params={{ recipeId }} to="/food/recipes/$recipeId/edit">
-                  <PencilIcon />
-                  Edit
-                </Link>
-              </Button>
-            )}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button className="h-9 w-9 p-0" variant="outline">
-                  <span className="sr-only">Recipe actions</span>
-                  <MoreHorizontal className="h-4 w-4" />
+              <Can access="write" area="recipes">
+                <Button asChild variant="outline">
+                  <Link params={{ recipeId }} to="/food/recipes/$recipeId/edit">
+                    <PencilIcon />
+                    Edit
+                  </Link>
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => void handleToggleFavorite()}>
-                  <StarIcon />
-                  {recipe.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => void handleToggleArchived()}>
-                  {recipe.archived ? <ArchiveRestoreIcon /> : <ArchiveIcon />}
-                  {recipe.archived ? 'Restore recipe' : 'Archive recipe'}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setDeleteOpen(true)} variant="destructive">
-                  <TrashIcon />
-                  Delete recipe
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              </Can>
+            )}
+            <Can access="write" area="recipes">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button className="h-9 w-9 p-0" variant="outline">
+                    <span className="sr-only">Recipe actions</span>
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => void handleToggleFavorite()}>
+                    <StarIcon />
+                    {recipe.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => void handleToggleArchived()}>
+                    {recipe.archived ? <ArchiveRestoreIcon /> : <ArchiveIcon />}
+                    {recipe.archived ? 'Restore recipe' : 'Archive recipe'}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setDeleteOpen(true)} variant="destructive">
+                    <TrashIcon />
+                    Delete recipe
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </Can>
           </div>
         </div>
 

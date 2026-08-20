@@ -48,7 +48,7 @@ import {
 
 import { client, parseResponse } from '@/api/client';
 import { HouseholdMemberRoleSelectItems } from '@/modules/households/components';
-import { ConfirmDeleteDialog, formatDateTime, serverMessage } from '@/modules/shared';
+import { ConfirmDeleteDialog, formatDateTime, serverMessage, useCan } from '@/modules/shared';
 
 type HouseholdMember = NonNullable<Awaited<InferResponseType<typeof client.households.my.$get>>>['members'][number];
 
@@ -89,6 +89,7 @@ export const membersTableColumns = membersTableBuilder.columns([
     header: 'Role',
     cell: function MembersTableRoleCell(info) {
       const { queryClient, user } = useRouteContext({ from: '/_authenticated/_onboarded/manage/household-members' });
+      const canWriteRoles = useCan('householdMembers', 'write');
       const { mutateAsync: updateMemberRoleAsync, isPending: isUpdating } = useMutation({
         mutationFn: async (role: HouseholdMemberRole) =>
           parseResponse(
@@ -111,7 +112,7 @@ export const membersTableColumns = membersTableBuilder.columns([
 
       return (
         <Select
-          disabled={isUpdating || info.row.original.householdOwnerId !== user.id}
+          disabled={isUpdating || !canWriteRoles || info.row.original.householdOwnerId !== user.id}
           onValueChange={(newRole) => handleUpdateMemberRole(newRole)}
           value={info.getValue()!}
         >
@@ -179,8 +180,9 @@ export const membersTableColumns = membersTableBuilder.columns([
         }
       };
 
+      const canWriteMembers = useCan('householdMembers', 'write');
       const isCurrentUserOwner = member.householdOwnerId === user.id;
-      const canManage = isCurrentUserOwner || member.userId === user.id;
+      const canManage = canWriteMembers && (isCurrentUserOwner || member.userId === user.id);
 
       return (
         <>
@@ -211,7 +213,7 @@ export const membersTableColumns = membersTableBuilder.columns([
                   )}
                 </Tooltip>
                 {/* A pet never holds an account, so there is nothing to invite it to. */}
-                {member.isManaged && member.role !== 'pet' && (
+                {canWriteMembers && member.isManaged && member.role !== 'pet' && (
                   <DropdownMenuItem onClick={() => setInviteOpen(true)}>
                     <UserPlusIcon />
                     Invite to create account
@@ -469,6 +471,7 @@ export const invitesTableColumns = invitesTableBuilder.columns([
     id: 'actions',
     cell: function InvitesTableActions(props) {
       const { queryClient } = useRouteContext({ from: '/_authenticated/_onboarded/manage/household-members' });
+      const canWriteInvites = useCan('householdMembers', 'write');
       const { mutateAsync: revokeInviteAsync } = useMutation({
         mutationFn: async (inviteId: number) =>
           parseResponse(client.households.my.invites[':id'].$delete({ param: { id: inviteId.toString() } })),
@@ -486,6 +489,10 @@ export const invitesTableColumns = invitesTableBuilder.columns([
           throw error;
         }
       };
+
+      if (!canWriteInvites) {
+        return null;
+      }
 
       return (
         <>

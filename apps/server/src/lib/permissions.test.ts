@@ -93,6 +93,7 @@ describe('can', () => {
             "childDictionaries",
             "petProfiles",
             "recipes",
+            "realtime",
           ],
           "write": [],
         },
@@ -121,6 +122,7 @@ describe('can', () => {
   it('should give an external the handoff areas and nothing else', () => {
     // `medicalInfo` is deliberately absent: it has no GET routes at all, and the doctor an external
     // came for arrives embedded in the child profile response — so reading it needs no grant.
+    // `realtime` is present, and is what puts her on the `guest` channel rather than no channel.
     // GIVEN: a grandparent, who needs a recipe and a kid's doctor and no more than that
     expect(PERMISSION_AREAS.filter((area) => can('external', area, 'read'))).toEqual([
       'household',
@@ -128,6 +130,7 @@ describe('can', () => {
       'childDictionaries',
       'petProfiles',
       'recipes',
+      'realtime',
     ]);
     expect(PERMISSION_AREAS.filter((area) => can('external', area, 'write'))).toEqual([]);
   });

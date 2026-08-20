@@ -42,7 +42,26 @@ export const SEED_ONBOARDING_USER = {
 } as const;
 
 /**
- * The three accounts for one seeded household, addressed by slot.
+ * A real account seeded as a `child` member — reads the whole household, writes none of it.
+ */
+export const SEED_CHILD_USER = {
+  email: 'preview.child@home-wise.app',
+  name: 'Kid User',
+  password: 'PreviewPassword123!',
+} as const;
+
+/**
+ * A real account seeded as an `external` member — the grandparent case. Sees recipes and the kid and
+ * pet profiles, and nothing else in the household.
+ */
+export const SEED_EXTERNAL_USER = {
+  email: 'preview.external@home-wise.app',
+  name: 'External User',
+  password: 'PreviewPassword123!',
+} as const;
+
+/**
+ * The accounts for one seeded household, addressed by slot.
  *
  * The e2e suite seeds one household per Playwright worker so parallel specs stop mutating each
  * other's rows, and a slot is one of those. Only the **emails** vary — every name stays identical
@@ -57,6 +76,8 @@ export function seedAccounts(slot: number) {
     user: { ...SEED_USER, email: at(SEED_USER.email) },
     secondUser: { ...SEED_SECOND_USER, email: at(SEED_SECOND_USER.email) },
     onboardingUser: { ...SEED_ONBOARDING_USER, email: at(SEED_ONBOARDING_USER.email) },
+    childUser: { ...SEED_CHILD_USER, email: at(SEED_CHILD_USER.email) },
+    externalUser: { ...SEED_EXTERNAL_USER, email: at(SEED_EXTERNAL_USER.email) },
   };
 }
 
@@ -64,6 +85,31 @@ export function seedAccounts(slot: number) {
 export const SEED_CHILD_MEMBER = {
   name: 'Robin',
   nickname: 'Robbie',
+} as const;
+
+/**
+ * The seeded child's own profile, and the doctor attached to it.
+ *
+ * Seeded rather than built by a spec because it is the whole point of the `external` role: a
+ * grandparent opening the child's profile for the doctor's number. An external cannot create one, so
+ * without this there is nothing for that spec to open.
+ */
+export const SEED_CHILD_PROFILE = {
+  dateOfBirth: '2018-04-12',
+  sex: 'female',
+  nationalId: '1204018500006',
+} as const;
+
+export const SEED_CHILD_DOCTOR = {
+  name: 'Dr. Maja Kovač',
+  type: 'medical',
+  phone: '+386 1 522 3000',
+  description: 'Paediatrician',
+} as const;
+
+/** A managed pet member. Never an account holder — it exists so specs can prove that. */
+export const SEED_PET_MEMBER = {
+  name: 'Bella',
 } as const;
 
 /**

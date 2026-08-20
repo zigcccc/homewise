@@ -19,6 +19,7 @@ export function useInlineItemPatch(itemId: number) {
   const queryClient = useQueryClient();
 
   return useInlinePatch(
+    'storageItems',
     useMutation({
       mutationFn: async (form: PatchStorageItemPayload) =>
         parseResponse($patchStorageItem({ param: { id: itemId.toString() }, form })),

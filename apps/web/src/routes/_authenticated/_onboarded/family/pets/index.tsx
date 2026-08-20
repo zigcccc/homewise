@@ -31,7 +31,7 @@ import {
 import { client, parseResponse } from '@/api/client';
 import { getMyHouseholdQueryOptions } from '@/modules/households';
 import { invalidatePetProfilesList, listPetProfilesQueryOptions, typeAndBreed } from '@/modules/pet-profiles';
-import { Actionbar, ageLabel, PageLayout } from '@/modules/shared';
+import { Actionbar, ageLabel, PageLayout, useCan } from '@/modules/shared';
 
 export const Route = createFileRoute('/_authenticated/_onboarded/family/pets/')({
   async loader({ context }) {
@@ -54,10 +54,15 @@ function PetsRoute() {
     mutationFn: async (memberId: number) => parseResponse(client['pet-profiles'].$post({ json: { memberId } })),
   });
 
-  // Pets are eligible for a profile until they have one.
-  const petsWithoutProfile = household.members.filter(
-    (member) => member.role === 'pet' && !profiles.some((profile) => profile.memberId === member.id)
-  );
+  const canWrite = useCan('petProfiles', 'write');
+
+  // Pets are eligible for a profile until they have one — and only to someone who could create it.
+  // A member who can't is shown an empty roster rather than a heading over nothing.
+  const petsWithoutProfile = canWrite
+    ? household.members.filter(
+        (member) => member.role === 'pet' && !profiles.some((profile) => profile.memberId === member.id)
+      )
+    : [];
 
   const handleCreate = async (memberId: number, displayName: string) => {
     try {
@@ -107,17 +112,21 @@ function PetsRoute() {
               </EmptyMedia>
               <EmptyTitle>No pets in this household yet</EmptyTitle>
               <EmptyDescription>
-                Profiles are created for household members with the "pet" role. Add one to get started.
+                {canWrite
+                  ? 'Profiles are created for household members with the "pet" role. Add one to get started.'
+                  : 'Nobody has a pet profile yet.'}
               </EmptyDescription>
             </EmptyHeader>
-            <EmptyContent>
-              <Button asChild>
-                <Link to="/manage/household-members">
-                  <UsersIcon />
-                  Add a pet
-                </Link>
-              </Button>
-            </EmptyContent>
+            {canWrite && (
+              <EmptyContent>
+                <Button asChild>
+                  <Link to="/manage/household-members">
+                    <UsersIcon />
+                    Add a pet
+                  </Link>
+                </Button>
+              </EmptyContent>
+            )}
           </Empty>
         ) : (
           <>

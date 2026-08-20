@@ -12,7 +12,7 @@ import {
   ComboboxSeparator,
 } from '@homewise/ui/core';
 
-import { AsyncComboboxContent, shouldOfferCreate, useAsyncOptions } from '@/modules/shared';
+import { AsyncComboboxContent, shouldOfferCreate, useAsyncOptions, useCan } from '@/modules/shared';
 
 import { listExpenseCategoryOptionsInfiniteQueryOptions } from '../expense-categories.queries';
 
@@ -61,7 +61,8 @@ export function ExpenseCategoryCombobox({
   const [open, setOpen] = useState(false);
   const options = useAsyncOptions({ enabled: open, queryOptions: listExpenseCategoryOptionsInfiniteQueryOptions });
 
-  const offerCreate = shouldOfferCreate(options);
+  const canCreate = useCan('expenseCategories', 'write');
+  const offerCreate = canCreate && shouldOfferCreate(options);
 
   const close = () => {
     setOpen(false);

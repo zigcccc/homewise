@@ -46,6 +46,12 @@ vars there, and read them through `env`, never off `process.env`.
   `sortDirection`. Only the sort *key* is per-entity. It is exported to the web as
   `@homewise/server/models`, so a route's `validateSearch` uses the same `searchQueryParam` the
   endpoint validates against rather than a copy that agrees today.
+- **`permissions.ts`** is the role/area vocabulary, exported to the web as
+  `@homewise/server/permissions` so the middleware and the UI gate on one definition. It imports
+  `HouseholdMemberRole` from the households model, which stretches "domain-free" — the justification is
+  that it is vocabulary *every* module speaks, it touches neither the DB nor Hono, and putting it in a
+  feature module would have every other module import that module. Roles come from the pg enum via
+  drizzle-zod, so adding one is a compile error at `ROLE_POLICIES` and nowhere else.
 - **`dates.ts`** is `YYYY-MM-DD` calendar arithmetic in UTC, over **date-fns anchored to
   `@date-fns/utc`'s `UTCDate`**. That anchor is the whole point: date-fns reads calendar fields off
   whatever date it's handed, so a plain `Date` would do the maths in the process's timezone. Never
@@ -55,10 +61,26 @@ vars there, and read them through `env`, never off `process.env`.
 
 ## Household scoping
 
-Household-scoped routes mount `withHousehold` (`src/middleware/household.middleware.ts`), which
-resolves the caller's household once and exposes it as a non-nullable `c.var.household`. Compose
-`withHouseholdOwner` on top for owner-only actions (403 when not the owner).
+Household-scoped routes mount `withHousehold('<area>')` (`src/middleware/household.middleware.ts`),
+which resolves the caller's household **and their role** once, and exposes them as a non-nullable
+`c.var.household` and `c.var.viewer`. Compose `withHouseholdOwner` on top for owner-only actions
+(403 when not the owner).
 
+**The area argument is the permission system.** It is required because this is the middleware every
+household-scoped app already mounts, so there is no "forgot to add the guard" state to be in — and
+read-vs-write is derived from the HTTP method (`GET`/`HEAD` read, everything else write), so one
+mount covers a whole sub-app and **no route carries a permission decoration of its own**.
+
+- **A new module adds one entry to `PERMISSION_AREAS`** (`src/lib/permissions.ts`) and passes it here.
+  Nothing else. `app.route-coverage.test.ts` fails by name if a mounted app skips it.
+- **There is no per-route override list, on purpose.** Where the method heuristic misfits, reshape the
+  route instead: `/realtime/auth` is a `GET` because minting a subscribe token is a read, and
+  `/households/my` splits into record / members / invites sub-apps because its `GET`s need different
+  areas. Both are cheaper than an override mechanism nobody can grep for.
+- **`.route()` flattens a sub-app's middleware into its parent**, so two sub-apps mounted at the same
+  prefix would each run on every request under it — resolving the household twice and flushing an
+  empty event buffer. Where a sub-app must own an exact path, mount its middleware as `.use('/', mw)`;
+  Hono appends no wildcard, so it matches that path only.
 - Mount it **per sub-app, never globally** — routes that must work without a household (creating one,
   reading/accepting an invite, `/users`) stay outside it. See how `households.app.ts` splits `/my/*`
   into its own sub-app.

@@ -56,6 +56,7 @@ export function InlineCell({
   fill = false,
   maxWidthClassName,
   onSave,
+  readOnly = false,
   schema,
   value,
 }: {
@@ -71,10 +72,28 @@ export function InlineCell({
    */
   maxWidthClassName?: string;
   onSave: (next: string) => Promise<unknown>;
+  /** Renders the value as plain text — no button, no editor — for a member who may not change it. */
+  readOnly?: boolean;
   schema: Parameters<typeof InlineTextField>[0]['schema'];
   value: string;
 }) {
   const [editing, setEditing] = useState(false);
+
+  // No control to size against, and the sizer would leave a second copy of the value in the DOM.
+  if (readOnly) {
+    return (
+      <span
+        className={cn(
+          boxClassName,
+          'flex min-w-0 flex-1 items-center border-transparent',
+          !fill && maxWidthClassName,
+          displayClassName
+        )}
+      >
+        {display}
+      </span>
+    );
+  }
 
   return (
     // `min-w-0 flex-1` for the cells that sit in a flex row beside something else (the expense title

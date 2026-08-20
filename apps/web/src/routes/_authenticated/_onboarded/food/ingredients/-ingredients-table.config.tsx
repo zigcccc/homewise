@@ -33,7 +33,14 @@ import {
   measurementUnitLabels,
   useInlineIngredientPatch,
 } from '@/modules/ingredients';
-import { ConfirmDeleteDialog, InlineCell, inlineTriggerClassName, SELECT_NONE, serverMessage } from '@/modules/shared';
+import {
+  Can,
+  ConfirmDeleteDialog,
+  InlineCell,
+  inlineTriggerClassName,
+  SELECT_NONE,
+  serverMessage,
+} from '@/modules/shared';
 import { StoreCombobox } from '@/modules/stores';
 
 const $deleteIngredient = client.ingredients[':id'].$delete;
@@ -77,11 +84,11 @@ export const ingredientsTableColumns = columnHelper.columns([
 ]);
 
 function IngredientCategoryCell({ category, id }: { category: IngredientCategory; id: number }) {
-  const { isPending, saveOrToast } = useInlineIngredientPatch(id);
+  const { isPending, saveOrToast, readOnly } = useInlineIngredientPatch(id);
 
   return (
     <Select
-      disabled={isPending}
+      disabled={isPending || readOnly}
       onValueChange={(value) => saveOrToast({ category: ingredientCategory.parse(value) })}
       value={category}
     >
@@ -104,12 +111,12 @@ function IngredientCategoryCell({ category, id }: { category: IngredientCategory
  * finds-or-creates it as part of the same write — the dialog's field does exactly the same thing.
  */
 function IngredientStoreCell({ id, store }: { id: number; store: Ingredient['store'] }) {
-  const { isPending, saveOrToast } = useInlineIngredientPatch(id);
+  const { isPending, saveOrToast, readOnly } = useInlineIngredientPatch(id);
 
   return (
     <StoreCombobox
       className={inlineTriggerClassName}
-      disabled={isPending}
+      disabled={isPending || readOnly}
       noneLabel="—"
       onChange={(choice) =>
         saveOrToast(
@@ -124,11 +131,11 @@ function IngredientStoreCell({ id, store }: { id: number; store: Ingredient['sto
 }
 
 function IngredientDefaultUnitCell({ defaultUnit, id }: { defaultUnit: MeasurementUnit | null; id: number }) {
-  const { isPending, saveOrToast } = useInlineIngredientPatch(id);
+  const { isPending, saveOrToast, readOnly } = useInlineIngredientPatch(id);
 
   return (
     <Select
-      disabled={isPending}
+      disabled={isPending || readOnly}
       onValueChange={(value) =>
         saveOrToast({ defaultUnit: value === SELECT_NONE ? null : measurementUnit.parse(value) })
       }
@@ -148,7 +155,7 @@ function IngredientDefaultUnitCell({ defaultUnit, id }: { defaultUnit: Measureme
 
 /** Click to rename in place. The dialog stays the way to reach the fields the table doesn't show. */
 function IngredientNameCell({ id, name }: { id: number; name: string }) {
-  const { save } = useInlineIngredientPatch(id);
+  const { save, readOnly } = useInlineIngredientPatch(id);
 
   return (
     <InlineCell
@@ -156,6 +163,7 @@ function IngredientNameCell({ id, name }: { id: number; name: string }) {
       display={name}
       fill
       onSave={async (value) => save({ name: value })}
+      readOnly={readOnly}
       schema={createIngredientModel.shape.name}
       value={name}
     />
@@ -186,24 +194,26 @@ function IngredientRowActions({ ingredient }: { ingredient: Ingredient }) {
 
   return (
     <div className="flex justify-end">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button className="h-8 w-8 p-0" variant="ghost">
-            <span className="sr-only">Open menu</span>
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => setEditOpen(true)}>
-            <PencilIcon />
-            Edit ingredient
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setDeleteOpen(true)} variant="destructive">
-            <TrashIcon />
-            Delete ingredient
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <Can access="write" area="ingredients">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button className="h-8 w-8 p-0" variant="ghost">
+              <span className="sr-only">Open menu</span>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setEditOpen(true)}>
+              <PencilIcon />
+              Edit ingredient
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setDeleteOpen(true)} variant="destructive">
+              <TrashIcon />
+              Delete ingredient
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </Can>
 
       <IngredientFormDialog ingredient={ingredient} onOpenChange={setEditOpen} open={editOpen} />
 

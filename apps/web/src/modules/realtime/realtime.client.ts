@@ -14,7 +14,7 @@ const $createRealtimeToken = client.realtime.auth.$get;
  * `autoCodeSplitting` therefore lands it in that route's component chunk, which never loads for a
  * signed-out visitor. Re-exporting it from the barrel would pull it into the main bundle — the
  * route's `beforeLoad` imports the barrel for the channel query — and `/login` would start dialling
- * out. `no-realtime-client-before-onboarding.spec.ts` guards exactly that.
+ * out. `realtime-bundling.spec.ts` guards exactly that.
  */
 export const realtimeClient = new Ably.Realtime({
   // Not `authUrl`: Ably's own fetch doesn't send credentials, and our session is a cross-origin

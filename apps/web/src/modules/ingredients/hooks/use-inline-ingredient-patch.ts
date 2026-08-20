@@ -22,6 +22,7 @@ export function useInlineIngredientPatch(ingredientId: number) {
   const queryClient = useQueryClient();
 
   return useInlinePatch(
+    'ingredients',
     useMutation({
       mutationFn: async (json: PatchIngredientPayload) =>
         parseResponse($patchIngredient({ param: { id: ingredientId.toString() }, json })),

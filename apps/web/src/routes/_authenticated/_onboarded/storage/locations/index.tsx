@@ -36,6 +36,7 @@ import {
 
 import {
   Actionbar,
+  Can,
   PageLayout,
   RouteError,
   SearchInput,
@@ -98,10 +99,12 @@ function StorageLocationsRoute() {
             <h1 className="font-medium text-lg">Storage locations</h1>
             <p className="text-muted-foreground text-sm">The places you keep things, and how much is in each.</p>
           </div>
-          <Button onClick={() => setAddOpen(true)}>
-            <PlusIcon />
-            Add location
-          </Button>
+          <Can access="write" area="storageLocations">
+            <Button onClick={() => setAddOpen(true)}>
+              <PlusIcon />
+              Add location
+            </Button>
+          </Can>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -136,10 +139,12 @@ function StorageLocationsRoute() {
             </EmptyHeader>
             {!isFiltered && (
               <EmptyContent>
-                <Button onClick={() => setAddOpen(true)}>
-                  <PlusIcon />
-                  Add location
-                </Button>
+                <Can access="write" area="storageLocations">
+                  <Button onClick={() => setAddOpen(true)}>
+                    <PlusIcon />
+                    Add location
+                  </Button>
+                </Can>
               </EmptyContent>
             )}
           </Empty>

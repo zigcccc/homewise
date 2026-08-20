@@ -26,7 +26,7 @@ import {
 import { cn } from '@homewise/ui/lib';
 
 import { parseResponse } from '@/api/client';
-import { Actionbar, serverMessage } from '@/modules/shared';
+import { Actionbar, Can, serverMessage } from '@/modules/shared';
 import {
   $createList,
   invalidateShoppingLists,
@@ -137,16 +137,20 @@ function ShoppingListsLayout() {
               />
               Show completed
             </Label>
-            <Button asChild size="sm" variant="outline">
-              <Link search={{ target: 'new' }} to="/food/shopping-lists/import">
-                <CookingPotIcon />
-                From meal plan
-              </Link>
-            </Button>
-            <Button loading={isCreating} onClick={handleCreate} size="sm">
-              <PlusIcon />
-              New list
-            </Button>
+            <Can access="write" area="shoppingLists">
+              <Button asChild size="sm" variant="outline">
+                <Link search={{ target: 'new' }} to="/food/shopping-lists/import">
+                  <CookingPotIcon />
+                  From meal plan
+                </Link>
+              </Button>
+            </Can>
+            <Can access="write" area="shoppingLists">
+              <Button loading={isCreating} onClick={handleCreate} size="sm">
+                <PlusIcon />
+                New list
+              </Button>
+            </Can>
           </div>
         </div>
 
@@ -164,10 +168,12 @@ function ShoppingListsLayout() {
               <EmptyDescription>Start one and add what you need to buy.</EmptyDescription>
             </EmptyHeader>
             <EmptyContent>
-              <Button loading={isCreating} onClick={handleCreate}>
-                <PlusIcon />
-                New list
-              </Button>
+              <Can access="write" area="shoppingLists">
+                <Button loading={isCreating} onClick={handleCreate}>
+                  <PlusIcon />
+                  New list
+                </Button>
+              </Can>
             </EmptyContent>
           </Empty>
         ) : (
