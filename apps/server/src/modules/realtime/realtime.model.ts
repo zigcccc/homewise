@@ -3,6 +3,7 @@ import z from 'zod';
 
 import * as schema from '#db/schema/core';
 import { fieldChangeModel } from '#lib/models';
+import { type PermissionArea } from '#lib/permissions';
 
 /**
  * The Ably message name every household change is published under. A single name (rather than one
@@ -73,3 +74,29 @@ export const householdEventMessageModel = z.object({
   events: z.array(householdEventModel).min(1),
 });
 export type HouseholdEventMessage = z.infer<typeof householdEventMessageModel>;
+
+/**
+ * The area each kind of change belongs to, so a subscriber who may not read that area is never sent
+ * the event. A `Record` keyed by the entity union, like the web's `invalidators`: adding an entity to
+ * the DB enum is a compile error here rather than a change quietly published to everyone.
+ */
+export const ENTITY_AREAS: Record<HouseholdEventEntity, PermissionArea> = {
+  child_dictionary_entry: 'childDictionaries',
+  child_profile: 'childProfiles',
+  contact: 'contacts',
+  expense: 'expenses',
+  expense_category: 'expenseCategories',
+  household: 'household',
+  household_invite: 'householdMembers',
+  household_member: 'householdMembers',
+  ingredient: 'ingredients',
+  meal_plan: 'mealPlan',
+  medical_info: 'medicalInfo',
+  pet_profile: 'petProfiles',
+  recipe: 'recipes',
+  recipe_tag: 'recipes',
+  shopping_list: 'shoppingLists',
+  storage_item: 'storageItems',
+  storage_location: 'storageLocations',
+  store: 'stores',
+};

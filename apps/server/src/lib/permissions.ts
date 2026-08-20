@@ -43,9 +43,15 @@ export const ROLE_POLICIES: Record<HouseholdMemberRole, RolePolicy> = {
   adult: { read: 'all', write: 'all' },
   child: { read: 'all', write: [] },
   // A grandparent, holding what you would otherwise have to tell whoever is minding your child.
-  external: { read: ['household', 'recipes', 'childProfiles', 'childDictionaries', 'petProfiles'], write: [] },
+  external: {
+    read: ['household', 'realtime', 'recipes', 'childProfiles', 'childDictionaries', 'petProfiles'],
+    write: [],
+  },
   pet: { read: [], write: [] },
 };
+
+/** Whether a role reads the whole household, which is what decides the realtime channel it gets. */
+export const readsEverything = (role: HouseholdMemberRole) => ROLE_POLICIES[role].read === 'all';
 
 export function can(role: HouseholdMemberRole, area: PermissionArea, access: PermissionAccess) {
   const grant = ROLE_POLICIES[role][access];
