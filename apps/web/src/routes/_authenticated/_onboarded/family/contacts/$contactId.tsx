@@ -43,7 +43,7 @@ import {
   invalidateContacts,
   showsPersonalDetails,
 } from '@/modules/contacts';
-import { Actionbar, Can, ConfirmDeleteDialog, PageLayout, RouteError, serverMessage } from '@/modules/shared';
+import { Actionbar, Can, ConfirmDeleteDialog, PageLayout, RouteError, serverMessage, useCan } from '@/modules/shared';
 
 export const Route = createFileRoute('/_authenticated/_onboarded/family/contacts/$contactId')({
   async loader({ context, params }) {
@@ -89,6 +89,7 @@ function ContactDetailRoute() {
     }
   };
 
+  const canWrite = useCan('contacts', 'write');
   const showsRelations = showsPersonalDetails(contact.type, contact.relations.length > 0);
   const hasDetails =
     Boolean(contact.description || contact.address || contact.email || contact.phone || contact.dateOfBirth) ||
@@ -174,15 +175,19 @@ function ContactDetailRoute() {
                     </EmptyMedia>
                     <EmptyTitle>Nothing recorded yet</EmptyTitle>
                     <EmptyDescription>
-                      A name is all this contact has. Add a phone number, an email, an address or a birthday.
+                      {canWrite
+                        ? 'A name is all this contact has. Add a phone number, an email, an address or a birthday.'
+                        : 'A name is all this contact has.'}
                     </EmptyDescription>
                   </EmptyHeader>
-                  <EmptyContent>
-                    <Button onClick={() => setEditOpen(true)}>
-                      <PencilIcon />
-                      Edit contact
-                    </Button>
-                  </EmptyContent>
+                  {canWrite && (
+                    <EmptyContent>
+                      <Button onClick={() => setEditOpen(true)}>
+                        <PencilIcon />
+                        Edit contact
+                      </Button>
+                    </EmptyContent>
+                  )}
                 </Empty>
               )}
             </CardContent>

@@ -79,11 +79,17 @@ export function InlineCell({
 }) {
   const [editing, setEditing] = useState(false);
 
-  // No control to size against, so none of the grid-over-sizer machinery applies — and rendering the
-  // sizer anyway would put a second, invisible copy of the value in the DOM for anything reading it.
+  // No control to size against, and the sizer would leave a second copy of the value in the DOM.
   if (readOnly) {
     return (
-      <span className={cn(boxClassName, 'flex min-w-0 flex-1 items-center border-transparent', displayClassName)}>
+      <span
+        className={cn(
+          boxClassName,
+          'flex min-w-0 flex-1 items-center border-transparent',
+          !fill && maxWidthClassName,
+          displayClassName
+        )}
+      >
         {display}
       </span>
     );

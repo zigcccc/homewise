@@ -80,7 +80,8 @@ function IngredientsLayout() {
               buy them at.
             </p>
           </div>
-          <Can access="write" area="ingredients">
+          {/* Two areas behind one button: the tab decides which row it creates. */}
+          <Can access="write" area={onStores ? 'stores' : 'ingredients'}>
             <Button onClick={() => setAddOpen(true)}>
               <PlusIcon />
               {onStores ? 'Add shop' : 'Add ingredient'}

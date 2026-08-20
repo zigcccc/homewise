@@ -223,7 +223,7 @@ function ShoppingListDetailRoute() {
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
-          {!list.completedAt && (
+          {canWrite && !list.completedAt && (
             <Button onClick={handleMarkDone} size="sm" variant="outline">
               <CheckIcon />
               Mark done
