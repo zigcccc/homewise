@@ -22,7 +22,8 @@ const realtimeApp = new Hono<AppContext>()
   .get('/auth', async (c) => {
     const tokenRequest = await RealtimeService.createTokenRequest(c.var.user.id, c.var.household.id);
 
-    return c.json(tokenRequest, 200);
+    // A signed credential, and now a GET — which is exactly what a browser or proxy would happily keep.
+    return c.json(tokenRequest, 200, { 'Cache-Control': 'no-store' });
   });
 
 export default realtimeApp;

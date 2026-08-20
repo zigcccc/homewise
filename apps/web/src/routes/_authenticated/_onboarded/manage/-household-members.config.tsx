@@ -48,7 +48,7 @@ import {
 
 import { client, parseResponse } from '@/api/client';
 import { HouseholdMemberRoleSelectItems } from '@/modules/households/components';
-import { formatDateTime, serverMessage } from '@/modules/shared';
+import { ConfirmDeleteDialog, formatDateTime, serverMessage } from '@/modules/shared';
 
 type HouseholdMember = NonNullable<Awaited<InferResponseType<typeof client.households.my.$get>>>['members'][number];
 
@@ -474,36 +474,52 @@ export const invitesTableColumns = invitesTableBuilder.columns([
           parseResponse(client.households.my.invites[':id'].$delete({ param: { id: inviteId.toString() } })),
       });
 
+      const [confirmingRevoke, setConfirmingRevoke] = useState(false);
+
       const handleRevokeInvite = async () => {
         try {
           await revokeInviteAsync(props.row.original.id);
           await queryClient.invalidateQueries({ queryKey: ['households'] });
           toast.success('Invite revoked!');
-        } catch {
-          toast.error('Something went wrong.');
+        } catch (error) {
+          toast.error(serverMessage(error, 'Something went wrong.'));
+          throw error;
         }
       };
 
       return (
-        <DropdownMenu>
-          <div className="flex justify-end">
-            <DropdownMenuTrigger asChild>
-              <Button className="h-8 w-8 p-0" variant="ghost">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-          </div>
-          <DropdownMenuContent align="end">
-            <DropdownMenuGroup>
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem onClick={handleRevokeInvite} variant="destructive">
-                <BanIcon />
-                Revoke invite
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <>
+          <DropdownMenu>
+            <div className="flex justify-end">
+              <DropdownMenuTrigger asChild>
+                <Button className="h-8 w-8 p-0" variant="ghost">
+                  <span className="sr-only">Open menu</span>
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+            </div>
+            <DropdownMenuContent align="end">
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => setConfirmingRevoke(true)} variant="destructive">
+                  <BanIcon />
+                  Revoke invite
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <ConfirmDeleteDialog
+            confirmLabel="Revoke invite"
+            description={
+              <>The invite sent to "{props.row.original.email}" will stop working. You can always send another.</>
+            }
+            onConfirm={handleRevokeInvite}
+            onOpenChange={setConfirmingRevoke}
+            open={confirmingRevoke}
+            title="Revoke this invite?"
+          />
+        </>
       );
     },
   }),

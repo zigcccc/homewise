@@ -74,10 +74,7 @@ const app = base
   // CORS rules
   .use('/*', corsConfig)
   // Auth handlers
-  .on(['POST', 'GET'], '/auth/*', (c) => {
-    // c.header('Access-Control-Allow-Credentials', 'true');
-    return auth.handler(c.req.raw);
-  })
+  .on(['POST', 'GET'], '/auth/*', (c) => auth.handler(c.req.raw))
   // Auth guard
   .use('*', async (c, next) => {
     const { headers, response: session } = await auth.api.getSession({
