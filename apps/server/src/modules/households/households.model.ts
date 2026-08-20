@@ -1,6 +1,7 @@
 import { createInsertSchema, createSelectSchema, createUpdateSchema } from 'drizzle-zod';
 import z from 'zod';
 
+import { isAllowedOrigin } from '#config/cors';
 import * as schema from '#db/schema/core';
 import { dbOwnedColumns } from '#lib/models';
 
@@ -93,7 +94,9 @@ export type InviteExistingMember = z.infer<typeof inviteExistingMemberModel>;
 export const inviteExistingMemberPathParamsModel = z.object({ id: z.coerce.number<number>() });
 
 export const inviteHouseholdMembersQueryParamsModel = z.object({
-  callbackUrl: z.url(),
+  // The invite email embeds this verbatim, so an unchecked value would have us mail a link to
+  // anywhere from our own domain. The web only ever sends `window.location.origin`.
+  callbackUrl: z.url().refine(isAllowedOrigin, { message: 'callbackUrl must be an allowed origin' }),
 });
 
 export const readHouseholdInvitePathParamsModel = z.object({
