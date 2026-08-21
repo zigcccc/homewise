@@ -267,6 +267,9 @@ test('lists the newest first, with completion no part of the order', async ({ pa
 
   const older = await lists.createListFromUi();
   await lists.markDone();
+  // Both, and before the next create: the column can empty while the redirect is still in flight.
+  await expect(page).toHaveURL(/\/food\/shopping-lists(\?|$)/);
+  await expect(lists.listLink(older)).toHaveCount(0);
 
   const newer = await lists.createListFromUi();
 

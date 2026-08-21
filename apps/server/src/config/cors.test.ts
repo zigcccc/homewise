@@ -3,12 +3,14 @@ import { describe, expect, it } from 'vitest';
 import { isAllowedOrigin } from '#config/cors';
 
 describe('isAllowedOrigin', () => {
-  it.each(['http://localhost:3000', 'https://home-wise.app', 'https://www.home-wise.app'])(
-    'should allow %s in every environment',
-    (origin) => {
-      expect(isAllowedOrigin(origin)).toBe(true);
-    }
-  );
+  it.each([
+    'http://localhost:3000',
+    'https://dashboard.home-wise.app',
+    'https://home-wise.app',
+    'https://www.home-wise.app',
+  ])('should allow %s in every environment', (origin) => {
+    expect(isAllowedOrigin(origin)).toBe(true);
+  });
 
   it.each([
     ['a missing origin', undefined],
@@ -28,6 +30,9 @@ describe('isAllowedOrigin', () => {
     ['a suffix attack', 'https://home-wise.app.evil.com'],
     ['a prefix attack', 'https://evil-home-wise.app'],
     ['the wrong scheme', 'http://home-wise.app'],
+    // The list holds a subdomain now, so a suffix match would start letting these through.
+    ['a deeper subdomain', 'https://evil.dashboard.home-wise.app'],
+    ['an unlisted subdomain', 'https://staging.home-wise.app'],
   ])('should refuse %s', (_what, origin) => {
     expect(isAllowedOrigin(origin)).toBe(false);
   });

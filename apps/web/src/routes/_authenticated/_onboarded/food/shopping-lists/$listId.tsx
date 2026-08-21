@@ -38,6 +38,8 @@ import {
   CompleteListDialog,
   getShoppingListQueryOptions,
   invalidateShoppingLists,
+  listQueryFor,
+  listShoppingListsQueryOptions,
   listTitle,
   removeShoppingListFromCache,
   useItemDrag,
@@ -54,6 +56,10 @@ export const Route = createFileRoute('/_authenticated/_onboarded/food/shopping-l
     // While the filter hides completed lists, a completed list simply isn't there — including one
     // reached by direct link. Anything else makes "Show completed: off" a lie.
     if (list.completedAt && !deps.includeCompleted) {
+      // A fetch, not an invalidate: index picks its redirect target from this listing and reads it with
+      // `ensureQueryData`, which without `revalidateIfStale` hands back cached data and never refetches.
+      await context.queryClient.fetchQuery(listShoppingListsQueryOptions(listQueryFor(deps)));
+
       throw redirect({ to: '/food/shopping-lists' });
     }
   },
