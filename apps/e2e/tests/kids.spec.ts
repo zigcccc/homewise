@@ -32,6 +32,10 @@ test.describe('kids', () => {
       await expect(kids.identifierInput('nationalId')).not.toBeFocused();
       await expect(kids.identifierInput('taxId')).not.toBeFocused();
 
+      // The ID row sits outside the read-only fieldset, which is `display: contents` — so the form's
+      // `gap` is the only thing spacing it off the Sex row above. `space-y` there silently drops it.
+      expect(await kids.verticalGap(kids.sexTrigger, kids.identifierLabel('nationalId'))).toBeGreaterThan(12);
+
       // Edit the general info and confirm it survives a reload.
       await kids.setDateOfBirth('15. 06. 2020');
       await kids.setSex('Female');

@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 
 /** The masked identifier fields, keyed by the payload field and named by the label the user reads. */
 const identifierLabels = { nationalId: 'National ID', taxId: 'Tax ID' } as const;
@@ -43,8 +43,13 @@ export class KidsPage {
     await input.blur();
   }
 
+  /** The Sex select's trigger — the last row inside the fieldset that gates the form on `canWrite`. */
+  get sexTrigger() {
+    return this.page.locator('form').getByLabel('Sex');
+  }
+
   async setSex(label: string) {
-    await this.page.getByLabel('Sex').click();
+    await this.sexTrigger.click();
     // exact, so "Male" doesn't also match "Female".
     await this.page.getByRole('option', { name: label, exact: true }).click();
   }
@@ -65,6 +70,26 @@ export class KidsPage {
    */
   maskedField(id: Identifier) {
     return this.identifierInput(id).locator('xpath=ancestor::*[@data-slot="input-group"]');
+  }
+
+  /** An identifier's visible label. `htmlFor` is hand-set on these fields, so the selector is exact. */
+  identifierLabel(id: Identifier) {
+    return this.page.locator(`form label[for="${id}"]`);
+  }
+
+  /**
+   * The vertical distance between two controls, top to bottom. The fieldset gating this form on
+   * `canWrite` is `display: contents`, so a margin on it is dropped and only the form's own `gap`
+   * carries the rhythm across it — this is what catches that gap collapsing again.
+   */
+  async verticalGap(above: Locator, below: Locator) {
+    const [top, bottom] = await Promise.all([above.boundingBox(), below.boundingBox()]);
+
+    if (!top || !bottom) {
+      throw new Error('Both controls have to be visible to measure the gap between them.');
+    }
+
+    return bottom.y - (top.y + top.height);
   }
 
   /** The pencil that reveals a masked identifier. Absent while the field is empty — it is already editable. */
