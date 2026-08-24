@@ -160,9 +160,9 @@ export function MedicalInfoCard({
       </CardHeader>
       <CardContent className="space-y-6">
         <Form {...form}>
-          <form className="space-y-4" onSubmit={form.handleSubmit(saveInfo)}>
-            {/* The spacing belongs on the fieldset: `display: contents` leaves the form one child. */}
-            <FormFieldset className="space-y-4" disabled={!canWrite}>
+          {/* `gap`, not `space-y`: the fieldset is `display: contents`, so a margin on it is dropped. */}
+          <form className="grid gap-4" onSubmit={form.handleSubmit(saveInfo)}>
+            <FormFieldset disabled={!canWrite}>
               <FormField
                 control={form.control}
                 name="medicalIdNumber"

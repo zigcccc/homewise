@@ -127,7 +127,16 @@ export function DateField({
       />
       <Popover onOpenChange={setOpen} open={open}>
         <PopoverTrigger asChild>
-          <Button className="absolute top-1/2 right-1 size-7 -translate-y-1/2" type="button" variant="ghost">
+          <Button
+            className={cn(
+              'absolute top-1/2 right-1 size-7 -translate-y-1/2',
+              // What `InputGroupAddon` gives every other trailing icon, which this button sits
+              // outside of. `ghost` supplies the hover. Inline keeps its own opacity fade instead.
+              !inline && 'text-muted-foreground'
+            )}
+            type="button"
+            variant="ghost"
+          >
             <CalendarIcon className="size-3.5" />
             <span className="sr-only">Pick a date</span>
           </Button>

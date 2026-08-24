@@ -133,11 +133,11 @@ function GeneralTab() {
             <CardTitle>General information</CardTitle>
           </CardHeader>
           <CardContent>
-            <form className="space-y-6" onSubmit={form.handleSubmit(onSubmit)}>
+            {/* `gap`, not `space-y`: the fieldset is `display: contents`, so a margin on it is dropped. */}
+            <form className="grid gap-6" onSubmit={form.handleSubmit(onSubmit)}>
               {/* One attribute disables every control below, Radix triggers included — and it never
-                  touches React props, so `FormControl`'s id/aria wiring is untouched. The spacing has
-                  to live here, not on the form: `display: contents` leaves the form one child. */}
-              <FormFieldset className="space-y-6" disabled={!canWrite}>
+                  touches React props, so `FormControl`'s id/aria wiring is untouched. */}
+              <FormFieldset disabled={!canWrite}>
                 <div className="flex items-start gap-6">
                   <ProfilePictureField
                     currentImage={formImage}

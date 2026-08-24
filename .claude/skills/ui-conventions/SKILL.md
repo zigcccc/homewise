@@ -19,10 +19,13 @@ disabled fieldset can never become dirty.
 - **Use the kit's `FormFieldset`, never a bare `<fieldset>`.** It carries `contents`, which is
   load-bearing: a plain `<fieldset>` is a block box with `min-inline-size: min-content`, which breaks
   `space-y-*` rhythm and any grid or flex shrinking inside.
-- **The spacing moves onto the fieldset.** `display: contents` leaves the `<form>` with exactly one
-  element child, so a `space-y-*` on the form has nothing to space and every field collapses together.
-  Put the class on the `FormFieldset` — `space-y-*` still selects its element children, and their
-  margins apply in the form's flow. This shipped as "the fields look squashed" once already.
+- **The parent spaces with `gap`, never `space-y-*`.** `gap` falls between the layout items, and
+  `display: contents` makes the fieldset's children the parent's items — so a `grid gap-6` form
+  spaces uniformly straight through the fieldset. `space-y-*` puts a margin on the fieldset
+  *element*, which generates no box and drops it. So does any padding or border you hand it. Putting
+  the `space-y-*` on the fieldset instead looks right up until the fieldset gets a sibling, and then
+  exactly one gap vanishes: that is how "the fields look squashed" shipped twice, most recently on
+  the kid profile between the Sex row and the ID row.
 - **A `disabled` fieldset has no escape hatch.** `disabled` propagates through the DOM to every
   descendant form control; nesting an undisabled `<fieldset>` does not undo it. So a control a
   read-only viewer legitimately still needs has to live **outside** the fieldset, with the field

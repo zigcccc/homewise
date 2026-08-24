@@ -124,10 +124,10 @@ function GeneralTab() {
             <CardTitle>General information</CardTitle>
           </CardHeader>
           <CardContent>
-            <form className="space-y-6" onSubmit={form.handleSubmit(onSubmit)}>
-              {/* See the kid profile's twin: one attribute disables every control, and the spacing has
-                  to live here rather than on the form, which `display: contents` leaves one child. */}
-              <FormFieldset className="space-y-6" disabled={!canWrite}>
+            {/* `gap`, not `space-y`: the fieldset is `display: contents`, so a margin on it is dropped. */}
+            <form className="grid gap-6" onSubmit={form.handleSubmit(onSubmit)}>
+              {/* See the kid profile's twin: one attribute disables every control below. */}
+              <FormFieldset disabled={!canWrite}>
                 <div className="flex items-start gap-6">
                   <ProfilePictureField
                     currentImage={formImage}
