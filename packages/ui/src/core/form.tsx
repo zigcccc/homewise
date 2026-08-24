@@ -140,6 +140,11 @@ function FormMessage({ className, ...props }: ComponentProps<'p'>) {
  * bare one breaks the surrounding spacing and stops grid children shrinking. Disabling propagates
  * through the DOM rather than through props, so `FormControl`'s `Slot` is untouched and Tailwind's
  * `disabled:` variant still matches.
+ *
+ * The parent must space its rows with `gap`, never `space-y-*`: `gap` falls between the layout
+ * items, which — thanks to `contents` — are this fieldset's children, while `space-y-*` puts a
+ * margin on the fieldset element itself and a box-less element drops it. Every margin, padding and
+ * border handed to this component is inert for the same reason.
  */
 function FormFieldset({ className, ...props }: ComponentProps<'fieldset'>) {
   return <fieldset className={cn('contents', className)} data-slot="form-fieldset" {...props} />;
