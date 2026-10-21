@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "sentry-homewise": {
+      "type": "http",
+      "url": "https://mcp.sentry.dev/mcp/ziga-krasovec-team"
+    }
+  }
+}
